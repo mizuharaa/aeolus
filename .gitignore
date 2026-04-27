@@ -15,7 +15,14 @@
 *.pem
 *.key
 secrets/
+credentials/
 credentials.json
+credentials.*.json
+*.credentials
+.aws/credentials
+.gcloud/
+*-credentials.json
+*-creds.json
 
 # -----------------------------------------------------------------------------
 # Python
