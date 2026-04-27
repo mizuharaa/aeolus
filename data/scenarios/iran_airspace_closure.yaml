@@ -1,0 +1,50 @@
+---
+id: iran_airspace_closure
+name: "Iran Airspace Closure"
+description: >
+  A geopolitical event results in the closure of Iranian airspace to commercial
+  aviation. Transatlantic routes via the Middle East are rerouted, adding
+  approximately 2.5 hours per affected long-haul flight.
+
+events:
+  - kind: airspace_closure
+    params:
+      airspace_id: "OIIX"
+      country: "Iran"
+      region_name: "Iranian FIR (OIIX)"
+      closure_altitude_fl_min: 0
+      closure_altitude_fl_max: 600
+      polygon:
+        - [44.0, 25.0]
+        - [63.5, 25.0]
+        - [63.5, 39.8]
+        - [44.0, 39.8]
+        - [44.0, 25.0]
+      duration_hours: 48
+      notam_id: "A0001/24"
+      reroute_penalty_minutes: 150
+      affected_route_pairs:
+        - [KJFK, OMDB]
+        - [KLAX, OMDB]
+        - [KATL, OMDB]
+        - [KORD, OMDB]
+        - [KORD, RJAA]
+        - [KLAX, RJAA]
+      overfly_alternatives:
+        - route: "via Saudi Arabia (OEJD FIR)"
+          extra_nm: 280
+        - route: "via Turkey (LTAA FIR)"
+          extra_nm: 420
+
+metadata:
+  estimated_affected_flights: 15
+  cascade_duration_hours: 48
+  difficulty: medium
+  primary_hub: null
+  event_types: [airspace_closure]
+  peak_delay_minutes: 150
+  estimated_cancellations: 0
+  estimated_diversions: 0
+  cost_range_usd: [380000, 720000]
+  affected_region: "Middle East / Transatlantic"
+  real_world_analog: "Iran airspace closures Jan 2020, Apr 2024"

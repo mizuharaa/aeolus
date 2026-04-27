@@ -1,0 +1,134 @@
+"""Tests for the MILP recovery optimizer."""
+import pytest
+from src.optimizer.milp import RecoveryOptimizer, RecoveryPlan
+
+
+FLIGHTS = [
+    {"id": "NB101", "aircraft_id": "N001NB", "origin": "KORD", "destination": "KATL",
+     "scheduled_departure": "2024-01-15T13:00:00Z", "scheduled_arrival": "2024-01-15T15:30:00Z",
+     "passengers": 148},
+    {"id": "NB102", "aircraft_id": "N001NB", "origin": "KATL", "destination": "KMIA",
+     "scheduled_departure": "2024-01-15T16:30:00Z", "scheduled_arrival": "2024-01-15T17:45:00Z",
+     "passengers": 135},
+    {"id": "NB103", "aircraft_id": "N002NB", "origin": "KORD", "destination": "KDFW",
+     "scheduled_departure": "2024-01-15T14:00:00Z", "scheduled_arrival": "2024-01-15T16:40:00Z",
+     "passengers": 150},
+]
+
+AIRCRAFT = [
+    {"id": "N001NB", "type": "B737-800", "base_airport_id": "KORD", "seats": 162, "min_turn_minutes": 45},
+    {"id": "N002NB", "type": "B737-800", "base_airport_id": "KORD", "seats": 162, "min_turn_minutes": 45},
+]
+
+CREWS = [
+    {"id": "CP001", "flight_id": "NB101", "captain_id": "CAP001", "first_officer_id": "FO001",
+     "duty_start": "2024-01-15T12:00:00Z", "flight_time_minutes": 150, "status": "assigned"},
+]
+
+PREDICTIONS = {
+    "NB101": {"p_delayed": 0.9, "expected_delay_min": 90, "cascade_order": 0},
+    "NB102": {"p_delayed": 0.7, "expected_delay_min": 60, "cascade_order": 1},
+    "NB103": {"p_delayed": 0.3, "expected_delay_min": 20, "cascade_order": 2},
+}
+
+
+@pytest.fixture
+def optimizer():
+    return RecoveryOptimizer(timeout_secs=10, use_fallback=True)
+
+
+class TestOptimizerOutputs:
+    def test_returns_three_plans(self, optimizer):
+        plans = optimizer.solve(
+            schedule=FLIGHTS, aircraft=AIRCRAFT, crews=CREWS,
+            events=[], disrupted_flights=["NB101"], cascade_predictions=PREDICTIONS,
+        )
+        assert len(plans) == 3
+
+    def test_plan_ids_are_abc(self, optimizer):
+        plans = optimizer.solve(
+            schedule=FLIGHTS, aircraft=AIRCRAFT, crews=CREWS,
+            events=[], disrupted_flights=["NB101"], cascade_predictions=PREDICTIONS,
+        )
+        ids = {p.plan_id for p in plans}
+        assert ids == {"A", "B", "C"}
+
+    def test_plans_have_objective_labels(self, optimizer):
+        plans = optimizer.solve(
+            schedule=FLIGHTS, aircraft=AIRCRAFT, crews=CREWS,
+            events=[], disrupted_flights=["NB101"], cascade_predictions=PREDICTIONS,
+        )
+        for p in plans:
+            assert p.objective_label
+            assert len(p.objective_label) > 0
+
+    def test_plans_have_valid_status(self, optimizer):
+        plans = optimizer.solve(
+            schedule=FLIGHTS, aircraft=AIRCRAFT, crews=CREWS,
+            events=[], disrupted_flights=["NB101"], cascade_predictions=PREDICTIONS,
+        )
+        valid_statuses = {"optimal", "feasible", "heuristic", "infeasible"}
+        for p in plans:
+            assert p.status in valid_statuses
+
+    def test_cost_is_non_negative(self, optimizer):
+        plans = optimizer.solve(
+            schedule=FLIGHTS, aircraft=AIRCRAFT, crews=CREWS,
+            events=[], disrupted_flights=["NB101"], cascade_predictions=PREDICTIONS,
+        )
+        for p in plans:
+            assert p.total_cost_usd >= 0
+
+    def test_cancelled_flights_are_subset(self, optimizer):
+        plans = optimizer.solve(
+            schedule=FLIGHTS, aircraft=AIRCRAFT, crews=CREWS,
+            events=[], disrupted_flights=["NB101"], cascade_predictions=PREDICTIONS,
+        )
+        flight_ids = {f["id"] for f in FLIGHTS}
+        for p in plans:
+            for fid in p.cancelled_flights:
+                assert fid in flight_ids
+
+    def test_plan_a_is_cost_focused(self, optimizer):
+        """Plan A (minimize cost) should have alpha weight = 10."""
+        weights = optimizer.PLAN_WEIGHTS["A"]
+        assert weights["alpha"] >= weights["beta"]
+        assert weights["alpha"] >= weights["gamma"]
+
+    def test_plan_b_is_passenger_focused(self, optimizer):
+        weights = optimizer.PLAN_WEIGHTS["B"]
+        assert weights["beta"] >= weights["alpha"]
+
+    def test_plan_c_is_positioning_focused(self, optimizer):
+        weights = optimizer.PLAN_WEIGHTS["C"]
+        assert weights["delta"] >= weights["alpha"]
+
+
+AIRCRAFT_MAP = {a["id"]: a for a in AIRCRAFT}
+FLIGHTS_MAP = {f["id"]: f for f in FLIGHTS}
+
+
+class TestHeuristicFallback:
+    def test_fallback_produces_plan(self, optimizer):
+        plan = optimizer._greedy_fallback(
+            "A", optimizer.PLAN_WEIGHTS["A"],
+            FLIGHTS_MAP,
+            AIRCRAFT_MAP,
+            ["NB101"],
+            PREDICTIONS,
+        )
+        assert plan.status == "heuristic"
+        assert plan.plan_id == "A"
+
+    def test_fallback_cancels_high_delay_flights(self, optimizer):
+        high_delay_predictions = {
+            "NB101": {"p_delayed": 0.95, "expected_delay_min": 240, "cascade_order": 0},
+        }
+        plan = optimizer._greedy_fallback(
+            "A", optimizer.PLAN_WEIGHTS["A"],
+            FLIGHTS_MAP,
+            AIRCRAFT_MAP,
+            ["NB101"],
+            high_delay_predictions,
+        )
+        assert "NB101" in plan.cancelled_flights

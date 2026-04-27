@@ -1,0 +1,1358 @@
+flights:
+  # ─── N001NB rotation: ORD → ATL → MIA → ATL → ORD ───
+  - id: NB101
+    aircraft_id: N001NB
+    origin: KORD
+    destination: KATL
+    scheduled_departure: "2024-01-15T12:00:00Z"
+    scheduled_arrival: "2024-01-15T14:15:00Z"
+    passengers: 148
+    status: scheduled
+    delay_minutes: 0
+  - id: NB102
+    aircraft_id: N001NB
+    origin: KATL
+    destination: KMIA
+    scheduled_departure: "2024-01-15T15:15:00Z"
+    scheduled_arrival: "2024-01-15T16:30:00Z"
+    passengers: 135
+    status: scheduled
+    delay_minutes: 0
+  - id: NB103
+    aircraft_id: N001NB
+    origin: KMIA
+    destination: KATL
+    scheduled_departure: "2024-01-15T17:30:00Z"
+    scheduled_arrival: "2024-01-15T18:45:00Z"
+    passengers: 129
+    status: scheduled
+    delay_minutes: 0
+  - id: NB104
+    aircraft_id: N001NB
+    origin: KATL
+    destination: KORD
+    scheduled_departure: "2024-01-15T19:45:00Z"
+    scheduled_arrival: "2024-01-15T22:00:00Z"
+    passengers: 142
+    status: scheduled
+    delay_minutes: 0
+
+  # ─── N002NB rotation: ORD → DFW → LAX → DFW → ORD ───
+  - id: NB105
+    aircraft_id: N002NB
+    origin: KORD
+    destination: KDFW
+    scheduled_departure: "2024-01-15T12:30:00Z"
+    scheduled_arrival: "2024-01-15T15:10:00Z"
+    passengers: 155
+    status: scheduled
+    delay_minutes: 0
+  - id: NB106
+    aircraft_id: N002NB
+    origin: KDFW
+    destination: KLAX
+    scheduled_departure: "2024-01-15T16:10:00Z"
+    scheduled_arrival: "2024-01-15T19:25:00Z"
+    passengers: 148
+    status: scheduled
+    delay_minutes: 0
+  - id: NB107
+    aircraft_id: N002NB
+    origin: KLAX
+    destination: KDFW
+    scheduled_departure: "2024-01-15T20:25:00Z"
+    scheduled_arrival: "2024-01-15T23:35:00Z"
+    passengers: 137
+    status: scheduled
+    delay_minutes: 0
+
+  # ─── N003NB rotation: ORD → DEN → PHX → DEN → ORD ───
+  - id: NB108
+    aircraft_id: N003NB
+    origin: KORD
+    destination: KDEN
+    scheduled_departure: "2024-01-15T13:00:00Z"
+    scheduled_arrival: "2024-01-15T15:35:00Z"
+    passengers: 140
+    status: scheduled
+    delay_minutes: 0
+  - id: NB109
+    aircraft_id: N003NB
+    origin: KDEN
+    destination: KPHX
+    scheduled_departure: "2024-01-15T16:35:00Z"
+    scheduled_arrival: "2024-01-15T18:30:00Z"
+    passengers: 125
+    status: scheduled
+    delay_minutes: 0
+  - id: NB110
+    aircraft_id: N003NB
+    origin: KPHX
+    destination: KDEN
+    scheduled_departure: "2024-01-15T19:30:00Z"
+    scheduled_arrival: "2024-01-15T21:25:00Z"
+    passengers: 133
+    status: scheduled
+    delay_minutes: 0
+  - id: NB111
+    aircraft_id: N003NB
+    origin: KDEN
+    destination: KORD
+    scheduled_departure: "2024-01-15T22:25:00Z"
+    scheduled_arrival: "2024-01-16T01:10:00Z"
+    passengers: 118
+    status: scheduled
+    delay_minutes: 0
+
+  # ─── N004NB rotation: ORD → JFK → BOS → JFK → ORD ───
+  - id: NB112
+    aircraft_id: N004NB
+    origin: KORD
+    destination: KJFK
+    scheduled_departure: "2024-01-15T11:30:00Z"
+    scheduled_arrival: "2024-01-15T13:45:00Z"
+    passengers: 145
+    status: scheduled
+    delay_minutes: 0
+  - id: NB113
+    aircraft_id: N004NB
+    origin: KJFK
+    destination: KBOS
+    scheduled_departure: "2024-01-15T14:45:00Z"
+    scheduled_arrival: "2024-01-15T15:50:00Z"
+    passengers: 138
+    status: scheduled
+    delay_minutes: 0
+  - id: NB114
+    aircraft_id: N004NB
+    origin: KBOS
+    destination: KJFK
+    scheduled_departure: "2024-01-15T16:50:00Z"
+    scheduled_arrival: "2024-01-15T17:55:00Z"
+    passengers: 142
+    status: scheduled
+    delay_minutes: 0
+  - id: NB115
+    aircraft_id: N004NB
+    origin: KJFK
+    destination: KORD
+    scheduled_departure: "2024-01-15T18:55:00Z"
+    scheduled_arrival: "2024-01-15T21:10:00Z"
+    passengers: 151
+    status: scheduled
+    delay_minutes: 0
+
+  # ─── N005NB rotation: ORD → LAX → SFO → LAX → ORD (757, long range) ───
+  - id: NB116
+    aircraft_id: N005NB
+    origin: KORD
+    destination: KLAX
+    scheduled_departure: "2024-01-15T14:00:00Z"
+    scheduled_arrival: "2024-01-15T18:30:00Z"
+    passengers: 188
+    status: scheduled
+    delay_minutes: 0
+  - id: NB117
+    aircraft_id: N005NB
+    origin: KLAX
+    destination: KSFO
+    scheduled_departure: "2024-01-15T19:30:00Z"
+    scheduled_arrival: "2024-01-15T20:35:00Z"
+    passengers: 175
+    status: scheduled
+    delay_minutes: 0
+  - id: NB118
+    aircraft_id: N005NB
+    origin: KSFO
+    destination: KLAX
+    scheduled_departure: "2024-01-15T21:35:00Z"
+    scheduled_arrival: "2024-01-15T22:40:00Z"
+    passengers: 182
+    status: scheduled
+    delay_minutes: 0
+
+  # ─── N006NB rotation: ORD → ATL → IAH → ATL → ORD ───
+  - id: NB119
+    aircraft_id: N006NB
+    origin: KORD
+    destination: KATL
+    scheduled_departure: "2024-01-15T15:00:00Z"
+    scheduled_arrival: "2024-01-15T17:15:00Z"
+    passengers: 153
+    status: scheduled
+    delay_minutes: 0
+  - id: NB120
+    aircraft_id: N006NB
+    origin: KATL
+    destination: KIAH
+    scheduled_departure: "2024-01-15T18:15:00Z"
+    scheduled_arrival: "2024-01-15T20:35:00Z"
+    passengers: 141
+    status: scheduled
+    delay_minutes: 0
+  - id: NB121
+    aircraft_id: N006NB
+    origin: KIAH
+    destination: KATL
+    scheduled_departure: "2024-01-15T21:35:00Z"
+    scheduled_arrival: "2024-01-15T23:55:00Z"
+    passengers: 138
+    status: scheduled
+    delay_minutes: 0
+
+  # ─── N007NB rotation: ORD → DTW → ORD → MSP → ORD (E175 short hops) ───
+  - id: NB122
+    aircraft_id: N007NB
+    origin: KORD
+    destination: KDTW
+    scheduled_departure: "2024-01-15T12:00:00Z"
+    scheduled_arrival: "2024-01-15T13:10:00Z"
+    passengers: 68
+    status: scheduled
+    delay_minutes: 0
+  - id: NB123
+    aircraft_id: N007NB
+    origin: KDTW
+    destination: KORD
+    scheduled_departure: "2024-01-15T14:10:00Z"
+    scheduled_arrival: "2024-01-15T15:20:00Z"
+    passengers: 72
+    status: scheduled
+    delay_minutes: 0
+  - id: NB124
+    aircraft_id: N007NB
+    origin: KORD
+    destination: KMSP
+    scheduled_departure: "2024-01-15T16:20:00Z"
+    scheduled_arrival: "2024-01-15T17:30:00Z"
+    passengers: 70
+    status: scheduled
+    delay_minutes: 0
+  - id: NB125
+    aircraft_id: N007NB
+    origin: KMSP
+    destination: KORD
+    scheduled_departure: "2024-01-15T18:30:00Z"
+    scheduled_arrival: "2024-01-15T19:40:00Z"
+    passengers: 65
+    status: scheduled
+    delay_minutes: 0
+
+  # ─── N008NB rotation: ORD → DTW → ORD → DTW → ORD (E175) ───
+  - id: NB126
+    aircraft_id: N008NB
+    origin: KORD
+    destination: KDTW
+    scheduled_departure: "2024-01-15T13:00:00Z"
+    scheduled_arrival: "2024-01-15T14:10:00Z"
+    passengers: 71
+    status: scheduled
+    delay_minutes: 0
+  - id: NB127
+    aircraft_id: N008NB
+    origin: KDTW
+    destination: KORD
+    scheduled_departure: "2024-01-15T15:10:00Z"
+    scheduled_arrival: "2024-01-15T16:20:00Z"
+    passengers: 67
+    status: scheduled
+    delay_minutes: 0
+  - id: NB128
+    aircraft_id: N008NB
+    origin: KORD
+    destination: KDTW
+    scheduled_departure: "2024-01-15T17:20:00Z"
+    scheduled_arrival: "2024-01-15T18:30:00Z"
+    passengers: 73
+    status: scheduled
+    delay_minutes: 0
+  - id: NB129
+    aircraft_id: N008NB
+    origin: KDTW
+    destination: KORD
+    scheduled_departure: "2024-01-15T19:30:00Z"
+    scheduled_arrival: "2024-01-15T20:40:00Z"
+    passengers: 69
+    status: scheduled
+    delay_minutes: 0
+
+  # ─── N009NB rotation: ORD → MSP → DEN → MSP → ORD ───
+  - id: NB130
+    aircraft_id: N009NB
+    origin: KORD
+    destination: KMSP
+    scheduled_departure: "2024-01-15T12:45:00Z"
+    scheduled_arrival: "2024-01-15T13:55:00Z"
+    passengers: 136
+    status: scheduled
+    delay_minutes: 0
+  - id: NB131
+    aircraft_id: N009NB
+    origin: KMSP
+    destination: KDEN
+    scheduled_departure: "2024-01-15T14:55:00Z"
+    scheduled_arrival: "2024-01-15T16:55:00Z"
+    passengers: 128
+    status: scheduled
+    delay_minutes: 0
+  - id: NB132
+    aircraft_id: N009NB
+    origin: KDEN
+    destination: KMSP
+    scheduled_departure: "2024-01-15T17:55:00Z"
+    scheduled_arrival: "2024-01-15T19:55:00Z"
+    passengers: 131
+    status: scheduled
+    delay_minutes: 0
+  - id: NB133
+    aircraft_id: N009NB
+    origin: KMSP
+    destination: KORD
+    scheduled_departure: "2024-01-15T20:55:00Z"
+    scheduled_arrival: "2024-01-15T22:05:00Z"
+    passengers: 125
+    status: scheduled
+    delay_minutes: 0
+
+  # ─── N010NB rotation: ORD → MIA → ORD → ATL → ORD ───
+  - id: NB134
+    aircraft_id: N010NB
+    origin: KORD
+    destination: KMIA
+    scheduled_departure: "2024-01-15T11:00:00Z"
+    scheduled_arrival: "2024-01-15T14:05:00Z"
+    passengers: 157
+    status: scheduled
+    delay_minutes: 0
+  - id: NB135
+    aircraft_id: N010NB
+    origin: KMIA
+    destination: KORD
+    scheduled_departure: "2024-01-15T15:05:00Z"
+    scheduled_arrival: "2024-01-15T18:10:00Z"
+    passengers: 149
+    status: scheduled
+    delay_minutes: 0
+  - id: NB136
+    aircraft_id: N010NB
+    origin: KORD
+    destination: KATL
+    scheduled_departure: "2024-01-15T19:10:00Z"
+    scheduled_arrival: "2024-01-15T21:25:00Z"
+    passengers: 143
+    status: scheduled
+    delay_minutes: 0
+
+  # ─── N011NB rotation: ATL → JFK → ATL → BOS → ATL ───
+  - id: NB137
+    aircraft_id: N011NB
+    origin: KATL
+    destination: KJFK
+    scheduled_departure: "2024-01-15T12:00:00Z"
+    scheduled_arrival: "2024-01-15T14:30:00Z"
+    passengers: 155
+    status: scheduled
+    delay_minutes: 0
+  - id: NB138
+    aircraft_id: N011NB
+    origin: KJFK
+    destination: KATL
+    scheduled_departure: "2024-01-15T15:30:00Z"
+    scheduled_arrival: "2024-01-15T18:00:00Z"
+    passengers: 147
+    status: scheduled
+    delay_minutes: 0
+  - id: NB139
+    aircraft_id: N011NB
+    origin: KATL
+    destination: KBOS
+    scheduled_departure: "2024-01-15T19:00:00Z"
+    scheduled_arrival: "2024-01-15T21:40:00Z"
+    passengers: 151
+    status: scheduled
+    delay_minutes: 0
+
+  # ─── N012NB rotation: ATL → DFW → PHX → DFW → ATL ───
+  - id: NB140
+    aircraft_id: N012NB
+    origin: KATL
+    destination: KDFW
+    scheduled_departure: "2024-01-15T13:00:00Z"
+    scheduled_arrival: "2024-01-15T15:40:00Z"
+    passengers: 158
+    status: scheduled
+    delay_minutes: 0
+  - id: NB141
+    aircraft_id: N012NB
+    origin: KDFW
+    destination: KPHX
+    scheduled_departure: "2024-01-15T16:40:00Z"
+    scheduled_arrival: "2024-01-15T18:55:00Z"
+    passengers: 144
+    status: scheduled
+    delay_minutes: 0
+  - id: NB142
+    aircraft_id: N012NB
+    origin: KPHX
+    destination: KDFW
+    scheduled_departure: "2024-01-15T19:55:00Z"
+    scheduled_arrival: "2024-01-15T22:05:00Z"
+    passengers: 136
+    status: scheduled
+    delay_minutes: 0
+
+  # ─── N013NB rotation: ATL → ORD → MSP → ORD → ATL ───
+  - id: NB143
+    aircraft_id: N013NB
+    origin: KATL
+    destination: KORD
+    scheduled_departure: "2024-01-15T11:30:00Z"
+    scheduled_arrival: "2024-01-15T13:45:00Z"
+    passengers: 143
+    status: scheduled
+    delay_minutes: 0
+  - id: NB144
+    aircraft_id: N013NB
+    origin: KORD
+    destination: KMSP
+    scheduled_departure: "2024-01-15T14:45:00Z"
+    scheduled_arrival: "2024-01-15T15:55:00Z"
+    passengers: 132
+    status: scheduled
+    delay_minutes: 0
+  - id: NB145
+    aircraft_id: N013NB
+    origin: KMSP
+    destination: KORD
+    scheduled_departure: "2024-01-15T16:55:00Z"
+    scheduled_arrival: "2024-01-15T18:05:00Z"
+    passengers: 138
+    status: scheduled
+    delay_minutes: 0
+  - id: NB146
+    aircraft_id: N013NB
+    origin: KORD
+    destination: KATL
+    scheduled_departure: "2024-01-15T19:05:00Z"
+    scheduled_arrival: "2024-01-15T21:20:00Z"
+    passengers: 145
+    status: scheduled
+    delay_minutes: 0
+
+  # ─── N014NB rotation: ATL → LAX → LAS → LAX → ATL (757) ───
+  - id: NB147
+    aircraft_id: N014NB
+    origin: KATL
+    destination: KLAX
+    scheduled_departure: "2024-01-15T13:30:00Z"
+    scheduled_arrival: "2024-01-15T18:00:00Z"
+    passengers: 192
+    status: scheduled
+    delay_minutes: 0
+  - id: NB148
+    aircraft_id: N014NB
+    origin: KLAX
+    destination: KLAS
+    scheduled_departure: "2024-01-15T19:00:00Z"
+    scheduled_arrival: "2024-01-15T20:05:00Z"
+    passengers: 185
+    status: scheduled
+    delay_minutes: 0
+  - id: NB149
+    aircraft_id: N014NB
+    origin: KLAS
+    destination: KLAX
+    scheduled_departure: "2024-01-15T21:05:00Z"
+    scheduled_arrival: "2024-01-15T22:10:00Z"
+    passengers: 179
+    status: scheduled
+    delay_minutes: 0
+
+  # ─── N015NB rotation: ATL → MIA → ATL (E175) ───
+  - id: NB150
+    aircraft_id: N015NB
+    origin: KATL
+    destination: KMIA
+    scheduled_departure: "2024-01-15T14:00:00Z"
+    scheduled_arrival: "2024-01-15T15:15:00Z"
+    passengers: 70
+    status: scheduled
+    delay_minutes: 0
+  - id: NB151
+    aircraft_id: N015NB
+    origin: KMIA
+    destination: KATL
+    scheduled_departure: "2024-01-15T16:15:00Z"
+    scheduled_arrival: "2024-01-15T17:30:00Z"
+    passengers: 68
+    status: scheduled
+    delay_minutes: 0
+  - id: NB152
+    aircraft_id: N015NB
+    origin: KATL
+    destination: KMIA
+    scheduled_departure: "2024-01-15T18:30:00Z"
+    scheduled_arrival: "2024-01-15T19:45:00Z"
+    passengers: 72
+    status: scheduled
+    delay_minutes: 0
+  - id: NB153
+    aircraft_id: N015NB
+    origin: KMIA
+    destination: KATL
+    scheduled_departure: "2024-01-15T20:45:00Z"
+    scheduled_arrival: "2024-01-15T22:00:00Z"
+    passengers: 66
+    status: scheduled
+    delay_minutes: 0
+
+  # ─── N016NB rotation: ATL → ORD → ATL ───
+  - id: NB154
+    aircraft_id: N016NB
+    origin: KATL
+    destination: KORD
+    scheduled_departure: "2024-01-15T16:00:00Z"
+    scheduled_arrival: "2024-01-15T18:15:00Z"
+    passengers: 156
+    status: scheduled
+    delay_minutes: 0
+  - id: NB155
+    aircraft_id: N016NB
+    origin: KORD
+    destination: KATL
+    scheduled_departure: "2024-01-15T19:15:00Z"
+    scheduled_arrival: "2024-01-15T21:30:00Z"
+    passengers: 149
+    status: scheduled
+    delay_minutes: 0
+
+  # ─── N017NB rotation: ATL → IAH → ATL → IAH ───
+  - id: NB156
+    aircraft_id: N017NB
+    origin: KATL
+    destination: KIAH
+    scheduled_departure: "2024-01-15T12:00:00Z"
+    scheduled_arrival: "2024-01-15T14:20:00Z"
+    passengers: 142
+    status: scheduled
+    delay_minutes: 0
+  - id: NB157
+    aircraft_id: N017NB
+    origin: KIAH
+    destination: KATL
+    scheduled_departure: "2024-01-15T15:20:00Z"
+    scheduled_arrival: "2024-01-15T17:40:00Z"
+    passengers: 137
+    status: scheduled
+    delay_minutes: 0
+  - id: NB158
+    aircraft_id: N017NB
+    origin: KATL
+    destination: KIAH
+    scheduled_departure: "2024-01-15T18:40:00Z"
+    scheduled_arrival: "2024-01-15T21:00:00Z"
+    passengers: 145
+    status: scheduled
+    delay_minutes: 0
+
+  # ─── N018NB rotation: ATL → ORD → DTW → ORD (E175) ───
+  - id: NB159
+    aircraft_id: N018NB
+    origin: KATL
+    destination: KORD
+    scheduled_departure: "2024-01-15T14:30:00Z"
+    scheduled_arrival: "2024-01-15T16:45:00Z"
+    passengers: 71
+    status: scheduled
+    delay_minutes: 0
+  - id: NB160
+    aircraft_id: N018NB
+    origin: KORD
+    destination: KDTW
+    scheduled_departure: "2024-01-15T17:45:00Z"
+    scheduled_arrival: "2024-01-15T18:55:00Z"
+    passengers: 68
+    status: scheduled
+    delay_minutes: 0
+  - id: NB161
+    aircraft_id: N018NB
+    origin: KDTW
+    destination: KORD
+    scheduled_departure: "2024-01-15T19:55:00Z"
+    scheduled_arrival: "2024-01-15T21:05:00Z"
+    passengers: 65
+    status: scheduled
+    delay_minutes: 0
+
+  # ─── N019NB rotation: DFW → LAX → SEA → LAX → DFW ───
+  - id: NB162
+    aircraft_id: N019NB
+    origin: KDFW
+    destination: KLAX
+    scheduled_departure: "2024-01-15T13:00:00Z"
+    scheduled_arrival: "2024-01-15T16:15:00Z"
+    passengers: 157
+    status: scheduled
+    delay_minutes: 0
+  - id: NB163
+    aircraft_id: N019NB
+    origin: KLAX
+    destination: KSEA
+    scheduled_departure: "2024-01-15T17:15:00Z"
+    scheduled_arrival: "2024-01-15T19:45:00Z"
+    passengers: 148
+    status: scheduled
+    delay_minutes: 0
+  - id: NB164
+    aircraft_id: N019NB
+    origin: KSEA
+    destination: KLAX
+    scheduled_departure: "2024-01-15T20:45:00Z"
+    scheduled_arrival: "2024-01-15T23:10:00Z"
+    passengers: 141
+    status: scheduled
+    delay_minutes: 0
+
+  # ─── N020NB rotation: DFW → DEN → LAS → DEN → DFW ───
+  - id: NB165
+    aircraft_id: N020NB
+    origin: KDFW
+    destination: KDEN
+    scheduled_departure: "2024-01-15T12:30:00Z"
+    scheduled_arrival: "2024-01-15T14:30:00Z"
+    passengers: 143
+    status: scheduled
+    delay_minutes: 0
+  - id: NB166
+    aircraft_id: N020NB
+    origin: KDEN
+    destination: KLAS
+    scheduled_departure: "2024-01-15T15:30:00Z"
+    scheduled_arrival: "2024-01-15T17:35:00Z"
+    passengers: 136
+    status: scheduled
+    delay_minutes: 0
+  - id: NB167
+    aircraft_id: N020NB
+    origin: KLAS
+    destination: KDEN
+    scheduled_departure: "2024-01-15T18:35:00Z"
+    scheduled_arrival: "2024-01-15T20:40:00Z"
+    passengers: 130
+    status: scheduled
+    delay_minutes: 0
+  - id: NB168
+    aircraft_id: N020NB
+    origin: KDEN
+    destination: KDFW
+    scheduled_departure: "2024-01-15T21:40:00Z"
+    scheduled_arrival: "2024-01-15T23:40:00Z"
+    passengers: 128
+    status: scheduled
+    delay_minutes: 0
+
+  # ─── N021NB rotation: DFW → ATL → MIA → ATL → DFW (757) ───
+  - id: NB169
+    aircraft_id: N021NB
+    origin: KDFW
+    destination: KATL
+    scheduled_departure: "2024-01-15T14:00:00Z"
+    scheduled_arrival: "2024-01-15T16:40:00Z"
+    passengers: 192
+    status: scheduled
+    delay_minutes: 0
+  - id: NB170
+    aircraft_id: N021NB
+    origin: KATL
+    destination: KMIA
+    scheduled_departure: "2024-01-15T17:40:00Z"
+    scheduled_arrival: "2024-01-15T18:55:00Z"
+    passengers: 183
+    status: scheduled
+    delay_minutes: 0
+  - id: NB171
+    aircraft_id: N021NB
+    origin: KMIA
+    destination: KATL
+    scheduled_departure: "2024-01-15T19:55:00Z"
+    scheduled_arrival: "2024-01-15T21:10:00Z"
+    passengers: 176
+    status: scheduled
+    delay_minutes: 0
+
+  # ─── N022NB rotation: DFW → ORD → JFK → ORD → DFW ───
+  - id: NB172
+    aircraft_id: N022NB
+    origin: KDFW
+    destination: KORD
+    scheduled_departure: "2024-01-15T11:00:00Z"
+    scheduled_arrival: "2024-01-15T13:35:00Z"
+    passengers: 152
+    status: scheduled
+    delay_minutes: 0
+  - id: NB173
+    aircraft_id: N022NB
+    origin: KORD
+    destination: KJFK
+    scheduled_departure: "2024-01-15T14:35:00Z"
+    scheduled_arrival: "2024-01-15T16:50:00Z"
+    passengers: 145
+    status: scheduled
+    delay_minutes: 0
+  - id: NB174
+    aircraft_id: N022NB
+    origin: KJFK
+    destination: KORD
+    scheduled_departure: "2024-01-15T17:50:00Z"
+    scheduled_arrival: "2024-01-15T20:05:00Z"
+    passengers: 148
+    status: scheduled
+    delay_minutes: 0
+  - id: NB175
+    aircraft_id: N022NB
+    origin: KORD
+    destination: KDFW
+    scheduled_departure: "2024-01-15T21:05:00Z"
+    scheduled_arrival: "2024-01-15T23:40:00Z"
+    passengers: 140
+    status: scheduled
+    delay_minutes: 0
+
+  # ─── N023NB rotation: DFW → IAH → DFW → IAH (E175) ───
+  - id: NB176
+    aircraft_id: N023NB
+    origin: KDFW
+    destination: KIAH
+    scheduled_departure: "2024-01-15T13:00:00Z"
+    scheduled_arrival: "2024-01-15T14:00:00Z"
+    passengers: 70
+    status: scheduled
+    delay_minutes: 0
+  - id: NB177
+    aircraft_id: N023NB
+    origin: KIAH
+    destination: KDFW
+    scheduled_departure: "2024-01-15T15:00:00Z"
+    scheduled_arrival: "2024-01-15T16:00:00Z"
+    passengers: 68
+    status: scheduled
+    delay_minutes: 0
+  - id: NB178
+    aircraft_id: N023NB
+    origin: KDFW
+    destination: KIAH
+    scheduled_departure: "2024-01-15T17:00:00Z"
+    scheduled_arrival: "2024-01-15T18:00:00Z"
+    passengers: 72
+    status: scheduled
+    delay_minutes: 0
+  - id: NB179
+    aircraft_id: N023NB
+    origin: KIAH
+    destination: KDFW
+    scheduled_departure: "2024-01-15T19:00:00Z"
+    scheduled_arrival: "2024-01-15T20:00:00Z"
+    passengers: 65
+    status: scheduled
+    delay_minutes: 0
+
+  # ─── N024NB rotation: DFW → PHX → LAS → PHX → DFW ───
+  - id: NB180
+    aircraft_id: N024NB
+    origin: KDFW
+    destination: KPHX
+    scheduled_departure: "2024-01-15T15:00:00Z"
+    scheduled_arrival: "2024-01-15T17:15:00Z"
+    passengers: 144
+    status: scheduled
+    delay_minutes: 0
+  - id: NB181
+    aircraft_id: N024NB
+    origin: KPHX
+    destination: KLAS
+    scheduled_departure: "2024-01-15T18:15:00Z"
+    scheduled_arrival: "2024-01-15T19:20:00Z"
+    passengers: 138
+    status: scheduled
+    delay_minutes: 0
+  - id: NB182
+    aircraft_id: N024NB
+    origin: KLAS
+    destination: KPHX
+    scheduled_departure: "2024-01-15T20:20:00Z"
+    scheduled_arrival: "2024-01-15T21:25:00Z"
+    passengers: 131
+    status: scheduled
+    delay_minutes: 0
+
+  # ─── N025NB rotation: LAX → ORD → ATL → ORD → LAX ───
+  - id: NB183
+    aircraft_id: N025NB
+    origin: KLAX
+    destination: KORD
+    scheduled_departure: "2024-01-15T14:30:00Z"
+    scheduled_arrival: "2024-01-15T20:45:00Z"
+    passengers: 155
+    status: scheduled
+    delay_minutes: 0
+  - id: NB184
+    aircraft_id: N025NB
+    origin: KORD
+    destination: KATL
+    scheduled_departure: "2024-01-15T21:45:00Z"
+    scheduled_arrival: "2024-01-15T23:59:00Z"
+    passengers: 148
+    status: scheduled
+    delay_minutes: 0
+
+  # ─── N026NB rotation: LAX → SFO → DEN → SFO → LAX ───
+  - id: NB185
+    aircraft_id: N026NB
+    origin: KLAX
+    destination: KSFO
+    scheduled_departure: "2024-01-15T12:00:00Z"
+    scheduled_arrival: "2024-01-15T13:05:00Z"
+    passengers: 143
+    status: scheduled
+    delay_minutes: 0
+  - id: NB186
+    aircraft_id: N026NB
+    origin: KSFO
+    destination: KDEN
+    scheduled_departure: "2024-01-15T14:05:00Z"
+    scheduled_arrival: "2024-01-15T17:00:00Z"
+    passengers: 137
+    status: scheduled
+    delay_minutes: 0
+  - id: NB187
+    aircraft_id: N026NB
+    origin: KDEN
+    destination: KSFO
+    scheduled_departure: "2024-01-15T18:00:00Z"
+    scheduled_arrival: "2024-01-15T20:55:00Z"
+    passengers: 130
+    status: scheduled
+    delay_minutes: 0
+  - id: NB188
+    aircraft_id: N026NB
+    origin: KSFO
+    destination: KLAX
+    scheduled_departure: "2024-01-15T21:55:00Z"
+    scheduled_arrival: "2024-01-15T23:00:00Z"
+    passengers: 125
+    status: scheduled
+    delay_minutes: 0
+
+  # ─── N027NB rotation: LAX → LAS → PHX → LAS → LAX (757) ───
+  - id: NB189
+    aircraft_id: N027NB
+    origin: KLAX
+    destination: KLAS
+    scheduled_departure: "2024-01-15T13:30:00Z"
+    scheduled_arrival: "2024-01-15T14:35:00Z"
+    passengers: 192
+    status: scheduled
+    delay_minutes: 0
+  - id: NB190
+    aircraft_id: N027NB
+    origin: KLAS
+    destination: KPHX
+    scheduled_departure: "2024-01-15T15:35:00Z"
+    scheduled_arrival: "2024-01-15T16:40:00Z"
+    passengers: 185
+    status: scheduled
+    delay_minutes: 0
+  - id: NB191
+    aircraft_id: N027NB
+    origin: KPHX
+    destination: KLAS
+    scheduled_departure: "2024-01-15T17:40:00Z"
+    scheduled_arrival: "2024-01-15T18:45:00Z"
+    passengers: 179
+    status: scheduled
+    delay_minutes: 0
+  - id: NB192
+    aircraft_id: N027NB
+    origin: KLAS
+    destination: KLAX
+    scheduled_departure: "2024-01-15T19:45:00Z"
+    scheduled_arrival: "2024-01-15T20:50:00Z"
+    passengers: 174
+    status: scheduled
+    delay_minutes: 0
+
+  # ─── N028NB rotation: LAX → DFW → IAH → DFW → LAX ───
+  - id: NB193
+    aircraft_id: N028NB
+    origin: KLAX
+    destination: KDFW
+    scheduled_departure: "2024-01-15T15:00:00Z"
+    scheduled_arrival: "2024-01-15T18:15:00Z"
+    passengers: 156
+    status: scheduled
+    delay_minutes: 0
+  - id: NB194
+    aircraft_id: N028NB
+    origin: KDFW
+    destination: KIAH
+    scheduled_departure: "2024-01-15T19:15:00Z"
+    scheduled_arrival: "2024-01-15T20:15:00Z"
+    passengers: 148
+    status: scheduled
+    delay_minutes: 0
+  - id: NB195
+    aircraft_id: N028NB
+    origin: KIAH
+    destination: KDFW
+    scheduled_departure: "2024-01-15T21:15:00Z"
+    scheduled_arrival: "2024-01-15T22:15:00Z"
+    passengers: 141
+    status: scheduled
+    delay_minutes: 0
+
+  # ─── N029NB rotation: LAX → SEA → LAX → SEA (E175) ───
+  - id: NB196
+    aircraft_id: N029NB
+    origin: KLAX
+    destination: KSEA
+    scheduled_departure: "2024-01-15T12:00:00Z"
+    scheduled_arrival: "2024-01-15T14:30:00Z"
+    passengers: 70
+    status: scheduled
+    delay_minutes: 0
+  - id: NB197
+    aircraft_id: N029NB
+    origin: KSEA
+    destination: KLAX
+    scheduled_departure: "2024-01-15T15:30:00Z"
+    scheduled_arrival: "2024-01-15T18:00:00Z"
+    passengers: 67
+    status: scheduled
+    delay_minutes: 0
+  - id: NB198
+    aircraft_id: N029NB
+    origin: KLAX
+    destination: KSEA
+    scheduled_departure: "2024-01-15T19:00:00Z"
+    scheduled_arrival: "2024-01-15T21:30:00Z"
+    passengers: 71
+    status: scheduled
+    delay_minutes: 0
+
+  # ─── N030NB rotation: DEN → ORD → DTW → ORD → DEN ───
+  - id: NB199
+    aircraft_id: N030NB
+    origin: KDEN
+    destination: KORD
+    scheduled_departure: "2024-01-15T13:00:00Z"
+    scheduled_arrival: "2024-01-15T15:35:00Z"
+    passengers: 155
+    status: scheduled
+    delay_minutes: 0
+  - id: NB200
+    aircraft_id: N030NB
+    origin: KORD
+    destination: KDTW
+    scheduled_departure: "2024-01-15T16:35:00Z"
+    scheduled_arrival: "2024-01-15T17:45:00Z"
+    passengers: 148
+    status: scheduled
+    delay_minutes: 0
+  - id: NB201
+    aircraft_id: N030NB
+    origin: KDTW
+    destination: KORD
+    scheduled_departure: "2024-01-15T18:45:00Z"
+    scheduled_arrival: "2024-01-15T19:55:00Z"
+    passengers: 141
+    status: scheduled
+    delay_minutes: 0
+  - id: NB202
+    aircraft_id: N030NB
+    origin: KORD
+    destination: KDEN
+    scheduled_departure: "2024-01-15T20:55:00Z"
+    scheduled_arrival: "2024-01-15T23:30:00Z"
+    passengers: 137
+    status: scheduled
+    delay_minutes: 0
+
+  # ─── N031NB rotation: DEN → LAX → SFO → LAX → DEN ───
+  - id: NB203
+    aircraft_id: N031NB
+    origin: KDEN
+    destination: KLAX
+    scheduled_departure: "2024-01-15T14:00:00Z"
+    scheduled_arrival: "2024-01-15T16:50:00Z"
+    passengers: 144
+    status: scheduled
+    delay_minutes: 0
+  - id: NB204
+    aircraft_id: N031NB
+    origin: KLAX
+    destination: KSFO
+    scheduled_departure: "2024-01-15T17:50:00Z"
+    scheduled_arrival: "2024-01-15T18:55:00Z"
+    passengers: 137
+    status: scheduled
+    delay_minutes: 0
+  - id: NB205
+    aircraft_id: N031NB
+    origin: KSFO
+    destination: KLAX
+    scheduled_departure: "2024-01-15T19:55:00Z"
+    scheduled_arrival: "2024-01-15T21:00:00Z"
+    passengers: 131
+    status: scheduled
+    delay_minutes: 0
+  - id: NB206
+    aircraft_id: N031NB
+    origin: KLAX
+    destination: KDEN
+    scheduled_departure: "2024-01-15T22:00:00Z"
+    scheduled_arrival: "2024-01-16T00:50:00Z"
+    passengers: 128
+    status: scheduled
+    delay_minutes: 0
+
+  # ─── N032NB rotation: DEN → PHX → LAS → PHX (E175) ───
+  - id: NB207
+    aircraft_id: N032NB
+    origin: KDEN
+    destination: KPHX
+    scheduled_departure: "2024-01-15T12:30:00Z"
+    scheduled_arrival: "2024-01-15T14:25:00Z"
+    passengers: 70
+    status: scheduled
+    delay_minutes: 0
+  - id: NB208
+    aircraft_id: N032NB
+    origin: KPHX
+    destination: KLAS
+    scheduled_departure: "2024-01-15T15:25:00Z"
+    scheduled_arrival: "2024-01-15T16:30:00Z"
+    passengers: 67
+    status: scheduled
+    delay_minutes: 0
+  - id: NB209
+    aircraft_id: N032NB
+    origin: KLAS
+    destination: KPHX
+    scheduled_departure: "2024-01-15T17:30:00Z"
+    scheduled_arrival: "2024-01-15T18:35:00Z"
+    passengers: 72
+    status: scheduled
+    delay_minutes: 0
+  - id: NB210
+    aircraft_id: N032NB
+    origin: KPHX
+    destination: KDEN
+    scheduled_departure: "2024-01-15T19:35:00Z"
+    scheduled_arrival: "2024-01-15T21:30:00Z"
+    passengers: 65
+    status: scheduled
+    delay_minutes: 0
+
+  # ─── N033NB rotation: DEN → DFW → IAH → DFW → DEN ───
+  - id: NB211
+    aircraft_id: N033NB
+    origin: KDEN
+    destination: KDFW
+    scheduled_departure: "2024-01-15T15:00:00Z"
+    scheduled_arrival: "2024-01-15T17:00:00Z"
+    passengers: 153
+    status: scheduled
+    delay_minutes: 0
+  - id: NB212
+    aircraft_id: N033NB
+    origin: KDFW
+    destination: KIAH
+    scheduled_departure: "2024-01-15T18:00:00Z"
+    scheduled_arrival: "2024-01-15T19:00:00Z"
+    passengers: 146
+    status: scheduled
+    delay_minutes: 0
+  - id: NB213
+    aircraft_id: N033NB
+    origin: KIAH
+    destination: KDFW
+    scheduled_departure: "2024-01-15T20:00:00Z"
+    scheduled_arrival: "2024-01-15T21:00:00Z"
+    passengers: 139
+    status: scheduled
+    delay_minutes: 0
+  - id: NB214
+    aircraft_id: N033NB
+    origin: KDFW
+    destination: KDEN
+    scheduled_departure: "2024-01-15T22:00:00Z"
+    scheduled_arrival: "2024-01-16T00:00:00Z"
+    passengers: 133
+    status: scheduled
+    delay_minutes: 0
+
+  # ─── N034NB rotation: JFK → MIA → ATL → MIA → JFK (757) ───
+  - id: NB215
+    aircraft_id: N034NB
+    origin: KJFK
+    destination: KMIA
+    scheduled_departure: "2024-01-15T12:00:00Z"
+    scheduled_arrival: "2024-01-15T14:45:00Z"
+    passengers: 193
+    status: scheduled
+    delay_minutes: 0
+  - id: NB216
+    aircraft_id: N034NB
+    origin: KMIA
+    destination: KATL
+    scheduled_departure: "2024-01-15T15:45:00Z"
+    scheduled_arrival: "2024-01-15T17:00:00Z"
+    passengers: 184
+    status: scheduled
+    delay_minutes: 0
+  - id: NB217
+    aircraft_id: N034NB
+    origin: KATL
+    destination: KMIA
+    scheduled_departure: "2024-01-15T18:00:00Z"
+    scheduled_arrival: "2024-01-15T19:15:00Z"
+    passengers: 178
+    status: scheduled
+    delay_minutes: 0
+  - id: NB218
+    aircraft_id: N034NB
+    origin: KMIA
+    destination: KJFK
+    scheduled_departure: "2024-01-15T20:15:00Z"
+    scheduled_arrival: "2024-01-15T23:00:00Z"
+    passengers: 172
+    status: scheduled
+    delay_minutes: 0
+
+  # ─── N035NB rotation: JFK → BOS → JFK → ATL → JFK ───
+  - id: NB219
+    aircraft_id: N035NB
+    origin: KJFK
+    destination: KBOS
+    scheduled_departure: "2024-01-15T13:00:00Z"
+    scheduled_arrival: "2024-01-15T14:05:00Z"
+    passengers: 143
+    status: scheduled
+    delay_minutes: 0
+  - id: NB220
+    aircraft_id: N035NB
+    origin: KBOS
+    destination: KJFK
+    scheduled_departure: "2024-01-15T15:05:00Z"
+    scheduled_arrival: "2024-01-15T16:10:00Z"
+    passengers: 138
+    status: scheduled
+    delay_minutes: 0
+  - id: NB221
+    aircraft_id: N035NB
+    origin: KJFK
+    destination: KATL
+    scheduled_departure: "2024-01-15T17:10:00Z"
+    scheduled_arrival: "2024-01-15T19:40:00Z"
+    passengers: 145
+    status: scheduled
+    delay_minutes: 0
+  - id: NB222
+    aircraft_id: N035NB
+    origin: KATL
+    destination: KJFK
+    scheduled_departure: "2024-01-15T20:40:00Z"
+    scheduled_arrival: "2024-01-15T23:10:00Z"
+    passengers: 140
+    status: scheduled
+    delay_minutes: 0
+
+  # ─── N036NB rotation: JFK → ORD → MSP → ORD → JFK ───
+  - id: NB223
+    aircraft_id: N036NB
+    origin: KJFK
+    destination: KORD
+    scheduled_departure: "2024-01-15T14:00:00Z"
+    scheduled_arrival: "2024-01-15T16:15:00Z"
+    passengers: 155
+    status: scheduled
+    delay_minutes: 0
+  - id: NB224
+    aircraft_id: N036NB
+    origin: KORD
+    destination: KMSP
+    scheduled_departure: "2024-01-15T17:15:00Z"
+    scheduled_arrival: "2024-01-15T18:25:00Z"
+    passengers: 147
+    status: scheduled
+    delay_minutes: 0
+  - id: NB225
+    aircraft_id: N036NB
+    origin: KMSP
+    destination: KORD
+    scheduled_departure: "2024-01-15T19:25:00Z"
+    scheduled_arrival: "2024-01-15T20:35:00Z"
+    passengers: 150
+    status: scheduled
+    delay_minutes: 0
+  - id: NB226
+    aircraft_id: N036NB
+    origin: KORD
+    destination: KJFK
+    scheduled_departure: "2024-01-15T21:35:00Z"
+    scheduled_arrival: "2024-01-15T23:50:00Z"
+    passengers: 153
+    status: scheduled
+    delay_minutes: 0
+
+  # ─── N037NB rotation: SEA → LAX → DEN → LAX → SEA ───
+  - id: NB227
+    aircraft_id: N037NB
+    origin: KSEA
+    destination: KLAX
+    scheduled_departure: "2024-01-15T13:00:00Z"
+    scheduled_arrival: "2024-01-15T15:30:00Z"
+    passengers: 156
+    status: scheduled
+    delay_minutes: 0
+  - id: NB228
+    aircraft_id: N037NB
+    origin: KLAX
+    destination: KDEN
+    scheduled_departure: "2024-01-15T16:30:00Z"
+    scheduled_arrival: "2024-01-15T19:20:00Z"
+    passengers: 149
+    status: scheduled
+    delay_minutes: 0
+  - id: NB229
+    aircraft_id: N037NB
+    origin: KDEN
+    destination: KLAX
+    scheduled_departure: "2024-01-15T20:20:00Z"
+    scheduled_arrival: "2024-01-15T23:10:00Z"
+    passengers: 143
+    status: scheduled
+    delay_minutes: 0
+
+  # ─── N038NB rotation: MIA → ATL → ORD → ATL → MIA ───
+  - id: NB230
+    aircraft_id: N038NB
+    origin: KMIA
+    destination: KATL
+    scheduled_departure: "2024-01-15T12:30:00Z"
+    scheduled_arrival: "2024-01-15T13:45:00Z"
+    passengers: 144
+    status: scheduled
+    delay_minutes: 0
+  - id: NB231
+    aircraft_id: N038NB
+    origin: KATL
+    destination: KORD
+    scheduled_departure: "2024-01-15T14:45:00Z"
+    scheduled_arrival: "2024-01-15T17:00:00Z"
+    passengers: 137
+    status: scheduled
+    delay_minutes: 0
+  - id: NB232
+    aircraft_id: N038NB
+    origin: KORD
+    destination: KATL
+    scheduled_departure: "2024-01-15T18:00:00Z"
+    scheduled_arrival: "2024-01-15T20:15:00Z"
+    passengers: 142
+    status: scheduled
+    delay_minutes: 0
+  - id: NB233
+    aircraft_id: N038NB
+    origin: KATL
+    destination: KMIA
+    scheduled_departure: "2024-01-15T21:15:00Z"
+    scheduled_arrival: "2024-01-15T22:30:00Z"
+    passengers: 135
+    status: scheduled
+    delay_minutes: 0
+
+  # ─── N039NB rotation: IAH → DFW → ATL → DFW → IAH ───
+  - id: NB234
+    aircraft_id: N039NB
+    origin: KIAH
+    destination: KDFW
+    scheduled_departure: "2024-01-15T13:30:00Z"
+    scheduled_arrival: "2024-01-15T14:30:00Z"
+    passengers: 157
+    status: scheduled
+    delay_minutes: 0
+  - id: NB235
+    aircraft_id: N039NB
+    origin: KDFW
+    destination: KATL
+    scheduled_departure: "2024-01-15T15:30:00Z"
+    scheduled_arrival: "2024-01-15T18:10:00Z"
+    passengers: 150
+    status: scheduled
+    delay_minutes: 0
+  - id: NB236
+    aircraft_id: N039NB
+    origin: KATL
+    destination: KDFW
+    scheduled_departure: "2024-01-15T19:10:00Z"
+    scheduled_arrival: "2024-01-15T21:50:00Z"
+    passengers: 143
+    status: scheduled
+    delay_minutes: 0
+  - id: NB237
+    aircraft_id: N039NB
+    origin: KDFW
+    destination: KIAH
+    scheduled_departure: "2024-01-15T22:50:00Z"
+    scheduled_arrival: "2024-01-15T23:50:00Z"
+    passengers: 136
+    status: scheduled
+    delay_minutes: 0
+
+  # ─── N040NB rotation: MSP → ORD → DTW → ORD → MSP (E175) ───
+  - id: NB238
+    aircraft_id: N040NB
+    origin: KMSP
+    destination: KORD
+    scheduled_departure: "2024-01-15T12:00:00Z"
+    scheduled_arrival: "2024-01-15T13:10:00Z"
+    passengers: 69
+    status: scheduled
+    delay_minutes: 0
+  - id: NB239
+    aircraft_id: N040NB
+    origin: KORD
+    destination: KDTW
+    scheduled_departure: "2024-01-15T14:10:00Z"
+    scheduled_arrival: "2024-01-15T15:20:00Z"
+    passengers: 71
+    status: scheduled
+    delay_minutes: 0
+  - id: NB240
+    aircraft_id: N040NB
+    origin: KDTW
+    destination: KORD
+    scheduled_departure: "2024-01-15T16:20:00Z"
+    scheduled_arrival: "2024-01-15T17:30:00Z"
+    passengers: 66
+    status: scheduled
+    delay_minutes: 0
+  - id: NB241
+    aircraft_id: N040NB
+    origin: KORD
+    destination: KMSP
+    scheduled_departure: "2024-01-15T18:30:00Z"
+    scheduled_arrival: "2024-01-15T19:40:00Z"
+    passengers: 70
+    status: scheduled
+    delay_minutes: 0
+  - id: NB242
+    aircraft_id: N040NB
+    origin: KMSP
+    destination: KORD
+    scheduled_departure: "2024-01-15T20:40:00Z"
+    scheduled_arrival: "2024-01-15T21:50:00Z"
+    passengers: 63
+    status: scheduled
+    delay_minutes: 0

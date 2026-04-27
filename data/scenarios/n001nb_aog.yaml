@@ -1,0 +1,34 @@
+---
+id: n001nb_aog
+name: "N001NB Mechanical AOG"
+description: >
+  Lead aircraft N001NB experiences a hydraulic failure on landing at KATL.
+  Aircraft is grounded for 8 hours awaiting emergency parts and maintenance.
+  Rotation NB101-NB104 disrupted; ripple effects on downstream aircraft.
+
+events:
+  - kind: mechanical_aog
+    params:
+      aircraft_id: N001NB
+      location: KATL
+      fault_code: "HYD-BRAKES-001"
+      fault_description: "Hydraulic system brake accumulator failure on landing"
+      grounded_duration_hours: 8
+      requires_parts: true
+      parts_eta_hours: 6
+      maintenance_team_available: true
+      mex_required: true
+
+metadata:
+  estimated_affected_flights: 8
+  cascade_duration_hours: 10
+  difficulty: low
+  primary_hub: KATL
+  event_types: [mechanical_aog]
+  peak_delay_minutes: 480
+  estimated_cancellations: 2
+  estimated_diversions: 0
+  cost_range_usd: [85000, 180000]
+  affected_aircraft: [N001NB]
+  affected_flights: [NB101, NB102, NB103, NB104]
+  real_world_analog: "Typical hydraulic AOG, ~3x/month industry-wide"

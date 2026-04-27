@@ -1,0 +1,35 @@
+---
+id: las_vegas_atc
+name: "Las Vegas TRACON Shortage"
+description: >
+  Critical ATC staffing shortage at Las Vegas TRACON (L30). Facility
+  operating with minimum certified personnel; arrival and departure rates
+  cut to 40% of normal capacity.
+
+events:
+  - kind: atc_staffing
+    params:
+      facility: "L30"
+      facility_name: "Las Vegas TRACON"
+      staffing_reduction_pct: 60
+      arrival_rate_reduction_pct: 60
+      departure_rate_reduction_pct: 60
+      adr_normal: 30
+      adr_reduced: 12
+      duration_minutes: 420
+      cause: staffing_shortage
+      minimum_staff_on_duty: 2
+      normal_staff_count: 5
+      actual_staff_count: 2
+
+metadata:
+  estimated_affected_flights: 19
+  cascade_duration_hours: 7
+  difficulty: low
+  primary_hub: KLAS
+  event_types: [atc_staffing]
+  peak_delay_minutes: 75
+  estimated_cancellations: 2
+  estimated_diversions: 0
+  cost_range_usd: [145000, 290000]
+  real_world_analog: "FAA staffing crisis 2023 — TRACON understaffing nationwide"

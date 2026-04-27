@@ -1,0 +1,39 @@
+---
+id: ord_thunderstorm
+name: "ORD Thunderstorm"
+description: >
+  Severe thunderstorm cell over Chicago O'Hare causes a 4-hour ground stop
+  and airport closure. Classic midwest summer disruption with significant
+  cascade effects across the eastern seaboard.
+
+events:
+  - kind: weather_closure
+    params:
+      airport: KORD
+      severity: severe
+      conditions: thunderstorm
+      ceiling_ft: 200
+      visibility_sm: 0.25
+      wind_knots: 45
+      gusts_knots: 65
+      duration_hours: 4
+
+  - kind: ground_stop
+    params:
+      destination_airport: KORD
+      duration_minutes: 240
+      reason: "Severe convective activity — all traffic halted"
+      ground_stop_program: true
+      exemptions: []
+
+metadata:
+  estimated_affected_flights: 47
+  cascade_duration_hours: 12
+  difficulty: high
+  primary_hub: KORD
+  event_types: [weather_closure, ground_stop]
+  peak_delay_minutes: 240
+  estimated_cancellations: 12
+  estimated_diversions: 8
+  cost_range_usd: [850000, 1400000]
+  real_world_analog: "2023 ORD thunderstorm series, July 4-5"

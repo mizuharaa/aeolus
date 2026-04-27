@@ -1,0 +1,164 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+@import 'leaflet/dist/leaflet.css';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* === Light Peach palette === */
+    --background: 30 100% 98%;          /* #FFF8F2 — warm cream */
+    --foreground: 222 35% 14%;          /* #1A1F2E — deep slate */
+    --card: 0 0% 100%;                  /* #FFFFFF */
+    --card-foreground: 222 35% 14%;
+
+    /* Coral peach primary */
+    --primary: 14 92% 60%;              /* #F87156 — coral */
+    --primary-foreground: 0 0% 100%;
+    --primary-soft: 22 100% 92%;        /* #FFE3D5 — peach tint */
+
+    --secondary: 28 60% 96%;            /* #FBF1E8 — soft peach surface */
+    --secondary-foreground: 222 35% 20%;
+    --muted: 28 30% 92%;                /* #F1E7DC */
+    --muted-foreground: 222 12% 45%;
+
+    --accent: 14 92% 60%;
+    --accent-foreground: 0 0% 100%;
+    --accent-warm: 22 100% 70%;         /* warm peach */
+
+    --destructive: 0 78% 56%;           /* #E84545 */
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 22 40% 88%;               /* #EFDDCD — peachy border */
+    --input: 22 40% 88%;
+    --ring: 14 92% 60%;
+
+    --radius: 0.875rem;
+
+    /* Aviation status — adjusted for light bg */
+    --status-on-time: 152 70% 38%;      /* deeper emerald for contrast */
+    --status-delayed: 30 95% 50%;       /* warm orange */
+    --status-cancelled: 0 78% 56%;      /* coral red */
+    --status-swapped: 14 92% 60%;       /* coral */
+    --status-airborne: 200 90% 45%;     /* sky blue */
+
+    --shadow-sm: 0 1px 2px 0 rgb(244 113 86 / 0.05);
+    --shadow: 0 4px 12px -2px rgb(244 113 86 / 0.10), 0 2px 4px -1px rgb(0 0 0 / 0.04);
+    --shadow-lg: 0 10px 30px -8px rgb(244 113 86 / 0.18), 0 4px 12px -4px rgb(0 0 0 / 0.06);
+  }
+
+  html {
+    color-scheme: light;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: "Inter", sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: "Space Grotesk", sans-serif;
+  }
+}
+
+@layer utilities {
+  .text-gradient-peach {
+    @apply bg-gradient-to-r from-[#F87156] via-[#FF8E6E] to-[#FFB088] bg-clip-text text-transparent;
+  }
+
+  .gradient-peach {
+    background: linear-gradient(135deg, #F87156 0%, #FF9170 50%, #FFB088 100%);
+  }
+
+  .glow-peach {
+    box-shadow: 0 8px 24px -8px rgb(244 113 86 / 0.45);
+  }
+
+  .surface-card {
+    @apply bg-card border border-border rounded-xl;
+    box-shadow: var(--shadow);
+  }
+
+  .surface-floating {
+    @apply bg-card/95 backdrop-blur-md border border-border rounded-xl;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .section-badge {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary;
+  }
+
+  .status-on-time     { @apply text-emerald-700 bg-emerald-50  border-emerald-200; }
+  .status-delayed     { @apply text-orange-700  bg-orange-50   border-orange-200; }
+  .status-cancelled   { @apply text-red-700     bg-red-50      border-red-200; }
+  .status-swapped     { @apply text-primary     bg-primary/10  border-primary/20; }
+  .status-airborne    { @apply text-sky-700     bg-sky-50      border-sky-200; }
+}
+
+/* === Leaflet overrides — match the light peachy theme === */
+.leaflet-container {
+  background: #F4ECE2 !important;
+  font-family: "Inter", sans-serif;
+}
+.leaflet-control-attribution {
+  background: rgba(255,255,255,0.85) !important;
+  font-size: 9px !important;
+  padding: 1px 4px !important;
+}
+.leaflet-tile {
+  filter: saturate(0.9) brightness(1.02);
+}
+.leaflet-popup-content-wrapper, .leaflet-tooltip {
+  border-radius: 10px !important;
+  border: 1px solid hsl(22 40% 88%) !important;
+  box-shadow: var(--shadow) !important;
+  background: #fff !important;
+  color: hsl(222 35% 14%) !important;
+}
+.leaflet-tooltip {
+  padding: 6px 10px !important;
+  font-size: 11px !important;
+}
+.leaflet-tooltip-top:before, .leaflet-tooltip-bottom:before,
+.leaflet-tooltip-left:before, .leaflet-tooltip-right:before { display: none; }
+.leaflet-bar a {
+  background: #fff !important;
+  color: hsl(222 35% 14%) !important;
+  border-color: hsl(22 40% 88%) !important;
+}
+.leaflet-bar a:hover {
+  background: hsl(28 60% 96%) !important;
+}
+
+/* === Custom scrollbar — peachy === */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: hsl(22 40% 80%); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: hsl(14 92% 65%); }
+
+/* === Plane pulse for active disruption icons === */
+@keyframes plane-pulse {
+  0%, 100% { transform: scale(1);   opacity: 1; }
+  50%      { transform: scale(1.18); opacity: 0.85; }
+}
+.animate-plane-pulse { animation: plane-pulse 1.6s ease-in-out infinite; }
+
+@keyframes ripple {
+  0%   { transform: scale(0.4); opacity: 0.7; }
+  100% { transform: scale(3.0); opacity: 0; }
+}
+.animate-ripple { animation: ripple 2.2s ease-out infinite; }
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.shimmer-bg {
+  background: linear-gradient(90deg, transparent, hsl(22 100% 92% / 0.6), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 2s linear infinite;
+}

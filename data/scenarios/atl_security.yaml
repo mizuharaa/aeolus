@@ -1,0 +1,36 @@
+---
+id: atl_security
+name: "ATL Security Incident"
+description: >
+  Security threat forces evacuation of Concourse D at Hartsfield-Jackson.
+  TSA re-screening of all evacuated passengers takes approximately 3 hours.
+  Concourse D gates (D1-D42) unavailable during screening.
+
+events:
+  - kind: security_event
+    params:
+      airport: KATL
+      concourse: D
+      evacuation_required: true
+      re_screening_required: true
+      duration_minutes: 180
+      threat_level: "credible"
+      gates_affected: ["D1", "D2", "D3", "D4", "D5", "D6", "D7", "D8",
+                       "D9", "D10", "D11", "D12", "D13", "D14", "D15",
+                       "D16", "D17", "D18", "D19", "D20", "D21", "D22",
+                       "D23", "D24", "D25", "D26", "D27", "D28", "D29",
+                       "D30", "D31", "D32", "D33", "D34", "D35", "D36",
+                       "D37", "D38", "D39", "D40", "D41", "D42"]
+      capacity_reduction_pct: 35
+
+metadata:
+  estimated_affected_flights: 28
+  cascade_duration_hours: 6
+  difficulty: medium
+  primary_hub: KATL
+  event_types: [security_event]
+  peak_delay_minutes: 180
+  estimated_cancellations: 4
+  estimated_diversions: 2
+  cost_range_usd: [320000, 580000]
+  real_world_analog: "2017 ATL power outage — partial concourse closure"

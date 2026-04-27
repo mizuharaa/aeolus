@@ -1,0 +1,180 @@
+airports:
+  - id: KORD
+    name: "Chicago O'Hare International"
+    city: Chicago
+    state: IL
+    lat: 41.9742
+    lon: -87.9073
+    timezone: America/Chicago
+    hub_type: hub
+    gates: 190
+    runways: 8
+    hourly_capacity: 110
+
+  - id: KATL
+    name: "Hartsfield-Jackson Atlanta International"
+    city: Atlanta
+    state: GA
+    lat: 33.6407
+    lon: -84.4277
+    timezone: America/New_York
+    hub_type: hub
+    gates: 192
+    runways: 5
+    hourly_capacity: 100
+
+  - id: KDFW
+    name: "Dallas/Fort Worth International"
+    city: Dallas
+    state: TX
+    lat: 32.8998
+    lon: -97.0403
+    timezone: America/Chicago
+    hub_type: hub
+    gates: 165
+    runways: 7
+    hourly_capacity: 95
+
+  - id: KLAX
+    name: "Los Angeles International"
+    city: Los Angeles
+    state: CA
+    lat: 33.9425
+    lon: -118.408
+    timezone: America/Los_Angeles
+    hub_type: hub
+    gates: 133
+    runways: 4
+    hourly_capacity: 85
+
+  - id: KDEN
+    name: "Denver International"
+    city: Denver
+    state: CO
+    lat: 39.8561
+    lon: -104.6737
+    timezone: America/Denver
+    hub_type: focus_city
+    gates: 115
+    runways: 6
+    hourly_capacity: 80
+
+  - id: KJFK
+    name: "John F. Kennedy International"
+    city: New York
+    state: NY
+    lat: 40.6413
+    lon: -73.7781
+    timezone: America/New_York
+    hub_type: focus_city
+    gates: 128
+    runways: 4
+    hourly_capacity: 60
+
+  - id: KSEA
+    name: "Seattle-Tacoma International"
+    city: Seattle
+    state: WA
+    lat: 47.4502
+    lon: -122.3088
+    timezone: America/Los_Angeles
+    hub_type: focus_city
+    gates: 90
+    runways: 3
+    hourly_capacity: 55
+
+  - id: KMIA
+    name: "Miami International"
+    city: Miami
+    state: FL
+    lat: 25.7959
+    lon: -80.287
+    timezone: America/New_York
+    hub_type: focus_city
+    gates: 131
+    runways: 4
+    hourly_capacity: 60
+
+  - id: KPHX
+    name: "Phoenix Sky Harbor International"
+    city: Phoenix
+    state: AZ
+    lat: 33.4373
+    lon: -112.0078
+    timezone: America/Phoenix
+    hub_type: spoke
+    gates: 120
+    runways: 3
+    hourly_capacity: 65
+
+  - id: KLAS
+    name: "Harry Reid International"
+    city: Las Vegas
+    state: NV
+    lat: 36.084
+    lon: -115.1537
+    timezone: America/Los_Angeles
+    hub_type: spoke
+    gates: 96
+    runways: 4
+    hourly_capacity: 60
+
+  - id: KBOS
+    name: "Boston Logan International"
+    city: Boston
+    state: MA
+    lat: 42.3656
+    lon: -71.0096
+    timezone: America/New_York
+    hub_type: spoke
+    gates: 102
+    runways: 4
+    hourly_capacity: 55
+
+  - id: KSFO
+    name: "San Francisco International"
+    city: San Francisco
+    state: CA
+    lat: 37.6213
+    lon: -122.379
+    timezone: America/Los_Angeles
+    hub_type: spoke
+    gates: 115
+    runways: 4
+    hourly_capacity: 60
+
+  - id: KIAH
+    name: "George Bush Intercontinental"
+    city: Houston
+    state: TX
+    lat: 29.9902
+    lon: -95.3368
+    timezone: America/Chicago
+    hub_type: spoke
+    gates: 131
+    runways: 5
+    hourly_capacity: 65
+
+  - id: KDTW
+    name: "Detroit Metropolitan Wayne County"
+    city: Detroit
+    state: MI
+    lat: 42.2162
+    lon: -83.3554
+    timezone: America/Detroit
+    hub_type: spoke
+    gates: 129
+    runways: 6
+    hourly_capacity: 70
+
+  - id: KMSP
+    name: "Minneapolis-Saint Paul International"
+    city: Minneapolis
+    state: MN
+    lat: 44.882
+    lon: -93.2218
+    timezone: America/Chicago
+    hub_type: spoke
+    gates: 132
+    runways: 4
+    hourly_capacity: 65

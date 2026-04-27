@@ -1,0 +1,50 @@
+---
+id: volcanic_ash_pacific
+name: "Cascades Volcanic Ash"
+description: >
+  A Cascade Range volcano eruption generates an ash cloud over the Pacific
+  Northwest. Seattle-Tacoma International closes; Pacific coast routes
+  diverted south via Oakland and San Francisco corridors.
+
+events:
+  - kind: volcanic_ash
+    params:
+      volcano_name: "Mount Rainier"
+      volcano_id: "USA-01"
+      eruption_vei: 3
+      ash_cloud_altitude_fl: [180, 400]
+      drift_direction: "southeast"
+      drift_speed_knots: 25
+      affected_airports: [KSEA, KBFI, KPAE]
+      closure_airports: [KSEA]
+      partial_closure_airports: [KPDX, KOAK]
+      no_fly_polygon:
+        - [-122.5, 46.5]
+        - [-119.0, 46.5]
+        - [-119.0, 49.5]
+        - [-122.5, 49.5]
+        - [-122.5, 46.5]
+      duration_hours: 24
+      vasf_advisory: "VA0124 — AVOID FL180-FL400 NW QUADRANT"
+
+  - kind: weather_closure
+    params:
+      airport: KSEA
+      severity: severe
+      conditions: volcanic_ash
+      ceiling_ft: 0
+      visibility_sm: 0
+      duration_hours: 24
+
+metadata:
+  estimated_affected_flights: 22
+  cascade_duration_hours: 24
+  difficulty: high
+  primary_hub: KSEA
+  event_types: [volcanic_ash, weather_closure]
+  peak_delay_minutes: 0
+  estimated_cancellations: 14
+  estimated_diversions: 8
+  cost_range_usd: [560000, 1100000]
+  affected_region: "Pacific Northwest"
+  real_world_analog: "Eyjafjallajökull 2010, Mt St Helens 1980"

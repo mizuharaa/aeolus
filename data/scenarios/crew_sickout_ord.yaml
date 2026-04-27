@@ -1,0 +1,35 @@
+---
+id: crew_sickout_ord
+name: "ORD Crew Sick-out (35%)"
+description: >
+  A rapid flu outbreak grounds 35% of Chicago-based crew members.
+  Mass sick calls are filed starting at 04:00Z. Cascades across the full
+  18-hour operating window as reserve pools are depleted.
+
+events:
+  - kind: crew_sickout
+    params:
+      base_airport: KORD
+      sickout_fraction: 0.35
+      roles_affected: [captain, first_officer, flight_attendant]
+      duration_hours: 18
+      onset_time: "T+0h"
+      reserve_pool_size: 8
+      cause: "influenza_outbreak"
+      contagion_spread: true
+      cascade_to_bases: [KATL, KDFW]
+      secondary_sickout_fraction: 0.10
+
+metadata:
+  estimated_affected_flights: 42
+  cascade_duration_hours: 18
+  difficulty: high
+  primary_hub: KORD
+  event_types: [crew_sickout]
+  peak_delay_minutes: 0
+  estimated_cancellations: 18
+  estimated_diversions: 0
+  cost_range_usd: [920000, 1650000]
+  crew_members_out: 21
+  reserve_callins: 8
+  real_world_analog: "Southwest 2022 holiday meltdown — crew availability collapse"

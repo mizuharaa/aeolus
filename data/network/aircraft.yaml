@@ -1,0 +1,287 @@
+aircraft:
+  # ORD-based fleet (10 aircraft)
+  - id: N001NB
+    type: B737-800
+    base_airport_id: KORD
+    seats: 162
+    range_nm: 2935
+    min_turn_minutes: 45
+
+  - id: N002NB
+    type: B737-800
+    base_airport_id: KORD
+    seats: 162
+    range_nm: 2935
+    min_turn_minutes: 45
+
+  - id: N003NB
+    type: A320
+    base_airport_id: KORD
+    seats: 150
+    range_nm: 3300
+    min_turn_minutes: 45
+
+  - id: N004NB
+    type: A320
+    base_airport_id: KORD
+    seats: 150
+    range_nm: 3300
+    min_turn_minutes: 45
+
+  - id: N005NB
+    type: B757-200
+    base_airport_id: KORD
+    seats: 199
+    range_nm: 3900
+    min_turn_minutes: 55
+
+  - id: N006NB
+    type: B737-800
+    base_airport_id: KORD
+    seats: 162
+    range_nm: 2935
+    min_turn_minutes: 45
+
+  - id: N007NB
+    type: E175
+    base_airport_id: KORD
+    seats: 76
+    range_nm: 2100
+    min_turn_minutes: 35
+
+  - id: N008NB
+    type: E175
+    base_airport_id: KORD
+    seats: 76
+    range_nm: 2100
+    min_turn_minutes: 35
+
+  - id: N009NB
+    type: A320
+    base_airport_id: KORD
+    seats: 150
+    range_nm: 3300
+    min_turn_minutes: 45
+
+  - id: N010NB
+    type: B737-800
+    base_airport_id: KORD
+    seats: 162
+    range_nm: 2935
+    min_turn_minutes: 45
+
+  # ATL-based fleet (8 aircraft)
+  - id: N011NB
+    type: B737-800
+    base_airport_id: KATL
+    seats: 162
+    range_nm: 2935
+    min_turn_minutes: 45
+
+  - id: N012NB
+    type: B737-800
+    base_airport_id: KATL
+    seats: 162
+    range_nm: 2935
+    min_turn_minutes: 45
+
+  - id: N013NB
+    type: A320
+    base_airport_id: KATL
+    seats: 150
+    range_nm: 3300
+    min_turn_minutes: 45
+
+  - id: N014NB
+    type: B757-200
+    base_airport_id: KATL
+    seats: 199
+    range_nm: 3900
+    min_turn_minutes: 55
+
+  - id: N015NB
+    type: E175
+    base_airport_id: KATL
+    seats: 76
+    range_nm: 2100
+    min_turn_minutes: 35
+
+  - id: N016NB
+    type: B737-800
+    base_airport_id: KATL
+    seats: 162
+    range_nm: 2935
+    min_turn_minutes: 45
+
+  - id: N017NB
+    type: A320
+    base_airport_id: KATL
+    seats: 150
+    range_nm: 3300
+    min_turn_minutes: 45
+
+  - id: N018NB
+    type: E175
+    base_airport_id: KATL
+    seats: 76
+    range_nm: 2100
+    min_turn_minutes: 35
+
+  # DFW-based fleet (6 aircraft)
+  - id: N019NB
+    type: B737-800
+    base_airport_id: KDFW
+    seats: 162
+    range_nm: 2935
+    min_turn_minutes: 45
+
+  - id: N020NB
+    type: A320
+    base_airport_id: KDFW
+    seats: 150
+    range_nm: 3300
+    min_turn_minutes: 45
+
+  - id: N021NB
+    type: B757-200
+    base_airport_id: KDFW
+    seats: 199
+    range_nm: 3900
+    min_turn_minutes: 55
+
+  - id: N022NB
+    type: B737-800
+    base_airport_id: KDFW
+    seats: 162
+    range_nm: 2935
+    min_turn_minutes: 45
+
+  - id: N023NB
+    type: E175
+    base_airport_id: KDFW
+    seats: 76
+    range_nm: 2100
+    min_turn_minutes: 35
+
+  - id: N024NB
+    type: A320
+    base_airport_id: KDFW
+    seats: 150
+    range_nm: 3300
+    min_turn_minutes: 45
+
+  # LAX-based fleet (5 aircraft)
+  - id: N025NB
+    type: B737-800
+    base_airport_id: KLAX
+    seats: 162
+    range_nm: 2935
+    min_turn_minutes: 45
+
+  - id: N026NB
+    type: A320
+    base_airport_id: KLAX
+    seats: 150
+    range_nm: 3300
+    min_turn_minutes: 45
+
+  - id: N027NB
+    type: B757-200
+    base_airport_id: KLAX
+    seats: 199
+    range_nm: 3900
+    min_turn_minutes: 55
+
+  - id: N028NB
+    type: B737-800
+    base_airport_id: KLAX
+    seats: 162
+    range_nm: 2935
+    min_turn_minutes: 45
+
+  - id: N029NB
+    type: E175
+    base_airport_id: KLAX
+    seats: 76
+    range_nm: 2100
+    min_turn_minutes: 35
+
+  # DEN-based fleet (4 aircraft)
+  - id: N030NB
+    type: B737-800
+    base_airport_id: KDEN
+    seats: 162
+    range_nm: 2935
+    min_turn_minutes: 45
+
+  - id: N031NB
+    type: A320
+    base_airport_id: KDEN
+    seats: 150
+    range_nm: 3300
+    min_turn_minutes: 45
+
+  - id: N032NB
+    type: E175
+    base_airport_id: KDEN
+    seats: 76
+    range_nm: 2100
+    min_turn_minutes: 35
+
+  - id: N033NB
+    type: B737-800
+    base_airport_id: KDEN
+    seats: 162
+    range_nm: 2935
+    min_turn_minutes: 45
+
+  # JFK-based fleet (3 aircraft)
+  - id: N034NB
+    type: B757-200
+    base_airport_id: KJFK
+    seats: 199
+    range_nm: 3900
+    min_turn_minutes: 55
+
+  - id: N035NB
+    type: A320
+    base_airport_id: KJFK
+    seats: 150
+    range_nm: 3300
+    min_turn_minutes: 45
+
+  - id: N036NB
+    type: B737-800
+    base_airport_id: KJFK
+    seats: 162
+    range_nm: 2935
+    min_turn_minutes: 45
+
+  # SEA/MIA/IAH/MSP (4 aircraft distributed)
+  - id: N037NB
+    type: B737-800
+    base_airport_id: KSEA
+    seats: 162
+    range_nm: 2935
+    min_turn_minutes: 45
+
+  - id: N038NB
+    type: A320
+    base_airport_id: KMIA
+    seats: 150
+    range_nm: 3300
+    min_turn_minutes: 45
+
+  - id: N039NB
+    type: B737-800
+    base_airport_id: KIAH
+    seats: 162
+    range_nm: 2935
+    min_turn_minutes: 45
+
+  - id: N040NB
+    type: E175
+    base_airport_id: KMSP
+    seats: 76
+    range_nm: 2100
+    min_turn_minutes: 35

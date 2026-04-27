@@ -1,0 +1,1912 @@
+---
+# Nimbus Air Crew Roster
+# 20 captains · 20 first officers · 20 flight attendants · 142 crew pairings (one per flight)
+
+crew_members:
+  # ── Captains ──────────────────────────────────────────────────────────────
+  - id: CA01
+    name: James Mitchell
+    role: captain
+    base_airport_id: KORD
+    employee_id: EMP0001
+    cert_types: ["B737-800", "B757-200"]
+    flight_hours_365d: 820
+    flight_hours_28d:  68
+    flight_hours_7d:   18
+  - id: CA02
+    name: Robert Anderson
+    role: captain
+    base_airport_id: KORD
+    employee_id: EMP0002
+    cert_types: ["B737-800", "B757-200"]
+    flight_hours_365d: 794
+    flight_hours_28d:  71
+    flight_hours_7d:   14
+  - id: CA03
+    name: Michael Davis
+    role: captain
+    base_airport_id: KORD
+    employee_id: EMP0003
+    cert_types: ["B737-800", "A320"]
+    flight_hours_365d: 810
+    flight_hours_28d:  65
+    flight_hours_7d:   22
+  - id: CA04
+    name: William Johnson
+    role: captain
+    base_airport_id: KORD
+    employee_id: EMP0004
+    cert_types: ["B737-800", "A320"]
+    flight_hours_365d: 755
+    flight_hours_28d:  70
+    flight_hours_7d:   16
+  - id: CA05
+    name: David Thompson
+    role: captain
+    base_airport_id: KORD
+    employee_id: EMP0005
+    cert_types: ["B737-800", "B757-200"]
+    flight_hours_365d: 832
+    flight_hours_28d:  66
+    flight_hours_7d:   20
+  - id: CA06
+    name: Richard Harris
+    role: captain
+    base_airport_id: KORD
+    employee_id: EMP0006
+    cert_types: ["B737-800", "A320"]
+    flight_hours_365d: 778
+    flight_hours_28d:  69
+    flight_hours_7d:   15
+  - id: CA07
+    name: Charles Wilson
+    role: captain
+    base_airport_id: KORD
+    employee_id: EMP0007
+    cert_types: ["E175", "B737-800"]
+    flight_hours_365d: 841
+    flight_hours_28d:  72
+    flight_hours_7d:   24
+  - id: CA08
+    name: Joseph Martinez
+    role: captain
+    base_airport_id: KORD
+    employee_id: EMP0008
+    cert_types: ["E175", "B737-800"]
+    flight_hours_365d: 799
+    flight_hours_28d:  67
+    flight_hours_7d:   21
+  - id: CA09
+    name: Thomas Garcia
+    role: captain
+    base_airport_id: KORD
+    employee_id: EMP0009
+    cert_types: ["B737-800", "A320"]
+    flight_hours_365d: 815
+    flight_hours_28d:  73
+    flight_hours_7d:   19
+  - id: CA10
+    name: Daniel Rodriguez
+    role: captain
+    base_airport_id: KORD
+    employee_id: EMP0010
+    cert_types: ["B737-800", "B757-200"]
+    flight_hours_365d: 788
+    flight_hours_28d:  64
+    flight_hours_7d:   17
+  - id: CA11
+    name: Kevin Lee
+    role: captain
+    base_airport_id: KATL
+    employee_id: EMP0011
+    cert_types: ["B737-800", "A320"]
+    flight_hours_365d: 802
+    flight_hours_28d:  68
+    flight_hours_7d:   20
+  - id: CA12
+    name: Brian Walker
+    role: captain
+    base_airport_id: KATL
+    employee_id: EMP0012
+    cert_types: ["B737-800", "A320"]
+    flight_hours_365d: 819
+    flight_hours_28d:  71
+    flight_hours_7d:   18
+  - id: CA13
+    name: Mark Hall
+    role: captain
+    base_airport_id: KATL
+    employee_id: EMP0013
+    cert_types: ["B737-800", "B757-200"]
+    flight_hours_365d: 763
+    flight_hours_28d:  66
+    flight_hours_7d:   16
+  - id: CA14
+    name: Steven Allen
+    role: captain
+    base_airport_id: KATL
+    employee_id: EMP0014
+    cert_types: ["B737-800", "B757-200"]
+    flight_hours_365d: 835
+    flight_hours_28d:  74
+    flight_hours_7d:   23
+  - id: CA15
+    name: Paul Young
+    role: captain
+    base_airport_id: KATL
+    employee_id: EMP0015
+    cert_types: ["E175", "B737-800"]
+    flight_hours_365d: 791
+    flight_hours_28d:  69
+    flight_hours_7d:   19
+  - id: CA16
+    name: Jason Hernandez
+    role: captain
+    base_airport_id: KDFW
+    employee_id: EMP0016
+    cert_types: ["B737-800", "A320"]
+    flight_hours_365d: 808
+    flight_hours_28d:  65
+    flight_hours_7d:   22
+  - id: CA17
+    name: Ryan King
+    role: captain
+    base_airport_id: KDFW
+    employee_id: EMP0017
+    cert_types: ["B737-800", "A320"]
+    flight_hours_365d: 775
+    flight_hours_28d:  72
+    flight_hours_7d:   15
+  - id: CA18
+    name: Andrew Wright
+    role: captain
+    base_airport_id: KLAX
+    employee_id: EMP0018
+    cert_types: ["A320", "B757-200"]
+    flight_hours_365d: 823
+    flight_hours_28d:  67
+    flight_hours_7d:   21
+  - id: CA19
+    name: Eric Scott
+    role: captain
+    base_airport_id: KDEN
+    employee_id: EMP0019
+    cert_types: ["B737-800", "A320"]
+    flight_hours_365d: 796
+    flight_hours_28d:  70
+    flight_hours_7d:   17
+  - id: CA20
+    name: Justin Adams
+    role: captain
+    base_airport_id: KJFK
+    employee_id: EMP0020
+    cert_types: ["B737-800", "B757-200"]
+    flight_hours_365d: 812
+    flight_hours_28d:  68
+    flight_hours_7d:   20
+
+  # ── First Officers ────────────────────────────────────────────────────────
+  - id: FO01
+    name: Sarah Chen
+    role: first_officer
+    base_airport_id: KORD
+    employee_id: EMP0021
+    cert_types: ["B737-800", "B757-200"]
+    flight_hours_365d: 720
+    flight_hours_28d:  61
+    flight_hours_7d:   16
+  - id: FO02
+    name: Emily Rodriguez
+    role: first_officer
+    base_airport_id: KORD
+    employee_id: EMP0022
+    cert_types: ["B737-800", "B757-200"]
+    flight_hours_365d: 698
+    flight_hours_28d:  58
+    flight_hours_7d:   13
+  - id: FO03
+    name: Ashley Kim
+    role: first_officer
+    base_airport_id: KORD
+    employee_id: EMP0023
+    cert_types: ["B737-800", "A320"]
+    flight_hours_365d: 714
+    flight_hours_28d:  63
+    flight_hours_7d:   19
+  - id: FO04
+    name: Amanda Patel
+    role: first_officer
+    base_airport_id: KORD
+    employee_id: EMP0024
+    cert_types: ["B737-800", "A320"]
+    flight_hours_365d: 681
+    flight_hours_28d:  60
+    flight_hours_7d:   14
+  - id: FO05
+    name: Jessica Liu
+    role: first_officer
+    base_airport_id: KORD
+    employee_id: EMP0025
+    cert_types: ["B737-800", "B757-200"]
+    flight_hours_365d: 735
+    flight_hours_28d:  64
+    flight_hours_7d:   18
+  - id: FO06
+    name: Elizabeth Wang
+    role: first_officer
+    base_airport_id: KORD
+    employee_id: EMP0026
+    cert_types: ["B737-800", "A320"]
+    flight_hours_365d: 702
+    flight_hours_28d:  62
+    flight_hours_7d:   15
+  - id: FO07
+    name: Jennifer Brown
+    role: first_officer
+    base_airport_id: KORD
+    employee_id: EMP0027
+    cert_types: ["E175", "B737-800"]
+    flight_hours_365d: 745
+    flight_hours_28d:  67
+    flight_hours_7d:   22
+  - id: FO08
+    name: Linda Taylor
+    role: first_officer
+    base_airport_id: KORD
+    employee_id: EMP0028
+    cert_types: ["E175", "B737-800"]
+    flight_hours_365d: 711
+    flight_hours_28d:  59
+    flight_hours_7d:   20
+  - id: FO09
+    name: Barbara Jones
+    role: first_officer
+    base_airport_id: KORD
+    employee_id: EMP0029
+    cert_types: ["B737-800", "A320"]
+    flight_hours_365d: 728
+    flight_hours_28d:  65
+    flight_hours_7d:   17
+  - id: FO10
+    name: Patricia White
+    role: first_officer
+    base_airport_id: KORD
+    employee_id: EMP0030
+    cert_types: ["B737-800", "B757-200"]
+    flight_hours_365d: 693
+    flight_hours_28d:  57
+    flight_hours_7d:   16
+  - id: FO11
+    name: Cynthia Moore
+    role: first_officer
+    base_airport_id: KATL
+    employee_id: EMP0031
+    cert_types: ["B737-800", "A320"]
+    flight_hours_365d: 718
+    flight_hours_28d:  61
+    flight_hours_7d:   18
+  - id: FO12
+    name: Maria Jackson
+    role: first_officer
+    base_airport_id: KATL
+    employee_id: EMP0032
+    cert_types: ["B737-800", "A320"]
+    flight_hours_365d: 731
+    flight_hours_28d:  63
+    flight_hours_7d:   16
+  - id: FO13
+    name: Laura Martin
+    role: first_officer
+    base_airport_id: KATL
+    employee_id: EMP0033
+    cert_types: ["B737-800", "B757-200"]
+    flight_hours_365d: 676
+    flight_hours_28d:  59
+    flight_hours_7d:   14
+  - id: FO14
+    name: Sandra Thompson
+    role: first_officer
+    base_airport_id: KATL
+    employee_id: EMP0034
+    cert_types: ["B737-800", "B757-200"]
+    flight_hours_365d: 742
+    flight_hours_28d:  66
+    flight_hours_7d:   21
+  - id: FO15
+    name: Angela Garcia
+    role: first_officer
+    base_airport_id: KATL
+    employee_id: EMP0035
+    cert_types: ["E175", "B737-800"]
+    flight_hours_365d: 705
+    flight_hours_28d:  60
+    flight_hours_7d:   17
+  - id: FO16
+    name: Michelle Davis
+    role: first_officer
+    base_airport_id: KDFW
+    employee_id: EMP0036
+    cert_types: ["B737-800", "A320"]
+    flight_hours_365d: 721
+    flight_hours_28d:  62
+    flight_hours_7d:   20
+  - id: FO17
+    name: Tamara Wilson
+    role: first_officer
+    base_airport_id: KDFW
+    employee_id: EMP0037
+    cert_types: ["B737-800", "A320"]
+    flight_hours_365d: 688
+    flight_hours_28d:  58
+    flight_hours_7d:   13
+  - id: FO18
+    name: Natasha Johnson
+    role: first_officer
+    base_airport_id: KLAX
+    employee_id: EMP0038
+    cert_types: ["A320", "B757-200"]
+    flight_hours_365d: 736
+    flight_hours_28d:  64
+    flight_hours_7d:   19
+  - id: FO19
+    name: Katelyn Smith
+    role: first_officer
+    base_airport_id: KDEN
+    employee_id: EMP0039
+    cert_types: ["B737-800", "A320"]
+    flight_hours_365d: 709
+    flight_hours_28d:  61
+    flight_hours_7d:   16
+  - id: FO20
+    name: Alexandra Lee
+    role: first_officer
+    base_airport_id: KJFK
+    employee_id: EMP0040
+    cert_types: ["B737-800", "B757-200"]
+    flight_hours_365d: 725
+    flight_hours_28d:  63
+    flight_hours_7d:   18
+
+  # ── Flight Attendants ─────────────────────────────────────────────────────
+  - id: FA01
+    name: Marcus Johnson
+    role: flight_attendant
+    base_airport_id: KORD
+    employee_id: EMP0041
+    cert_types: ["B737-800", "A320", "E175", "B757-200"]
+    flight_hours_365d: 900
+    flight_hours_28d:  75
+    flight_hours_7d:   22
+  - id: FA02
+    name: Tyler Williams
+    role: flight_attendant
+    base_airport_id: KORD
+    employee_id: EMP0042
+    cert_types: ["B737-800", "A320", "E175", "B757-200"]
+    flight_hours_365d: 878
+    flight_hours_28d:  72
+    flight_hours_7d:   20
+  - id: FA03
+    name: Jordan Brown
+    role: flight_attendant
+    base_airport_id: KORD
+    employee_id: EMP0043
+    cert_types: ["B737-800", "A320", "E175", "B757-200"]
+    flight_hours_365d: 912
+    flight_hours_28d:  76
+    flight_hours_7d:   24
+  - id: FA04
+    name: Alex Davis
+    role: flight_attendant
+    base_airport_id: KORD
+    employee_id: EMP0044
+    cert_types: ["B737-800", "A320", "E175", "B757-200"]
+    flight_hours_365d: 865
+    flight_hours_28d:  70
+    flight_hours_7d:   18
+  - id: FA05
+    name: Cameron Taylor
+    role: flight_attendant
+    base_airport_id: KORD
+    employee_id: EMP0045
+    cert_types: ["B737-800", "A320", "E175", "B757-200"]
+    flight_hours_365d: 930
+    flight_hours_28d:  78
+    flight_hours_7d:   23
+  - id: FA06
+    name: Morgan Wilson
+    role: flight_attendant
+    base_airport_id: KORD
+    employee_id: EMP0046
+    cert_types: ["B737-800", "A320", "E175", "B757-200"]
+    flight_hours_365d: 892
+    flight_hours_28d:  74
+    flight_hours_7d:   21
+  - id: FA07
+    name: Riley Anderson
+    role: flight_attendant
+    base_airport_id: KORD
+    employee_id: EMP0047
+    cert_types: ["B737-800", "A320", "E175", "B757-200"]
+    flight_hours_365d: 918
+    flight_hours_28d:  77
+    flight_hours_7d:   25
+  - id: FA08
+    name: Avery Thomas
+    role: flight_attendant
+    base_airport_id: KORD
+    employee_id: EMP0048
+    cert_types: ["B737-800", "A320", "E175", "B757-200"]
+    flight_hours_365d: 874
+    flight_hours_28d:  71
+    flight_hours_7d:   19
+  - id: FA09
+    name: Quinn Jackson
+    role: flight_attendant
+    base_airport_id: KORD
+    employee_id: EMP0049
+    cert_types: ["B737-800", "A320", "E175", "B757-200"]
+    flight_hours_365d: 905
+    flight_hours_28d:  75
+    flight_hours_7d:   22
+  - id: FA10
+    name: Drew Martinez
+    role: flight_attendant
+    base_airport_id: KORD
+    employee_id: EMP0050
+    cert_types: ["B737-800", "A320", "E175", "B757-200"]
+    flight_hours_365d: 888
+    flight_hours_28d:  73
+    flight_hours_7d:   20
+  - id: FA11
+    name: Casey Rodriguez
+    role: flight_attendant
+    base_airport_id: KATL
+    employee_id: EMP0051
+    cert_types: ["B737-800", "A320", "E175", "B757-200"]
+    flight_hours_365d: 895
+    flight_hours_28d:  74
+    flight_hours_7d:   21
+  - id: FA12
+    name: Skylar Lewis
+    role: flight_attendant
+    base_airport_id: KATL
+    employee_id: EMP0052
+    cert_types: ["B737-800", "A320", "E175", "B757-200"]
+    flight_hours_365d: 911
+    flight_hours_28d:  76
+    flight_hours_7d:   23
+  - id: FA13
+    name: Bailey Lee
+    role: flight_attendant
+    base_airport_id: KATL
+    employee_id: EMP0053
+    cert_types: ["B737-800", "A320", "E175", "B757-200"]
+    flight_hours_365d: 869
+    flight_hours_28d:  70
+    flight_hours_7d:   18
+  - id: FA14
+    name: Harper Walker
+    role: flight_attendant
+    base_airport_id: KATL
+    employee_id: EMP0054
+    cert_types: ["B737-800", "A320", "E175", "B757-200"]
+    flight_hours_365d: 924
+    flight_hours_28d:  78
+    flight_hours_7d:   24
+  - id: FA15
+    name: Phoenix Hall
+    role: flight_attendant
+    base_airport_id: KATL
+    employee_id: EMP0055
+    cert_types: ["B737-800", "A320", "E175", "B757-200"]
+    flight_hours_365d: 883
+    flight_hours_28d:  72
+    flight_hours_7d:   20
+  - id: FA16
+    name: Dakota Young
+    role: flight_attendant
+    base_airport_id: KDFW
+    employee_id: EMP0056
+    cert_types: ["B737-800", "A320", "E175", "B757-200"]
+    flight_hours_365d: 907
+    flight_hours_28d:  75
+    flight_hours_7d:   22
+  - id: FA17
+    name: Reese Hernandez
+    role: flight_attendant
+    base_airport_id: KDFW
+    employee_id: EMP0057
+    cert_types: ["B737-800", "A320", "E175", "B757-200"]
+    flight_hours_365d: 872
+    flight_hours_28d:  71
+    flight_hours_7d:   19
+  - id: FA18
+    name: Sage King
+    role: flight_attendant
+    base_airport_id: KLAX
+    employee_id: EMP0058
+    cert_types: ["B737-800", "A320", "E175", "B757-200"]
+    flight_hours_365d: 915
+    flight_hours_28d:  77
+    flight_hours_7d:   23
+  - id: FA19
+    name: River Scott
+    role: flight_attendant
+    base_airport_id: KDEN
+    employee_id: EMP0059
+    cert_types: ["B737-800", "A320", "E175", "B757-200"]
+    flight_hours_365d: 898
+    flight_hours_28d:  74
+    flight_hours_7d:   21
+  - id: FA20
+    name: Emery Adams
+    role: flight_attendant
+    base_airport_id: KJFK
+    employee_id: EMP0060
+    cert_types: ["B737-800", "A320", "E175", "B757-200"]
+    flight_hours_365d: 921
+    flight_hours_28d:  76
+    flight_hours_7d:   24
+
+# ── Crew Pairings (one per flight) ────────────────────────────────────────────
+# Crew assignments follow aircraft rotations. Same crew covers all legs in a rotation.
+# duty_start = 60 min before first leg; duty_end = 30 min after last leg in rotation.
+crew_pairings:
+  # N001NB rotation: ORD→ATL→MIA→ATL→ORD  duty 11:00–22:30Z
+  - id: CP001
+    flight_id: NB101
+    captain_id: CA01
+    first_officer_id: FO01
+    fa_ids: [FA01, FA11]
+    duty_start: "2024-01-15T11:00:00Z"
+    duty_end: "2024-01-15T22:30:00Z"
+    flight_time_minutes: 135
+    status: assigned
+  - id: CP002
+    flight_id: NB102
+    captain_id: CA01
+    first_officer_id: FO01
+    fa_ids: [FA01, FA11]
+    duty_start: "2024-01-15T11:00:00Z"
+    duty_end: "2024-01-15T22:30:00Z"
+    flight_time_minutes: 75
+    status: assigned
+  - id: CP003
+    flight_id: NB103
+    captain_id: CA01
+    first_officer_id: FO01
+    fa_ids: [FA01, FA11]
+    duty_start: "2024-01-15T11:00:00Z"
+    duty_end: "2024-01-15T22:30:00Z"
+    flight_time_minutes: 75
+    status: assigned
+  - id: CP004
+    flight_id: NB104
+    captain_id: CA01
+    first_officer_id: FO01
+    fa_ids: [FA01, FA11]
+    duty_start: "2024-01-15T11:00:00Z"
+    duty_end: "2024-01-15T22:30:00Z"
+    flight_time_minutes: 135
+    status: assigned
+
+  # N002NB rotation: ORD→DFW→LAX→DFW  duty 11:30–00:05Z
+  - id: CP005
+    flight_id: NB105
+    captain_id: CA02
+    first_officer_id: FO02
+    fa_ids: [FA02, FA12]
+    duty_start: "2024-01-15T11:30:00Z"
+    duty_end: "2024-01-16T00:05:00Z"
+    flight_time_minutes: 160
+    status: assigned
+  - id: CP006
+    flight_id: NB106
+    captain_id: CA02
+    first_officer_id: FO02
+    fa_ids: [FA02, FA12]
+    duty_start: "2024-01-15T11:30:00Z"
+    duty_end: "2024-01-16T00:05:00Z"
+    flight_time_minutes: 195
+    status: assigned
+  - id: CP007
+    flight_id: NB107
+    captain_id: CA02
+    first_officer_id: FO02
+    fa_ids: [FA02, FA12]
+    duty_start: "2024-01-15T11:30:00Z"
+    duty_end: "2024-01-16T00:05:00Z"
+    flight_time_minutes: 190
+    status: assigned
+
+  # N003NB rotation: ORD→DEN→PHX→DEN→ORD  duty 12:00–01:40Z
+  - id: CP008
+    flight_id: NB108
+    captain_id: CA03
+    first_officer_id: FO03
+    fa_ids: [FA03, FA13]
+    duty_start: "2024-01-15T12:00:00Z"
+    duty_end: "2024-01-16T01:40:00Z"
+    flight_time_minutes: 155
+    status: assigned
+  - id: CP009
+    flight_id: NB109
+    captain_id: CA03
+    first_officer_id: FO03
+    fa_ids: [FA03, FA13]
+    duty_start: "2024-01-15T12:00:00Z"
+    duty_end: "2024-01-16T01:40:00Z"
+    flight_time_minutes: 115
+    status: assigned
+  - id: CP010
+    flight_id: NB110
+    captain_id: CA03
+    first_officer_id: FO03
+    fa_ids: [FA03, FA13]
+    duty_start: "2024-01-15T12:00:00Z"
+    duty_end: "2024-01-16T01:40:00Z"
+    flight_time_minutes: 115
+    status: assigned
+  - id: CP011
+    flight_id: NB111
+    captain_id: CA03
+    first_officer_id: FO03
+    fa_ids: [FA03, FA13]
+    duty_start: "2024-01-15T12:00:00Z"
+    duty_end: "2024-01-16T01:40:00Z"
+    flight_time_minutes: 165
+    status: assigned
+
+  # N004NB rotation: ORD→JFK→BOS→JFK→ORD  duty 10:30–21:40Z
+  - id: CP012
+    flight_id: NB112
+    captain_id: CA04
+    first_officer_id: FO04
+    fa_ids: [FA04, FA14]
+    duty_start: "2024-01-15T10:30:00Z"
+    duty_end: "2024-01-15T21:40:00Z"
+    flight_time_minutes: 135
+    status: assigned
+  - id: CP013
+    flight_id: NB113
+    captain_id: CA04
+    first_officer_id: FO04
+    fa_ids: [FA04, FA14]
+    duty_start: "2024-01-15T10:30:00Z"
+    duty_end: "2024-01-15T21:40:00Z"
+    flight_time_minutes: 65
+    status: assigned
+  - id: CP014
+    flight_id: NB114
+    captain_id: CA04
+    first_officer_id: FO04
+    fa_ids: [FA04, FA14]
+    duty_start: "2024-01-15T10:30:00Z"
+    duty_end: "2024-01-15T21:40:00Z"
+    flight_time_minutes: 65
+    status: assigned
+  - id: CP015
+    flight_id: NB115
+    captain_id: CA04
+    first_officer_id: FO04
+    fa_ids: [FA04, FA14]
+    duty_start: "2024-01-15T10:30:00Z"
+    duty_end: "2024-01-15T21:40:00Z"
+    flight_time_minutes: 135
+    status: assigned
+
+  # N005NB rotation: ORD→LAX→SFO→LAX  duty 13:00–23:10Z
+  - id: CP016
+    flight_id: NB116
+    captain_id: CA05
+    first_officer_id: FO05
+    fa_ids: [FA05, FA15]
+    duty_start: "2024-01-15T13:00:00Z"
+    duty_end: "2024-01-15T23:10:00Z"
+    flight_time_minutes: 270
+    status: assigned
+  - id: CP017
+    flight_id: NB117
+    captain_id: CA05
+    first_officer_id: FO05
+    fa_ids: [FA05, FA15]
+    duty_start: "2024-01-15T13:00:00Z"
+    duty_end: "2024-01-15T23:10:00Z"
+    flight_time_minutes: 65
+    status: assigned
+  - id: CP018
+    flight_id: NB118
+    captain_id: CA05
+    first_officer_id: FO05
+    fa_ids: [FA05, FA15]
+    duty_start: "2024-01-15T13:00:00Z"
+    duty_end: "2024-01-15T23:10:00Z"
+    flight_time_minutes: 65
+    status: assigned
+
+  # N006NB rotation: ORD→ATL→IAH→ATL  duty 14:00–00:25Z
+  - id: CP019
+    flight_id: NB119
+    captain_id: CA06
+    first_officer_id: FO06
+    fa_ids: [FA06, FA16]
+    duty_start: "2024-01-15T14:00:00Z"
+    duty_end: "2024-01-16T00:25:00Z"
+    flight_time_minutes: 135
+    status: assigned
+  - id: CP020
+    flight_id: NB120
+    captain_id: CA06
+    first_officer_id: FO06
+    fa_ids: [FA06, FA16]
+    duty_start: "2024-01-15T14:00:00Z"
+    duty_end: "2024-01-16T00:25:00Z"
+    flight_time_minutes: 140
+    status: assigned
+  - id: CP021
+    flight_id: NB121
+    captain_id: CA06
+    first_officer_id: FO06
+    fa_ids: [FA06, FA16]
+    duty_start: "2024-01-15T14:00:00Z"
+    duty_end: "2024-01-16T00:25:00Z"
+    flight_time_minutes: 140
+    status: assigned
+
+  # N007NB rotation: ORD→DTW→ORD→MSP→ORD (E175)  duty 11:00–20:10Z
+  - id: CP022
+    flight_id: NB122
+    captain_id: CA07
+    first_officer_id: FO07
+    fa_ids: [FA07]
+    duty_start: "2024-01-15T11:00:00Z"
+    duty_end: "2024-01-15T20:10:00Z"
+    flight_time_minutes: 70
+    status: assigned
+  - id: CP023
+    flight_id: NB123
+    captain_id: CA07
+    first_officer_id: FO07
+    fa_ids: [FA07]
+    duty_start: "2024-01-15T11:00:00Z"
+    duty_end: "2024-01-15T20:10:00Z"
+    flight_time_minutes: 70
+    status: assigned
+  - id: CP024
+    flight_id: NB124
+    captain_id: CA07
+    first_officer_id: FO07
+    fa_ids: [FA07]
+    duty_start: "2024-01-15T11:00:00Z"
+    duty_end: "2024-01-15T20:10:00Z"
+    flight_time_minutes: 70
+    status: assigned
+  - id: CP025
+    flight_id: NB125
+    captain_id: CA07
+    first_officer_id: FO07
+    fa_ids: [FA07]
+    duty_start: "2024-01-15T11:00:00Z"
+    duty_end: "2024-01-15T20:10:00Z"
+    flight_time_minutes: 70
+    status: assigned
+
+  # N008NB rotation: ORD→DTW→ORD→DTW→ORD (E175)  duty 12:00–21:10Z
+  - id: CP026
+    flight_id: NB126
+    captain_id: CA08
+    first_officer_id: FO08
+    fa_ids: [FA08]
+    duty_start: "2024-01-15T12:00:00Z"
+    duty_end: "2024-01-15T21:10:00Z"
+    flight_time_minutes: 70
+    status: assigned
+  - id: CP027
+    flight_id: NB127
+    captain_id: CA08
+    first_officer_id: FO08
+    fa_ids: [FA08]
+    duty_start: "2024-01-15T12:00:00Z"
+    duty_end: "2024-01-15T21:10:00Z"
+    flight_time_minutes: 70
+    status: assigned
+  - id: CP028
+    flight_id: NB128
+    captain_id: CA08
+    first_officer_id: FO08
+    fa_ids: [FA08]
+    duty_start: "2024-01-15T12:00:00Z"
+    duty_end: "2024-01-15T21:10:00Z"
+    flight_time_minutes: 70
+    status: assigned
+  - id: CP029
+    flight_id: NB129
+    captain_id: CA08
+    first_officer_id: FO08
+    fa_ids: [FA08]
+    duty_start: "2024-01-15T12:00:00Z"
+    duty_end: "2024-01-15T21:10:00Z"
+    flight_time_minutes: 70
+    status: assigned
+
+  # N009NB rotation: ORD→MSP→DEN→MSP→ORD  duty 11:45–22:35Z
+  - id: CP030
+    flight_id: NB130
+    captain_id: CA09
+    first_officer_id: FO09
+    fa_ids: [FA09, FA19]
+    duty_start: "2024-01-15T11:45:00Z"
+    duty_end: "2024-01-15T22:35:00Z"
+    flight_time_minutes: 70
+    status: assigned
+  - id: CP031
+    flight_id: NB131
+    captain_id: CA09
+    first_officer_id: FO09
+    fa_ids: [FA09, FA19]
+    duty_start: "2024-01-15T11:45:00Z"
+    duty_end: "2024-01-15T22:35:00Z"
+    flight_time_minutes: 120
+    status: assigned
+  - id: CP032
+    flight_id: NB132
+    captain_id: CA09
+    first_officer_id: FO09
+    fa_ids: [FA09, FA19]
+    duty_start: "2024-01-15T11:45:00Z"
+    duty_end: "2024-01-15T22:35:00Z"
+    flight_time_minutes: 120
+    status: assigned
+  - id: CP033
+    flight_id: NB133
+    captain_id: CA09
+    first_officer_id: FO09
+    fa_ids: [FA09, FA19]
+    duty_start: "2024-01-15T11:45:00Z"
+    duty_end: "2024-01-15T22:35:00Z"
+    flight_time_minutes: 70
+    status: assigned
+
+  # N010NB rotation: ORD→MIA→ORD→ATL  duty 10:00–21:55Z
+  - id: CP034
+    flight_id: NB134
+    captain_id: CA10
+    first_officer_id: FO10
+    fa_ids: [FA10, FA20]
+    duty_start: "2024-01-15T10:00:00Z"
+    duty_end: "2024-01-15T21:55:00Z"
+    flight_time_minutes: 185
+    status: assigned
+  - id: CP035
+    flight_id: NB135
+    captain_id: CA10
+    first_officer_id: FO10
+    fa_ids: [FA10, FA20]
+    duty_start: "2024-01-15T10:00:00Z"
+    duty_end: "2024-01-15T21:55:00Z"
+    flight_time_minutes: 185
+    status: assigned
+  - id: CP036
+    flight_id: NB136
+    captain_id: CA10
+    first_officer_id: FO10
+    fa_ids: [FA10, FA20]
+    duty_start: "2024-01-15T10:00:00Z"
+    duty_end: "2024-01-15T21:55:00Z"
+    flight_time_minutes: 135
+    status: assigned
+
+  # N011NB rotation: ATL→JFK→ATL→BOS  duty 11:00–22:10Z
+  - id: CP037
+    flight_id: NB137
+    captain_id: CA11
+    first_officer_id: FO11
+    fa_ids: [FA11, FA01]
+    duty_start: "2024-01-15T11:00:00Z"
+    duty_end: "2024-01-15T22:10:00Z"
+    flight_time_minutes: 150
+    status: assigned
+  - id: CP038
+    flight_id: NB138
+    captain_id: CA11
+    first_officer_id: FO11
+    fa_ids: [FA11, FA01]
+    duty_start: "2024-01-15T11:00:00Z"
+    duty_end: "2024-01-15T22:10:00Z"
+    flight_time_minutes: 150
+    status: assigned
+  - id: CP039
+    flight_id: NB139
+    captain_id: CA11
+    first_officer_id: FO11
+    fa_ids: [FA11, FA01]
+    duty_start: "2024-01-15T11:00:00Z"
+    duty_end: "2024-01-15T22:10:00Z"
+    flight_time_minutes: 160
+    status: assigned
+
+  # N012NB rotation: ATL→DFW→PHX→DFW  duty 12:00–22:35Z
+  - id: CP040
+    flight_id: NB140
+    captain_id: CA12
+    first_officer_id: FO12
+    fa_ids: [FA12, FA02]
+    duty_start: "2024-01-15T12:00:00Z"
+    duty_end: "2024-01-15T22:35:00Z"
+    flight_time_minutes: 160
+    status: assigned
+  - id: CP041
+    flight_id: NB141
+    captain_id: CA12
+    first_officer_id: FO12
+    fa_ids: [FA12, FA02]
+    duty_start: "2024-01-15T12:00:00Z"
+    duty_end: "2024-01-15T22:35:00Z"
+    flight_time_minutes: 135
+    status: assigned
+  - id: CP042
+    flight_id: NB142
+    captain_id: CA12
+    first_officer_id: FO12
+    fa_ids: [FA12, FA02]
+    duty_start: "2024-01-15T12:00:00Z"
+    duty_end: "2024-01-15T22:35:00Z"
+    flight_time_minutes: 130
+    status: assigned
+
+  # N013NB rotation: ATL→ORD→MSP→ORD→ATL  duty 10:30–21:50Z
+  - id: CP043
+    flight_id: NB143
+    captain_id: CA13
+    first_officer_id: FO13
+    fa_ids: [FA13, FA03]
+    duty_start: "2024-01-15T10:30:00Z"
+    duty_end: "2024-01-15T21:50:00Z"
+    flight_time_minutes: 135
+    status: assigned
+  - id: CP044
+    flight_id: NB144
+    captain_id: CA13
+    first_officer_id: FO13
+    fa_ids: [FA13, FA03]
+    duty_start: "2024-01-15T10:30:00Z"
+    duty_end: "2024-01-15T21:50:00Z"
+    flight_time_minutes: 70
+    status: assigned
+  - id: CP045
+    flight_id: NB145
+    captain_id: CA13
+    first_officer_id: FO13
+    fa_ids: [FA13, FA03]
+    duty_start: "2024-01-15T10:30:00Z"
+    duty_end: "2024-01-15T21:50:00Z"
+    flight_time_minutes: 70
+    status: assigned
+  - id: CP046
+    flight_id: NB146
+    captain_id: CA13
+    first_officer_id: FO13
+    fa_ids: [FA13, FA03]
+    duty_start: "2024-01-15T10:30:00Z"
+    duty_end: "2024-01-15T21:50:00Z"
+    flight_time_minutes: 135
+    status: assigned
+
+  # N014NB rotation: ATL→LAX→LAS→LAX (757)  duty 12:30–22:40Z
+  - id: CP047
+    flight_id: NB147
+    captain_id: CA14
+    first_officer_id: FO14
+    fa_ids: [FA14, FA04]
+    duty_start: "2024-01-15T12:30:00Z"
+    duty_end: "2024-01-15T22:40:00Z"
+    flight_time_minutes: 270
+    status: assigned
+  - id: CP048
+    flight_id: NB148
+    captain_id: CA14
+    first_officer_id: FO14
+    fa_ids: [FA14, FA04]
+    duty_start: "2024-01-15T12:30:00Z"
+    duty_end: "2024-01-15T22:40:00Z"
+    flight_time_minutes: 65
+    status: assigned
+  - id: CP049
+    flight_id: NB149
+    captain_id: CA14
+    first_officer_id: FO14
+    fa_ids: [FA14, FA04]
+    duty_start: "2024-01-15T12:30:00Z"
+    duty_end: "2024-01-15T22:40:00Z"
+    flight_time_minutes: 65
+    status: assigned
+
+  # N015NB rotation: ATL→MIA→ATL→MIA→ATL (E175)  duty 13:00–22:30Z
+  - id: CP050
+    flight_id: NB150
+    captain_id: CA15
+    first_officer_id: FO15
+    fa_ids: [FA15]
+    duty_start: "2024-01-15T13:00:00Z"
+    duty_end: "2024-01-15T22:30:00Z"
+    flight_time_minutes: 75
+    status: assigned
+  - id: CP051
+    flight_id: NB151
+    captain_id: CA15
+    first_officer_id: FO15
+    fa_ids: [FA15]
+    duty_start: "2024-01-15T13:00:00Z"
+    duty_end: "2024-01-15T22:30:00Z"
+    flight_time_minutes: 75
+    status: assigned
+  - id: CP052
+    flight_id: NB152
+    captain_id: CA15
+    first_officer_id: FO15
+    fa_ids: [FA15]
+    duty_start: "2024-01-15T13:00:00Z"
+    duty_end: "2024-01-15T22:30:00Z"
+    flight_time_minutes: 75
+    status: assigned
+  - id: CP053
+    flight_id: NB153
+    captain_id: CA15
+    first_officer_id: FO15
+    fa_ids: [FA15]
+    duty_start: "2024-01-15T13:00:00Z"
+    duty_end: "2024-01-15T22:30:00Z"
+    flight_time_minutes: 75
+    status: assigned
+
+  # N016NB rotation: ATL→ORD→ATL  duty 15:00–22:00Z
+  - id: CP054
+    flight_id: NB154
+    captain_id: CA16
+    first_officer_id: FO16
+    fa_ids: [FA16, FA06]
+    duty_start: "2024-01-15T15:00:00Z"
+    duty_end: "2024-01-15T22:00:00Z"
+    flight_time_minutes: 135
+    status: assigned
+  - id: CP055
+    flight_id: NB155
+    captain_id: CA16
+    first_officer_id: FO16
+    fa_ids: [FA16, FA06]
+    duty_start: "2024-01-15T15:00:00Z"
+    duty_end: "2024-01-15T22:00:00Z"
+    flight_time_minutes: 135
+    status: assigned
+
+  # N017NB rotation: ATL→IAH→ATL→IAH  duty 11:00–21:30Z
+  - id: CP056
+    flight_id: NB156
+    captain_id: CA17
+    first_officer_id: FO17
+    fa_ids: [FA17, FA07]
+    duty_start: "2024-01-15T11:00:00Z"
+    duty_end: "2024-01-15T21:30:00Z"
+    flight_time_minutes: 140
+    status: assigned
+  - id: CP057
+    flight_id: NB157
+    captain_id: CA17
+    first_officer_id: FO17
+    fa_ids: [FA17, FA07]
+    duty_start: "2024-01-15T11:00:00Z"
+    duty_end: "2024-01-15T21:30:00Z"
+    flight_time_minutes: 140
+    status: assigned
+  - id: CP058
+    flight_id: NB158
+    captain_id: CA17
+    first_officer_id: FO17
+    fa_ids: [FA17, FA07]
+    duty_start: "2024-01-15T11:00:00Z"
+    duty_end: "2024-01-15T21:30:00Z"
+    flight_time_minutes: 140
+    status: assigned
+
+  # N018NB rotation: ATL→ORD→DTW→ORD (E175)  duty 13:30–21:35Z
+  - id: CP059
+    flight_id: NB159
+    captain_id: CA18
+    first_officer_id: FO18
+    fa_ids: [FA18]
+    duty_start: "2024-01-15T13:30:00Z"
+    duty_end: "2024-01-15T21:35:00Z"
+    flight_time_minutes: 135
+    status: assigned
+  - id: CP060
+    flight_id: NB160
+    captain_id: CA18
+    first_officer_id: FO18
+    fa_ids: [FA18]
+    duty_start: "2024-01-15T13:30:00Z"
+    duty_end: "2024-01-15T21:35:00Z"
+    flight_time_minutes: 70
+    status: assigned
+  - id: CP061
+    flight_id: NB161
+    captain_id: CA18
+    first_officer_id: FO18
+    fa_ids: [FA18]
+    duty_start: "2024-01-15T13:30:00Z"
+    duty_end: "2024-01-15T21:35:00Z"
+    flight_time_minutes: 70
+    status: assigned
+
+  # N019NB rotation: DFW→LAX→SEA→LAX  duty 12:00–23:40Z
+  - id: CP062
+    flight_id: NB162
+    captain_id: CA19
+    first_officer_id: FO19
+    fa_ids: [FA19, FA09]
+    duty_start: "2024-01-15T12:00:00Z"
+    duty_end: "2024-01-15T23:40:00Z"
+    flight_time_minutes: 195
+    status: assigned
+  - id: CP063
+    flight_id: NB163
+    captain_id: CA19
+    first_officer_id: FO19
+    fa_ids: [FA19, FA09]
+    duty_start: "2024-01-15T12:00:00Z"
+    duty_end: "2024-01-15T23:40:00Z"
+    flight_time_minutes: 150
+    status: assigned
+  - id: CP064
+    flight_id: NB164
+    captain_id: CA19
+    first_officer_id: FO19
+    fa_ids: [FA19, FA09]
+    duty_start: "2024-01-15T12:00:00Z"
+    duty_end: "2024-01-15T23:40:00Z"
+    flight_time_minutes: 145
+    status: assigned
+
+  # N020NB rotation: DFW→DEN→LAS→DEN→DFW  duty 11:30–00:10Z
+  - id: CP065
+    flight_id: NB165
+    captain_id: CA20
+    first_officer_id: FO20
+    fa_ids: [FA20, FA10]
+    duty_start: "2024-01-15T11:30:00Z"
+    duty_end: "2024-01-16T00:10:00Z"
+    flight_time_minutes: 120
+    status: assigned
+  - id: CP066
+    flight_id: NB166
+    captain_id: CA20
+    first_officer_id: FO20
+    fa_ids: [FA20, FA10]
+    duty_start: "2024-01-15T11:30:00Z"
+    duty_end: "2024-01-16T00:10:00Z"
+    flight_time_minutes: 125
+    status: assigned
+  - id: CP067
+    flight_id: NB167
+    captain_id: CA20
+    first_officer_id: FO20
+    fa_ids: [FA20, FA10]
+    duty_start: "2024-01-15T11:30:00Z"
+    duty_end: "2024-01-16T00:10:00Z"
+    flight_time_minutes: 125
+    status: assigned
+  - id: CP068
+    flight_id: NB168
+    captain_id: CA20
+    first_officer_id: FO20
+    fa_ids: [FA20, FA10]
+    duty_start: "2024-01-15T11:30:00Z"
+    duty_end: "2024-01-16T00:10:00Z"
+    flight_time_minutes: 120
+    status: assigned
+
+  # N021NB rotation: DFW→ATL→MIA→ATL (757)  duty 13:00–21:40Z
+  - id: CP069
+    flight_id: NB169
+    captain_id: CA01
+    first_officer_id: FO01
+    fa_ids: [FA01, FA11]
+    duty_start: "2024-01-15T13:00:00Z"
+    duty_end: "2024-01-15T21:40:00Z"
+    flight_time_minutes: 160
+    status: assigned
+  - id: CP070
+    flight_id: NB170
+    captain_id: CA01
+    first_officer_id: FO01
+    fa_ids: [FA01, FA11]
+    duty_start: "2024-01-15T13:00:00Z"
+    duty_end: "2024-01-15T21:40:00Z"
+    flight_time_minutes: 75
+    status: assigned
+  - id: CP071
+    flight_id: NB171
+    captain_id: CA01
+    first_officer_id: FO01
+    fa_ids: [FA01, FA11]
+    duty_start: "2024-01-15T13:00:00Z"
+    duty_end: "2024-01-15T21:40:00Z"
+    flight_time_minutes: 75
+    status: assigned
+
+  # N022NB rotation: DFW→ORD→JFK→ORD→DFW  duty 10:00–00:10Z
+  - id: CP072
+    flight_id: NB172
+    captain_id: CA02
+    first_officer_id: FO02
+    fa_ids: [FA02, FA12]
+    duty_start: "2024-01-15T10:00:00Z"
+    duty_end: "2024-01-16T00:10:00Z"
+    flight_time_minutes: 155
+    status: assigned
+  - id: CP073
+    flight_id: NB173
+    captain_id: CA02
+    first_officer_id: FO02
+    fa_ids: [FA02, FA12]
+    duty_start: "2024-01-15T10:00:00Z"
+    duty_end: "2024-01-16T00:10:00Z"
+    flight_time_minutes: 135
+    status: assigned
+  - id: CP074
+    flight_id: NB174
+    captain_id: CA02
+    first_officer_id: FO02
+    fa_ids: [FA02, FA12]
+    duty_start: "2024-01-15T10:00:00Z"
+    duty_end: "2024-01-16T00:10:00Z"
+    flight_time_minutes: 135
+    status: assigned
+  - id: CP075
+    flight_id: NB175
+    captain_id: CA02
+    first_officer_id: FO02
+    fa_ids: [FA02, FA12]
+    duty_start: "2024-01-15T10:00:00Z"
+    duty_end: "2024-01-16T00:10:00Z"
+    flight_time_minutes: 155
+    status: assigned
+
+  # N023NB rotation: DFW→IAH→DFW→IAH→DFW (E175)  duty 12:00–20:30Z
+  - id: CP076
+    flight_id: NB176
+    captain_id: CA03
+    first_officer_id: FO03
+    fa_ids: [FA03]
+    duty_start: "2024-01-15T12:00:00Z"
+    duty_end: "2024-01-15T20:30:00Z"
+    flight_time_minutes: 60
+    status: assigned
+  - id: CP077
+    flight_id: NB177
+    captain_id: CA03
+    first_officer_id: FO03
+    fa_ids: [FA03]
+    duty_start: "2024-01-15T12:00:00Z"
+    duty_end: "2024-01-15T20:30:00Z"
+    flight_time_minutes: 60
+    status: assigned
+  - id: CP078
+    flight_id: NB178
+    captain_id: CA03
+    first_officer_id: FO03
+    fa_ids: [FA03]
+    duty_start: "2024-01-15T12:00:00Z"
+    duty_end: "2024-01-15T20:30:00Z"
+    flight_time_minutes: 60
+    status: assigned
+  - id: CP079
+    flight_id: NB179
+    captain_id: CA03
+    first_officer_id: FO03
+    fa_ids: [FA03]
+    duty_start: "2024-01-15T12:00:00Z"
+    duty_end: "2024-01-15T20:30:00Z"
+    flight_time_minutes: 60
+    status: assigned
+
+  # N024NB rotation: DFW→PHX→LAS→PHX  duty 14:00–21:55Z
+  - id: CP080
+    flight_id: NB180
+    captain_id: CA04
+    first_officer_id: FO04
+    fa_ids: [FA04, FA14]
+    duty_start: "2024-01-15T14:00:00Z"
+    duty_end: "2024-01-15T21:55:00Z"
+    flight_time_minutes: 135
+    status: assigned
+  - id: CP081
+    flight_id: NB181
+    captain_id: CA04
+    first_officer_id: FO04
+    fa_ids: [FA04, FA14]
+    duty_start: "2024-01-15T14:00:00Z"
+    duty_end: "2024-01-15T21:55:00Z"
+    flight_time_minutes: 65
+    status: assigned
+  - id: CP082
+    flight_id: NB182
+    captain_id: CA04
+    first_officer_id: FO04
+    fa_ids: [FA04, FA14]
+    duty_start: "2024-01-15T14:00:00Z"
+    duty_end: "2024-01-15T21:55:00Z"
+    flight_time_minutes: 65
+    status: assigned
+
+  # N025NB rotation: LAX→ORD→ATL  duty 13:30–00:29Z
+  - id: CP083
+    flight_id: NB183
+    captain_id: CA05
+    first_officer_id: FO05
+    fa_ids: [FA05, FA15]
+    duty_start: "2024-01-15T13:30:00Z"
+    duty_end: "2024-01-16T00:29:00Z"
+    flight_time_minutes: 375
+    status: assigned
+  - id: CP084
+    flight_id: NB184
+    captain_id: CA05
+    first_officer_id: FO05
+    fa_ids: [FA05, FA15]
+    duty_start: "2024-01-15T13:30:00Z"
+    duty_end: "2024-01-16T00:29:00Z"
+    flight_time_minutes: 134
+    status: assigned
+
+  # N026NB rotation: LAX→SFO→DEN→SFO→LAX  duty 11:00–23:30Z
+  - id: CP085
+    flight_id: NB185
+    captain_id: CA06
+    first_officer_id: FO06
+    fa_ids: [FA06, FA16]
+    duty_start: "2024-01-15T11:00:00Z"
+    duty_end: "2024-01-15T23:30:00Z"
+    flight_time_minutes: 65
+    status: assigned
+  - id: CP086
+    flight_id: NB186
+    captain_id: CA06
+    first_officer_id: FO06
+    fa_ids: [FA06, FA16]
+    duty_start: "2024-01-15T11:00:00Z"
+    duty_end: "2024-01-15T23:30:00Z"
+    flight_time_minutes: 175
+    status: assigned
+  - id: CP087
+    flight_id: NB187
+    captain_id: CA06
+    first_officer_id: FO06
+    fa_ids: [FA06, FA16]
+    duty_start: "2024-01-15T11:00:00Z"
+    duty_end: "2024-01-15T23:30:00Z"
+    flight_time_minutes: 175
+    status: assigned
+  - id: CP088
+    flight_id: NB188
+    captain_id: CA06
+    first_officer_id: FO06
+    fa_ids: [FA06, FA16]
+    duty_start: "2024-01-15T11:00:00Z"
+    duty_end: "2024-01-15T23:30:00Z"
+    flight_time_minutes: 65
+    status: assigned
+
+  # N027NB rotation: LAX→LAS→PHX→LAS→LAX (757)  duty 12:30–21:20Z
+  - id: CP089
+    flight_id: NB189
+    captain_id: CA07
+    first_officer_id: FO07
+    fa_ids: [FA07, FA17]
+    duty_start: "2024-01-15T12:30:00Z"
+    duty_end: "2024-01-15T21:20:00Z"
+    flight_time_minutes: 65
+    status: assigned
+  - id: CP090
+    flight_id: NB190
+    captain_id: CA07
+    first_officer_id: FO07
+    fa_ids: [FA07, FA17]
+    duty_start: "2024-01-15T12:30:00Z"
+    duty_end: "2024-01-15T21:20:00Z"
+    flight_time_minutes: 65
+    status: assigned
+  - id: CP091
+    flight_id: NB191
+    captain_id: CA07
+    first_officer_id: FO07
+    fa_ids: [FA07, FA17]
+    duty_start: "2024-01-15T12:30:00Z"
+    duty_end: "2024-01-15T21:20:00Z"
+    flight_time_minutes: 65
+    status: assigned
+  - id: CP092
+    flight_id: NB192
+    captain_id: CA07
+    first_officer_id: FO07
+    fa_ids: [FA07, FA17]
+    duty_start: "2024-01-15T12:30:00Z"
+    duty_end: "2024-01-15T21:20:00Z"
+    flight_time_minutes: 65
+    status: assigned
+
+  # N028NB rotation: LAX→DFW→IAH→DFW  duty 14:00–22:45Z
+  - id: CP093
+    flight_id: NB193
+    captain_id: CA08
+    first_officer_id: FO08
+    fa_ids: [FA08, FA18]
+    duty_start: "2024-01-15T14:00:00Z"
+    duty_end: "2024-01-15T22:45:00Z"
+    flight_time_minutes: 195
+    status: assigned
+  - id: CP094
+    flight_id: NB194
+    captain_id: CA08
+    first_officer_id: FO08
+    fa_ids: [FA08, FA18]
+    duty_start: "2024-01-15T14:00:00Z"
+    duty_end: "2024-01-15T22:45:00Z"
+    flight_time_minutes: 60
+    status: assigned
+  - id: CP095
+    flight_id: NB195
+    captain_id: CA08
+    first_officer_id: FO08
+    fa_ids: [FA08, FA18]
+    duty_start: "2024-01-15T14:00:00Z"
+    duty_end: "2024-01-15T22:45:00Z"
+    flight_time_minutes: 60
+    status: assigned
+
+  # N029NB rotation: LAX→SEA→LAX→SEA (E175)  duty 11:00–22:00Z
+  - id: CP096
+    flight_id: NB196
+    captain_id: CA09
+    first_officer_id: FO09
+    fa_ids: [FA09]
+    duty_start: "2024-01-15T11:00:00Z"
+    duty_end: "2024-01-15T22:00:00Z"
+    flight_time_minutes: 150
+    status: assigned
+  - id: CP097
+    flight_id: NB197
+    captain_id: CA09
+    first_officer_id: FO09
+    fa_ids: [FA09]
+    duty_start: "2024-01-15T11:00:00Z"
+    duty_end: "2024-01-15T22:00:00Z"
+    flight_time_minutes: 150
+    status: assigned
+  - id: CP098
+    flight_id: NB198
+    captain_id: CA09
+    first_officer_id: FO09
+    fa_ids: [FA09]
+    duty_start: "2024-01-15T11:00:00Z"
+    duty_end: "2024-01-15T22:00:00Z"
+    flight_time_minutes: 150
+    status: assigned
+
+  # N030NB rotation: DEN→ORD→DTW→ORD→DEN  duty 12:00–00:00Z
+  - id: CP099
+    flight_id: NB199
+    captain_id: CA10
+    first_officer_id: FO10
+    fa_ids: [FA10, FA20]
+    duty_start: "2024-01-15T12:00:00Z"
+    duty_end: "2024-01-16T00:00:00Z"
+    flight_time_minutes: 155
+    status: assigned
+  - id: CP100
+    flight_id: NB200
+    captain_id: CA10
+    first_officer_id: FO10
+    fa_ids: [FA10, FA20]
+    duty_start: "2024-01-15T12:00:00Z"
+    duty_end: "2024-01-16T00:00:00Z"
+    flight_time_minutes: 70
+    status: assigned
+  - id: CP101
+    flight_id: NB201
+    captain_id: CA10
+    first_officer_id: FO10
+    fa_ids: [FA10, FA20]
+    duty_start: "2024-01-15T12:00:00Z"
+    duty_end: "2024-01-16T00:00:00Z"
+    flight_time_minutes: 70
+    status: assigned
+  - id: CP102
+    flight_id: NB202
+    captain_id: CA10
+    first_officer_id: FO10
+    fa_ids: [FA10, FA20]
+    duty_start: "2024-01-15T12:00:00Z"
+    duty_end: "2024-01-16T00:00:00Z"
+    flight_time_minutes: 155
+    status: assigned
+
+  # N031NB rotation: DEN→LAX→SFO→LAX→DEN  duty 13:00–01:20Z
+  - id: CP103
+    flight_id: NB203
+    captain_id: CA11
+    first_officer_id: FO11
+    fa_ids: [FA11, FA01]
+    duty_start: "2024-01-15T13:00:00Z"
+    duty_end: "2024-01-16T01:20:00Z"
+    flight_time_minutes: 170
+    status: assigned
+  - id: CP104
+    flight_id: NB204
+    captain_id: CA11
+    first_officer_id: FO11
+    fa_ids: [FA11, FA01]
+    duty_start: "2024-01-15T13:00:00Z"
+    duty_end: "2024-01-16T01:20:00Z"
+    flight_time_minutes: 65
+    status: assigned
+  - id: CP105
+    flight_id: NB205
+    captain_id: CA11
+    first_officer_id: FO11
+    fa_ids: [FA11, FA01]
+    duty_start: "2024-01-15T13:00:00Z"
+    duty_end: "2024-01-16T01:20:00Z"
+    flight_time_minutes: 65
+    status: assigned
+  - id: CP106
+    flight_id: NB206
+    captain_id: CA11
+    first_officer_id: FO11
+    fa_ids: [FA11, FA01]
+    duty_start: "2024-01-15T13:00:00Z"
+    duty_end: "2024-01-16T01:20:00Z"
+    flight_time_minutes: 170
+    status: assigned
+
+  # N032NB rotation: DEN→PHX→LAS→PHX→DEN (E175)  duty 11:30–22:00Z
+  - id: CP107
+    flight_id: NB207
+    captain_id: CA12
+    first_officer_id: FO12
+    fa_ids: [FA12]
+    duty_start: "2024-01-15T11:30:00Z"
+    duty_end: "2024-01-15T22:00:00Z"
+    flight_time_minutes: 115
+    status: assigned
+  - id: CP108
+    flight_id: NB208
+    captain_id: CA12
+    first_officer_id: FO12
+    fa_ids: [FA12]
+    duty_start: "2024-01-15T11:30:00Z"
+    duty_end: "2024-01-15T22:00:00Z"
+    flight_time_minutes: 65
+    status: assigned
+  - id: CP109
+    flight_id: NB209
+    captain_id: CA12
+    first_officer_id: FO12
+    fa_ids: [FA12]
+    duty_start: "2024-01-15T11:30:00Z"
+    duty_end: "2024-01-15T22:00:00Z"
+    flight_time_minutes: 65
+    status: assigned
+  - id: CP110
+    flight_id: NB210
+    captain_id: CA12
+    first_officer_id: FO12
+    fa_ids: [FA12]
+    duty_start: "2024-01-15T11:30:00Z"
+    duty_end: "2024-01-15T22:00:00Z"
+    flight_time_minutes: 115
+    status: assigned
+
+  # N033NB rotation: DEN→DFW→IAH→DFW→DEN  duty 14:00–00:30Z
+  - id: CP111
+    flight_id: NB211
+    captain_id: CA13
+    first_officer_id: FO13
+    fa_ids: [FA13, FA03]
+    duty_start: "2024-01-15T14:00:00Z"
+    duty_end: "2024-01-16T00:30:00Z"
+    flight_time_minutes: 120
+    status: assigned
+  - id: CP112
+    flight_id: NB212
+    captain_id: CA13
+    first_officer_id: FO13
+    fa_ids: [FA13, FA03]
+    duty_start: "2024-01-15T14:00:00Z"
+    duty_end: "2024-01-16T00:30:00Z"
+    flight_time_minutes: 60
+    status: assigned
+  - id: CP113
+    flight_id: NB213
+    captain_id: CA13
+    first_officer_id: FO13
+    fa_ids: [FA13, FA03]
+    duty_start: "2024-01-15T14:00:00Z"
+    duty_end: "2024-01-16T00:30:00Z"
+    flight_time_minutes: 60
+    status: assigned
+  - id: CP114
+    flight_id: NB214
+    captain_id: CA13
+    first_officer_id: FO13
+    fa_ids: [FA13, FA03]
+    duty_start: "2024-01-15T14:00:00Z"
+    duty_end: "2024-01-16T00:30:00Z"
+    flight_time_minutes: 120
+    status: assigned
+
+  # N034NB rotation: JFK→MIA→ATL→MIA→JFK (757)  duty 11:00–23:30Z
+  - id: CP115
+    flight_id: NB215
+    captain_id: CA14
+    first_officer_id: FO14
+    fa_ids: [FA14, FA04]
+    duty_start: "2024-01-15T11:00:00Z"
+    duty_end: "2024-01-15T23:30:00Z"
+    flight_time_minutes: 165
+    status: assigned
+  - id: CP116
+    flight_id: NB216
+    captain_id: CA14
+    first_officer_id: FO14
+    fa_ids: [FA14, FA04]
+    duty_start: "2024-01-15T11:00:00Z"
+    duty_end: "2024-01-15T23:30:00Z"
+    flight_time_minutes: 75
+    status: assigned
+  - id: CP117
+    flight_id: NB217
+    captain_id: CA14
+    first_officer_id: FO14
+    fa_ids: [FA14, FA04]
+    duty_start: "2024-01-15T11:00:00Z"
+    duty_end: "2024-01-15T23:30:00Z"
+    flight_time_minutes: 75
+    status: assigned
+  - id: CP118
+    flight_id: NB218
+    captain_id: CA14
+    first_officer_id: FO14
+    fa_ids: [FA14, FA04]
+    duty_start: "2024-01-15T11:00:00Z"
+    duty_end: "2024-01-15T23:30:00Z"
+    flight_time_minutes: 165
+    status: assigned
+
+  # N035NB rotation: JFK→BOS→JFK→ATL→JFK  duty 12:00–23:40Z
+  - id: CP119
+    flight_id: NB219
+    captain_id: CA15
+    first_officer_id: FO15
+    fa_ids: [FA15, FA05]
+    duty_start: "2024-01-15T12:00:00Z"
+    duty_end: "2024-01-15T23:40:00Z"
+    flight_time_minutes: 65
+    status: assigned
+  - id: CP120
+    flight_id: NB220
+    captain_id: CA15
+    first_officer_id: FO15
+    fa_ids: [FA15, FA05]
+    duty_start: "2024-01-15T12:00:00Z"
+    duty_end: "2024-01-15T23:40:00Z"
+    flight_time_minutes: 65
+    status: assigned
+  - id: CP121
+    flight_id: NB221
+    captain_id: CA15
+    first_officer_id: FO15
+    fa_ids: [FA15, FA05]
+    duty_start: "2024-01-15T12:00:00Z"
+    duty_end: "2024-01-15T23:40:00Z"
+    flight_time_minutes: 150
+    status: assigned
+  - id: CP122
+    flight_id: NB222
+    captain_id: CA15
+    first_officer_id: FO15
+    fa_ids: [FA15, FA05]
+    duty_start: "2024-01-15T12:00:00Z"
+    duty_end: "2024-01-15T23:40:00Z"
+    flight_time_minutes: 150
+    status: assigned
+
+  # N036NB rotation: JFK→ORD→MSP→ORD→JFK  duty 13:00–00:20Z
+  - id: CP123
+    flight_id: NB223
+    captain_id: CA16
+    first_officer_id: FO16
+    fa_ids: [FA16, FA06]
+    duty_start: "2024-01-15T13:00:00Z"
+    duty_end: "2024-01-16T00:20:00Z"
+    flight_time_minutes: 135
+    status: assigned
+  - id: CP124
+    flight_id: NB224
+    captain_id: CA16
+    first_officer_id: FO16
+    fa_ids: [FA16, FA06]
+    duty_start: "2024-01-15T13:00:00Z"
+    duty_end: "2024-01-16T00:20:00Z"
+    flight_time_minutes: 70
+    status: assigned
+  - id: CP125
+    flight_id: NB225
+    captain_id: CA16
+    first_officer_id: FO16
+    fa_ids: [FA16, FA06]
+    duty_start: "2024-01-15T13:00:00Z"
+    duty_end: "2024-01-16T00:20:00Z"
+    flight_time_minutes: 70
+    status: assigned
+  - id: CP126
+    flight_id: NB226
+    captain_id: CA16
+    first_officer_id: FO16
+    fa_ids: [FA16, FA06]
+    duty_start: "2024-01-15T13:00:00Z"
+    duty_end: "2024-01-16T00:20:00Z"
+    flight_time_minutes: 135
+    status: assigned
+
+  # N037NB rotation: SEA→LAX→DEN→LAX  duty 12:00–23:40Z
+  - id: CP127
+    flight_id: NB227
+    captain_id: CA17
+    first_officer_id: FO17
+    fa_ids: [FA17, FA07]
+    duty_start: "2024-01-15T12:00:00Z"
+    duty_end: "2024-01-15T23:40:00Z"
+    flight_time_minutes: 150
+    status: assigned
+  - id: CP128
+    flight_id: NB228
+    captain_id: CA17
+    first_officer_id: FO17
+    fa_ids: [FA17, FA07]
+    duty_start: "2024-01-15T12:00:00Z"
+    duty_end: "2024-01-15T23:40:00Z"
+    flight_time_minutes: 170
+    status: assigned
+  - id: CP129
+    flight_id: NB229
+    captain_id: CA17
+    first_officer_id: FO17
+    fa_ids: [FA17, FA07]
+    duty_start: "2024-01-15T12:00:00Z"
+    duty_end: "2024-01-15T23:40:00Z"
+    flight_time_minutes: 170
+    status: assigned
+
+  # N038NB rotation: MIA→ATL→ORD→ATL→MIA  duty 11:30–23:00Z
+  - id: CP130
+    flight_id: NB230
+    captain_id: CA18
+    first_officer_id: FO18
+    fa_ids: [FA18, FA08]
+    duty_start: "2024-01-15T11:30:00Z"
+    duty_end: "2024-01-15T23:00:00Z"
+    flight_time_minutes: 75
+    status: assigned
+  - id: CP131
+    flight_id: NB231
+    captain_id: CA18
+    first_officer_id: FO18
+    fa_ids: [FA18, FA08]
+    duty_start: "2024-01-15T11:30:00Z"
+    duty_end: "2024-01-15T23:00:00Z"
+    flight_time_minutes: 135
+    status: assigned
+  - id: CP132
+    flight_id: NB232
+    captain_id: CA18
+    first_officer_id: FO18
+    fa_ids: [FA18, FA08]
+    duty_start: "2024-01-15T11:30:00Z"
+    duty_end: "2024-01-15T23:00:00Z"
+    flight_time_minutes: 135
+    status: assigned
+  - id: CP133
+    flight_id: NB233
+    captain_id: CA18
+    first_officer_id: FO18
+    fa_ids: [FA18, FA08]
+    duty_start: "2024-01-15T11:30:00Z"
+    duty_end: "2024-01-15T23:00:00Z"
+    flight_time_minutes: 75
+    status: assigned
+
+  # N039NB rotation: IAH→DFW→ATL→DFW→IAH  duty 12:30–00:20Z
+  - id: CP134
+    flight_id: NB234
+    captain_id: CA19
+    first_officer_id: FO19
+    fa_ids: [FA19, FA09]
+    duty_start: "2024-01-15T12:30:00Z"
+    duty_end: "2024-01-16T00:20:00Z"
+    flight_time_minutes: 60
+    status: assigned
+  - id: CP135
+    flight_id: NB235
+    captain_id: CA19
+    first_officer_id: FO19
+    fa_ids: [FA19, FA09]
+    duty_start: "2024-01-15T12:30:00Z"
+    duty_end: "2024-01-16T00:20:00Z"
+    flight_time_minutes: 160
+    status: assigned
+  - id: CP136
+    flight_id: NB236
+    captain_id: CA19
+    first_officer_id: FO19
+    fa_ids: [FA19, FA09]
+    duty_start: "2024-01-15T12:30:00Z"
+    duty_end: "2024-01-16T00:20:00Z"
+    flight_time_minutes: 160
+    status: assigned
+  - id: CP137
+    flight_id: NB237
+    captain_id: CA19
+    first_officer_id: FO19
+    fa_ids: [FA19, FA09]
+    duty_start: "2024-01-15T12:30:00Z"
+    duty_end: "2024-01-16T00:20:00Z"
+    flight_time_minutes: 60
+    status: assigned
+
+  # N040NB rotation: MSP→ORD→DTW→ORD→MSP→ORD (E175)  duty 11:00–22:20Z
+  - id: CP138
+    flight_id: NB238
+    captain_id: CA20
+    first_officer_id: FO20
+    fa_ids: [FA20]
+    duty_start: "2024-01-15T11:00:00Z"
+    duty_end: "2024-01-15T22:20:00Z"
+    flight_time_minutes: 70
+    status: assigned
+  - id: CP139
+    flight_id: NB239
+    captain_id: CA20
+    first_officer_id: FO20
+    fa_ids: [FA20]
+    duty_start: "2024-01-15T11:00:00Z"
+    duty_end: "2024-01-15T22:20:00Z"
+    flight_time_minutes: 70
+    status: assigned
+  - id: CP140
+    flight_id: NB240
+    captain_id: CA20
+    first_officer_id: FO20
+    fa_ids: [FA20]
+    duty_start: "2024-01-15T11:00:00Z"
+    duty_end: "2024-01-15T22:20:00Z"
+    flight_time_minutes: 70
+    status: assigned
+  - id: CP141
+    flight_id: NB241
+    captain_id: CA20
+    first_officer_id: FO20
+    fa_ids: [FA20]
+    duty_start: "2024-01-15T11:00:00Z"
+    duty_end: "2024-01-15T22:20:00Z"
+    flight_time_minutes: 70
+    status: assigned
+  - id: CP142
+    flight_id: NB242
+    captain_id: CA20
+    first_officer_id: FO20
+    fa_ids: [FA20]
+    duty_start: "2024-01-15T11:00:00Z"
+    duty_end: "2024-01-15T22:20:00Z"
+    flight_time_minutes: 70
+    status: assigned

@@ -1,0 +1,43 @@
+---
+id: cyber_incident
+name: "Nimbus Air Cyber Incident"
+description: >
+  Ransomware attack targets Nimbus Air's departure control system (DCS).
+  Automated check-in and boarding pass systems offline. Manual check-in
+  adds 45–90 minutes to every single departure across the entire network.
+
+events:
+  - kind: cyber_incident
+    params:
+      system_affected: "departure_control_system"
+      attack_type: "ransomware"
+      severity: critical
+      systems_down:
+        - departure_control_system
+        - automated_check_in
+        - baggage_reconciliation
+        - gate_management
+      systems_degraded:
+        - crew_scheduling
+        - ops_control_center
+      manual_operations_required: true
+      turnaround_delay_minutes_min: 45
+      turnaround_delay_minutes_max: 90
+      all_airports_affected: true
+      duration_hours: 18
+      recovery_mode: "manual_fallback"
+      data_breach_suspected: true
+      regulatory_notification_required: true
+
+metadata:
+  estimated_affected_flights: 200
+  cascade_duration_hours: 18
+  difficulty: extreme
+  primary_hub: null
+  event_types: [cyber_incident]
+  peak_delay_minutes: 90
+  estimated_cancellations: 8
+  estimated_diversions: 0
+  cost_range_usd: [4200000, 8500000]
+  network_wide: true
+  real_world_analog: "Southwest IT outage Dec 2022, United IT 2016, BA 2017"

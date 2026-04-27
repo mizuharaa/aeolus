@@ -1,0 +1,39 @@
+---
+id: chicago_ground_stop
+name: "Chicago ARTCC Ground Stop"
+description: >
+  FAA issues a ground stop for all ORD and MDW traffic due to an ATC equipment
+  outage at Chicago ARTCC (ZAU). En-route radar failure triggers a full stop
+  affecting all traffic in/out of Chicago metro area.
+
+events:
+  - kind: ground_stop
+    params:
+      destination_airport: KORD
+      duration_minutes: 360
+      reason: "ZAU ARTCC radar outage — ATC equipment failure"
+      ground_stop_program: true
+      exemptions: ["medical", "emergency"]
+      fdm_miles: 150
+
+  - kind: atc_staffing
+    params:
+      facility: "ZAU"
+      facility_name: "Chicago ARTCC"
+      staffing_reduction_pct: 100
+      arrival_rate_reduction_pct: 100
+      departure_rate_reduction_pct: 100
+      duration_minutes: 360
+      cause: equipment_failure
+
+metadata:
+  estimated_affected_flights: 62
+  cascade_duration_hours: 14
+  difficulty: extreme
+  primary_hub: KORD
+  event_types: [ground_stop, atc_staffing]
+  peak_delay_minutes: 360
+  estimated_cancellations: 18
+  estimated_diversions: 15
+  cost_range_usd: [1800000, 3200000]
+  real_world_analog: "2014 ZAU sabotage incident, September"

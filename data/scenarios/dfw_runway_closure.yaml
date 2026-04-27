@@ -1,0 +1,34 @@
+---
+id: dfw_runway_closure
+name: "DFW Runway 17L Closure"
+description: >
+  Runway 17L at Dallas/Fort Worth closed for emergency structural repair
+  after FOD damage. Airport operating at 55% arrival/departure capacity
+  with Runway 17R and 18L/R handling all traffic.
+
+events:
+  - kind: runway_closure
+    params:
+      airport: KDFW
+      runway: "17L"
+      closure_reason: "FOD damage — emergency pavement repair"
+      duration_minutes: 480
+      capacity_reduction_pct: 45
+      arrival_rate_per_hour: 44
+      departure_rate_per_hour: 40
+      adr_normal: 80
+      adr_reduced: 44
+      flow_control: true
+      edct_program: true
+
+metadata:
+  estimated_affected_flights: 34
+  cascade_duration_hours: 8
+  difficulty: medium
+  primary_hub: KDFW
+  event_types: [runway_closure]
+  peak_delay_minutes: 90
+  estimated_cancellations: 5
+  estimated_diversions: 3
+  cost_range_usd: [420000, 790000]
+  real_world_analog: "DFW runway FOD events — multiple per year"
