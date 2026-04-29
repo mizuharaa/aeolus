@@ -1,7 +1,6 @@
 "use client"
 import Link from "next/link"
 import { Plane, Wifi, WifiOff, RotateCcw, BookOpen } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { useSimulationStore } from "@/stores/simulation"
 import { apiClient } from "@/lib/api"
 import { toast } from "sonner"
@@ -19,9 +18,10 @@ export function SimulatorNav({ isConnected }: SimulatorNavProps) {
     const states = Object.values(flightStates)
     const total = schedule.length || states.length
     const cancelled = states.filter((f) => f.status === "cancelled").length
-    const delayed = states.filter((f) => f.status === "delayed" || (f.status !== "cancelled" && f.delay_minutes > 0)).length
-    const onTime = total - cancelled - delayed
-    return { total, onTime: Math.max(0, onTime), delayed, cancelled }
+    const delayed = states.filter(
+      (f) => f.status === "delayed" || (f.status !== "cancelled" && f.delay_minutes > 0)
+    ).length
+    return { total, onTime: Math.max(0, total - cancelled - delayed), delayed, cancelled }
   }, [flightStates, schedule.length])
 
   const handleReset = async () => {
@@ -36,72 +36,123 @@ export function SimulatorNav({ isConnected }: SimulatorNavProps) {
   }
 
   return (
-    <header className="border-b border-border bg-card/80 backdrop-blur-md px-4 h-14 flex items-center justify-between shrink-0 z-40 shadow-sm">
-      {/* Left: brand + stats */}
-      <div className="flex items-center gap-3">
-        <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-          <div className="w-7 h-7 rounded-lg gradient-peach flex items-center justify-center shadow-sm">
-            <Plane className="w-4 h-4 text-white" />
+    <div
+      className="shrink-0 z-40 flex items-center justify-between px-5 h-14"
+      style={{
+        background: "linear-gradient(135deg, #1E8C86 0%, #2BA8A2 100%)",
+        boxShadow: "0 2px 12px rgba(30,140,134,0.28)",
+      }}
+    >
+      {/* ── Brand + stats ── */}
+      <div className="flex items-center gap-4 min-w-0">
+        <Link
+          href="/"
+          className="flex items-center gap-2.5 hover:opacity-85 transition-opacity min-w-0 shrink-0"
+        >
+          {/* Logo icon — gold circle */}
+          <div
+            className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+            style={{ background: "#FFD23F", boxShadow: "0 2px 10px rgba(255,210,63,0.50)" }}
+          >
+            <Plane className="w-[18px] h-[18px]" style={{ color: "#1E8C86" }} />
           </div>
-          <span className="font-display font-bold text-base">Aeolus</span>
-        </Link>
-        <span className="hidden sm:inline text-border">|</span>
-        <span className="hidden sm:inline text-xs text-muted-foreground font-medium">Nimbus Air OCC</span>
-
-        {stats.total > 0 && (
-          <>
-            <span className="hidden md:inline text-border">|</span>
-            <div className="hidden md:flex items-center gap-3 text-[11px] font-mono">
-              <span className="flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                <span className="text-emerald-700 font-semibold">{stats.onTime}</span>
-                <span className="text-muted-foreground">on-time</span>
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
-                <span className="text-orange-700 font-semibold">{stats.delayed}</span>
-                <span className="text-muted-foreground">delayed</span>
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                <span className="text-red-700 font-semibold">{stats.cancelled}</span>
-                <span className="text-muted-foreground">cancelled</span>
-              </span>
+          <div className="min-w-0">
+            <div className="text-white font-bold text-[15px] leading-none tracking-wide">
+              Aeolus
             </div>
-          </>
+            <div
+              className="text-[10px] font-medium leading-none mt-0.5 hidden sm:block"
+              style={{ color: "rgba(255,255,255,0.72)" }}
+            >
+              Nimbus Air OCC
+            </div>
+          </div>
+        </Link>
+
+        {/* Flight status summary pills */}
+        {stats.total > 0 && (
+          <div className="hidden md:flex items-center gap-1.5">
+            <div
+              className="flex items-center gap-1.5 text-[11px] px-3 py-1 rounded-full font-semibold"
+              style={{ background: "rgba(255,255,255,0.14)" }}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+              <span className="text-white">{stats.onTime}</span>
+              <span style={{ color: "rgba(255,255,255,0.68)" }}>on-time</span>
+            </div>
+            {stats.delayed > 0 && (
+              <div
+                className="flex items-center gap-1.5 text-[11px] px-3 py-1 rounded-full font-semibold"
+                style={{ background: "rgba(255,255,255,0.14)" }}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                <span className="text-white">{stats.delayed}</span>
+                <span style={{ color: "rgba(255,255,255,0.68)" }}>delayed</span>
+              </div>
+            )}
+            {stats.cancelled > 0 && (
+              <div
+                className="flex items-center gap-1.5 text-[11px] px-3 py-1 rounded-full font-semibold"
+                style={{ background: "rgba(239,108,74,0.38)" }}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-red-400 shrink-0" />
+                <span className="text-white">{stats.cancelled}</span>
+                <span style={{ color: "rgba(255,255,255,0.78)" }}>cancelled</span>
+              </div>
+            )}
+          </div>
         )}
       </div>
 
-      {/* Right: connection + reset + docs */}
+      {/* ── Right controls ── */}
       <div className="flex items-center gap-2">
+        {/* Connection status */}
         <div
-          className={`flex items-center gap-1.5 text-xs px-2.5 h-7 rounded-full border ${
+          className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full font-semibold border ${
             isConnected
-              ? "text-emerald-700 bg-emerald-50 border-emerald-200"
-              : "text-red-700 bg-red-50 border-red-200"
+              ? "border-emerald-400/40"
+              : "border-red-400/40"
           }`}
+          style={{
+            background: isConnected
+              ? "rgba(52,211,153,0.18)"
+              : "rgba(248,113,113,0.18)",
+            color: "white",
+          }}
         >
-          {isConnected ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
-          <span className="font-medium">{isConnected ? "Live" : "Offline"}</span>
+          {isConnected ? (
+            <Wifi className="w-3 h-3" />
+          ) : (
+            <WifiOff className="w-3 h-3" />
+          )}
+          <span>{isConnected ? "Live" : "Offline"}</span>
         </div>
 
+        {/* Docs link */}
         <Link href="/docs">
-          <Button variant="ghost" size="sm" className="h-7 text-xs hidden sm:inline-flex">
-            <BookOpen className="w-3 h-3 mr-1" />
+          <button
+            className="hidden sm:flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full font-medium transition-all hover:opacity-80"
+            style={{ background: "rgba(255,255,255,0.14)", color: "white" }}
+          >
+            <BookOpen className="w-3.5 h-3.5" />
             Docs
-          </Button>
+          </button>
         </Link>
 
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-7 text-xs"
+        {/* Reset — gold CTA */}
+        <button
           onClick={handleReset}
+          className="flex items-center gap-1.5 text-xs px-4 py-1.5 rounded-full font-bold transition-all hover:scale-105 active:scale-95"
+          style={{
+            background: "#FFD23F",
+            color: "#1E8C86",
+            boxShadow: "0 2px 10px rgba(255,210,63,0.42)",
+          }}
         >
-          <RotateCcw className="w-3 h-3 mr-1" />
+          <RotateCcw className="w-3.5 h-3.5" />
           Reset
-        </Button>
+        </button>
       </div>
-    </header>
+    </div>
   )
 }

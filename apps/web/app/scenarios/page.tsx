@@ -43,19 +43,19 @@ export default function ScenariosPage() {
 
   return (
     <main className="min-h-screen bg-background">
-      <nav className="border-b border-border bg-card/70 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+      <div className="flex justify-center pt-4 px-4">
+        <nav className="w-full max-w-6xl nav-pill-surface h-14 flex items-center justify-between pl-4 pr-3">
           <Link href="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
-            <div className="w-8 h-8 rounded-lg gradient-peach flex items-center justify-center shadow-sm">
-              <Plane className="w-4 h-4 text-white" />
+            <div className="w-9 h-9 rounded-2xl bg-ink flex items-center justify-center shadow-nav">
+              <Plane className="w-4 h-4 text-[#F3F0EE]" />
             </div>
-            <span className="font-display font-bold text-lg">Aeolus</span>
+            <span className="font-display font-medium text-lg">Aeolus</span>
           </Link>
-          <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
+          <Link href="/" className="text-sm text-muted-foreground hover:text-ink font-medium transition-colors flex items-center gap-1.5">
             <ArrowLeft className="w-4 h-4" /> Back home
           </Link>
-        </div>
-      </nav>
+        </nav>
+      </div>
 
       <section className="max-w-7xl mx-auto px-6 py-14">
         <motion.div
@@ -67,7 +67,7 @@ export default function ScenariosPage() {
           <h1 className="font-display text-4xl md:text-5xl font-bold mb-3">Pre-built disruption scenarios</h1>
           <p className="text-muted-foreground max-w-2xl mx-auto">
             Each scenario is a real-world style stress test — modeled from BTS / NTSB / FAA reports.
-            Click <span className="font-semibold text-primary">Run scenario</span> to launch it directly into the simulator.
+            Click <span className="font-semibold text-link">Run scenario</span> to launch it directly into the simulator.
           </p>
         </motion.div>
 
@@ -78,11 +78,11 @@ export default function ScenariosPage() {
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05 }}
-              className="surface-card p-5 hover:border-primary/40 hover:-translate-y-0.5 transition-all flex flex-col"
+                className="surface-card p-5 bg-white hover:border-ink/20 hover:-translate-y-0.5 transition-all flex flex-col"
             >
               <div className="flex items-start justify-between mb-4">
-                <div className="w-11 h-11 rounded-xl bg-primary-soft border border-primary/20 flex items-center justify-center">
-                  <s.Icon className="w-5 h-5 text-primary" />
+                <div className="w-11 h-11 rounded-2xl bg-lifted border border-ink/10 flex items-center justify-center">
+                  <s.Icon className="w-5 h-5 text-ink" />
                 </div>
                 <span className={`text-[10px] font-medium uppercase tracking-wide px-2 py-0.5 rounded-full border ${s.diffClass}`}>
                   {s.difficulty}
@@ -101,7 +101,7 @@ export default function ScenariosPage() {
                 onClick={() => loadScenario(s.name)}
                 disabled={loading !== null}
                 size="sm"
-                className="w-full gradient-peach text-white glow-peach hover:opacity-95 font-semibold"
+                className="w-full font-medium"
               >
                 {loading === s.name ? (
                   <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Loading…</>

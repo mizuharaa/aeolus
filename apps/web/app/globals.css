@@ -1,149 +1,255 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Sofia+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
 @import 'leaflet/dist/leaflet.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Aeolus — Flip7 teal-coral-gold design system */
+
 @layer base {
   :root {
-    /* === Light Peach palette === */
-    --background: 30 100% 98%;          /* #FFF8F2 — warm cream */
-    --foreground: 222 35% 14%;          /* #1A1F2E — deep slate */
-    --card: 0 0% 100%;                  /* #FFFFFF */
-    --card-foreground: 222 35% 14%;
+    /* ── Flip7 color palette (CSS variables) ── */
+    --teal:         177 59% 41%;    /* #2BA8A2 */
+    --teal-light:   178 52% 49%;    /* #3CC4BD */
+    --teal-dark:    177 62% 33%;    /* #1E8C86 */
+    --teal-bg:      177 47% 95%;    /* #E8F6F5 */
+    --gold:          47 100% 62%;   /* #FFD23F */
+    --gold-light:    47 100% 73%;   /* #FFE47A */
+    --gold-dark:     47 100% 45%;   /* #E6B800 */
+    --coral:         14  83% 58%;   /* #EF6C4A */
+    --coral-light:   14  83% 70%;   /* #FF8A6A */
+    --coral-dark:    14  61% 51%;   /* #D45233 */
+    --cream:         44 100% 95%;   /* #FFF8E7 */
+    --sky-blue:     204  69% 56%;   /* #5DADE2 */
 
-    /* Coral peach primary */
-    --primary: 14 92% 60%;              /* #F87156 — coral */
+    /* ── Tailwind semantic bridge ── */
+    --background:   177 39% 96%;    /* #EFF8F7 surface base */
+    --foreground:   215 28% 17%;    /* #1F2937 */
+
+    --card:           0  0% 100%;   /* #FFFFFF */
+    --card-foreground: 215 28% 17%;
+
+    --primary:      177 59% 41%;    /* teal */
     --primary-foreground: 0 0% 100%;
-    --primary-soft: 22 100% 92%;        /* #FFE3D5 — peach tint */
 
-    --secondary: 28 60% 96%;            /* #FBF1E8 — soft peach surface */
-    --secondary-foreground: 222 35% 20%;
-    --muted: 28 30% 92%;                /* #F1E7DC */
-    --muted-foreground: 222 12% 45%;
+    --primary-soft: 177 39% 92%;
+    --secondary:    177 30% 93%;
+    --secondary-foreground: 177 62% 22%;
 
-    --accent: 14 92% 60%;
-    --accent-foreground: 0 0% 100%;
-    --accent-warm: 22 100% 70%;         /* warm peach */
+    --muted:        177 18% 91%;
+    --muted-foreground: 220 9% 46%; /* #6B7280 */
 
-    --destructive: 0 78% 56%;           /* #E84545 */
+    --accent:        47 100% 62%;   /* gold */
+    --accent-foreground: 177 62% 22%;
+    --accent-warm:   44 100% 90%;
+
+    --destructive:   14  83% 58%;   /* coral */
     --destructive-foreground: 0 0% 100%;
 
-    --border: 22 40% 88%;               /* #EFDDCD — peachy border */
-    --input: 22 40% 88%;
-    --ring: 14 92% 60%;
+    --border:       177 22% 86%;
+    --input:        177 22% 86%;
+    --ring:         177 59% 41%;
 
-    --radius: 0.875rem;
+    --radius: 1rem;
 
-    /* Aviation status — adjusted for light bg */
-    --status-on-time: 152 70% 38%;      /* deeper emerald for contrast */
-    --status-delayed: 30 95% 50%;       /* warm orange */
-    --status-cancelled: 0 78% 56%;      /* coral red */
-    --status-swapped: 14 92% 60%;       /* coral */
-    --status-airborne: 200 90% 45%;     /* sky blue */
+    /* Aviation semantics */
+    --status-on-time:  152 70% 38%;
+    --status-delayed:   30 95% 50%;
+    --status-cancelled:  0 78% 56%;
+    --status-swapped:   60  3% 35%;
+    --status-airborne: 200 90% 45%;
 
-    --shadow-sm: 0 1px 2px 0 rgb(244 113 86 / 0.05);
-    --shadow: 0 4px 12px -2px rgb(244 113 86 / 0.10), 0 2px 4px -1px rgb(0 0 0 / 0.04);
-    --shadow-lg: 0 10px 30px -8px rgb(244 113 86 / 0.18), 0 4px 12px -4px rgb(0 0 0 / 0.06);
+    /* ── Shadows — Flip7 colored glow system ── */
+    --shadow-nav:        0 2px 8px rgba(0,0,0,0.08);
+    --shadow-sm:         0 2px 8px rgba(0,0,0,0.08);
+    --shadow-md:         0 4px 16px rgba(0,0,0,0.12);
+    --shadow-lg:         0 8px 32px rgba(0,0,0,0.16);
+    --shadow-card:       0 4px 20px rgba(43,168,162,0.10);
+    --shadow-teal-glow:  0 4px 20px rgba(43,168,162,0.30);
+    --shadow-coral-glow: 0 4px 20px rgba(239,108,74,0.35);
+    --shadow-gold-glow:  0 4px 20px rgba(255,210,63,0.40);
+    --shadow-sky-glow:   0 4px 16px rgba(93,173,226,0.30);
+    --shadow-focus:      0 0 0 4px rgba(43,168,162,0.15);
+
+    /* Legacy aliases */
+    --nav-pill-shadow: var(--shadow-nav);
+    --elev-card:       var(--shadow-md);
   }
 
-  html {
-    color-scheme: light;
-  }
+  html { color-scheme: light; }
 
-  * {
-    @apply border-border;
-  }
+  * { @apply border-border; }
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: "Inter", sans-serif;
+    font-family: "Sofia Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-weight: 400;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: "Space Grotesk", sans-serif;
+    font-family: "Sofia Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.01em;
   }
 }
 
 @layer utilities {
-  .text-gradient-peach {
-    @apply bg-gradient-to-r from-[#F87156] via-[#FF8E6E] to-[#FFB088] bg-clip-text text-transparent;
-  }
-
-  .gradient-peach {
-    background: linear-gradient(135deg, #F87156 0%, #FF9170 50%, #FFB088 100%);
-  }
-
-  .glow-peach {
-    box-shadow: 0 8px 24px -8px rgb(244 113 86 / 0.45);
-  }
+  /* ─── Surface utilities ───────────────────────────────────── */
 
   .surface-card {
-    @apply bg-card border border-border rounded-xl;
-    box-shadow: var(--shadow);
+    @apply bg-white border rounded-2xl;
+    border-color: rgba(43, 168, 162, 0.15);
+    box-shadow: var(--shadow-card);
+  }
+
+  .surface-card-tight {
+    @apply bg-white border rounded-xl;
+    border-color: rgba(43, 168, 162, 0.15);
+    box-shadow: var(--shadow-card);
   }
 
   .surface-floating {
-    @apply bg-card/95 backdrop-blur-md border border-border rounded-xl;
-    box-shadow: var(--shadow-lg);
+    @apply bg-white/96 backdrop-blur-md border rounded-xl;
+    border-color: rgba(43, 168, 162, 0.18);
+    box-shadow: var(--shadow-md);
+  }
+
+  /* Panel section header — teal gradient strip */
+  .panel-header {
+    @apply flex items-center gap-3 px-4 py-3 shrink-0 border-b;
+    border-color: rgba(43, 168, 162, 0.12);
+    background: linear-gradient(135deg, rgba(232,246,245,0.85) 0%, rgba(255,255,255,0.85) 100%);
+  }
+
+  /* ─── Left accent bars (Flip7 card state system) ─────────── */
+  .accent-bar-teal  { border-left: 4px solid #2BA8A2; }
+  .accent-bar-gold  { border-left: 4px solid #FFD23F; }
+  .accent-bar-coral { border-left: 4px solid #EF6C4A; }
+  .accent-bar-sky   { border-left: 4px solid #5DADE2; }
+
+  /* ─── Typography utilities ──────────────────────────────────── */
+
+  .section-title {
+    @apply text-[11px] font-bold uppercase;
+    letter-spacing: 0.1em;
+    color: #2BA8A2;
   }
 
   .section-badge {
-    @apply inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary;
+    @apply inline-flex items-center gap-2 text-xs font-bold uppercase;
+    letter-spacing: 0.08em;
+    color: #2BA8A2;
+  }
+  .section-badge::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 9999px;
+    background: #FFD23F;
+    flex-shrink: 0;
   }
 
-  .status-on-time     { @apply text-emerald-700 bg-emerald-50  border-emerald-200; }
-  .status-delayed     { @apply text-orange-700  bg-orange-50   border-orange-200; }
-  .status-cancelled   { @apply text-red-700     bg-red-50      border-red-200; }
-  .status-swapped     { @apply text-primary     bg-primary/10  border-primary/20; }
-  .status-airborne    { @apply text-sky-700     bg-sky-50      border-sky-200; }
+  /* ─── Button styles ─────────────────────────────────────────── */
+
+  /* Gold CTA — primary action */
+  .btn-gold {
+    @apply rounded-full font-bold inline-flex items-center justify-center gap-2 transition-all cursor-pointer;
+    background: linear-gradient(135deg, #FFD23F 0%, #FFE47A 55%, #FFD23F 100%);
+    color: #1E8C86;
+    box-shadow: var(--shadow-gold-glow);
+  }
+  .btn-gold:hover:not(:disabled) {
+    box-shadow: 0 6px 24px rgba(255, 210, 63, 0.55);
+    transform: translateY(-1px);
+  }
+  .btn-gold:active:not(:disabled) { transform: scale(0.96); }
+  .btn-gold:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* Teal button */
+  .btn-teal {
+    @apply rounded-full font-semibold inline-flex items-center justify-center gap-2 text-white transition-all;
+    background-color: #2BA8A2;
+    box-shadow: var(--shadow-teal-glow);
+  }
+  .btn-teal:hover:not(:disabled) { background-color: #3CC4BD; transform: translateY(-1px); }
+  .btn-teal:active:not(:disabled) { background-color: #1E8C86; transform: scale(0.96); }
+  .btn-teal:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* Coral danger button */
+  .btn-coral {
+    @apply rounded-full font-semibold inline-flex items-center justify-center gap-2 text-white transition-all;
+    background-color: #EF6C4A;
+    box-shadow: var(--shadow-coral-glow);
+  }
+  .btn-coral:hover:not(:disabled) { background-color: #FF8A6A; transform: translateY(-1px); }
+  .btn-coral:active:not(:disabled) { transform: scale(0.96); }
+
+  /* ─── Status pills ───────────────────────────────────────────── */
+  .status-on-time   { @apply text-emerald-700 bg-emerald-50  border-emerald-200; }
+  .status-delayed   { @apply text-orange-700  bg-orange-50   border-orange-200; }
+  .status-cancelled { @apply text-red-700     bg-red-50      border-red-200; }
+  .status-swapped   { @apply text-gray-600    bg-gray-100    border-gray-200; }
+  .status-airborne  { @apply text-sky-700     bg-sky-50      border-sky-200; }
+
+  /* ─── Legacy compatibility ────────────────────────────────────── */
+  .nav-pill-surface { background: #2BA8A2; border-radius: 0; }
+  .text-link  { color: #2BA8A2; }
+  .text-ink   { color: #1F2937; }
+  .text-gradient-editorial {
+    background: linear-gradient(135deg, #1E8C86 0%, #5DADE2 50%, #1E8C86 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .gradient-ink { background: linear-gradient(135deg, #1E8C86 0%, #2BA8A2 100%); }
 }
 
-/* === Leaflet overrides — match the light peachy theme === */
+/* ── Leaflet — teal-tinted map chrome ── */
 .leaflet-container {
-  background: #F4ECE2 !important;
-  font-family: "Inter", sans-serif;
+  background: #deeeed !important;
+  font-family: "Sofia Sans", -apple-system, sans-serif;
 }
 .leaflet-control-attribution {
-  background: rgba(255,255,255,0.85) !important;
+  background: rgba(255,255,255,0.9) !important;
   font-size: 9px !important;
   padding: 1px 4px !important;
+  border-radius: 6px !important;
 }
 .leaflet-tile {
-  filter: saturate(0.9) brightness(1.02);
+  filter: saturate(0.85) hue-rotate(4deg) brightness(1.02);
 }
 .leaflet-popup-content-wrapper, .leaflet-tooltip {
-  border-radius: 10px !important;
-  border: 1px solid hsl(22 40% 88%) !important;
-  box-shadow: var(--shadow) !important;
-  background: #fff !important;
-  color: hsl(222 35% 14%) !important;
+  border-radius: 12px !important;
+  border: 1px solid rgba(43,168,162,0.20) !important;
+  box-shadow: var(--shadow-teal-glow) !important;
+  background: #ffffff !important;
+  color: #1F2937 !important;
 }
 .leaflet-tooltip {
   padding: 6px 10px !important;
   font-size: 11px !important;
 }
-.leaflet-tooltip-top:before, .leaflet-tooltip-bottom:before,
-.leaflet-tooltip-left:before, .leaflet-tooltip-right:before { display: none; }
+.leaflet-tooltip-top:before,
+.leaflet-tooltip-bottom:before,
+.leaflet-tooltip-left:before,
+.leaflet-tooltip-right:before { display: none; }
 .leaflet-bar a {
   background: #fff !important;
-  color: hsl(222 35% 14%) !important;
-  border-color: hsl(22 40% 88%) !important;
+  color: #2BA8A2 !important;
+  border-color: rgba(43,168,162,0.25) !important;
 }
-.leaflet-bar a:hover {
-  background: hsl(28 60% 96%) !important;
-}
+.leaflet-bar a:hover { background: #E8F6F5 !important; }
 
-/* === Custom scrollbar — peachy === */
-::-webkit-scrollbar { width: 8px; height: 8px; }
+/* Custom scrollbar — teal tint */
+::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: hsl(22 40% 80%); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: hsl(14 92% 65%); }
+::-webkit-scrollbar-thumb { background: rgba(43,168,162,0.30); border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(43,168,162,0.55); }
 
-/* === Plane pulse for active disruption icons === */
+/* ── Animations ── */
 @keyframes plane-pulse {
-  0%, 100% { transform: scale(1);   opacity: 1; }
-  50%      { transform: scale(1.18); opacity: 0.85; }
+  0%, 100% { transform: scale(1);    opacity: 1; }
+  50%       { transform: scale(1.18); opacity: 0.85; }
 }
 .animate-plane-pulse { animation: plane-pulse 1.6s ease-in-out infinite; }
 
@@ -155,10 +261,22 @@
 
 @keyframes shimmer {
   0%   { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  100% { background-position:  200% 0; }
 }
 .shimmer-bg {
-  background: linear-gradient(90deg, transparent, hsl(22 100% 92% / 0.6), transparent);
+  background: linear-gradient(90deg, transparent, rgba(43,168,162,0.06), transparent);
   background-size: 200% 100%;
   animation: shimmer 2s linear infinite;
 }
+
+@keyframes teal-pulse {
+  0%, 100% { box-shadow: 0 4px 20px rgba(43,168,162,0.18); }
+  50%       { box-shadow: 0 4px 20px rgba(43,168,162,0.48); }
+}
+.animate-teal-pulse { animation: teal-pulse 2s ease-in-out infinite; }
+
+@keyframes gold-glow-pulse {
+  0%, 100% { box-shadow: 0 4px 20px rgba(255,210,63,0.22); }
+  50%       { box-shadow: 0 4px 20px rgba(255,210,63,0.52); }
+}
+.animate-gold-pulse { animation: gold-glow-pulse 2s ease-in-out infinite; }

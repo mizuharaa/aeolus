@@ -108,10 +108,25 @@ async def lifespan(app: FastAPI):
     )
     weather_client = WeatherClient()
 
-    # OpenSky Network client (optional credentials for higher rate limits)
+    # OpenSky Network — load OAuth2 credentials (JSON file or env vars)
+    _client_id     = settings.opensky_client_id
+    _client_secret = settings.opensky_client_secret
+    if not (_client_id and _client_secret):
+        # Try loading from credentials/credentials.json (repo-local, git-ignored)
+        try:
+            import json as _json
+            _cred_path = Path(__file__).parent.parent.parent.parent / "credentials" / "credentials.json"
+            if _cred_path.exists():
+                _creds     = _json.loads(_cred_path.read_text())
+                _client_id     = _creds.get("clientId", "")
+                _client_secret = _creds.get("clientSecret", "")
+                logger.info("OpenSky: loaded OAuth2 credentials from credentials.json")
+        except Exception as _e:
+            logger.warning("OpenSky: could not load credentials.json — %s", _e)
+
     opensky = OpenSkyClient(
-        username=settings.opensky_username or None,
-        password=settings.opensky_password or None,
+        client_id=_client_id or None,
+        client_secret=_client_secret or None,
     )
 
     # Load network
@@ -170,7 +185,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers
+# Include routers — flights_router must come before network.router because
+# network.router registers GET /flights/{flight_id} which would otherwise
+# shadow the explicit /flights/live and /flights/search routes.
+app.include_router(flights_router,    prefix="/api/v1", tags=["flights"])
 app.include_router(network.router,    prefix="/api/v1", tags=["network"])
 app.include_router(events.router,     prefix="/api/v1", tags=["events"])
 app.include_router(recovery.router,   prefix="/api/v1", tags=["recovery"])
@@ -178,7 +196,6 @@ app.include_router(predict.router,    prefix="/api/v1", tags=["predict"])
 app.include_router(weather.router,    prefix="/api/v1", tags=["weather"])
 app.include_router(simulator.router,  prefix="/api/v1", tags=["simulator"])
 app.include_router(live.router,       prefix="/api/v1", tags=["live"])
-app.include_router(flights_router,    prefix="/api/v1", tags=["flights"])
 
 
 @app.get("/health", tags=["health"])

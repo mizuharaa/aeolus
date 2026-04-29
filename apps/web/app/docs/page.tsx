@@ -14,10 +14,10 @@ function Section({ id, title, icon: Icon, children }: { id: string; title: strin
       className="scroll-mt-20"
     >
       <div className="flex items-center gap-3 mb-6">
-        <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center">
-          <Icon className="w-4 h-4 text-primary" />
+        <div className="w-8 h-8 rounded-2xl bg-ink/5 border border-ink/10 flex items-center justify-center">
+          <Icon className="w-4 h-4 text-ink" />
         </div>
-        <h2 className="font-display text-2xl font-bold">{title}</h2>
+        <h2 className="font-display text-2xl font-medium tracking-tight">{title}</h2>
       </div>
       {children}
     </motion.section>
@@ -36,7 +36,7 @@ function TableRow({ cells }: { cells: string[] }) {
   return (
     <tr className="border-b border-border">
       {cells.map((c, i) => (
-        <td key={i} className={`px-4 py-2.5 text-sm ${i === 0 ? "font-mono text-primary font-medium" : "text-muted-foreground"}`}>
+        <td key={i} className={`px-4 py-2.5 text-sm ${i === 0 ? "font-mono text-ink font-medium" : "text-muted-foreground"}`}>
           {c}
         </td>
       ))}
@@ -47,25 +47,26 @@ function TableRow({ cells }: { cells: string[] }) {
 export default function DocsPage() {
   return (
     <main className="min-h-screen bg-background">
-      {/* Nav */}
-      <nav className="border-b border-border bg-background/80 backdrop-blur-sm px-6 h-14 flex items-center justify-between sticky top-0 z-50">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-md gradient-peach flex items-center justify-center">
-            <Plane className="w-3.5 h-3.5 text-white" />
+      <div className="sticky top-0 z-50 flex justify-center pt-3 px-4">
+        <nav className="w-full max-w-6xl nav-pill-surface h-12 flex items-center justify-between px-4 md:px-6">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-2xl bg-ink flex items-center justify-center">
+              <Plane className="w-3.5 h-3.5 text-[#F3F0EE]" />
+            </div>
+            <span className="font-display font-medium">Aeolus</span>
+          </Link>
+          <div className="flex gap-6 text-sm text-muted-foreground">
+            <Link href="/simulator" className="hover:text-ink font-medium transition-colors">Simulator</Link>
+            <Link href="/scenarios" className="hover:text-ink font-medium transition-colors">Scenarios</Link>
           </div>
-          <span className="font-display font-bold">Aeolus</span>
-        </Link>
-        <div className="flex gap-4 text-sm text-muted-foreground">
-          <Link href="/simulator" className="hover:text-foreground transition-colors">Simulator</Link>
-          <Link href="/scenarios" className="hover:text-foreground transition-colors">Scenarios</Link>
-        </div>
-      </nav>
+        </nav>
+      </div>
 
       <div className="max-w-4xl mx-auto px-6 py-16 space-y-16">
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <div className="section-badge mb-4"><BarChart3 className="w-3.5 h-3.5" />Technical methodology</div>
-          <h1 className="font-display text-5xl font-bold mb-4">How Aeolus works</h1>
+          <h1 className="font-display text-5xl font-medium tracking-tight mb-4">How Aeolus works</h1>
           <p className="text-xl text-muted-foreground leading-relaxed max-w-2xl">
             A deep dive into the optimizer formulation, cascade predictor, crew legality engine, and data sources powering the simulation.
           </p>

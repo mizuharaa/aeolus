@@ -4,22 +4,26 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/25 focus-visible:ring-offset-2 focus-visible:ring-offset-[#F3F0EE] disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 rounded-btn border-[1.5px]",
   {
     variants: {
       variant: {
-        default:     "bg-primary text-primary-foreground shadow-sm hover:bg-primary/92 active:scale-[0.98]",
-        destructive: "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
-        outline:     "border border-border bg-card shadow-sm hover:bg-secondary text-foreground",
-        secondary:   "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost:       "hover:bg-secondary text-foreground",
-        link:        "text-primary underline-offset-4 hover:underline",
+        default:
+          "bg-ink text-[#F3F0EE] border-ink shadow-sm hover:bg-ink/90 active:scale-[0.99]",
+        destructive:
+          "bg-destructive text-destructive-foreground border-destructive hover:bg-destructive/90",
+        outline:
+          "border-ink bg-white text-ink hover:bg-lifted",
+        secondary:
+          "bg-secondary text-secondary-foreground border-transparent hover:bg-secondary/80",
+        ghost: "border-transparent bg-transparent hover:bg-secondary text-foreground",
+        link: "border-transparent text-link underline-offset-4 hover:underline",
       },
       size: {
-        default: "h-9 px-4 py-2",
-        sm:      "h-8 rounded-md px-3 text-xs",
-        lg:      "h-10 rounded-lg px-8",
-        icon:    "h-9 w-9",
+        default: "h-9 px-6 py-1.5 text-base tracking-tight",
+        sm:      "h-8 rounded-btn px-4 text-xs font-medium",
+        lg:      "h-12 rounded-[1.5rem] px-10 text-base font-medium",
+        icon:    "h-9 w-9 rounded-full border-ink",
       },
     },
     defaultVariants: {

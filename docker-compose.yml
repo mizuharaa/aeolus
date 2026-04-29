@@ -127,6 +127,7 @@ services:
       # Hot-reload: mount source + data for local dev (comment out for prod)
       - ./apps/api/src:/app/apps/api/src:ro
       - ./data:/app/data:ro
+      - ./credentials:/app/credentials:ro
     labels:
       com.aeolus.service: "api"
       com.aeolus.version: "0.1.0"

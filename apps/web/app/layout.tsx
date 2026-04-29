@@ -30,7 +30,7 @@ export default function RootLayout({
             closeButton
             toastOptions={{
               style: {
-                fontFamily: "Inter, sans-serif",
+                fontFamily: '"Sofia Sans", Arial, sans-serif',
               },
             }}
           />

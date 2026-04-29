@@ -65,8 +65,12 @@ class Settings(BaseSettings):
     # Mapbox (for backend validation only)
     mapbox_token: str = ""
 
-    # OpenSky Network (optional — anonymous works but has lower rate limits)
-    # Register free at https://opensky-network.org/index.php?option=com_users&view=registration
+    # OpenSky Network — OAuth2 client credentials (preferred)
+    # Create API client at https://opensky-network.org/my-opensky
+    # Gives 5-second ADS-B resolution vs 10-second anonymous
+    opensky_client_id:     str = ""
+    opensky_client_secret: str = ""
+    # Legacy basic-auth (kept for fallback, OAuth2 takes priority)
     opensky_username: str = ""
     opensky_password: str = ""
 

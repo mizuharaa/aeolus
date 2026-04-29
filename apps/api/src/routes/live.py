@@ -4,8 +4,10 @@ Proxies FAA NAS Status and NWS Weather Alerts — no API keys required.
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
+from datetime import datetime, timezone
 from typing import Any
 
 import httpx
@@ -274,10 +276,24 @@ async def get_faa_status():
             raw = resp.json()
         except httpx.HTTPStatusError as exc:
             logger.warning("FAA status HTTP %s", exc.response.status_code)
-            return {"programs": [], "ground_stops": [], "departure_delays": [], "source": "faa_error", "error": str(exc)}
+            return {
+                "programs": [],
+                "ground_stops": [],
+                "departure_delays": [],
+                "us_summary": None,
+                "source": "faa_error",
+                "error": str(exc),
+            }
         except Exception as exc:
             logger.warning("FAA status fetch failed: %s", exc)
-            return {"programs": [], "ground_stops": [], "departure_delays": [], "source": "unavailable", "error": str(exc)}
+            return {
+                "programs": [],
+                "ground_stops": [],
+                "departure_delays": [],
+                "us_summary": None,
+                "source": "unavailable",
+                "error": str(exc),
+            }
 
     try:
         programs, ground_stops, departure_delays = _parse_faa_programs(raw)
@@ -285,12 +301,25 @@ async def get_faa_status():
         logger.warning("FAA parse error: %s", exc)
         programs, ground_stops, departure_delays = [], [], []
 
+    iata_set = {p.get("airport_iata", "") for p in programs if p.get("airport_iata")}
+    us_summary = {
+        "concurrent_total": len(programs),
+        "concurrent_ground_stops": len(ground_stops),
+        "concurrent_gdps": sum(1 for p in programs if p["type"] == "ground_delay_program"),
+        "concurrent_departure_delay_programs": sum(
+            1 for p in programs if p["type"] == "departure_delay"
+        ),
+        "unique_us_airports": len(iata_set),
+        "nimbus_network_overlap": sum(1 for p in programs if p["in_nimbus_network"]),
+    }
+
     return {
         "programs": programs,
         "ground_stops": ground_stops,
         "departure_delays": departure_delays,
         "total": len(programs),
         "nimbus_affected": sum(1 for p in programs if p["in_nimbus_network"]),
+        "us_summary": us_summary,
         "source": "nasstatus.faa.gov",
     }
 
@@ -302,14 +331,21 @@ async def get_weather_alerts():
         try:
             resp = await client.get(
                 NWS_ALERTS_URL,
-                params={"area": "US", "status": "actual", "message_type": "alert", "limit": 150},
+                params={"status": "actual", "message_type": "alert", "limit": 250},
                 headers={"User-Agent": "AeolusOCC/1.0 (aviation-education; contact=aeolus@example.com)"},
             )
             resp.raise_for_status()
             data = resp.json()
         except Exception as exc:
             logger.warning("NWS alerts fetch failed: %s", exc)
-            return {"alerts": [], "total": 0, "nimbus_affected": 0, "source": "unavailable", "error": str(exc)}
+            return {
+                "alerts": [],
+                "total": 0,
+                "nimbus_affected": 0,
+                "us_summary": None,
+                "source": "unavailable",
+                "error": str(exc),
+            }
 
     raw_features = data.get("features", [])
     alerts: list[dict] = []
@@ -369,9 +405,34 @@ async def get_weather_alerts():
 
     alerts.sort(key=lambda a: (-len(a["affected_nimbus_airports"]), -_sev_rank(a["severity"])))
 
+    us_summary = {
+        "nationwide_alerts_matched": len(alerts),
+        "returned": min(72, len(alerts)),
+        "severe_or_extreme": sum(1 for a in alerts if a["severity"] in ("Severe", "Extreme")),
+        "nimbus_touched": sum(1 for a in alerts if a["affected_nimbus_airports"]),
+    }
+
     return {
-        "alerts": alerts[:40],
+        "alerts": alerts[:72],
         "total": len(alerts),
         "nimbus_affected": sum(1 for a in alerts if a["affected_nimbus_airports"]),
+        "us_summary": us_summary,
         "source": "api.weather.gov",
+    }
+
+
+@router.get("/live/national-snapshot")
+async def get_national_snapshot():
+    """
+    Single round-trip: FAA national traffic programs + NWS CONUS-relevant weather alerts,
+    for the Live Feed US dashboard.
+    """
+    faa, nws = await asyncio.gather(
+        get_faa_status(),
+        get_weather_alerts(),
+    )
+    return {
+        "refreshed_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "faa": faa,
+        "nws": nws,
     }

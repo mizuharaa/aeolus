@@ -10,21 +10,17 @@ interface Props {
   onSelect: (id: string | null) => void
 }
 
-type ResultItem =
-  | { kind: "scheduled"; flight: ScheduledFlight }
-  | { kind: "live";      flight: LiveFlight }
-
 export function FlightSearch({ selectedFlight, onSelect }: Props) {
-  const { schedule, flightStates, liveFlights, setSelectedLiveFlight, selectedLiveFlight } = useSimulationStore()
-  const [q, setQ]           = useState("")
-  const [open, setOpen]     = useState(false)
-  const [liveResults, setLiveResults] = useState<LiveFlight[]>([])
-  const [searching, setSearching]     = useState(false)
+  const { schedule, flightStates, liveFlights, setSelectedLiveFlight, selectedLiveFlight } =
+    useSimulationStore()
+  const [q, setQ]             = useState("")
+  const [open, setOpen]       = useState(false)
+  const [liveResults, setLiveResults]   = useState<LiveFlight[]>([])
+  const [searching, setSearching]       = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const wrapRef  = useRef<HTMLDivElement>(null)
   const debounce = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
-  // Close on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false)
@@ -33,7 +29,6 @@ export function FlightSearch({ selectedFlight, onSelect }: Props) {
     return () => document.removeEventListener("mousedown", handler)
   }, [])
 
-  // Scheduled matches (local)
   const scheduledMatches = useMemo(() => {
     const needle = q.trim().toUpperCase()
     if (!needle) return schedule.slice(0, 8)
@@ -49,15 +44,13 @@ export function FlightSearch({ selectedFlight, onSelect }: Props) {
       .slice(0, 10)
   }, [q, schedule])
 
-  // Live search (debounced, hits API)
   const doLiveSearch = useCallback(async (query: string) => {
-    if (query.length < 2) {
-      setLiveResults([])
-      return
-    }
+    if (query.length < 2) { setLiveResults([]); return }
     setSearching(true)
     try {
-      const res = await apiClient.get(`/flights/search?q=${encodeURIComponent(query)}`)
+      const res = await apiClient.get<{ results?: LiveFlight[] }>(
+        `/flights/search?q=${encodeURIComponent(query)}`
+      )
       setLiveResults(res.data.results || [])
     } catch {
       setLiveResults([])
@@ -66,7 +59,6 @@ export function FlightSearch({ selectedFlight, onSelect }: Props) {
     }
   }, [])
 
-  // Also filter liveFlights locally for quick results
   const localLiveMatches = useMemo(() => {
     const needle = q.trim().toUpperCase()
     if (!needle || needle.length < 2) return []
@@ -89,23 +81,16 @@ export function FlightSearch({ selectedFlight, onSelect }: Props) {
     return () => clearTimeout(debounce.current)
   }, [q, doLiveSearch])
 
-  // Merge live results (API results take priority, then local cache matches)
   const mergedLive: LiveFlight[] = useMemo(() => {
     const seen = new Set<string>()
     const merged: LiveFlight[] = []
     for (const f of [...liveResults, ...localLiveMatches]) {
-      if (!seen.has(f.icao24)) {
-        seen.add(f.icao24)
-        merged.push(f)
-      }
+      if (!seen.has(f.icao24)) { seen.add(f.icao24); merged.push(f) }
     }
     return merged.slice(0, 10)
   }, [liveResults, localLiveMatches])
 
-  const selectedSchedFlight = selectedFlight
-    ? schedule.find((f) => f.id === selectedFlight)
-    : null
-
+  const selectedSchedFlight = selectedFlight ? schedule.find((f) => f.id === selectedFlight) : null
   const activeLabel = selectedLiveFlight
     ? selectedLiveFlight.flight_icao
     : selectedSchedFlight
@@ -113,31 +98,31 @@ export function FlightSearch({ selectedFlight, onSelect }: Props) {
     : null
 
   const handleSelectScheduled = (id: string) => {
-    onSelect(id)
-    setSelectedLiveFlight(null)
-    setOpen(false)
-    setQ("")
+    onSelect(id); setSelectedLiveFlight(null); setOpen(false); setQ("")
   }
-
   const handleSelectLive = (lf: LiveFlight) => {
-    setSelectedLiveFlight(lf)
-    onSelect(null) // deselect simulated flight
-    setOpen(false)
-    setQ("")
+    setSelectedLiveFlight(lf); onSelect(null); setOpen(false); setQ("")
   }
-
   const handleClear = () => {
-    onSelect(null)
-    setSelectedLiveFlight(null)
-    setQ("")
-    inputRef.current?.focus()
+    onSelect(null); setSelectedLiveFlight(null); setQ(""); inputRef.current?.focus()
   }
 
   return (
     <div ref={wrapRef} className="relative w-full">
-      <div className={`flex items-center gap-2 surface-card px-3 h-10 transition-shadow ${open ? "ring-2 ring-primary/30" : ""}`}>
+      {/* Search input */}
+      <div
+        className={`flex items-center gap-3 rounded-2xl bg-white px-4 h-12 transition-all ${
+          open ? "" : ""
+        }`}
+        style={{
+          border: "1.5px solid rgba(43,168,162,0.25)",
+          boxShadow: open
+            ? "0 0 0 3px rgba(43,168,162,0.15), 0 4px 16px rgba(43,168,162,0.10)"
+            : "0 2px 8px rgba(0,0,0,0.06)",
+        }}
+      >
         {searching ? (
-          <Loader2 className="w-4 h-4 text-primary animate-spin shrink-0" />
+          <Loader2 className="w-4 h-4 animate-spin shrink-0" style={{ color: "#2BA8A2" }} />
         ) : (
           <Search className="w-4 h-4 text-muted-foreground shrink-0" />
         )}
@@ -146,36 +131,47 @@ export function FlightSearch({ selectedFlight, onSelect }: Props) {
           value={q}
           onChange={(e) => { setQ(e.target.value); setOpen(true) }}
           onFocus={() => setOpen(true)}
-          placeholder={activeLabel
-            ? `Selected: ${activeLabel} — search another…`
-            : "Search any flight (AA123, UAL456, N12345, ORD)…"
+          placeholder={
+            activeLabel
+              ? `Selected: ${activeLabel} — search another…`
+              : "Search any flight — AA123, UAL456, N12345, or airport code…"
           }
-          className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground"
+          className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground/70"
         />
         {activeLabel && (
           <button
             onClick={handleClear}
-            className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
+            className="text-muted-foreground hover:text-foreground transition-colors shrink-0 w-7 h-7 rounded-lg flex items-center justify-center hover:bg-muted"
             aria-label="Clear"
           >
-            <X className="w-4 h-4" />
+            <X className="w-3.5 h-3.5" />
           </button>
         )}
       </div>
 
+      {/* Dropdown */}
       {open && (
-        <div className="absolute z-[1000] left-0 right-0 mt-1 surface-floating overflow-hidden shadow-lg">
+        <div
+          className="absolute z-[1000] left-0 right-0 mt-2 bg-white rounded-2xl overflow-hidden"
+          style={{
+            border: "1.5px solid rgba(43,168,162,0.20)",
+            boxShadow: "0 8px 32px rgba(43,168,162,0.16), 0 2px 8px rgba(0,0,0,0.08)",
+          }}
+        >
           <div className="max-h-[70vh] overflow-y-auto">
 
-            {/* ── Live real flights section ── */}
+            {/* Live ADS-B section */}
             {(mergedLive.length > 0 || searching) && (
               <div>
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-sky-50/80 border-b border-sky-100 sticky top-0 z-10">
-                  <Radio className="w-3 h-3 text-sky-600" />
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-sky-700">
+                <div
+                  className="flex items-center gap-2 px-4 py-2 sticky top-0 z-10 border-b"
+                  style={{ background: "rgba(93,173,226,0.08)", borderColor: "rgba(93,173,226,0.20)" }}
+                >
+                  <Radio className="w-3.5 h-3.5" style={{ color: "#5DADE2" }} />
+                  <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#2471A3" }}>
                     Live ADS-B Aircraft
                   </span>
-                  {searching && <Loader2 className="w-3 h-3 text-sky-500 animate-spin ml-auto" />}
+                  {searching && <Loader2 className="w-3 h-3 animate-spin ml-auto" style={{ color: "#5DADE2" }} />}
                 </div>
                 {mergedLive.map((lf) => {
                   const isSelected = selectedLiveFlight?.icao24 === lf.icao24
@@ -184,14 +180,15 @@ export function FlightSearch({ selectedFlight, onSelect }: Props) {
                   return (
                     <div
                       key={lf.icao24}
-                      className={`flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-sky-50 transition-colors ${isSelected ? "bg-sky-50" : ""}`}
+                      className={`flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors ${
+                        isSelected ? "bg-sky-50" : "hover:bg-sky-50/60"
+                      }`}
                     >
-                      {/* Select button */}
                       <button
                         onClick={() => handleSelectLive(lf)}
                         className="flex items-center gap-3 flex-1 min-w-0 text-left"
                       >
-                        <span className="w-1.5 h-1.5 rounded-full bg-sky-500 shrink-0 animate-pulse" />
+                        <span className="w-2 h-2 rounded-full bg-sky-500 shrink-0 animate-pulse" />
                         <Plane className="w-4 h-4 text-sky-500 shrink-0" />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
@@ -199,15 +196,15 @@ export function FlightSearch({ selectedFlight, onSelect }: Props) {
                             {lf.flight_iata && lf.flight_iata !== lf.flight_icao && (
                               <span className="text-[10px] font-mono text-muted-foreground">{lf.flight_iata}</span>
                             )}
-                            <span className="text-[9px] px-1 py-0.5 rounded bg-sky-100 text-sky-700 border border-sky-200 font-semibold">LIVE</span>
+                            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-sky-100 text-sky-700 border border-sky-200 font-bold">
+                              LIVE
+                            </span>
                           </div>
                           <div className="text-[11px] text-muted-foreground truncate">
-                            {lf.airline_name} {altStr && `· ${altStr}`} {spdStr && `· ${spdStr}`}
+                            {lf.airline_name}{altStr && ` · ${altStr}`}{spdStr && ` · ${spdStr}`}
                           </div>
                         </div>
                       </button>
-
-                      {/* Direct tracking link */}
                       {lf.tracking.flightaware && (
                         <a
                           href={lf.tracking.flightaware}
@@ -226,50 +223,55 @@ export function FlightSearch({ selectedFlight, onSelect }: Props) {
               </div>
             )}
 
-            {/* ── Simulated schedule section ── */}
+            {/* Nimbus simulation section */}
             {scheduledMatches.length > 0 && (
               <div>
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-orange-50/80 border-b border-orange-100 sticky top-0 z-10">
-                  <span className="w-2 h-2 rounded-full bg-primary shrink-0" />
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-orange-700">
+                <div
+                  className="flex items-center gap-2 px-4 py-2 sticky top-0 z-10 border-b"
+                  style={{ background: "rgba(255,210,63,0.08)", borderColor: "rgba(255,210,63,0.25)" }}
+                >
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ background: "#FFD23F" }} />
+                  <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#B8860B" }}>
                     Nimbus Air Simulation
                   </span>
                 </div>
                 {scheduledMatches.map((f) => {
                   const state = flightStates[f.id]
                   const status = state?.status || "scheduled"
-                  const delay = state?.delay_minutes || 0
+                  const delay  = state?.delay_minutes || 0
                   const cascadeOrder = state?.cascade_order ?? -1
-                  const isSel = selectedFlight === f.id
+                  const isSel  = selectedFlight === f.id
                   const o = NIMBUS_AIRPORTS[f.origin]
                   const d = NIMBUS_AIRPORTS[f.destination]
-                  const dot =
-                    status === "cancelled"   ? "bg-red-500" :
-                    cascadeOrder === 0       ? "bg-orange-500" :
-                    cascadeOrder >= 1        ? "bg-orange-300" :
-                    delay > 0                ? "bg-amber-500" :
-                                               "bg-emerald-500"
+                  const dotColor =
+                    status === "cancelled" ? "#DC2626"
+                    : cascadeOrder === 0   ? "#F97316"
+                    : cascadeOrder >= 1    ? "#FCA5A5"
+                    : delay > 0            ? "#F59E0B"
+                    :                        "#2BA8A2"
                   return (
                     <button
                       key={f.id}
                       onClick={() => handleSelectScheduled(f.id)}
-                      className={`w-full flex items-center gap-3 px-3 py-2 text-left text-sm hover:bg-secondary transition-colors ${isSel ? "bg-primary/5" : ""}`}
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors hover:bg-teal-bg/50 ${
+                        isSel ? "bg-teal-bg/70" : ""
+                      }`}
                     >
-                      <span className={`w-1.5 h-1.5 rounded-full ${dot} shrink-0`} />
+                      <span className="w-2 h-2 rounded-full shrink-0" style={{ background: dotColor }} />
                       <Plane className="w-4 h-4 text-muted-foreground shrink-0" />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-mono font-semibold text-foreground">{f.id}</span>
                           <span className="text-[10px] font-mono text-muted-foreground">{f.aircraft_id}</span>
                           {delay > 0 && status !== "cancelled" && (
-                            <span className="text-[10px] text-orange-600 font-medium">+{delay}m</span>
+                            <span className="text-[10px] text-orange-600 font-semibold">+{delay}m</span>
                           )}
                           {status === "cancelled" && (
-                            <span className="text-[10px] text-red-600 font-semibold uppercase">cancelled</span>
+                            <span className="text-[10px] text-red-600 font-bold uppercase">cancelled</span>
                           )}
                         </div>
                         <div className="text-[11px] text-muted-foreground truncate">
-                          {o?.iata || f.origin} {o?.city ? `(${o.city})` : ""} → {d?.iata || f.destination} {d?.city ? `(${d.city})` : ""}
+                          {o?.iata || f.origin}{o?.city ? ` (${o.city})` : ""} → {d?.iata || f.destination}{d?.city ? ` (${d.city})` : ""}
                         </div>
                       </div>
                     </button>
@@ -278,24 +280,46 @@ export function FlightSearch({ selectedFlight, onSelect }: Props) {
               </div>
             )}
 
-            {/* ── Empty state ── */}
+            {/* Empty state */}
             {q.trim().length >= 2 && mergedLive.length === 0 && scheduledMatches.length === 0 && !searching && (
-              <div className="px-4 py-6 text-center text-sm text-muted-foreground">
-                <p>No flights matching "{q}".</p>
-                <p className="text-xs mt-1 text-muted-foreground/70">Try a flight code like AA123, UAL456, or an airport like ORD.</p>
+              <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+                <p>No flights matching &ldquo;{q}&rdquo;.</p>
+                <p className="text-xs mt-1 text-muted-foreground/60">
+                  Try a flight code like AA123, UAL456, or an airport like ORD.
+                </p>
               </div>
             )}
 
-            {/* ── Airport quick-jump (only when no query) ── */}
+            {/* Airport quick-jump */}
             {!q.trim() && (
-              <div className="border-t border-border px-3 py-2 bg-secondary/40">
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5">Jump to airport</div>
-                <div className="flex flex-wrap gap-1">
+              <div
+                className="border-t px-4 py-3"
+                style={{ borderColor: "rgba(43,168,162,0.12)", background: "rgba(43,168,162,0.03)" }}
+              >
+                <div className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: "#2BA8A2" }}>
+                  Jump to Airport
+                </div>
+                <div className="flex flex-wrap gap-1.5">
                   {Object.entries(NIMBUS_AIRPORTS).map(([icao, ap]) => (
                     <button
                       key={icao}
                       onClick={() => { setQ(icao); inputRef.current?.focus() }}
-                      className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-full bg-card border border-border text-foreground hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors"
+                      className="inline-flex items-center gap-1 text-[10px] font-mono px-2.5 py-1 rounded-full border transition-all hover:scale-105"
+                      style={{
+                        background: "white",
+                        borderColor: "rgba(43,168,162,0.25)",
+                        color: "#1E8C86",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "#2BA8A2"
+                        e.currentTarget.style.color = "white"
+                        e.currentTarget.style.borderColor = "#2BA8A2"
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "white"
+                        e.currentTarget.style.color = "#1E8C86"
+                        e.currentTarget.style.borderColor = "rgba(43,168,162,0.25)"
+                      }}
                     >
                       <MapPin className="w-2.5 h-2.5" />
                       {ap.iata}
@@ -305,10 +329,13 @@ export function FlightSearch({ selectedFlight, onSelect }: Props) {
               </div>
             )}
 
-            {/* ── Hint when showing limited results ── */}
+            {/* Live flight count hint */}
             {q.trim().length < 2 && liveFlights.length > 0 && (
-              <div className="px-3 py-1.5 border-t border-border bg-secondary/40 text-[10px] text-muted-foreground">
-                {liveFlights.length.toLocaleString()} live aircraft tracked · type a flight code to search all of them
+              <div
+                className="px-4 py-2 border-t text-[10px] text-muted-foreground"
+                style={{ borderColor: "rgba(43,168,162,0.10)" }}
+              >
+                {liveFlights.length.toLocaleString()} live aircraft tracked · type a flight code to search
               </div>
             )}
           </div>

@@ -2,12 +2,12 @@ const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
 
 export const apiClient = {
-  async get(path: string) {
+  async get<T = unknown>(path: string): Promise<{ data: T }> {
     const res = await fetch(`${API_URL}/api/v1${path}`, {
       cache: "no-store",
     })
     if (!res.ok) throw new Error(`API error: ${res.status}`)
-    return { data: await res.json() }
+    return { data: (await res.json()) as T }
   },
 
   async post(path: string, body?: any) {
