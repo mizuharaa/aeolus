@@ -3,7 +3,6 @@ Aircraft-on-Ground (AOG) mechanical disruption event.
 A specific tail number is grounded for maintenance.
 """
 from datetime import timedelta
-from typing import Any
 
 from src.events.base import DisruptionEvent, EventKind
 

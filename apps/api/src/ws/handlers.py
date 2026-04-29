@@ -1,7 +1,8 @@
 """WebSocket handler for real-time simulation updates."""
-from fastapi import WebSocket, WebSocketDisconnect
 import json
 import logging
+
+from fastapi import WebSocket, WebSocketDisconnect
 
 logger = logging.getLogger(__name__)
 

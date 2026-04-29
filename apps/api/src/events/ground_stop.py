@@ -4,7 +4,6 @@ FAA issues ground stops to manage destination airport capacity.
 Aircraft are held at origin until GS is lifted.
 """
 from datetime import timedelta
-from typing import Any
 
 from src.events.base import DisruptionEvent, EventKind
 

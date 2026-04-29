@@ -3,7 +3,6 @@ Base classes for all Aeolus disruption events.
 """
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any

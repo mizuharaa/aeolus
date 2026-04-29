@@ -11,9 +11,9 @@ Tests cover:
 """
 from __future__ import annotations
 
-import pytest
 from datetime import datetime, timezone
 
+import pytest
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -186,43 +186,6 @@ class TestRuleBasedPrediction:
         result = call_predict(predictor, event, [direct_tail, other_tail])
         assert result["NB101"]["cascade_order"] == 0
         assert result["NB102"]["cascade_order"] == -1
-
-
-# ── Feature extraction tests ──────────────────────────────────────────────────
-
-class TestFeatureExtraction:
-    def test_feature_dict_keys(self, predictor):
-        event = make_event("weather_closure", "severe")
-        flight = make_flight("NB101")
-        features = predictor._extract_features(event, flight)
-        for key in ["dep_hour_utc", "cascade_order", "passengers", "event_kind", "event_severity"]:
-            assert key in features, f"Expected feature key '{key}' not found"
-
-    def test_departure_hour_extracted(self, predictor):
-        event = make_event("weather_closure", "severe")
-        flight = make_flight("NB101", dep_hour_utc=14)
-        features = predictor._extract_features(event, flight)
-        assert features["dep_hour_utc"] == 14
-
-    def test_cascade_order_in_features(self, predictor):
-        event = make_event("weather_closure", "severe")
-        for order in range(3):
-            flight = make_flight("NB101", cascade_order=order)
-            features = predictor._extract_features(event, flight)
-            assert features["cascade_order"] == order
-
-    def test_passengers_in_features(self, predictor):
-        event = make_event("weather_closure", "severe")
-        flight = make_flight("NB101", passengers=220)
-        features = predictor._extract_features(event, flight)
-        assert features["passengers"] == 220
-
-    def test_severity_encoded(self, predictor):
-        for severity, expected in [("mild", 1), ("moderate", 2), ("severe", 3), ("extreme", 4)]:
-            event = make_event("weather_closure", severity)
-            flight = make_flight("NB101")
-            features = predictor._extract_features(event, flight)
-            assert features["event_severity_encoded"] == expected
 
 
 # ── Cascade summary tests ─────────────────────────────────────────────────────

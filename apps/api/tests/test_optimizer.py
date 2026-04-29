@@ -1,7 +1,7 @@
 """Tests for the MILP recovery optimizer."""
 import pytest
-from src.optimizer.milp import RecoveryOptimizer, RecoveryPlan
 
+from src.optimizer.milp import RecoveryOptimizer
 
 FLIGHTS = [
     {"id": "NB101", "aircraft_id": "N001NB", "origin": "KORD", "destination": "KATL",
@@ -104,31 +104,35 @@ class TestOptimizerOutputs:
         assert weights["delta"] >= weights["alpha"]
 
 
-AIRCRAFT_MAP = {a["id"]: a for a in AIRCRAFT}
-FLIGHTS_MAP = {f["id"]: f for f in FLIGHTS}
-
-
 class TestHeuristicFallback:
+    """Integration checks for the heuristic planner (replaces removed _greedy_fallback API)."""
+
     def test_fallback_produces_plan(self, optimizer):
-        plan = optimizer._greedy_fallback(
-            "A", optimizer.PLAN_WEIGHTS["A"],
-            FLIGHTS_MAP,
-            AIRCRAFT_MAP,
-            ["NB101"],
-            PREDICTIONS,
+        plans = optimizer.solve(
+            schedule=FLIGHTS,
+            aircraft=AIRCRAFT,
+            crews=CREWS,
+            events=[],
+            disrupted_flights=["NB101"],
+            cascade_predictions=PREDICTIONS,
         )
-        assert plan.status == "heuristic"
-        assert plan.plan_id == "A"
+        plan_a = next(p for p in plans if p.plan_id == "A")
+        assert plan_a.status == "heuristic"
+        assert plan_a.plan_id == "A"
 
     def test_fallback_cancels_high_delay_flights(self, optimizer):
         high_delay_predictions = {
-            "NB101": {"p_delayed": 0.95, "expected_delay_min": 240, "cascade_order": 0},
+            "NB101": {"p_delayed": 0.95, "expected_delay_min": 500, "cascade_order": 0},
+            "NB102": {"p_delayed": 0.7, "expected_delay_min": 60, "cascade_order": 1},
+            "NB103": {"p_delayed": 0.3, "expected_delay_min": 20, "cascade_order": 2},
         }
-        plan = optimizer._greedy_fallback(
-            "A", optimizer.PLAN_WEIGHTS["A"],
-            FLIGHTS_MAP,
-            AIRCRAFT_MAP,
-            ["NB101"],
-            high_delay_predictions,
+        plans = optimizer.solve(
+            schedule=FLIGHTS,
+            aircraft=AIRCRAFT,
+            crews=CREWS,
+            events=[],
+            disrupted_flights=["NB101"],
+            cascade_predictions=high_delay_predictions,
         )
-        assert "NB101" in plan.cancelled_flights
+        plan_a = next(p for p in plans if p.plan_id == "A")
+        assert "NB101" in plan_a.cancelled_flights

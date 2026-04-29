@@ -3,7 +3,6 @@ Crew sickout / mass callout disruption event.
 Models mass crew unavailability due to illness, labor action, or crew rest violations.
 """
 from datetime import timedelta
-from typing import Any
 
 from src.events.base import DisruptionEvent, EventKind
 

@@ -214,7 +214,6 @@ class CrewLegalityEngine:
             )
 
         max_fdp = timedelta(hours=max_fdp_h)
-        projected_fdp_end = arrival  # FDP ends at block-in
 
         if current_fdp_start:
             fdp_elapsed = arrival - fdp_start

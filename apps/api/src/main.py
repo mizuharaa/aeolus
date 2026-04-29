@@ -1,22 +1,23 @@
 """
 Aeolus FastAPI application — entry point.
 """
-from contextlib import asynccontextmanager
-from fastapi import FastAPI, WebSocket, Request
-from fastapi.middleware.cors import CORSMiddleware
 import logging
-import yaml
+from contextlib import asynccontextmanager
 from pathlib import Path
 
+import yaml
+from fastapi import FastAPI, Request, WebSocket
+from fastapi.middleware.cors import CORSMiddleware
+
 from src.core.config import settings
-from src.routes import network, events, recovery, predict, weather, simulator, live
-from src.routes.flights import router as flights_router
-from src.ws.handlers import simulation_ws_handler
-from src.predictor.cascade import CascadePredictor
-from src.optimizer.milp import RecoveryOptimizer
-from src.weather.client import WeatherClient
-from src.simulator.engine import SimulationEngine
 from src.data.opensky import OpenSkyClient
+from src.optimizer.milp import RecoveryOptimizer
+from src.predictor.cascade import CascadePredictor
+from src.routes import events, live, network, predict, recovery, simulator, weather
+from src.routes.flights import router as flights_router
+from src.simulator.engine import SimulationEngine
+from src.weather.client import WeatherClient
+from src.ws.handlers import simulation_ws_handler
 
 logger = logging.getLogger(__name__)
 

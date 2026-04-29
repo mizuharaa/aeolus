@@ -1,3 +1,3 @@
-from src.crew.far117 import CrewLegalityEngine, LegalityResult, CrewState
+from src.crew.far117 import CrewLegalityEngine, CrewState, LegalityResult
 
 __all__ = ["CrewLegalityEngine", "LegalityResult", "CrewState"]

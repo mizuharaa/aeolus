@@ -3,14 +3,12 @@ Async SQLAlchemy setup for Aeolus.
 Provides engine, session factory, and FastAPI dependency.
 """
 from collections.abc import AsyncGenerator
-from typing import Any
 
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy.pool import NullPool
 
 from src.core.config import settings
 
@@ -48,8 +46,8 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 async def init_db() -> None:
     """Create all tables (used in testing / dev bootstrap)."""
-    from src.models.base import Base  # noqa: F401
     import src.models.network  # noqa: F401 — registers models
+    from src.models.base import Base  # noqa: F401
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -57,8 +55,8 @@ async def init_db() -> None:
 
 async def drop_db() -> None:
     """Drop all tables (testing only)."""
-    from src.models.base import Base  # noqa: F401
     import src.models.network  # noqa: F401
+    from src.models.base import Base  # noqa: F401
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)

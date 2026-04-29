@@ -3,7 +3,6 @@ Security event disruption.
 Covers bomb threats, suspicious packages, terminal evacuations, and breaches.
 """
 from datetime import timedelta
-from typing import Any
 
 from src.events.base import DisruptionEvent, EventKind
 
@@ -82,9 +81,11 @@ class SecurityEvent(DisruptionEvent):
     def duration(self) -> timedelta:
         explicit = self.params.get("duration_hours")
         if explicit:
-            return timedelta(hours=float(explicit))
+            return timedelta(hours=float(explicit))  # type: ignore[arg-type]
         event_type = self.params.get("event_type", "suspicious_package")
-        hours = SECURITY_EVENT_TYPES.get(event_type, {}).get("default_duration_h", 3.0)
+        hours = float(
+            SECURITY_EVENT_TYPES.get(event_type, {}).get("default_duration_h", 3.0)  # type: ignore[arg-type]
+        )
         return timedelta(hours=hours)
 
     def severity_label(self) -> str:

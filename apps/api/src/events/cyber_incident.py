@@ -3,7 +3,6 @@ Cyber incident disruption event.
 Models IT/cybersecurity incidents affecting airline systems.
 """
 from datetime import timedelta
-from typing import Any
 
 from src.events.base import DisruptionEvent, EventKind
 

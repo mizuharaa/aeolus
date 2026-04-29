@@ -1,7 +1,8 @@
 """Network data endpoints."""
-from fastapi import APIRouter, Request
-import yaml
 from pathlib import Path
+
+import yaml
+from fastapi import APIRouter, Request
 
 router = APIRouter()
 

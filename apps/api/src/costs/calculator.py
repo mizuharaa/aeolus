@@ -14,7 +14,7 @@ applied as delay cost. Airlines typically absorb 55-65% of downstream costs.
 """
 from __future__ import annotations
 
-from src.data.airlines import AIRCRAFT_DB, get_aircraft_info
+from src.data.airlines import get_aircraft_info
 
 # ── Core DOT rates ─────────────────────────────────────────────────────────────
 
@@ -236,9 +236,9 @@ class AirlineDelayCalculator:
         for fid in cancelled:
             flight = flights.get(fid, {})
             ac_type = ac_map.get(fid, "")
-            info = self.cancellation_cost(flight, event_kind=event_kind, aircraft_type=ac_type)
-            total_cancel_usd += info.total
-            cancel_details.append({"flight_id": fid, **info.breakdown})
+            cancel_info = self.cancellation_cost(flight, event_kind=event_kind, aircraft_type=ac_type)
+            total_cancel_usd += cancel_info.total
+            cancel_details.append({"flight_id": fid, **cancel_info.breakdown})
 
         for d in delayed:
             fid = d["flight_id"]
@@ -246,10 +246,10 @@ class AirlineDelayCalculator:
             flight = flights.get(fid, {})
             pax = max(1, flight.get("passengers", 150))
             ac_type = ac_map.get(fid, "")
-            info = self.delay_cost(flight, delay_min, event_kind=event_kind, aircraft_type=ac_type)
-            total_delay_usd += info.total
+            delay_info = self.delay_cost(flight, delay_min, event_kind=event_kind, aircraft_type=ac_type)
+            total_delay_usd += delay_info.total
             total_pax_delay_min += pax * delay_min
-            delay_details.append({"flight_id": fid, "delay_min": delay_min, **info.breakdown})
+            delay_details.append({"flight_id": fid, "delay_min": delay_min, **delay_info.breakdown})
 
         grand_total = total_cancel_usd + total_delay_usd
 

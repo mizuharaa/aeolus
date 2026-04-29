@@ -3,7 +3,6 @@ ATC (Air Traffic Control) staffing shortage disruption event.
 Models TRACON/ARTCC understaffing that reduces sector throughput.
 """
 from datetime import timedelta
-from typing import Any
 
 from src.events.base import DisruptionEvent, EventKind
 

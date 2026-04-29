@@ -4,7 +4,6 @@ Models eruption-driven airspace closures affecting large regions.
 """
 import math
 from datetime import timedelta
-from typing import Any
 
 from src.events.base import DisruptionEvent, EventKind
 

@@ -1,11 +1,12 @@
 """Simulator control endpoints."""
-from fastapi import APIRouter, Request, HTTPException
-from pydantic import BaseModel
-from typing import Any
-import yaml
-from pathlib import Path
 import uuid
 from datetime import datetime
+from pathlib import Path
+from typing import Any
+
+import yaml
+from fastapi import APIRouter, HTTPException, Request
+from pydantic import BaseModel
 
 router = APIRouter()
 

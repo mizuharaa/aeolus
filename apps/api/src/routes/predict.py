@@ -1,10 +1,11 @@
 """Cascade prediction endpoints."""
-from fastapi import APIRouter, Request, HTTPException
-from pydantic import BaseModel
-from typing import Any
 from datetime import datetime
-import yaml
 from pathlib import Path
+from typing import Any
+
+import yaml
+from fastapi import APIRouter, HTTPException, Request
+from pydantic import BaseModel
 
 router = APIRouter()
 

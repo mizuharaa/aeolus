@@ -113,7 +113,7 @@ AIRCRAFT_DB: dict[str, dict] = {
     "CRJ9": {"name": "Bombardier CRJ-900","seats":  90, "block_hr_usd": 1_900, "min_turn_min": 30, "range_nm": 1550, "category": "regional"},
     "DH8D": {"name": "Dash 8 Q400",      "seats":  78, "block_hr_usd": 1_600, "min_turn_min": 25, "range_nm": 1100, "category": "regional"},
     # Cargo (no pax seats)
-    "B744": {"name": "Boeing 747-400F",   "seats":   0, "block_hr_usd": 14_000,"min_turn_min": 120,"range_nm": 4445, "category": "cargo"},
+    "B744F": {"name": "Boeing 747-400F",  "seats":   0, "block_hr_usd": 14_000,"min_turn_min": 120,"range_nm": 4445, "category": "cargo"},
     "MD11": {"name": "McDonnell Douglas MD-11F","seats":0,"block_hr_usd":11_000,"min_turn_min":100,"range_nm":7240, "category": "cargo"},
     # Default fallback
     "UNKN": {"name": "Unknown type",      "seats": 150, "block_hr_usd": 3_500, "min_turn_min": 45, "range_nm": 3000, "category": "narrowbody"},

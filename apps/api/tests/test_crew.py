@@ -1,7 +1,9 @@
 """Tests for FAR Part 117 crew legality engine."""
-import pytest
 from datetime import datetime, timedelta
-from src.crew.far117 import CrewLegalityEngine, LegalityResult
+
+import pytest
+
+from src.crew.far117 import CrewLegalityEngine
 
 
 @pytest.fixture

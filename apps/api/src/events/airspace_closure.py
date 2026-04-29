@@ -3,7 +3,6 @@ Airspace closure disruption event.
 Covers TFRs, NOTAM-based closures, military exercises, and VIP movements.
 """
 from datetime import timedelta
-from typing import Any
 
 from src.events.base import DisruptionEvent, EventKind
 

@@ -3,7 +3,6 @@ Runway closure disruption event.
 Models planned/unplanned runway closures that reduce airport capacity.
 """
 from datetime import timedelta
-from typing import Any
 
 from src.events.base import DisruptionEvent, EventKind
 

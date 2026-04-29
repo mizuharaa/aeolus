@@ -20,11 +20,9 @@ from typing import Optional
 import httpx
 
 from src.data.airlines import (
-    ICAO_TO_IATA,
     AIRLINE_NAMES,
     callsign_to_iata_flight,
     parse_flight_query,
-    get_aircraft_info,
 )
 
 logger = logging.getLogger(__name__)
@@ -271,7 +269,7 @@ class OpenSkyClient:
             # Use time_position (sv[3]) for dead-reckoning — it's when the
             # position was actually observed. Fall back to last_contact (sv[4]).
             time_position = sv[3] or sv[4] or 0
-            last_contact  = sv[4] or 0
+            sv[4] or 0
 
             # velocity: m/s → knots (1 m/s = 1.944 kt)
             vel_ms = sv[9]

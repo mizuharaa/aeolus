@@ -15,8 +15,8 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
-from src.crew.far117 import CrewLegalityEngine
 from src.costs.calculator import AirlineDelayCalculator
+from src.crew.far117 import CrewLegalityEngine
 
 logger = logging.getLogger(__name__)
 

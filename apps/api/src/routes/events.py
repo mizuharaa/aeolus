@@ -1,10 +1,11 @@
 """Disruption event endpoints."""
-from fastapi import APIRouter, Request, HTTPException
-from pydantic import BaseModel
+import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Any
-import uuid
+
+from fastapi import APIRouter, HTTPException, Request
+from pydantic import BaseModel
 
 router = APIRouter()
 

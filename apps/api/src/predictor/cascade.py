@@ -22,13 +22,13 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
 import numpy as np
 
-from src.data.airlines import get_aircraft_info, AIRCRAFT_DB
+from src.data.airlines import get_aircraft_info
 
 logger = logging.getLogger(__name__)
 
@@ -381,7 +381,6 @@ class CascadePredictor:
 
     def train(self, X_train, y_delay_binary, y_delay_minutes) -> dict:
         """Train XGBoost classifier + regressor on BTS data."""
-        import pandas as pd
         import xgboost as xgb
         from sklearn.metrics import mean_absolute_error, roc_auc_score
         from sklearn.model_selection import train_test_split
