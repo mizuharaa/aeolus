@@ -1,7 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
 import dynamic from "next/dynamic"
-import { Loader2, AlertTriangle } from "lucide-react"
+import { Loader2 } from "lucide-react"
 import { useSimulationStore, type ScheduledFlight } from "@/stores/simulation"
 import { useWebSocket } from "@/lib/websocket"
 import { EventPanel } from "@/components/simulator/event-panel"
@@ -22,17 +22,20 @@ const FlightMap = dynamic(() => import("@/components/simulator/flight-map"), {
         >
           <Loader2 className="w-6 h-6 text-white animate-spin" />
         </div>
-        <span className="text-sm font-semibold" style={{ color: "#1E8C86" }}>
-          Loading map…
-        </span>
+        <span className="text-sm font-semibold" style={{ color: "#1E8C86" }}>Loading map…</span>
       </div>
     </div>
   ),
 })
 
+const card = {
+  background: "#ffffff",
+  border: "1.5px solid rgba(43,168,162,0.20)",
+  boxShadow: "0 2px 16px rgba(43,168,162,0.07), 0 1px 3px rgba(0,0,0,0.05)",
+}
+
 export default function SimulatorPage() {
-  const { flightStates, schedule, setSchedule, appliedPlanId, setSelectedLiveFlight } =
-    useSimulationStore()
+  const { flightStates, schedule, setSchedule, setSelectedLiveFlight } = useSimulationStore()
   const { isConnected } = useWebSocket()
   const [selectedFlight, setSelectedFlight] = useState<string | null>(null)
 
@@ -55,68 +58,64 @@ export default function SimulatorPage() {
   }, [setSchedule])
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-background">
-      {/* ── Navigation header ── */}
-      <SimulatorNav isConnected={isConnected} affectedCount={affectedCount} />
+    <div className="min-h-screen" style={{ background: "#F0F4F8" }}>
 
-      {/* ── Content area ── */}
-      <div className="flex-1 flex flex-col min-h-0 p-4 gap-4">
+      {/* ── Sticky nav ── */}
+      <div className="sticky top-0 z-50">
+        <SimulatorNav isConnected={isConnected} affectedCount={affectedCount} />
+      </div>
 
-        {/* Search bar — full width */}
-        <div className="shrink-0">
+      {/* ── Scrollable page content ── */}
+      <div className="px-6 py-6 space-y-5 max-w-[1800px] mx-auto">
+
+        {/* ── Flight search ── */}
+        <div>
           <FlightSearch selectedFlight={selectedFlight} onSelect={handleFlightSelect} />
         </div>
 
-        {/* Main panels grid */}
-        <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 min-h-0">
+        {/* ── Main three-column row ── */}
+        <div className="grid gap-5" style={{ gridTemplateColumns: "minmax(280px,1fr) minmax(0,2.4fr) minmax(280px,1fr)" }}>
 
-          {/* ── Left: Flight map (fills full column height) ── */}
-          <div className="lg:col-span-8 surface-card overflow-hidden relative min-h-[300px]">
+          {/* LEFT — Trigger Events */}
+          <div
+            className="rounded-2xl overflow-hidden flex flex-col"
+            style={{ ...card, height: "72vh", minHeight: 520 }}
+          >
+            <EventPanel />
+          </div>
+
+          {/* CENTER — Flight Map */}
+          <div
+            className="rounded-2xl overflow-hidden relative"
+            style={{ ...card, height: "72vh", minHeight: 520 }}
+          >
             <FlightMap selectedFlight={selectedFlight} onFlightSelect={handleFlightSelect} />
-
-            {/* Applied plan banner — floating overlay */}
-            {appliedPlanId && (
-              <div
-                className="absolute bottom-4 right-4 z-[450] surface-floating px-4 py-2.5 flex items-center gap-2.5"
-                style={{ borderLeft: "3px solid #EF6C4A" }}
-              >
-                <AlertTriangle className="w-4 h-4 shrink-0" style={{ color: "#EF6C4A" }} />
-                <div>
-                  <div className="text-xs font-bold" style={{ color: "#D45233" }}>
-                    Plan {appliedPlanId} applied
-                  </div>
-                  <div className="text-[10px] text-muted-foreground mt-0.5">
-                    Showing revised schedule
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
 
-          {/* ── Right: Event panel + Recovery plans (scrollable column) ── */}
-          <div className="lg:col-span-4 flex flex-col gap-4 min-h-0 overflow-y-auto">
-            <div className="shrink-0 surface-card overflow-hidden" style={{ height: "460px" }}>
-              <EventPanel />
-            </div>
-            <div className="shrink-0 surface-card overflow-hidden" style={{ height: "620px" }}>
-              <RecoveryPlans
-                selectedFlight={selectedFlight}
-                onFlightSelect={handleFlightSelect}
-              />
-            </div>
+          {/* RIGHT — Recovery Plans */}
+          <div
+            className="rounded-2xl overflow-hidden flex flex-col"
+            style={{ ...card, height: "72vh", minHeight: 520 }}
+          >
+            <RecoveryPlans
+              selectedFlight={selectedFlight}
+              onFlightSelect={handleFlightSelect}
+            />
           </div>
+
         </div>
 
-        {/* ── Cascade timeline — full width strip at bottom ── */}
+        {/* ── Cascade Timeline ── */}
         <div
-          className="shrink-0 surface-card overflow-hidden"
-          style={{ height: "10.5rem" }}
+          className="rounded-2xl overflow-hidden"
+          style={{ ...card, height: 200 }}
         >
           <CascadeTimeline
             selectedFlight={selectedFlight}
             onFlightSelect={handleFlightSelect}
           />
         </div>
+
       </div>
     </div>
   )

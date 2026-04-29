@@ -591,7 +591,21 @@ export function EventPanel() {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      <Tabs defaultValue="trigger" className="flex flex-col h-full">
+      {/* Panel header */}
+      <div className="panel-header shrink-0">
+        <div
+          className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+          style={{ background: "rgba(239,108,74,0.12)", border: "1px solid rgba(239,108,74,0.20)" }}
+        >
+          <Zap className="w-3.5 h-3.5" style={{ color: "#EF6C4A" }} />
+        </div>
+        <div>
+          <div className="section-title">Trigger Events</div>
+          <div className="text-[10px] text-muted-foreground mt-0.5">10 disruption types</div>
+        </div>
+      </div>
+
+      <Tabs defaultValue="trigger" className="flex-1 flex flex-col min-h-0">
 
         {/* Tab bar */}
         <div className="px-4 pt-3.5 pb-0 shrink-0 border-b border-border/60">

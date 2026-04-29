@@ -152,7 +152,9 @@ export const useSimulationStore = create<SimulationStore>((set) => ({
         update.active_events !== undefined
           ? update.active_events
           : update.event
-          ? [...state.activeEvents, update.event]
+          ? state.activeEvents.some((e) => e.id === update.event.id)
+            ? state.activeEvents
+            : [...state.activeEvents, update.event]
           : state.activeEvents,
       recoveryPlans: update.recovery_plans ?? state.recoveryPlans,
       cascadeSummary: update.cascade_summary ?? state.cascadeSummary,
