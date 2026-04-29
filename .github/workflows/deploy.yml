@@ -30,7 +30,7 @@ jobs:
     name: Build & Push API Image
     runs-on: ubuntu-latest
     outputs:
-      image: ${{ steps.build.outputs.image }}
+      image: ${{ steps.image-meta.outputs.full_image }}
       digest: ${{ steps.build.outputs.digest }}
 
     permissions:
@@ -59,11 +59,13 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # Dockerfile COPY paths use repo root (apps/api/..., data/) — same as docker-compose.
       - name: Build & push API image
         id: build
         uses: docker/build-push-action@v5
         with:
-          context: apps/api
+          context: .
+          file: apps/api/Dockerfile
           push: true
           tags: |
             ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.tag.outputs.tag }}
@@ -74,8 +76,13 @@ jobs:
             BUILD_SHA=${{ github.sha }}
             BUILD_REF=${{ github.ref_name }}
 
-      - name: Output image URI
-        run: echo "Pushed ${{ steps.build.outputs.image }}"
+      - name: Export image ref for ECS
+        id: image-meta
+        run: |
+          URI="${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.tag.outputs.tag }}"
+          echo "full_image=$URI" >> "$GITHUB_OUTPUT"
+          echo "Pushed $URI"
+
 
   # ── Deploy API to ECS Fargate ─────────────────────────────────────────────────
   deploy-api:

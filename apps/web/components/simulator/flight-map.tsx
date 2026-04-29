@@ -160,6 +160,26 @@ function BoundsTracker({ onBounds }: { onBounds: (b: L.LatLngBounds) => void }) 
   return null
 }
 
+/** Recompute tile layout when the map column is resized or the page scrolls (avoids Leaflet “breaking out” visually). */
+function MapResizeFix() {
+  const map = useMap()
+  useEffect(() => {
+    const fix = () => {
+      map.invalidateSize({ animate: false })
+    }
+    fix()
+    const ro = new ResizeObserver(fix)
+    const el = map.getContainer().parentElement
+    if (el) ro.observe(el)
+    window.addEventListener("orientationchange", fix)
+    return () => {
+      ro.disconnect()
+      window.removeEventListener("orientationchange", fix)
+    }
+  }, [map])
+  return null
+}
+
 function FitBounds({ flights }: { flights: ScheduledFlight[] }) {
   const map = useMap()
   const done = useRef(false)
@@ -942,14 +962,15 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
   const ageSec = lastFetch ? Math.round((nowMs - lastFetch) / 1000) : null
 
   return (
-    <div className="w-full h-full relative">
+    <div className="simulator-map-shell w-full h-full min-h-0 relative overflow-hidden isolate">
       <MapContainer
         ref={mapRef}
         center={[39.5, -98.0]} zoom={4} minZoom={2} maxZoom={14}
         zoomControl={false} scrollWheelZoom worldCopyJump={false}
         preferCanvas
-        className="w-full h-full"
+        className="w-full h-full z-0"
       >
+        <MapResizeFix />
         <ZoomControl position="topright" />
         <TileLayer
           url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"

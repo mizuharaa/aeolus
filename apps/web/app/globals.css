@@ -209,6 +209,36 @@
   background: #deeeed !important;
   font-family: "Sofia Sans", -apple-system, sans-serif;
 }
+
+/*
+ * Simulator map shell — clips raster tiles/markers so page scroll never reveals
+ * Leaflet layers outside the rounded card (fixes “map escaping” on scroll).
+ */
+.simulator-map-shell {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  contain: layout paint;
+}
+.simulator-map-shell .leaflet-container {
+  outline: none;
+}
+.simulator-map-shell .leaflet-control-container {
+  z-index: 1000;
+}
+
+/* Cascade timeline — easier to grab than the global 6px rail */
+.cascade-timeline-scroll::-webkit-scrollbar {
+  width: 10px;
+}
+.cascade-timeline-scroll::-webkit-scrollbar-thumb {
+  background: rgba(43, 168, 162, 0.45);
+  border-radius: 9999px;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+}
+.cascade-timeline-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(30, 140, 134, 0.65);
+}
 .leaflet-control-attribution {
   background: rgba(255,255,255,0.9) !important;
   font-size: 9px !important;

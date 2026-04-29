@@ -74,28 +74,31 @@ export default function SimulatorPage() {
         </div>
 
         {/* ── Main three-column row ── */}
-        <div className="grid gap-5" style={{ gridTemplateColumns: "minmax(280px,1fr) minmax(0,2.4fr) minmax(280px,1fr)" }}>
+        <div
+          className="grid gap-5 items-stretch min-h-0"
+          style={{ gridTemplateColumns: "minmax(280px,1fr) minmax(0,2.4fr) minmax(280px,1fr)" }}
+        >
 
           {/* LEFT — Trigger Events */}
           <div
-            className="rounded-2xl overflow-hidden flex flex-col"
-            style={{ ...card, height: "72vh", minHeight: 520 }}
+            className="rounded-2xl overflow-hidden flex flex-col min-h-0 min-w-0"
+            style={{ ...card, height: "clamp(480px, 58vh, 860px)" }}
           >
             <EventPanel />
           </div>
 
-          {/* CENTER — Flight Map */}
+          {/* CENTER — Flight Map (fixed height column + clip so Leaflet never paints outside the card on scroll) */}
           <div
-            className="rounded-2xl overflow-hidden relative"
-            style={{ ...card, height: "72vh", minHeight: 520 }}
+            className="rounded-2xl overflow-hidden relative min-h-0 min-w-0 isolate"
+            style={{ ...card, height: "clamp(480px, 58vh, 860px)" }}
           >
             <FlightMap selectedFlight={selectedFlight} onFlightSelect={handleFlightSelect} />
           </div>
 
           {/* RIGHT — Recovery Plans */}
           <div
-            className="rounded-2xl overflow-hidden flex flex-col"
-            style={{ ...card, height: "72vh", minHeight: 520 }}
+            className="rounded-2xl overflow-hidden flex flex-col min-h-0 min-w-0"
+            style={{ ...card, height: "clamp(480px, 58vh, 860px)" }}
           >
             <RecoveryPlans
               selectedFlight={selectedFlight}
@@ -105,10 +108,15 @@ export default function SimulatorPage() {
 
         </div>
 
-        {/* ── Cascade Timeline ── */}
+        {/* ── Cascade Timeline (tall scrollable region; main page still scrolls normally) ── */}
         <div
-          className="rounded-2xl overflow-hidden"
-          style={{ ...card, height: 200 }}
+          className="rounded-2xl overflow-hidden flex flex-col min-h-0 min-w-0 shadow-[0_4px_24px_rgba(43,168,162,0.12)] border border-[rgba(43,168,162,0.22)]"
+          style={{
+            ...card,
+            minHeight: "min(520px, 70vh)",
+            height: "clamp(400px, 48vh, 720px)",
+            maxHeight: "min(720px, 78vh)",
+          }}
         >
           <CascadeTimeline
             selectedFlight={selectedFlight}

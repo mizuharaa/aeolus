@@ -6,6 +6,7 @@ import {
   HeartPulse, AlertTriangle, Radio, Mountain, ServerCrash,
   Zap, Activity, Loader2, RefreshCw, CloudLightning, Wind,
   TriangleAlert, Globe, MapPin, Gauge,
+  CloudSnow, Tornado, Droplets, Bird, Snowflake, Flame, Users, ChevronDown, Eye,
 } from "lucide-react"
 import { apiClient } from "@/lib/api"
 import { useSimulationStore } from "@/stores/simulation"
@@ -18,19 +19,88 @@ const AIRPORTS = ["KORD","KATL","KDFW","KLAX","KDEN","KJFK","KSEA","KMIA","KPHX"
 const AIRCRAFT  = Array.from({ length: 40 }, (_, i) => `N${String(i + 1).padStart(3, "0")}NB`)
 
 const EVENT_TYPES = [
-  { value: "weather_closure",  label: "Weather Closure",  Icon: Cloud,         color: "sky"    },
-  { value: "ground_stop",      label: "Ground Stop",      Icon: OctagonAlert,  color: "orange" },
-  { value: "airspace_closure", label: "Airspace Closure", Icon: Ban,           color: "red"    },
-  { value: "security_event",   label: "Security Event",   Icon: ShieldAlert,   color: "rose"   },
-  { value: "mechanical_aog",   label: "Mechanical AOG",   Icon: Wrench,        color: "amber"  },
-  { value: "crew_sickout",     label: "Crew Sick-out",    Icon: HeartPulse,    color: "pink"   },
-  { value: "runway_closure",   label: "Runway Closure",   Icon: AlertTriangle, color: "yellow" },
-  { value: "atc_staffing",     label: "ATC Shortage",     Icon: Radio,         color: "indigo" },
-  { value: "volcanic_ash",     label: "Volcanic Ash",     Icon: Mountain,      color: "stone"  },
-  { value: "cyber_incident",   label: "Cyber Incident",   Icon: ServerCrash,   color: "violet" },
+  // Weather
+  { value: "weather_closure",   label: "Weather Closure",     Icon: Cloud,          color: "sky"     },
+  { value: "thunderstorm",      label: "Thunderstorm Cell",   Icon: CloudLightning, color: "blue"    },
+  { value: "blizzard",          label: "Winter Storm",        Icon: CloudSnow,      color: "slate"   },
+  { value: "sandstorm",         label: "Sandstorm / Haboob",  Icon: Wind,           color: "amber"   },
+  { value: "dense_fog",         label: "Dense Fog",           Icon: Eye,            color: "stone"   },
+  { value: "wind_shear",        label: "Wind Shear",          Icon: Gauge,          color: "cyan"    },
+  { value: "hurricane",         label: "Hurricane / Cyclone", Icon: Tornado,        color: "purple"  },
+  { value: "volcanic_ash",      label: "Volcanic Ash",        Icon: Mountain,       color: "stone"   },
+  // ATC & Airspace
+  { value: "ground_stop",       label: "Ground Stop",         Icon: OctagonAlert,   color: "orange"  },
+  { value: "airspace_closure",  label: "Airspace Closure",    Icon: Ban,            color: "red"     },
+  { value: "atc_staffing",      label: "ATC Shortage",        Icon: Radio,          color: "indigo"  },
+  // Aircraft & Operations
+  { value: "mechanical_aog",    label: "Mechanical AOG",      Icon: Wrench,         color: "amber"   },
+  { value: "bird_strike",       label: "Bird Strike / FOD",   Icon: Bird,           color: "lime"    },
+  { value: "deicing_shortage",  label: "Deicing Shortage",    Icon: Snowflake,      color: "blue"    },
+  { value: "runway_closure",    label: "Runway Closure",      Icon: AlertTriangle,  color: "yellow"  },
+  { value: "fuel_contamination",label: "Fuel Contamination",  Icon: Droplets,       color: "orange"  },
+  // Crew & Personnel
+  { value: "crew_sickout",      label: "Crew Sick-out",       Icon: HeartPulse,     color: "pink"    },
+  { value: "labor_action",      label: "Labor Slowdown",      Icon: Users,          color: "emerald" },
+  // Security & Emergency
+  { value: "security_event",    label: "Security Event",      Icon: ShieldAlert,    color: "rose"    },
+  { value: "airport_emergency", label: "Airport Emergency",   Icon: Flame,          color: "red"     },
+  { value: "cyber_incident",    label: "Cyber Incident",      Icon: ServerCrash,    color: "violet"  },
 ] as const
 
 type EventKind = typeof EVENT_TYPES[number]["value"]
+
+const EVENT_CATEGORIES: { label: string; events: EventKind[] }[] = [
+  { label: "Weather", events: ["weather_closure","thunderstorm","blizzard","sandstorm","dense_fog","wind_shear","hurricane","volcanic_ash"] },
+  { label: "Air Traffic Control", events: ["ground_stop","airspace_closure","atc_staffing"] },
+  { label: "Aircraft & Operations", events: ["mechanical_aog","bird_strike","deicing_shortage","runway_closure","fuel_contamination"] },
+  { label: "Crew & Personnel", events: ["crew_sickout","labor_action"] },
+  { label: "Security & Emergency", events: ["security_event","airport_emergency","cyber_incident"] },
+]
+
+const EVENT_DESCRIPTIONS: Record<EventKind, string> = {
+  weather_closure:
+    "A weather system forces closure or severe capacity reductions at the affected airport. Ground operations halt as conditions drop below VFR minimums, causing widespread delays and diversions across the entire hub bank structure.",
+  thunderstorm:
+    "A convective cell or squall line produces embedded cumulonimbus clouds with lightning, hail, and severe turbulence. Aircraft must deviate up to 40 nm around active cells, significantly dropping arrival rates and congesting vectoring airspace.",
+  blizzard:
+    "Heavy snowfall exceeding 1 in/hr combined with winds over 35 kt creates whiteout conditions and rapid runway accumulation. Deicing queues build, CAT III approaches may be suspended, and ramp operations slow significantly — snow removal cannot keep pace above 2 in/hr.",
+  sandstorm:
+    "A haboob or blowing-dust event reduces visibility below 1/4 mile and coats engine inlet screens with abrasive particles. Engines require borescope inspection before return to service after even a brief dust ingestion event.",
+  dense_fog:
+    "IFR or LIFR conditions reduce visibility and ceiling below CAT I minimums (RVR 1800 / 200 ft). Only CAT II/III-certified aircraft and crews can continue approaches, dropping a major hub's arrival rate from ~100 to ~30 operations per hour.",
+  wind_shear:
+    "Low-Level Wind Shear (LLWS) detected via PIREP or LLWAS forces increased spacing and frequent missed approaches on the affected runway. Particularly severe during thunderstorm outflows and cold-front passages — some crews go missed multiple times before landing.",
+  hurricane:
+    "Pre-emptive mass cancellations begin 48-72 hours before landfall as airlines ferry aircraft out of the storm track to safe bases. Post-storm, airport structural assessment and crew return positioning can take 24-96 hours before operations fully resume.",
+  volcanic_ash:
+    "An ash cloud SIGMET makes transiting the affected radius hazardous — volcanic glass particles cause engine flame-out and windshield abrasion. All routes within the plume radius must reroute or cancel; the closure can persist for days depending on wind direction.",
+  ground_stop:
+    "The FAA issues a Ground Stop (GS) halting all departures destined for the affected airport. Aircraft already airborne continue; all on-ground departures are held at origin. A Ground Delay Program (GDP) typically follows if the stop persists beyond 1-2 hours.",
+  airspace_closure:
+    "A NOTAM-based Temporary Flight Restriction (TFR) closes a block of en-route airspace, forcing all transiting traffic onto longer reroutes. Depending on the closed ARTCC sector, rerouting can add 45-120 minutes to block times and overload adjacent sectors.",
+  atc_staffing:
+    "Understaffing at an ARTCC (Air Route Traffic Control Center) reduces the number of active sectors, widening spacing requirements and lowering throughput. Arrival and departure rates can drop 30-50%, creating system-wide delay propagation across the NAS.",
+  mechanical_aog:
+    "An Aircraft-on-Ground (AOG) event grounds a tail number until maintenance certifies it airworthy. Every subsequent rotation on that aircraft is delayed or cancelled, often requiring spare aircraft swaps or short-notice wet-lease to cover the broken rotation chain.",
+  bird_strike:
+    "A bird ingestion event into one or both engines requires an immediate landing and engineering inspection. High-mass strikes from geese or pelicans may require engine removal, grounding the aircraft for 4-48 hours and breaking its full day's rotation.",
+  deicing_shortage:
+    "A surge of departures during freezing precipitation overwhelms deicing pad capacity, creating 45-90 minute queues per aircraft. Holdover times are short and aircraft may require re-treatment before departure, decoupling gate push from wheels-up by 60-120 minutes.",
+  runway_closure:
+    "FOD removal, pavement failure, or emergency vehicle response closes one or more runways. Losing one runway at a dual-runway airport cuts arrival/departure capacity by approximately 45%, typically triggering a Ground Delay Program within 30 minutes.",
+  fuel_contamination:
+    "A quality-control failure, water infiltration, or misfueling event triggers a hold on all fuel from the affected supply source. Departures halt until independent testing clears the fuel; airborne aircraft must divert to alternate airports with unaffected fuel supplies.",
+  crew_sickout:
+    "Coordinated or uncoordinated crew absences remove a percentage of qualified pilots or cabin crew from duty. Flights without a legal crew cannot depart regardless of aircraft readiness; crew scheduling must source reserves across all crew bases simultaneously.",
+  labor_action:
+    "A work slowdown — sometimes called a 'blue flu' — reduces effective staffing without a formal strike. Turnaround times increase 20-60% as crews work strictly to contract minimums; airlines cannot legally compel faster operations during an organized job action.",
+  security_event:
+    "A bomb threat, unattended bag incident, or unruly passenger requiring military escort triggers terminal evacuation and full re-screening. TSA re-screening of all passengers creates 2-6 hour gate hold queues; international arrivals may be held at remote stands indefinitely.",
+  airport_emergency:
+    "A full emergency declaration for terminal fire, structural failure, or a mass-casualty event closes the airfield for emergency vehicle access. Inbound flights are held at altitude or diverted; full recovery and re-certification typically takes 1-12 hours depending on incident severity.",
+  cyber_incident:
+    "A CrowdStrike/SITA-style IT failure simultaneously degrades check-in, weight & balance, dispatch, and crew scheduling systems. Manual fallback procedures add 30-90 minutes to every gate turn; a complete outage (100% degradation) effectively halts departure processing network-wide.",
+}
 
 const FORM_SCHEMA: Record<EventKind, {
   fields: { key: string; label: string; type: "select" | "number"; options?: string[]; min?: number; max?: number; step?: number }[]
@@ -44,6 +114,61 @@ const FORM_SCHEMA: Record<EventKind, {
     ],
     defaults: { airport: "KORD", severity: "severe", duration_hours: "4" },
   },
+  thunderstorm: {
+    fields: [
+      { key: "airport",        label: "Airport",        type: "select", options: AIRPORTS },
+      { key: "severity",       label: "Severity",       type: "select", options: ["moderate","severe","extreme"] },
+      { key: "duration_hours", label: "Duration (hrs)", type: "number", min: 0.5, max: 12, step: 0.5 },
+    ],
+    defaults: { airport: "KORD", severity: "severe", duration_hours: "3" },
+  },
+  blizzard: {
+    fields: [
+      { key: "airport",        label: "Airport",           type: "select", options: AIRPORTS },
+      { key: "snowfall_rate",  label: "Snowfall (in/hr)",  type: "number", min: 0.5, max: 6, step: 0.5 },
+      { key: "duration_hours", label: "Duration (hrs)",    type: "number", min: 1,   max: 24, step: 1 },
+    ],
+    defaults: { airport: "KORD", snowfall_rate: "2", duration_hours: "6" },
+  },
+  sandstorm: {
+    fields: [
+      { key: "airport",        label: "Airport",           type: "select", options: AIRPORTS },
+      { key: "visibility_sm",  label: "Visibility (SM)",   type: "number", min: 0.1, max: 2, step: 0.1 },
+      { key: "duration_hours", label: "Duration (hrs)",    type: "number", min: 1,   max: 12, step: 1 },
+    ],
+    defaults: { airport: "KPHX", visibility_sm: "0.25", duration_hours: "4" },
+  },
+  dense_fog: {
+    fields: [
+      { key: "airport",        label: "Airport",           type: "select", options: AIRPORTS },
+      { key: "visibility_sm",  label: "Visibility (SM)",   type: "number", min: 0.1, max: 1, step: 0.1 },
+      { key: "duration_hours", label: "Duration (hrs)",    type: "number", min: 1,   max: 12, step: 1 },
+    ],
+    defaults: { airport: "KSFO", visibility_sm: "0.25", duration_hours: "4" },
+  },
+  wind_shear: {
+    fields: [
+      { key: "airport",        label: "Airport",           type: "select", options: AIRPORTS },
+      { key: "wind_speed_kt",  label: "Wind speed (kt)",   type: "number", min: 20,  max: 80, step: 5 },
+      { key: "duration_hours", label: "Duration (hrs)",    type: "number", min: 0.5, max: 6,  step: 0.5 },
+    ],
+    defaults: { airport: "KDFW", wind_speed_kt: "35", duration_hours: "2" },
+  },
+  hurricane: {
+    fields: [
+      { key: "airport",        label: "Affected airport",  type: "select", options: AIRPORTS },
+      { key: "category",       label: "Category",          type: "select", options: ["1","2","3","4","5"] },
+      { key: "duration_hours", label: "Disruption (hrs)",  type: "number", min: 12, max: 96, step: 6 },
+    ],
+    defaults: { airport: "KMIA", category: "3", duration_hours: "48" },
+  },
+  volcanic_ash: {
+    fields: [
+      { key: "ash_cloud_radius_nm", label: "Plume radius (nm)", type: "number", min: 50,  max: 500, step: 25 },
+      { key: "duration_hours",      label: "Duration (hrs)",    type: "number", min: 6,   max: 72,  step: 1  },
+    ],
+    defaults: { ash_cloud_radius_nm: "200", duration_hours: "18" },
+  },
   ground_stop: {
     fields: [
       { key: "destination_airport", label: "Destination airport", type: "select", options: AIRPORTS },
@@ -53,78 +178,117 @@ const FORM_SCHEMA: Record<EventKind, {
   },
   airspace_closure: {
     fields: [
-      { key: "airport",        label: "Anchor airport", type: "select", options: AIRPORTS },
-      { key: "duration_hours", label: "Duration (hrs)", type: "number", min: 1, max: 48, step: 1 },
+      { key: "airport",        label: "Anchor airport",    type: "select", options: AIRPORTS },
+      { key: "duration_hours", label: "Duration (hrs)",    type: "number", min: 1, max: 48, step: 1 },
     ],
     defaults: { airport: "KDEN", duration_hours: "6" },
   },
-  security_event: {
-    fields: [
-      { key: "airport",        label: "Airport",        type: "select", options: AIRPORTS },
-      { key: "severity",       label: "Severity",       type: "select", options: ["moderate","severe","extreme"] },
-      { key: "duration_hours", label: "Duration (hrs)", type: "number", min: 0.5, max: 12, step: 0.5 },
-    ],
-    defaults: { airport: "KJFK", severity: "severe", duration_hours: "3" },
-  },
-  mechanical_aog: {
-    fields: [
-      { key: "aircraft_tail",  label: "Aircraft tail",   type: "select", options: AIRCRAFT },
-      { key: "airport",        label: "Current airport", type: "select", options: AIRPORTS },
-      { key: "duration_hours", label: "Duration (hrs)",  type: "number", min: 1, max: 48, step: 1 },
-    ],
-    defaults: { aircraft_tail: "N001NB", airport: "KATL", duration_hours: "8" },
-  },
-  crew_sickout: {
-    fields: [
-      { key: "base",             label: "Crew base",      type: "select", options: AIRPORTS },
-      { key: "percent_affected", label: "% affected",     type: "number", min: 5, max: 100, step: 5 },
-      { key: "duration_hours",   label: "Duration (hrs)", type: "number", min: 1, max: 48, step: 1 },
-    ],
-    defaults: { base: "KORD", percent_affected: "30", duration_hours: "8" },
-  },
-  runway_closure: {
-    fields: [
-      { key: "airport",          label: "Airport",          type: "select", options: AIRPORTS },
-      { key: "capacity_cut_pct", label: "Capacity cut (%)", type: "number", min: 10, max: 100, step: 5 },
-      { key: "duration_hours",   label: "Duration (hrs)",   type: "number", min: 0.5, max: 24, step: 0.5 },
-    ],
-    defaults: { airport: "KDFW", capacity_cut_pct: "45", duration_hours: "6" },
-  },
   atc_staffing: {
     fields: [
-      { key: "facility_id",    label: "ARTCC facility", type: "select", options: ["ZAU","ZTL","ZFW","ZLA","ZDV","ZNY","ZSE","ZMA","ZAB","ZMP"] },
-      { key: "staffing_pct",   label: "Staffing %",     type: "number", min: 30, max: 95, step: 5 },
-      { key: "duration_hours", label: "Duration (hrs)", type: "number", min: 1, max: 12, step: 1 },
+      { key: "facility_id",    label: "ARTCC facility",    type: "select", options: ["ZAU","ZTL","ZFW","ZLA","ZDV","ZNY","ZSE","ZMA","ZAB","ZMP"] },
+      { key: "staffing_pct",   label: "Staffing %",        type: "number", min: 30, max: 95, step: 5 },
+      { key: "duration_hours", label: "Duration (hrs)",    type: "number", min: 1,  max: 12, step: 1 },
     ],
     defaults: { facility_id: "ZAU", staffing_pct: "60", duration_hours: "6" },
   },
-  volcanic_ash: {
+  mechanical_aog: {
     fields: [
-      { key: "ash_cloud_radius_nm", label: "Plume radius (nm)", type: "number", min: 50, max: 500, step: 25 },
-      { key: "duration_hours",      label: "Duration (hrs)",    type: "number", min: 6, max: 72, step: 1 },
+      { key: "aircraft_tail",  label: "Aircraft tail",     type: "select", options: AIRCRAFT },
+      { key: "airport",        label: "Current airport",   type: "select", options: AIRPORTS },
+      { key: "duration_hours", label: "Duration (hrs)",    type: "number", min: 1, max: 48, step: 1 },
     ],
-    defaults: { ash_cloud_radius_nm: "200", duration_hours: "18" },
+    defaults: { aircraft_tail: "N001NB", airport: "KATL", duration_hours: "8" },
+  },
+  bird_strike: {
+    fields: [
+      { key: "aircraft_tail",  label: "Aircraft tail",     type: "select", options: AIRCRAFT },
+      { key: "airport",        label: "Incident airport",  type: "select", options: AIRPORTS },
+      { key: "duration_hours", label: "Inspection (hrs)",  type: "number", min: 2, max: 48, step: 1 },
+    ],
+    defaults: { aircraft_tail: "N005NB", airport: "KJFK", duration_hours: "8" },
+  },
+  deicing_shortage: {
+    fields: [
+      { key: "airport",        label: "Airport",           type: "select", options: AIRPORTS },
+      { key: "queue_length",   label: "Queue (aircraft)",  type: "number", min: 5,  max: 40, step: 1 },
+      { key: "duration_hours", label: "Duration (hrs)",    type: "number", min: 1,  max: 8,  step: 0.5 },
+    ],
+    defaults: { airport: "KORD", queue_length: "20", duration_hours: "3" },
+  },
+  runway_closure: {
+    fields: [
+      { key: "airport",          label: "Airport",           type: "select", options: AIRPORTS },
+      { key: "capacity_cut_pct", label: "Capacity cut (%)",  type: "number", min: 10, max: 100, step: 5 },
+      { key: "duration_hours",   label: "Duration (hrs)",    type: "number", min: 0.5, max: 24, step: 0.5 },
+    ],
+    defaults: { airport: "KDFW", capacity_cut_pct: "45", duration_hours: "6" },
+  },
+  fuel_contamination: {
+    fields: [
+      { key: "airport",        label: "Airport",           type: "select", options: AIRPORTS },
+      { key: "severity",       label: "Severity",          type: "select", options: ["partial","critical"] },
+      { key: "duration_hours", label: "Duration (hrs)",    type: "number", min: 1, max: 24, step: 1 },
+    ],
+    defaults: { airport: "KATL", severity: "critical", duration_hours: "6" },
+  },
+  crew_sickout: {
+    fields: [
+      { key: "base",             label: "Crew base",         type: "select", options: AIRPORTS },
+      { key: "percent_affected", label: "% affected",        type: "number", min: 5,  max: 100, step: 5 },
+      { key: "duration_hours",   label: "Duration (hrs)",    type: "number", min: 1,  max: 48,  step: 1 },
+    ],
+    defaults: { base: "KORD", percent_affected: "30", duration_hours: "8" },
+  },
+  labor_action: {
+    fields: [
+      { key: "base",           label: "Crew base",           type: "select", options: AIRPORTS },
+      { key: "slowdown_pct",   label: "Slowdown %",          type: "number", min: 10, max: 80, step: 5 },
+      { key: "duration_hours", label: "Duration (hrs)",      type: "number", min: 2,  max: 48, step: 1 },
+    ],
+    defaults: { base: "KORD", slowdown_pct: "30", duration_hours: "12" },
+  },
+  security_event: {
+    fields: [
+      { key: "airport",        label: "Airport",           type: "select", options: AIRPORTS },
+      { key: "severity",       label: "Severity",          type: "select", options: ["moderate","severe","extreme"] },
+      { key: "duration_hours", label: "Duration (hrs)",    type: "number", min: 0.5, max: 12, step: 0.5 },
+    ],
+    defaults: { airport: "KJFK", severity: "severe", duration_hours: "3" },
+  },
+  airport_emergency: {
+    fields: [
+      { key: "airport",        label: "Airport",           type: "select", options: AIRPORTS },
+      { key: "severity",       label: "Severity",          type: "select", options: ["moderate","severe","extreme"] },
+      { key: "duration_hours", label: "Duration (hrs)",    type: "number", min: 0.5, max: 12, step: 0.5 },
+    ],
+    defaults: { airport: "KLAX", severity: "severe", duration_hours: "2" },
   },
   cyber_incident: {
     fields: [
-      { key: "degradation_pct", label: "Degradation %",  type: "number", min: 20, max: 100, step: 5 },
-      { key: "duration_hours",  label: "Duration (hrs)", type: "number", min: 1, max: 24, step: 1 },
+      { key: "degradation_pct", label: "Degradation %",   type: "number", min: 20, max: 100, step: 5 },
+      { key: "duration_hours",  label: "Duration (hrs)",  type: "number", min: 1,  max: 24,  step: 1 },
     ],
     defaults: { degradation_pct: "60", duration_hours: "12" },
   },
 }
 
 const COLOR_CLASSES: Record<string, { soft: string; ring: string; text: string; iconBg: string; border: string }> = {
-  sky:    { soft: "bg-sky-50",     ring: "ring-sky-300",    text: "text-sky-700",    iconBg: "bg-sky-100",    border: "border-sky-200"    },
-  orange: { soft: "bg-orange-50",  ring: "ring-orange-300", text: "text-orange-700", iconBg: "bg-orange-100", border: "border-orange-200" },
-  red:    { soft: "bg-red-50",     ring: "ring-red-300",    text: "text-red-700",    iconBg: "bg-red-100",    border: "border-red-200"    },
-  rose:   { soft: "bg-rose-50",    ring: "ring-rose-300",   text: "text-rose-700",   iconBg: "bg-rose-100",   border: "border-rose-200"   },
-  amber:  { soft: "bg-amber-50",   ring: "ring-amber-300",  text: "text-amber-700",  iconBg: "bg-amber-100",  border: "border-amber-200"  },
-  pink:   { soft: "bg-pink-50",    ring: "ring-pink-300",   text: "text-pink-700",   iconBg: "bg-pink-100",   border: "border-pink-200"   },
-  yellow: { soft: "bg-yellow-50",  ring: "ring-yellow-300", text: "text-yellow-800", iconBg: "bg-yellow-100", border: "border-yellow-200" },
-  indigo: { soft: "bg-indigo-50",  ring: "ring-indigo-300", text: "text-indigo-700", iconBg: "bg-indigo-100", border: "border-indigo-200" },
-  stone:  { soft: "bg-stone-50",   ring: "ring-stone-300",  text: "text-stone-700",  iconBg: "bg-stone-100",  border: "border-stone-200"  },
-  violet: { soft: "bg-violet-50",  ring: "ring-violet-300", text: "text-violet-700", iconBg: "bg-violet-100", border: "border-violet-200" },
+  sky:     { soft: "bg-sky-50",      ring: "ring-sky-300",     text: "text-sky-700",     iconBg: "bg-sky-100",     border: "border-sky-200"     },
+  blue:    { soft: "bg-blue-50",     ring: "ring-blue-300",    text: "text-blue-700",    iconBg: "bg-blue-100",    border: "border-blue-200"    },
+  slate:   { soft: "bg-slate-50",    ring: "ring-slate-300",   text: "text-slate-700",   iconBg: "bg-slate-100",   border: "border-slate-200"   },
+  cyan:    { soft: "bg-cyan-50",     ring: "ring-cyan-300",    text: "text-cyan-700",    iconBg: "bg-cyan-100",    border: "border-cyan-200"    },
+  purple:  { soft: "bg-purple-50",   ring: "ring-purple-300",  text: "text-purple-700",  iconBg: "bg-purple-100",  border: "border-purple-200"  },
+  orange:  { soft: "bg-orange-50",   ring: "ring-orange-300",  text: "text-orange-700",  iconBg: "bg-orange-100",  border: "border-orange-200"  },
+  red:     { soft: "bg-red-50",      ring: "ring-red-300",     text: "text-red-700",     iconBg: "bg-red-100",     border: "border-red-200"     },
+  rose:    { soft: "bg-rose-50",     ring: "ring-rose-300",    text: "text-rose-700",    iconBg: "bg-rose-100",    border: "border-rose-200"    },
+  amber:   { soft: "bg-amber-50",    ring: "ring-amber-300",   text: "text-amber-700",   iconBg: "bg-amber-100",   border: "border-amber-200"   },
+  pink:    { soft: "bg-pink-50",     ring: "ring-pink-300",    text: "text-pink-700",    iconBg: "bg-pink-100",    border: "border-pink-200"    },
+  yellow:  { soft: "bg-yellow-50",   ring: "ring-yellow-300",  text: "text-yellow-800",  iconBg: "bg-yellow-100",  border: "border-yellow-200"  },
+  indigo:  { soft: "bg-indigo-50",   ring: "ring-indigo-300",  text: "text-indigo-700",  iconBg: "bg-indigo-100",  border: "border-indigo-200"  },
+  stone:   { soft: "bg-stone-50",    ring: "ring-stone-300",   text: "text-stone-700",   iconBg: "bg-stone-100",   border: "border-stone-200"   },
+  violet:  { soft: "bg-violet-50",   ring: "ring-violet-300",  text: "text-violet-700",  iconBg: "bg-violet-100",  border: "border-violet-200"  },
+  lime:    { soft: "bg-lime-50",     ring: "ring-lime-300",    text: "text-lime-700",    iconBg: "bg-lime-100",    border: "border-lime-200"    },
+  emerald: { soft: "bg-emerald-50",  ring: "ring-emerald-300", text: "text-emerald-700", iconBg: "bg-emerald-100", border: "border-emerald-200" },
 }
 
 // ─── Live data types ──────────────────────────────────────────────────────────
@@ -339,10 +503,10 @@ function LiveFeed({
         </div>
         <div className="grid grid-cols-2 gap-2">
           {[
-            { Icon: Gauge,        color: "text-red-600",    val: faaSum?.concurrent_total,           label: "FAA programs" },
-            { Icon: MapPin,       color: "text-amber-600",  val: faaSum?.unique_us_airports,          label: "US airports" },
-            { Icon: Cloud,        color: "text-sky-600",    val: nwsSum?.nationwide_alerts_matched,   label: "NWS alerts (US)" },
-            { Icon: CloudLightning, color: "text-orange-600", val: nwsSum?.severe_or_extreme,         label: "Severe / extreme" },
+            { Icon: Gauge,          color: "text-red-600",    val: faaSum?.concurrent_total,          label: "FAA programs"    },
+            { Icon: MapPin,         color: "text-amber-600",  val: faaSum?.unique_us_airports,         label: "US airports"     },
+            { Icon: Cloud,          color: "text-sky-600",    val: nwsSum?.nationwide_alerts_matched,  label: "NWS alerts (US)" },
+            { Icon: CloudLightning, color: "text-orange-600", val: nwsSum?.severe_or_extreme,          label: "Severe / extreme" },
           ].map(({ Icon, color, val, label }) => (
             <div key={label} className="rounded-xl border border-border/70 bg-white/70 px-3 py-2.5 flex items-center gap-2.5">
               <Icon className={`w-4 h-4 ${color} shrink-0`} />
@@ -396,7 +560,6 @@ function LiveFeed({
             Ground stops: {faaSum.concurrent_ground_stops} · GDP: {faaSum.concurrent_gdps} · Dep delay: {faaSum.concurrent_departure_delay_programs}
           </p>
         )}
-
         {fetching && !faaData && (
           <div className="py-6 text-center text-xs text-muted-foreground">
             <Loader2 className="w-4 h-4 animate-spin mx-auto mb-2" style={{ color: "#2BA8A2" }} />
@@ -545,14 +708,16 @@ function LiveFeed({
 // ─── Main EventPanel ──────────────────────────────────────────────────────────
 
 export function EventPanel() {
-  const [selectedKind, setSelectedKind] = useState<EventKind>("weather_closure")
-  const [values, setValues]             = useState<Record<string, string>>(FORM_SCHEMA.weather_closure.defaults)
-  const [isLoading, setIsLoading]       = useState(false)
-  const { activeEvents, setUpdate }     = useSimulationStore()
+  const [selectedKind, setSelectedKind]       = useState<EventKind>("weather_closure")
+  const [values, setValues]                   = useState<Record<string, string>>(FORM_SCHEMA.weather_closure.defaults)
+  const [isLoading, setIsLoading]             = useState(false)
+  const [showDescription, setShowDescription] = useState(false)
+  const { activeEvents, setUpdate }           = useSimulationStore()
 
   const selectKind = (kind: EventKind) => {
     setSelectedKind(kind)
     setValues(FORM_SCHEMA[kind].defaults)
+    setShowDescription(false)
   }
 
   const setField = (k: string, v: string) => setValues((s) => ({ ...s, [k]: v }))
@@ -601,7 +766,7 @@ export function EventPanel() {
         </div>
         <div>
           <div className="section-title">Trigger Events</div>
-          <div className="text-[10px] text-muted-foreground mt-0.5">10 disruption types</div>
+          <div className="text-[10px] text-muted-foreground mt-0.5">21 disruption types · 5 categories</div>
         </div>
       </div>
 
@@ -647,26 +812,38 @@ export function EventPanel() {
         {/* ── Trigger tab ── */}
         <TabsContent value="trigger" className="flex-1 overflow-y-auto p-4 space-y-4 mt-0">
 
-          {/* Event type grid */}
-          <div className="grid grid-cols-2 gap-2">
-            {EVENT_TYPES.map((et) => {
-              const isSel = selectedKind === et.value
-              const c = COLOR_CLASSES[et.color]
+          {/* Categorized event grid */}
+          <div className="space-y-3">
+            {EVENT_CATEGORIES.map((cat) => {
+              const catEvents = cat.events.map((v) => EVENT_TYPES.find((e) => e.value === v)!).filter(Boolean)
               return (
-                <button
-                  key={et.value}
-                  onClick={() => selectKind(et.value)}
-                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-left transition-all ${
-                    isSel
-                      ? `${c.soft} ${c.text} border-transparent ring-2 ${c.ring} shadow-sm`
-                      : "bg-white text-foreground/80 border-border/50 hover:border-teal/40 hover:bg-teal-bg/60"
-                  }`}
-                >
-                  <span className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isSel ? c.iconBg : "bg-secondary"}`}>
-                    <et.Icon className={`w-4 h-4 ${isSel ? c.text : "text-muted-foreground"}`} />
-                  </span>
-                  <span className="text-[11px] font-semibold leading-tight">{et.label}</span>
-                </button>
+                <div key={cat.label}>
+                  <div className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-1.5 px-0.5">
+                    {cat.label}
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {catEvents.map((et) => {
+                      const isSel = selectedKind === et.value
+                      const c = COLOR_CLASSES[et.color]
+                      return (
+                        <button
+                          key={et.value}
+                          onClick={() => selectKind(et.value)}
+                          className={`flex items-center gap-2 px-2.5 py-2 rounded-xl border text-left transition-all ${
+                            isSel
+                              ? `${c.soft} ${c.text} border-transparent ring-2 ${c.ring} shadow-sm`
+                              : "bg-white text-foreground/80 border-border/50 hover:border-teal/40 hover:bg-teal-bg/60"
+                          }`}
+                        >
+                          <span className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${isSel ? c.iconBg : "bg-secondary"}`}>
+                            <et.Icon className={`w-3.5 h-3.5 ${isSel ? c.text : "text-muted-foreground"}`} />
+                          </span>
+                          <span className="text-[10px] font-semibold leading-tight">{et.label}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
               )
             })}
           </div>
@@ -681,13 +858,41 @@ export function EventPanel() {
               transition={{ duration: 0.15 }}
               className={`rounded-2xl border ${palette.border} ${palette.soft} p-4 space-y-3`}
             >
-              <div className="flex items-center gap-2.5">
-                <span className={`w-8 h-8 rounded-lg flex items-center justify-center ${palette.iconBg}`}>
-                  <selectedInfo.Icon className={`w-4 h-4 ${palette.text}`} />
-                </span>
-                <div className={`text-sm font-bold ${palette.text}`}>{selectedInfo.label}</div>
+              {/* Event header + Read More toggle */}
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2.5">
+                  <span className={`w-8 h-8 rounded-lg flex items-center justify-center ${palette.iconBg}`}>
+                    <selectedInfo.Icon className={`w-4 h-4 ${palette.text}`} />
+                  </span>
+                  <div className={`text-sm font-bold ${palette.text}`}>{selectedInfo.label}</div>
+                </div>
+                <button
+                  onClick={() => setShowDescription((d) => !d)}
+                  className={`flex items-center gap-1 text-[10px] font-semibold shrink-0 transition-opacity opacity-60 hover:opacity-100 ${palette.text}`}
+                >
+                  {showDescription ? "Less" : "Read more"}
+                  <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${showDescription ? "rotate-180" : ""}`} />
+                </button>
               </div>
 
+              {/* Expandable description */}
+              <AnimatePresence>
+                {showDescription && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="overflow-hidden"
+                  >
+                    <p className={`text-[11px] leading-relaxed border-t ${palette.border} pt-2.5 ${palette.text} opacity-80`}>
+                      {EVENT_DESCRIPTIONS[selectedKind]}
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Form fields */}
               <div className="grid grid-cols-1 gap-2.5">
                 {schema.fields.map((f) => (
                   <div key={f.key}>
@@ -723,7 +928,7 @@ export function EventPanel() {
                 ))}
               </div>
 
-              {/* Gold CTA button */}
+              {/* Trigger button */}
               <button
                 onClick={handleTrigger}
                 disabled={isLoading}
