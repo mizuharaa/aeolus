@@ -109,7 +109,7 @@
   }
 
   .surface-floating {
-    @apply bg-white/96 backdrop-blur-md border rounded-xl;
+    @apply bg-white/95 backdrop-blur-md border rounded-xl;
     border-color: rgba(43, 168, 162, 0.18);
     box-shadow: var(--shadow-md);
   }

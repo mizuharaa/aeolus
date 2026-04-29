@@ -93,12 +93,12 @@ export default function SimulatorPage() {
             )}
           </div>
 
-          {/* ── Right: Event panel + Recovery plans ── */}
-          <div className="lg:col-span-4 flex flex-col gap-4 min-h-0">
-            <div className="flex-[5] min-h-[260px] surface-card overflow-hidden">
+          {/* ── Right: Event panel + Recovery plans (scrollable column) ── */}
+          <div className="lg:col-span-4 flex flex-col gap-4 min-h-0 overflow-y-auto">
+            <div className="shrink-0 surface-card overflow-hidden" style={{ height: "460px" }}>
               <EventPanel />
             </div>
-            <div className="flex-[7] min-h-[300px] surface-card overflow-hidden">
+            <div className="shrink-0 surface-card overflow-hidden" style={{ height: "620px" }}>
               <RecoveryPlans
                 selectedFlight={selectedFlight}
                 onFlightSelect={handleFlightSelect}

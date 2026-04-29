@@ -270,6 +270,19 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
     setLiveFlights, setShowLiveFlights, setShowSimulation,
   } = useSimulationStore()
 
+  const mapRef = useRef<L.Map | null>(null)
+
+  // Destroy the Leaflet instance on unmount so hot-reloads don't hit
+  // "Map container is already initialized".
+  useEffect(() => {
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove()
+        mapRef.current = null
+      }
+    }
+  }, [])
+
   const [nowMs, setNowMs]         = useState<number>(() => Date.now())
   const [loading, setLoading]     = useState(false)
   const [lastFetch, setLastFetch] = useState<number | null>(null)
@@ -454,6 +467,7 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
   return (
     <div className="w-full h-full relative">
       <MapContainer
+        ref={mapRef}
         center={[39.5, -98.0]} zoom={4} minZoom={2} maxZoom={14}
         zoomControl={false} scrollWheelZoom worldCopyJump={false}
         preferCanvas
