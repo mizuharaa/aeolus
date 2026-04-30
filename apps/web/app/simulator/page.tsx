@@ -9,6 +9,8 @@ import { CascadeTimeline } from "@/components/simulator/cascade-timeline"
 import { RecoveryPlans } from "@/components/simulator/recovery-plans"
 import { SimulatorNav } from "@/components/simulator/nav"
 import { FlightSearch } from "@/components/simulator/flight-search"
+import { MyFlights } from "@/components/simulator/my-flights"
+import { PlanCompare } from "@/components/simulator/plan-compare"
 import { apiClient } from "@/lib/api"
 
 const FlightMap = dynamic(() => import("@/components/simulator/flight-map"), {
@@ -108,7 +110,7 @@ export default function SimulatorPage() {
 
         </div>
 
-        {/* ── Cascade Timeline (tall scrollable region; main page still scrolls normally) ── */}
+        {/* ── Cascade Timeline ── */}
         <div
           className="rounded-2xl overflow-hidden flex flex-col min-h-0 min-w-0 shadow-[0_4px_24px_rgba(43,168,162,0.12)] border border-[rgba(43,168,162,0.22)]"
           style={{
@@ -123,6 +125,12 @@ export default function SimulatorPage() {
             onFlightSelect={handleFlightSelect}
           />
         </div>
+
+        {/* ── My Flights ── */}
+        <MyFlights onFlightSelect={handleFlightSelect} />
+
+        {/* ── Plan Comparison (only renders when 2+ recovery plans exist) ── */}
+        <PlanCompare />
 
       </div>
     </div>

@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect, useCallback } from "react"
+import React, { useState, useEffect, useCallback, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Cloud, OctagonAlert, Ban, ShieldAlert, Wrench,
@@ -423,6 +423,52 @@ function renderAlertRow(
 
 // ─── Live Feed ────────────────────────────────────────────────────────────────
 
+type DisruptionItem = {
+  id: string
+  typeLabel: string
+  typeSeverity: "critical" | "high" | "moderate"
+  title: string
+  detail: string
+  airports: string[]
+  isNimbus: boolean
+  score: number
+  simEvent?: { kind: string; params: Record<string, any> }
+}
+
+function SectionToggle({ label, badge, children, defaultOpen = true }: {
+  label: string
+  badge?: React.ReactNode
+  children: React.ReactNode
+  defaultOpen?: boolean
+}) {
+  const [open, setOpen] = useState(defaultOpen)
+  return (
+    <section>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-2 w-full mb-2 group"
+      >
+        <ChevronDown className={`w-3 h-3 text-muted-foreground transition-transform ${open ? "" : "-rotate-90"}`} />
+        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex-1 text-left">{label}</span>
+        {badge}
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="overflow-hidden"
+          >
+            {children}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </section>
+  )
+}
+
 function LiveFeed({
   onLoadToSim,
   isLoadingEvent,
@@ -434,7 +480,7 @@ function LiveFeed({
   const [alertsData, setAlertsData] = useState<NwsLivePayload | null>(null)
   const [fetching, setFetching]     = useState(false)
   const [lastFetch, setLastFetch]   = useState<Date | null>(null)
-  const [nimbusWeatherOnly, setNimbusWeatherOnly] = useState(false)
+  const [nimbusOnly, setNimbusOnly] = useState(false)
 
   const fetchAll = useCallback(async () => {
     setFetching(true)
@@ -466,220 +512,360 @@ function LiveFeed({
     return () => clearInterval(t)
   }, [fetchAll])
 
-  const programs = [...(faaData?.programs ?? [])].sort(
-    (a, b) => (FAA_TYPE_ORDER[a.type] ?? 9) - (FAA_TYPE_ORDER[b.type] ?? 9)
-  )
-  const allAlerts = alertsData?.alerts ?? []
-  const weatherFiltered = nimbusWeatherOnly
-    ? allAlerts.filter((a) => a.affected_nimbus_airports.length > 0)
-    : allAlerts
-  const highImpactWx = weatherFiltered.filter((a) => a.severity === "Severe" || a.severity === "Extreme")
-  const otherWx = weatherFiltered.filter((a) => a.severity !== "Severe" && a.severity !== "Extreme")
+  const programs = useMemo(() =>
+    [...(faaData?.programs ?? [])].sort(
+      (a, b) => (FAA_TYPE_ORDER[a.type] ?? 9) - (FAA_TYPE_ORDER[b.type] ?? 9)
+    ), [faaData])
+
+  const allAlerts    = alertsData?.alerts ?? []
   const nimbusAlerts = allAlerts.filter((a) => a.affected_nimbus_airports.length > 0)
+  const wxFiltered   = nimbusOnly ? nimbusAlerts : allAlerts
+  const highImpactWx = wxFiltered.filter((a) => a.severity === "Severe" || a.severity === "Extreme")
+  const otherWx      = wxFiltered.filter((a) => a.severity !== "Severe" && a.severity !== "Extreme")
+
+  const groundStops  = programs.filter((p) => p.type === "ground_stop")
+  const gdps         = programs.filter((p) => p.type === "ground_delay_program")
+  const depDelays    = programs.filter((p) => p.type === "departure_delay")
 
   const faaSum = faaData?.us_summary
   const nwsSum = alertsData?.us_summary
   const minutesAgo = lastFetch ? Math.floor((Date.now() - lastFetch.getTime()) / 60_000) : null
-  const hasFaaError = !!faaData?.error
-  const hasAlertsError = !!alertsData?.error
+
+  // ── Synthesize "Top Disruptions" from both FAA + NWS ──
+  const topDisruptions = useMemo<DisruptionItem[]>(() => {
+    const items: DisruptionItem[] = []
+    for (const prog of programs) {
+      const base = prog.type === "ground_stop" ? 100 : prog.type === "ground_delay_program" ? 70 : 40
+      items.push({
+        id: `faa-${prog.airport_iata}-${prog.type}`,
+        typeLabel: prog.type === "ground_stop" ? "Ground Stop" : prog.type === "ground_delay_program" ? "GDP" : "Dep Delay",
+        typeSeverity: prog.type === "ground_stop" ? "critical" : prog.type === "ground_delay_program" ? "high" : "moderate",
+        title: `${prog.airport_iata} — ${prog.type === "ground_stop" ? "Ground Stop" : prog.type === "ground_delay_program" ? "Ground Delay Program" : "Departure Delay Program"}`,
+        detail: [prog.reason, prog.avg_delay_minutes ? `avg ${prog.avg_delay_minutes}m delay` : ""].filter(Boolean).join(" · "),
+        airports: [prog.airport_iata],
+        isNimbus: prog.in_nimbus_network,
+        score: base + (prog.in_nimbus_network ? 50 : 0),
+        simEvent: prog.in_nimbus_network ? prog.sim_event : undefined,
+      })
+    }
+    for (const alert of allAlerts) {
+      if (alert.severity !== "Severe" && alert.severity !== "Extreme") continue
+      const base = alert.severity === "Extreme" ? 90 : 60
+      const isNimbus = alert.affected_nimbus_airports.length > 0
+      items.push({
+        id: `nws-${alert.id}`,
+        typeLabel: alert.severity,
+        typeSeverity: alert.severity === "Extreme" ? "critical" : "high",
+        title: alert.event,
+        detail: alert.area.split(",").slice(0, 2).join(",").trim(),
+        airports: alert.affected_nimbus_airports,
+        isNimbus,
+        score: base + (isNimbus ? 50 : 0),
+        simEvent: isNimbus && alert.sim_event ? alert.sim_event : undefined,
+      })
+    }
+    return items.sort((a, b) => b.score - a.score).slice(0, 7)
+  }, [programs, allAlerts])
+
+  const nimbusHit = topDisruptions.filter((d) => d.isNimbus).length
 
   return (
     <div className="space-y-4 pb-2">
-      {/* US overview */}
-      <div className="rounded-2xl border p-4 space-y-3" style={{ borderColor: "rgba(43,168,162,0.18)", background: "linear-gradient(135deg, #E8F6F5 0%, #FFFFFF 100%)" }}>
-        <div className="flex items-start gap-3">
-          <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-            style={{ background: "rgba(43,168,162,0.14)", border: "1px solid rgba(43,168,162,0.20)" }}
-          >
-            <Globe className="w-4.5 h-4.5" style={{ color: "#2BA8A2" }} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <h3 className="section-title mb-0.5">United States — Live</h3>
-            <p className="text-[10px] text-muted-foreground leading-snug">
-              Concurrent FAA traffic programs and NWS weather alerts (public feeds).
-            </p>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          {[
-            { Icon: Gauge,          color: "text-red-600",    val: faaSum?.concurrent_total,          label: "FAA programs"    },
-            { Icon: MapPin,         color: "text-amber-600",  val: faaSum?.unique_us_airports,         label: "US airports"     },
-            { Icon: Cloud,          color: "text-sky-600",    val: nwsSum?.nationwide_alerts_matched,  label: "NWS alerts (US)" },
-            { Icon: CloudLightning, color: "text-orange-600", val: nwsSum?.severe_or_extreme,          label: "Severe / extreme" },
-          ].map(({ Icon, color, val, label }) => (
-            <div key={label} className="rounded-xl border border-border/70 bg-white/70 px-3 py-2.5 flex items-center gap-2.5">
-              <Icon className={`w-4 h-4 ${color} shrink-0`} />
-              <div>
-                <div className="text-base font-bold font-mono leading-none text-foreground">
-                  {val ?? "—"}
-                </div>
-                <div className="text-[10px] text-muted-foreground mt-0.5">{label}</div>
+
+      {/* ── Status strip ── */}
+      <div
+        className="rounded-2xl border p-3.5"
+        style={{ borderColor: "rgba(43,168,162,0.18)", background: "linear-gradient(135deg, #E8F6F5 0%, #FFFFFF 100%)" }}
+      >
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div
+              className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+              style={{ background: "rgba(43,168,162,0.14)", border: "1px solid rgba(43,168,162,0.20)" }}
+            >
+              <Globe className="w-3.5 h-3.5" style={{ color: "#2BA8A2" }} />
+            </div>
+            <div>
+              <div className="text-xs font-bold text-foreground">US National Airspace</div>
+              <div className="text-[10px] text-muted-foreground">
+                {minutesAgo === null ? "Fetching…" : minutesAgo === 0 ? "Live" : `${minutesAgo}m ago`}
+                {nimbusHit > 0 && (
+                  <span className="ml-1.5 text-orange-600 font-semibold">· {nimbusHit} Nimbus impact{nimbusHit !== 1 ? "s" : ""}</span>
+                )}
               </div>
+            </div>
+          </div>
+          <button
+            onClick={fetchAll}
+            disabled={fetching}
+            className="flex items-center gap-1.5 text-[10px] font-semibold transition-colors disabled:opacity-40"
+            style={{ color: "#2BA8A2" }}
+          >
+            <RefreshCw className={`w-3 h-3 ${fetching ? "animate-spin" : ""}`} />
+            Refresh
+          </button>
+        </div>
+        <div className="grid grid-cols-4 gap-1.5">
+          {[
+            { color: "text-red-600",    bg: "bg-red-50",    val: faaSum?.concurrent_ground_stops ?? "—",           label: "GS" },
+            { color: "text-orange-600", bg: "bg-orange-50", val: faaSum?.concurrent_gdps ?? "—",                   label: "GDP" },
+            { color: "text-sky-600",    bg: "bg-sky-50",    val: nwsSum?.severe_or_extreme ?? "—",                 label: "Sev / Ext" },
+            { color: "text-teal-600",   bg: "bg-teal-50",   val: faaSum?.nimbus_network_overlap ?? "—",            label: "Nimbus hit" },
+          ].map(({ color, bg, val, label }) => (
+            <div key={label} className={`rounded-xl ${bg} border border-border/40 px-2 py-2 text-center`}>
+              <div className={`text-base font-black font-mono leading-none ${color}`}>{val}</div>
+              <div className="text-[9px] text-muted-foreground mt-0.5 leading-tight">{label}</div>
             </div>
           ))}
         </div>
-        {faaSum != null && faaSum.nimbus_network_overlap > 0 && (
-          <p className="text-[10px] font-semibold" style={{ color: "#2BA8A2" }}>
-            {faaSum.nimbus_network_overlap} program(s) touch the Nimbus network — use Sim to load.
-          </p>
-        )}
       </div>
 
-      {/* Refresh bar */}
-      <div className="flex items-center justify-between sticky top-0 bg-white pt-0.5 pb-1.5 z-10 border-b border-border/40 -mx-1 px-1">
-        <div className="text-[10px] text-muted-foreground">
-          {minutesAgo === null ? "Fetching…" : minutesAgo === 0 ? "Just refreshed" : `Refreshed ${minutesAgo}m ago`}
+      {/* ── Loading state ── */}
+      {fetching && !faaData && !alertsData && (
+        <div className="py-8 text-center text-xs text-muted-foreground">
+          <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" style={{ color: "#2BA8A2" }} />
+          Fetching live national airspace data…
         </div>
-        <button
-          onClick={fetchAll}
-          disabled={fetching}
-          className="flex items-center gap-1.5 text-[10px] font-semibold transition-colors disabled:opacity-40"
-          style={{ color: "#2BA8A2" }}
-        >
-          <RefreshCw className={`w-3 h-3 ${fetching ? "animate-spin" : ""}`} />
-          Refresh
-        </button>
+      )}
+
+      {/* ── Nimbus only toggle ── */}
+      <div className="flex items-center justify-between -mt-1">
+        <span className="text-[9px] text-muted-foreground">Showing all US events</span>
+        <label className="flex items-center gap-1.5 text-[9px] text-muted-foreground cursor-pointer select-none">
+          <input
+            type="checkbox"
+            className="rounded border-border"
+            checked={nimbusOnly}
+            onChange={(e) => setNimbusOnly(e.target.checked)}
+          />
+          Nimbus network only
+        </label>
       </div>
 
-      {/* FAA programs */}
-      <section>
-        <div className="flex items-center gap-2 mb-2 flex-wrap">
-          <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
-          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-            FAA — National Traffic
-          </span>
-          {programs.length > 0 && (
-            <span className="ml-auto text-[10px] font-bold text-red-800 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full">
-              {programs.length} concurrent
+      {/* ── Top Active Disruptions ── */}
+      {topDisruptions.length > 0 && (
+        <SectionToggle
+          label="Top Active Disruptions"
+          badge={
+            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200">
+              {topDisruptions.length}
             </span>
-          )}
-        </div>
-        {faaSum != null && (
-          <p className="text-[9px] text-muted-foreground mb-2">
-            Ground stops: {faaSum.concurrent_ground_stops} · GDP: {faaSum.concurrent_gdps} · Dep delay: {faaSum.concurrent_departure_delay_programs}
-          </p>
-        )}
-        {fetching && !faaData && (
-          <div className="py-6 text-center text-xs text-muted-foreground">
-            <Loader2 className="w-4 h-4 animate-spin mx-auto mb-2" style={{ color: "#2BA8A2" }} />
-            Loading NAS status…
-          </div>
-        )}
-        {hasFaaError && (
-          <div className="rounded-xl border border-orange-200 bg-orange-50 px-3 py-2.5 text-xs text-orange-700">
-            FAA status temporarily unavailable. See nasstatus.faa.gov.
-          </div>
-        )}
-        {!fetching && !hasFaaError && programs.length === 0 && faaData && (
-          <div className="rounded-xl border border-border bg-secondary/40 px-3 py-3 text-center text-xs text-muted-foreground">
-            No active FAA programs in the current snapshot.
-          </div>
-        )}
-        {programs.length > 0 && (
-          <div className="space-y-2 max-h-[min(50vh,24rem)] overflow-y-auto pr-0.5">
-            {programs.map((prog, i) => (
+          }
+          defaultOpen
+        >
+          <div className="space-y-1.5 mb-1">
+            {topDisruptions.map((d) => (
               <div
-                key={`${prog.airport_iata}-${prog.type}-${i}`}
-                className={`rounded-xl border p-3 transition-colors ${
-                  prog.in_nimbus_network ? "border-red-200 bg-red-50/80" : "border-border bg-secondary/30"
+                key={d.id}
+                className={`rounded-xl border p-2.5 flex items-start gap-2.5 ${
+                  d.isNimbus
+                    ? d.typeSeverity === "critical" ? "border-red-200 bg-red-50/70" : "border-orange-200 bg-orange-50/60"
+                    : "border-border bg-secondary/30"
                 }`}
               >
-                <div className="flex items-start gap-2.5">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 flex-wrap mb-1">
-                      <span className={`text-sm font-mono font-bold ${prog.in_nimbus_network ? "text-red-800" : "text-foreground"}`}>
-                        {prog.airport_iata}
-                      </span>
-                      <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase border ${
-                        prog.type === "ground_stop" ? "bg-red-100 text-red-800 border-red-200"
-                        : prog.type === "ground_delay_program" ? "bg-orange-100 text-orange-800 border-orange-200"
-                        : "bg-amber-100 text-amber-800 border-amber-200"
-                      }`}>
-                        {prog.type === "ground_stop" ? "GS" : prog.type === "ground_delay_program" ? "GDP" : "DEP DLY"}
-                      </span>
-                      {prog.in_nimbus_network && (
-                        <span className="text-[9px] font-bold" style={{ color: "#2BA8A2" }}>Nimbus</span>
-                      )}
-                    </div>
-                    <div className="text-[10px] text-muted-foreground line-clamp-2">
-                      {prog.reason}{prog.avg_delay_minutes ? ` · avg ${prog.avg_delay_minutes}m` : ""}
-                    </div>
-                    {(prog.recheck || prog.start) && (
-                      <div className="text-[9px] text-muted-foreground/60 mt-0.5">
-                        {prog.start && `Start: ${prog.start}`}
-                        {prog.recheck && ` · Recheck: ${prog.recheck}`}
-                      </div>
+                {/* Severity dot */}
+                <div className="mt-0.5 shrink-0">
+                  <span className={`block w-2 h-2 rounded-full ${
+                    d.typeSeverity === "critical" ? "bg-red-500" : d.typeSeverity === "high" ? "bg-orange-500" : "bg-amber-400"
+                  }`} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-xs font-bold text-foreground truncate">{d.title}</span>
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${
+                      d.typeSeverity === "critical" ? "bg-red-100 text-red-800 border-red-200"
+                      : d.typeSeverity === "high" ? "bg-orange-100 text-orange-800 border-orange-200"
+                      : "bg-amber-50 text-amber-800 border-amber-200"
+                    }`}>
+                      {d.typeLabel}
+                    </span>
+                    {d.isNimbus && (
+                      <span className="text-[9px] font-bold shrink-0" style={{ color: "#2BA8A2" }}>Nimbus</span>
                     )}
                   </div>
-                  {prog.in_nimbus_network && (
-                    <button
-                      disabled={isLoadingEvent}
-                      onClick={() => onLoadToSim(prog.sim_event.kind, prog.sim_event.params)}
-                      className="shrink-0 flex items-center gap-1 text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition-all disabled:opacity-40"
-                      style={{ background: "#2BA8A2", color: "white" }}
-                    >
-                      <Zap className="w-3 h-3" /> Sim
-                    </button>
+                  {d.detail && (
+                    <div className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1">{d.detail}</div>
+                  )}
+                  {d.airports.length > 0 && (
+                    <div className="flex gap-1 mt-1 flex-wrap">
+                      {d.airports.slice(0, 4).map((ap) => (
+                        <span key={ap} className="text-[9px] font-mono px-1.5 py-0.5 bg-white rounded-md border border-border/60">
+                          {ap.replace(/^K/, "")}
+                        </span>
+                      ))}
+                    </div>
                   )}
                 </div>
+                {d.simEvent && (
+                  <button
+                    disabled={isLoadingEvent}
+                    onClick={() => onLoadToSim(d.simEvent!.kind, d.simEvent!.params)}
+                    className="shrink-0 flex items-center gap-1 text-[10px] font-bold px-2 py-1.5 rounded-lg transition-all disabled:opacity-40"
+                    style={{ background: "#2BA8A2", color: "white" }}
+                  >
+                    <Zap className="w-3 h-3" /> Sim
+                  </button>
+                )}
               </div>
             ))}
           </div>
-        )}
-      </section>
+        </SectionToggle>
+      )}
 
-      {/* NWS weather */}
-      <section>
-        <div className="flex items-center gap-2 mb-2 flex-wrap">
-          <span className="w-2 h-2 rounded-full bg-sky-500 shrink-0" />
-          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-            NWS — US Weather
+      {/* ── FAA Ground Programs ── */}
+      <SectionToggle
+        label="FAA Ground Programs"
+        badge={programs.length > 0 && (
+          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200">
+            {programs.length} active
           </span>
-          {nimbusAlerts.length > 0 && (
-            <span className="text-[10px] font-bold text-sky-800 bg-sky-50 border border-sky-200 px-2 py-0.5 rounded-full">
-              {nimbusAlerts.length} w/ Nimbus
-            </span>
-          )}
-          <label className="ml-auto flex items-center gap-1.5 text-[9px] text-muted-foreground cursor-pointer select-none">
-            <input
-              type="checkbox"
-              className="rounded border-border"
-              checked={nimbusWeatherOnly}
-              onChange={(e) => setNimbusWeatherOnly(e.target.checked)}
-            />
-            Nimbus only
-          </label>
-        </div>
-        {nwsSum != null && (
-          <p className="text-[9px] text-muted-foreground mb-2">
-            Showing {Math.min(weatherFiltered.length, nwsSum.returned || weatherFiltered.length)} of {nwsSum.nationwide_alerts_matched} aviation alerts.
-          </p>
         )}
-        {fetching && !alertsData && (
-          <div className="py-6 text-center text-xs text-muted-foreground">
-            <Loader2 className="w-4 h-4 animate-spin mx-auto mb-2" style={{ color: "#2BA8A2" }} />
-            Loading NWS…
+        defaultOpen={false}
+      >
+        {faaData?.error && (
+          <div className="rounded-xl border border-orange-200 bg-orange-50 px-3 py-2.5 text-xs text-orange-700 mb-2">
+            FAA status temporarily unavailable. See nasstatus.faa.gov.
           </div>
         )}
-        {hasAlertsError && (
-          <div className="rounded-xl border border-orange-200 bg-orange-50 px-3 py-2.5 text-xs text-orange-700">
+        {!fetching && !faaData?.error && programs.length === 0 && faaData && (
+          <div className="rounded-xl border border-border bg-secondary/40 px-3 py-3 text-center text-xs text-muted-foreground mb-2">
+            No active FAA programs — NAS operating normally.
+          </div>
+        )}
+
+        {/* Ground Stops — highest priority */}
+        {groundStops.length > 0 && (
+          <div className="mb-3">
+            <div className="text-[9px] font-bold uppercase tracking-wider text-red-700 mb-1.5 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+              Ground Stops ({groundStops.length})
+            </div>
+            <div className="space-y-1.5">
+              {groundStops.map((prog, i) => (
+                <div key={`gs-${i}`} className={`rounded-xl border p-2.5 ${prog.in_nimbus_network ? "border-red-200 bg-red-50/80" : "border-border bg-secondary/30"}`}>
+                  <div className="flex items-start gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-mono font-bold text-sm text-foreground">{prog.airport_iata}</span>
+                        {prog.in_nimbus_network && <span className="text-[9px] font-bold" style={{ color: "#2BA8A2" }}>Nimbus</span>}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">
+                        {prog.reason}{prog.avg_delay_minutes ? ` · avg ${prog.avg_delay_minutes}m` : ""}
+                      </div>
+                      {prog.recheck && <div className="text-[9px] text-muted-foreground/60 mt-0.5">Recheck: {prog.recheck}</div>}
+                    </div>
+                    {prog.in_nimbus_network && (
+                      <button disabled={isLoadingEvent} onClick={() => onLoadToSim(prog.sim_event.kind, prog.sim_event.params)}
+                        className="shrink-0 flex items-center gap-1 text-[10px] font-bold px-2 py-1.5 rounded-lg disabled:opacity-40"
+                        style={{ background: "#2BA8A2", color: "white" }}>
+                        <Zap className="w-3 h-3" /> Sim
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* GDPs */}
+        {gdps.length > 0 && (
+          <div className="mb-3">
+            <div className="text-[9px] font-bold uppercase tracking-wider text-orange-700 mb-1.5 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+              Ground Delay Programs ({gdps.length})
+            </div>
+            <div className="space-y-1.5">
+              {gdps.map((prog, i) => (
+                <div key={`gdp-${i}`} className={`rounded-xl border p-2.5 ${prog.in_nimbus_network ? "border-orange-200 bg-orange-50/70" : "border-border bg-secondary/30"}`}>
+                  <div className="flex items-start gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-mono font-bold text-sm">{prog.airport_iata}</span>
+                        {prog.avg_delay_minutes && <span className="text-[9px] font-bold text-orange-700 bg-orange-100 px-1.5 py-0.5 rounded-full border border-orange-200">avg {prog.avg_delay_minutes}m</span>}
+                        {prog.in_nimbus_network && <span className="text-[9px] font-bold" style={{ color: "#2BA8A2" }}>Nimbus</span>}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">{prog.reason}</div>
+                      {(prog.start || prog.recheck) && (
+                        <div className="text-[9px] text-muted-foreground/60 mt-0.5">
+                          {prog.start && `Start: ${prog.start}`}{prog.recheck && ` · Recheck: ${prog.recheck}`}
+                        </div>
+                      )}
+                    </div>
+                    {prog.in_nimbus_network && (
+                      <button disabled={isLoadingEvent} onClick={() => onLoadToSim(prog.sim_event.kind, prog.sim_event.params)}
+                        className="shrink-0 flex items-center gap-1 text-[10px] font-bold px-2 py-1.5 rounded-lg disabled:opacity-40"
+                        style={{ background: "#2BA8A2", color: "white" }}>
+                        <Zap className="w-3 h-3" /> Sim
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Departure Delays */}
+        {depDelays.length > 0 && (
+          <div className="mb-1">
+            <div className="text-[9px] font-bold uppercase tracking-wider text-amber-700 mb-1.5 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+              Departure Delays ({depDelays.length})
+            </div>
+            <div className="space-y-1.5">
+              {depDelays.map((prog, i) => (
+                <div key={`dep-${i}`} className={`rounded-xl border p-2.5 ${prog.in_nimbus_network ? "border-amber-200 bg-amber-50/60" : "border-border bg-secondary/30"}`}>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-sm">{prog.airport_iata}</span>
+                    {prog.avg_delay_minutes && <span className="text-[9px] text-muted-foreground">avg {prog.avg_delay_minutes}m</span>}
+                    <span className="text-[10px] text-muted-foreground flex-1 truncate">{prog.reason}</span>
+                    {prog.in_nimbus_network && (
+                      <button disabled={isLoadingEvent} onClick={() => onLoadToSim(prog.sim_event.kind, prog.sim_event.params)}
+                        className="shrink-0 flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg disabled:opacity-40"
+                        style={{ background: "#2BA8A2", color: "white" }}>
+                        <Zap className="w-3 h-3" /> Sim
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </SectionToggle>
+
+      {/* ── NWS Weather Alerts ── */}
+      <SectionToggle
+        label="NWS Weather Alerts"
+        badge={nimbusAlerts.length > 0 && (
+          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200">
+            {nimbusAlerts.length} Nimbus
+          </span>
+        )}
+        defaultOpen={false}
+      >
+        {alertsData?.error && (
+          <div className="rounded-xl border border-orange-200 bg-orange-50 px-3 py-2.5 text-xs text-orange-700 mb-2">
             NWS alerts temporarily unavailable.
           </div>
         )}
-        {!fetching && !hasAlertsError && weatherFiltered.length === 0 && alertsData && (
-          <div className="rounded-xl border border-border bg-secondary/40 px-3 py-3 text-center text-xs text-muted-foreground">
-            {nimbusWeatherOnly ? "No alerts overlap Nimbus airports." : "No active aviation-relevant NWS alerts."}
+        {!fetching && !alertsData?.error && wxFiltered.length === 0 && alertsData && (
+          <div className="rounded-xl border border-border bg-secondary/40 px-3 py-3 text-center text-xs text-muted-foreground mb-2">
+            {nimbusOnly ? "No alerts overlap Nimbus airports." : "No active aviation-relevant NWS alerts."}
           </div>
         )}
-        {weatherFiltered.length > 0 && (
-          <div className="space-y-3 max-h-[min(55vh,30rem)] overflow-y-auto pr-0.5">
+        {nwsSum != null && (
+          <p className="text-[9px] text-muted-foreground mb-2">
+            {wxFiltered.length} of {nwsSum.nationwide_alerts_matched} aviation alerts · {nwsSum.severe_or_extreme} severe/extreme
+          </p>
+        )}
+        {wxFiltered.length > 0 && (
+          <div className="space-y-3 max-h-[min(55vh,28rem)] overflow-y-auto pr-0.5">
             {highImpactWx.length > 0 && (
               <div>
-                <div className="text-[9px] font-bold uppercase tracking-wider text-orange-800 mb-2">
-                  Severe &amp; extreme
-                </div>
-                <div className="space-y-2">
+                <div className="text-[9px] font-bold uppercase tracking-wider text-orange-800 mb-1.5">Severe &amp; extreme</div>
+                <div className="space-y-1.5">
                   {highImpactWx.map((alert) =>
                     renderAlertRow(alert, alert.affected_nimbus_airports.length > 0, isLoadingEvent, onLoadToSim)
                   )}
@@ -688,10 +874,8 @@ function LiveFeed({
             )}
             {otherWx.length > 0 && (
               <div>
-                <div className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
-                  Advisories &amp; moderate
-                </div>
-                <div className="space-y-2">
+                <div className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Advisories &amp; moderate</div>
+                <div className="space-y-1.5">
                   {otherWx.map((alert) =>
                     renderAlertRow(alert, alert.affected_nimbus_airports.length > 0, isLoadingEvent, onLoadToSim)
                   )}
@@ -700,7 +884,7 @@ function LiveFeed({
             )}
           </div>
         )}
-      </section>
+      </SectionToggle>
     </div>
   )
 }
