@@ -84,22 +84,27 @@ function liveIcon(heading: number | null, sel: boolean, velKt: number | null): L
 }
 
 function simIcon(color: string, rot: number, sel: boolean, cascOrder: number): L.DivIcon {
-  const r = Math.round(rot / 10) * 10
-  // Size scales with impact severity
-  const sz = sel ? 28 : cascOrder === 0 ? 22 : cascOrder >= 1 ? 17 : 12
-  const glow = sel
-    ? `filter:drop-shadow(0 0 6px ${color})`
-    : cascOrder === 0 ? `filter:drop-shadow(0 0 4px ${color}99)`
-    : ""
-  const key = `sim|${r}|${color}|${sel}|${cascOrder}`
-  return icon(key, () =>
-    L.divIcon({
+  const r   = Math.round(rot / 10) * 10
+  // Larger base sizes — colored circle is the primary visual so everything needs to be readable
+  const sz  = sel ? 34 : cascOrder === 0 ? 28 : cascOrder >= 1 ? 22 : 18
+  const key = `sim3|${r}|${color}|${sel}|${cascOrder}`
+  return icon(key, () => {
+    const planeSz = Math.round(sz * 0.52)
+    // Outer ring: white halo + colored outer ring for selection / direct-hit emphasis
+    const ring = sel
+      ? `box-shadow:0 0 0 2.5px #fff,0 0 0 5px ${color},0 4px 12px ${color}80;`
+      : cascOrder === 0
+        ? `box-shadow:0 0 0 2px #fff,0 0 0 4px ${color}CC;`
+        : `box-shadow:0 1px 4px rgba(0,0,0,0.35);`
+    return L.divIcon({
       className: "",
-      iconSize: [sz, sz],
-      iconAnchor: [sz / 2, sz / 2],
-      html: `<div style="width:${sz}px;height:${sz}px;transform:rotate(${r}deg);transform-origin:center;${glow}"><svg viewBox="0 0 24 24" width="${sz}" height="${sz}"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="${color}" stroke="rgba(255,255,255,0.9)" stroke-width="${cascOrder === 0 ? 1.2 : 0.9}"/></svg></div>`,
+      iconSize:  [sz, sz],
+      iconAnchor:[sz / 2, sz / 2],
+      // Colored circle background with white plane silhouette on top.
+      // Rotation is applied to the inner plane only so the circle stays round.
+      html: `<div style="width:${sz}px;height:${sz}px;border-radius:50%;background:${color};border:2px solid rgba(255,255,255,0.95);display:flex;align-items:center;justify-content:center;${ring}"><div style="transform:rotate(${r}deg);line-height:0;display:flex;align-items:center;justify-content:center;"><svg viewBox="0 0 24 24" width="${planeSz}" height="${planeSz}" style="display:block;"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="white" stroke="rgba(255,255,255,0.15)" stroke-width="0.4"/></svg></div></div>`,
     })
-  )
+  })
 }
 
 function apBadge(bg: string, text: string, bottom = false): string {
