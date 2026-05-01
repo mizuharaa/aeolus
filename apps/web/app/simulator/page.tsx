@@ -11,6 +11,8 @@ import { SimulatorNav } from "@/components/simulator/nav"
 import { FlightSearch } from "@/components/simulator/flight-search"
 import { MyFlights } from "@/components/simulator/my-flights"
 import { PlanCompare } from "@/components/simulator/plan-compare"
+import { CrewOverbooking } from "@/components/simulator/crew-overbooking"
+import { PassengerSolutions } from "@/components/simulator/passenger-solutions"
 import { apiClient } from "@/lib/api"
 
 const FlightMap = dynamic(() => import("@/components/simulator/flight-map"), {
@@ -131,6 +133,15 @@ export default function SimulatorPage() {
 
         {/* ── Plan Comparison (only renders when 2+ recovery plans exist) ── */}
         <PlanCompare />
+
+        {/* ── Crew + Passenger row ── */}
+        <div
+          className="grid gap-5"
+          style={{ gridTemplateColumns: "minmax(340px,1fr) minmax(340px,1.6fr)" }}
+        >
+          <CrewOverbooking />
+          <PassengerSolutions />
+        </div>
 
       </div>
     </div>

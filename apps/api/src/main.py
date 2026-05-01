@@ -15,6 +15,7 @@ from src.optimizer.milp import RecoveryOptimizer
 from src.predictor.cascade import CascadePredictor
 from src.routes import events, live, network, predict, recovery, simulator, weather
 from src.routes.flights import router as flights_router
+from src.routes.passengers import router as passengers_router
 from src.simulator.engine import SimulationEngine
 from src.weather.client import WeatherClient
 from src.ws.handlers import simulation_ws_handler
@@ -197,6 +198,7 @@ app.include_router(predict.router,    prefix="/api/v1", tags=["predict"])
 app.include_router(weather.router,    prefix="/api/v1", tags=["weather"])
 app.include_router(simulator.router,  prefix="/api/v1", tags=["simulator"])
 app.include_router(live.router,       prefix="/api/v1", tags=["live"])
+app.include_router(passengers_router, prefix="/api/v1", tags=["passengers"])
 
 
 @app.get("/health", tags=["health"])
