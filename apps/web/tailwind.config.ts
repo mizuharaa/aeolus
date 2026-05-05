@@ -11,38 +11,31 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        /* ── Nimbus Teal palette ── */
+        coral:   { DEFAULT: "#0D9488", hover: "#0F766E", light: "#14B8A6" },
+        teal:    { DEFAULT: "#0D9488", light: "#14B8A6", dark: "#0F766E", bg: "#F0FDFA" },
+        gold:    { DEFAULT: "#F59E0B", light: "#FCD34D", dark: "#D97706" },
+
+        /* ember-* aliases (used in components) */
+        ember: {
+          primary:  "#0D9488",
+          hover:    "#0F766E",
+          accent:   "#F59E0B",
+          bg:       "#FFFFFF",
+          surface:  "#F7F7F7",
+          raised:   "#EBEBEB",
+          border:   "#DDDDDD",
+          text:     "#222222",
+          text2:    "#717171",
+          neutral:  "#767676",
+          success:  "#008A05",
+          warning:  "#E07912",
+          error:    "#C13515",
+        },
+
+        /* Tailwind semantic */
         background:  "hsl(var(--background))",
         foreground:  "hsl(var(--foreground))",
-
-        /* Flip7 primary palette */
-        teal: {
-          DEFAULT: "#2BA8A2",
-          light:   "#3CC4BD",
-          dark:    "#1E8C86",
-          bg:      "#E8F6F5",
-        },
-        coral: {
-          DEFAULT: "#EF6C4A",
-          light:   "#FF8A6A",
-          dark:    "#D45233",
-        },
-        gold: {
-          DEFAULT: "#FFD23F",
-          light:   "#FFE47A",
-          dark:    "#E6B800",
-        },
-        cream: { DEFAULT: "#FFF8E7" },
-
-        /* Legacy aliases — keeps existing classes working */
-        ink: {
-          DEFAULT: "#1F2937",
-          cream:   "#EFF8F7",
-        },
-        canvas:        { DEFAULT: "#EFF8F7" },
-        lifted:        { DEFAULT: "#FFFFFF" },
-        "signal-light": "#FFD23F",
-        link:          { DEFAULT: "#2BA8A2" },
-
         card: {
           DEFAULT:    "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
@@ -50,7 +43,6 @@ const config: Config = {
         primary: {
           DEFAULT:    "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
-          soft:       "hsl(var(--primary-soft))",
         },
         secondary: {
           DEFAULT:    "hsl(var(--secondary))",
@@ -63,43 +55,48 @@ const config: Config = {
         accent: {
           DEFAULT:    "hsl(var(--accent))",
           foreground: "hsl(var(--accent-foreground))",
-          warm:       "hsl(var(--accent-warm))",
         },
         destructive: {
           DEFAULT:    "hsl(var(--destructive))",
           foreground: "hsl(var(--destructive-foreground))",
         },
-        border: "hsl(var(--border))",
-        input:  "hsl(var(--input))",
-        ring:   "hsl(var(--ring))",
+        border:  "hsl(var(--border))",
+        input:   "hsl(var(--input))",
+        ring:    "hsl(var(--ring))",
 
-        "status-on-time":   "hsl(var(--status-on-time))",
-        "status-delayed":   "hsl(var(--status-delayed))",
-        "status-cancelled": "hsl(var(--status-cancelled))",
-        "status-swapped":   "hsl(var(--status-swapped))",
-        "status-airborne":  "hsl(var(--status-airborne))",
+        /* Legacy aliases */
+        ink:     { DEFAULT: "#222222", cream: "#F7F7F7" },
+        canvas:  { DEFAULT: "#F7F7F7" },
+        lifted:  { DEFAULT: "#FFFFFF" },
+        link:    { DEFAULT: "#0D9488" },
       },
-      borderRadius: {
-        lg:      "var(--radius)",
-        md:      "calc(var(--radius) - 4px)",
-        sm:      "calc(var(--radius) - 6px)",
-        btn:     "9999px",        /* pill shape (Flip7) */
-        stadium: "2.5rem",
-        pill:    "9999px",
-      },
+
       fontFamily: {
-        sans:    ['"Sofia Sans"', "-apple-system", "BlinkMacSystemFont", "sans-serif"],
-        display: ['"Sofia Sans"', "-apple-system", "BlinkMacSystemFont", "sans-serif"],
+        display: ["Nunito Sans", "sans-serif"],
+        sans:    ["DM Sans", "system-ui", "-apple-system", "sans-serif"],
+        code:    ["JetBrains Mono", "ui-monospace", "monospace"],
       },
+
+      borderRadius: {
+        lg:      "12px",
+        md:      "8px",
+        sm:      "6px",
+        btn:     "8px",
+        pill:    "9999px",
+        stadium: "2.5rem",
+      },
+
       boxShadow: {
-        nav:          "0 2px 8px rgba(0,0,0,0.08)",
-        lift:         "0 4px 16px rgba(0,0,0,0.12)",
-        card:         "0 4px 20px rgba(43,168,162,0.10)",
-        "teal-glow":  "0 4px 20px rgba(43,168,162,0.30)",
-        "coral-glow": "0 4px 20px rgba(239,108,74,0.35)",
-        "gold-glow":  "0 4px 20px rgba(255,210,63,0.40)",
-        "sky-glow":   "0 4px 16px rgba(93,173,226,0.30)",
+        card:         "0 1px 2px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.05)",
+        "card-hover": "0 2px 4px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.12)",
+        modal:        "0 6px 20px rgba(0,0,0,0.12), 0 16px 40px rgba(0,0,0,0.16)",
+        nav:          "0 1px 0 #DDDDDD",
+        "coral-glow": "0 4px 16px rgba(255,90,95,0.30)",
+        "teal-glow":  "0 4px 16px rgba(0,166,153,0.28)",
+        "gold-glow":  "0 4px 16px rgba(224,121,18,0.30)",
+        "sky-glow":   "0 4px 16px rgba(93,173,226,0.28)",
       },
+
       keyframes: {
         "accordion-down": {
           from: { height: "0" },

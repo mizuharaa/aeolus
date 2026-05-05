@@ -88,7 +88,7 @@ export default function DocsPage() {
               Aeolus is an open-source OCC reference implementation.
             </p>
             <div className="rounded-xl border border-border bg-secondary/30 p-4 font-mono text-xs">
-              <div className="text-muted-foreground mb-2">// Cascade propagation example</div>
+              <div className="text-muted-foreground mb-2">{"// Cascade propagation example"}</div>
               <div>Flight NB101 (ORD→ATL) delayed <span className="text-amber-400">+2h</span> by thunderstorm</div>
               <div className="pl-4 text-muted-foreground/60">↳ N001NB arrives ATL late</div>
               <div className="pl-8">↳ NB102 (ATL→MIA) delayed <span className="text-orange-400">+2h15m</span> (late inbound + turn)</div>

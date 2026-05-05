@@ -72,7 +72,7 @@ function liveIcon(heading: number | null, sel: boolean, velKt: number | null): L
   const key = `lv|${hdg}|${sel}|${slow}`
   return icon(key, () => {
     const sz = sel ? 30 : 16
-    const fill = sel ? "#EF6C4A" : "#38BDF8"
+    const fill = sel ? "#0D9488" : "#38BDF8"
     const op = slow ? 0.4 : 1
     return L.divIcon({
       className: "",
@@ -119,7 +119,7 @@ function airportIcon(isHub: boolean, faa: FAAStatus | undefined, hasWx: boolean,
   const key = `ap|${isHub}|${fk}|${hasWx}|${isEvt}|${isSel}`
   return icon(key, () => {
     const r = isHub ? 9 : 6
-    let fill = isHub ? "#EF6C4A" : "#374151"
+    let fill = isHub ? "#0D9488" : "#374151"
     let ring = "", top = "", bot = ""
     if (faa?.type === "ground_stop") {
       fill = "#DC2626"
@@ -133,11 +133,11 @@ function airportIcon(isHub: boolean, faa: FAAStatus | undefined, hasWx: boolean,
       fill = "#CA8A04"
       if (faa.delay_minutes > 0) top = apBadge("#CA8A04", `+${faa.delay_minutes}m`)
     } else if (isEvt) {
-      fill = "#EF6C4A"
-      ring = `<span style="position:absolute;inset:-4px;border-radius:9999px;border:2px solid #EF6C4A;opacity:0.6"></span>`
+      fill = "#F97316"
+      ring = `<span style="position:absolute;inset:-4px;border-radius:9999px;border:2px solid #F97316;opacity:0.6"></span>`
     }
     if (hasWx) bot = apBadge("#7C3AED", "⚡WX", true)
-    const sel = isSel ? `<span style="position:absolute;inset:-6px;border-radius:9999px;border:2.5px solid #EF6C4A"></span>` : ""
+    const sel = isSel ? `<span style="position:absolute;inset:-6px;border-radius:9999px;border:2.5px solid #0D9488"></span>` : ""
     const s = r * 2 + 28
     return L.divIcon({
       className: "",
@@ -305,7 +305,7 @@ function DisruptionBanner({
             className="px-3.5 py-2 flex items-center gap-2 flex-wrap"
             style={{ background: "rgba(0,0,0,0.30)", borderTop: "1px solid rgba(239,108,74,0.18)" }}
           >
-            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "#EF6C4A" }} />
+            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "#0D9488" }} />
             {summary ? (
               <span className="text-[10px] font-semibold text-orange-300">
                 <span className="font-black text-orange-100">{summary.total_affected}</span> affected ·{" "}
@@ -324,7 +324,7 @@ function DisruptionBanner({
 
 const PLAN_META_MAP = {
   A: { label: "Minimize Cost",    color: "#FFD23F", colorDim: "rgba(255,210,63,0.20)", border: "rgba(255,210,63,0.55)" },
-  B: { label: "Min. Pax Impact",  color: "#2BA8A2", colorDim: "rgba(43,168,162,0.20)", border: "rgba(43,168,162,0.55)" },
+  B: { label: "Min. Pax Impact",  color: "#6366F1", colorDim: "rgba(99,102,241,0.20)", border: "rgba(99,102,241,0.55)" },
   C: { label: "Protect Tomorrow", color: "#5DADE2", colorDim: "rgba(93,173,226,0.20)", border: "rgba(93,173,226,0.55)" },
 }
 
@@ -430,11 +430,11 @@ function FlightDetailCard({
   const oAp = NIMBUS_AIRPORTS[flight.origin]
   const dAp = NIMBUS_AIRPORTS[flight.destination]
 
-  let actionLabel = "", actionColor = "#2BA8A2", actionIcon = ""
+  let actionLabel = "", actionColor = "#0D9488", actionIcon = ""
   if (isCancelled)         { actionLabel = "Cancelled by recovery plan"; actionColor = "#EF4444"; actionIcon = "✕" }
-  else if (isSwapped)      { actionLabel = "Aircraft swapped by plan";   actionColor = "#2BA8A2"; actionIcon = "↕" }
+  else if (isSwapped)      { actionLabel = "Aircraft swapped by plan";   actionColor = "#6366F1"; actionIcon = "↕" }
   else if (planDelay)      { actionLabel = `Delayed +${planDelay} min by plan`; actionColor = "#F59E0B"; actionIcon = "⏱" }
-  else if (cascOrder === 0){ actionLabel = "Direct impact — epicenter"; actionColor = "#EF6C4A"; actionIcon = "⚡" }
+  else if (cascOrder === 0){ actionLabel = "Direct impact — epicenter"; actionColor = "#F97316"; actionIcon = "⚡" }
   else if (cascOrder > 0)  { actionLabel = `Cascade order ${cascOrder}`; actionColor = "#FBBF24"; actionIcon = "↗" }
 
   return (
@@ -447,14 +447,14 @@ function FlightDetailCard({
         style={{
           background: "rgba(255,255,255,0.97)",
           backdropFilter: "blur(16px)",
-          border: "1.5px solid rgba(43,168,162,0.24)",
-          boxShadow: "0 8px 32px rgba(0,0,0,0.14), 0 2px 8px rgba(43,168,162,0.12)",
+          border: "1px solid #DDDDDD",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.06)",
         }}
       >
         {/* Header */}
         <div
           className="px-4 py-3 flex items-center justify-between"
-          style={{ background: "linear-gradient(135deg, #E8F6F5 0%, #FFFFFF 100%)", borderBottom: "1px solid rgba(43,168,162,0.14)" }}
+          style={{ background: "#F7F7F7", borderBottom: "1px solid #DDDDDD" }}
         >
           <div>
             <div className="flex items-center gap-2 mb-0.5">
@@ -490,14 +490,14 @@ function FlightDetailCard({
                 style={{
                   background: isCancelled
                     ? "repeating-linear-gradient(90deg,#EF4444 0,#EF4444 5px,transparent 5px,transparent 10px)"
-                    : "rgba(43,168,162,0.30)",
+                    : "#DDDDDD",
                 }}
               />
               <div
                 className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center w-7 h-7 rounded-full text-sm"
                 style={{
-                  background: isCancelled ? "#EF4444" : isSwapped ? "#2BA8A2" : delayMin > 0 ? "#F59E0B" : "#2BA8A2",
-                  boxShadow: `0 2px 10px ${isCancelled ? "rgba(239,68,68,0.40)" : "rgba(43,168,162,0.40)"}`,
+                  background: isCancelled ? "#EF4444" : isSwapped ? "#6366F1" : delayMin > 0 ? "#F59E0B" : "#0D9488",
+                  boxShadow: `0 2px 10px ${isCancelled ? "rgba(239,68,68,0.40)" : "rgba(13,148,136,0.40)"}`,
                   color: "white",
                 }}
               >
@@ -508,7 +508,7 @@ function FlightDetailCard({
                 style={{
                   background: isCancelled
                     ? "repeating-linear-gradient(90deg,#EF4444 0,#EF4444 5px,transparent 5px,transparent 10px)"
-                    : "rgba(43,168,162,0.30)",
+                    : "#DDDDDD",
                 }}
               />
             </div>
@@ -534,9 +534,9 @@ function FlightDetailCard({
               {
                 label: "Cascade",
                 value: cascOrder < 0 ? "None" : cascOrder === 0 ? "Direct" : `Order ${cascOrder}`,
-                color: cascOrder === 0 ? "#EF6C4A" : cascOrder > 0 ? "#FBBF24" : "#22C55E",
-                bg: "rgba(43,168,162,0.05)",
-                border: "rgba(43,168,162,0.14)",
+                color: cascOrder === 0 ? "#F97316" : cascOrder > 0 ? "#FBBF24" : "#22C55E",
+                bg: "rgba(0,166,153,0.05)",
+                border: "rgba(0,166,153,0.14)",
               },
             ].map((item) => (
               <div
@@ -553,18 +553,18 @@ function FlightDetailCard({
           {/* P(delay) bar */}
           <div
             className="rounded-xl p-2.5 mb-2.5"
-            style={{ background: "rgba(43,168,162,0.05)", border: "1px solid rgba(43,168,162,0.12)" }}
+            style={{ background: "rgba(0,166,153,0.05)", border: "1px solid rgba(0,166,153,0.12)" }}
           >
             <div className="flex items-center justify-between mb-1.5">
               <div className="text-[10px] text-muted-foreground">Delay probability</div>
-              <div className="text-[11px] font-black font-mono" style={{ color: pDelay > 0.6 ? "#EF6C4A" : "#2BA8A2" }}>
+              <div className="text-[11px] font-black font-mono" style={{ color: pDelay > 0.6 ? "#F97316" : "#0D9488" }}>
                 {(pDelay * 100).toFixed(0)}%
               </div>
             </div>
-            <div className="h-1.5 rounded-full" style={{ background: "rgba(43,168,162,0.15)" }}>
+            <div className="h-1.5 rounded-full" style={{ background: "rgba(0,166,153,0.15)" }}>
               <div
                 className="h-full rounded-full transition-all duration-500"
-                style={{ width: `${pDelay * 100}%`, background: pDelay > 0.6 ? "#EF6C4A" : "#2BA8A2" }}
+                style={{ width: `${pDelay * 100}%`, background: pDelay > 0.6 ? "#F97316" : "#0D9488" }}
               />
             </div>
           </div>
@@ -664,13 +664,13 @@ function AirportPanel({ icao, faa, hasWx, wxText, simAffected, onClose }: {
       style={{
         background: "rgba(255,255,255,0.97)",
         backdropFilter: "blur(16px)",
-        border: "1.5px solid rgba(43,168,162,0.22)",
+        border: "1px solid #DDDDDD",
         boxShadow: "0 8px 28px rgba(0,0,0,0.12)",
       }}
     >
       <div
         className="px-4 py-3 flex items-center justify-between"
-        style={{ background: "linear-gradient(135deg, #E8F6F5 0%, #FFFFFF 100%)", borderBottom: "1px solid rgba(43,168,162,0.14)" }}
+        style={{ background: "#F7F7F7", borderBottom: "1px solid #DDDDDD" }}
       >
         <div>
           <div className="flex items-center gap-2">
@@ -735,9 +735,6 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
     selectedLiveFlight, setSelectedLiveFlight,
     setLiveFlights, setShowLiveFlights, setShowSimulation,
   } = useSimulationStore()
-
-  const mapRef = useRef<L.Map | null>(null)
-  useEffect(() => () => { mapRef.current?.remove(); mapRef.current = null }, [])
 
   const [nowMs, setNowMs]         = useState(() => Date.now())
   const [loading, setLoading]     = useState(false)
@@ -852,7 +849,7 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
   // Color by cascade/plan state
   function cascColor(fid: string, state: any): string {
     if (applied.cancelled.has(fid) || state?.status === "cancelled") return "#EF4444"
-    if (applied.swap.has(fid)) return "#2BA8A2"
+    if (applied.swap.has(fid)) return "#6366F1"
     if (applied.delayed.has(fid)) return "#F59E0B"
     if (!state) return "#22C55E"
     if (state.cascade_order === 0) return "#F97316"
@@ -947,11 +944,11 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
   const selState = selectedSched ? flightStates[selectedSched.id] : undefined
   const selArcColor = selectedSched
     ? applied.cancelled.has(selectedSched.id) || selState?.status === "cancelled" ? "#EF4444"
-    : applied.swap.has(selectedSched.id) ? "#2BA8A2"
+    : applied.swap.has(selectedSched.id) ? "#6366F1"
     : applied.delayed.has(selectedSched.id) ? "#F59E0B"
     : selState?.cascade_order === 0 ? "#F97316"
-    : "#2BA8A2"
-    : "#2BA8A2"
+    : "#0D9488"
+    : "#0D9488"
 
   const selTrail = useMemo(() => {
     const lf = selectedLiveFlight
@@ -969,7 +966,6 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
   return (
     <div className="simulator-map-shell w-full h-full min-h-0 relative overflow-hidden isolate">
       <MapContainer
-        ref={mapRef}
         center={[39.5, -98.0]} zoom={4} minZoom={2} maxZoom={14}
         zoomControl={false} scrollWheelZoom worldCopyJump={false}
         preferCanvas
@@ -994,11 +990,11 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
           const c: [number, number] = [ap.lat, ap.lon]
           return [
             <Circle key={`ep0-${icao}`} center={c} radius={70_000}
-              pathOptions={{ color: "#EF6C4A", weight: 2.5, opacity: 0.70, fillColor: "#EF6C4A", fillOpacity: 0.10 }} />,
+              pathOptions={{ color: "#F97316", weight: 2.5, opacity: 0.70, fillColor: "#F97316", fillOpacity: 0.10 }} />,
             <Circle key={`ep1-${icao}`} center={c} radius={160_000}
-              pathOptions={{ color: "#EF6C4A", weight: 1.5, opacity: 0.40, fillColor: "#EF6C4A", fillOpacity: 0.05, dashArray: "6 5" }} />,
+              pathOptions={{ color: "#F97316", weight: 1.5, opacity: 0.40, fillColor: "#F97316", fillOpacity: 0.05, dashArray: "6 5" }} />,
             <Circle key={`ep2-${icao}`} center={c} radius={300_000}
-              pathOptions={{ color: "#EF6C4A", weight: 1, opacity: 0.18, fillColor: "#EF6C4A", fillOpacity: 0.02, dashArray: "3 9" }} />,
+              pathOptions={{ color: "#F97316", weight: 1, opacity: 0.18, fillColor: "#F97316", fillOpacity: 0.02, dashArray: "3 9" }} />,
           ]
         })}
 
@@ -1048,7 +1044,7 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
         {/* Live trail for selected live flight */}
         {selTrail && (
           <Polyline positions={[selTrail.from, selTrail.to]}
-            pathOptions={{ color: "#EF6C4A", weight: 2.5, opacity: 0.60 }} />
+            pathOptions={{ color: "#0D9488", weight: 2.5, opacity: 0.60 }} />
         )}
 
         {/* Airport nodes */}
@@ -1095,7 +1091,7 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
                   {state?.delay_minutes > 0 && <div className="text-[10px] text-orange-600 font-semibold">+{state.delay_minutes} min delay</div>}
                   {state?.cascade_order === 0 && <div className="text-[10px] text-red-600 font-semibold">⚡ Direct impact</div>}
                   {applied.cancelled.has(id) && <div className="text-[10px] text-red-600 font-black">✕ Cancelled by plan</div>}
-                  {applied.swap.has(id) && <div className="text-[10px] font-bold" style={{ color: "#2BA8A2" }}>↕ Aircraft swapped</div>}
+                  {applied.swap.has(id) && <div className="text-[10px] font-bold" style={{ color: "#6366F1" }}>↕ Aircraft swapped</div>}
                 </div>
               </Tooltip>
             </Marker>
@@ -1188,7 +1184,7 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
       <div className="absolute bottom-3 right-3 z-[400] flex flex-col gap-2 items-end">
         <div
           className="rounded-xl px-3 py-2 flex flex-col gap-1.5 text-[11px]"
-          style={{ background: "rgba(255,255,255,0.92)", backdropFilter: "blur(12px)", border: "1px solid rgba(43,168,162,0.18)", boxShadow: "0 2px 12px rgba(0,0,0,0.08)" }}
+          style={{ background: "rgba(255,255,255,0.92)", backdropFilter: "blur(12px)", border: "1px solid #DDDDDD", boxShadow: "0 2px 12px rgba(0,0,0,0.08)" }}
         >
           <button
             onClick={() => setShowLiveFlights(!showLiveFlights)}
@@ -1220,7 +1216,7 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
         {ageSec != null && (
           <div
             className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-semibold"
-            style={{ background: "rgba(255,255,255,0.85)", backdropFilter: "blur(8px)", border: "1px solid rgba(43,168,162,0.14)", color: ageSec > 30 ? "#EA580C" : "#6B7280" }}
+            style={{ background: "rgba(255,255,255,0.85)", backdropFilter: "blur(8px)", border: "1px solid #DDDDDD", color: ageSec > 30 ? "#EA580C" : "#6B7280" }}
           >
             <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${loading ? "bg-amber-400 animate-pulse" : liveFlights.length > 0 ? "bg-emerald-400" : "bg-red-400"}`} />
             {loading ? "Fetching…" : `ADS-B · ${ageSec}s ago`}
@@ -1232,7 +1228,7 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
       <div className="absolute bottom-3 left-3 z-[400]">
         <div
           className="px-3 py-2 rounded-xl text-[10px]"
-          style={{ background: "rgba(255,255,255,0.94)", backdropFilter: "blur(12px)", border: "1px solid rgba(43,168,162,0.16)", boxShadow: "0 2px 12px rgba(0,0,0,0.07)" }}
+          style={{ background: "rgba(255,255,255,0.94)", backdropFilter: "blur(12px)", border: "1px solid #DDDDDD", boxShadow: "0 2px 12px rgba(0,0,0,0.07)" }}
         >
           {/* Always-visible: live layer */}
           <div className="flex items-center gap-2.5 flex-wrap mb-1.5">
@@ -1269,7 +1265,7 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
                   {appliedPlanId && (
                     <>
                       <div className="flex items-center gap-1.5">
-                        <span className="w-3.5 h-3.5 rounded-full shrink-0" style={{ background: "#2BA8A2" }} />
+                        <span className="w-3.5 h-3.5 rounded-full shrink-0" style={{ background: "#6366F1" }} />
                         <span className="text-muted-foreground">Swapped</span>
                       </div>
                       <div className="flex items-center gap-1.5">

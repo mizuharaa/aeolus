@@ -37,16 +37,28 @@ logger = logging.getLogger(__name__)
 
 # Base delay multiplier (fraction of event duration) applied to DIRECTLY affected flights
 DIRECT_DELAY_FRACTION: dict[str, float] = {
-    "weather_closure": 1.00,   # full closure = full event duration
-    "ground_stop":     0.85,   # GS delay ≈ 85% of program duration
-    "security_event":  0.90,
-    "runway_closure":  0.45,   # partial capacity → partial delay
-    "atc_staffing":    0.55,   # reduced throughput → rolling delays
-    "mechanical_aog":  1.00,   # aircraft grounded until fixed
-    "crew_sickout":    0.70,   # crew repositioning time
-    "airspace_closure":0.80,
-    "volcanic_ash":    0.75,
-    "cyber_incident":  0.60,
+    "weather_closure":  1.00,
+    "ground_stop":      0.85,
+    "security_event":   0.90,
+    "runway_closure":   0.45,
+    "atc_staffing":     0.55,
+    "mechanical_aog":   1.00,
+    "crew_sickout":     0.70,
+    "airspace_closure": 0.80,
+    "volcanic_ash":     0.75,
+    "cyber_incident":   0.60,
+    # Extended event types
+    "thunderstorm":     0.90,
+    "blizzard":         0.95,
+    "sandstorm":        0.85,
+    "dense_fog":        0.80,
+    "wind_shear":       0.70,
+    "hurricane":        1.00,
+    "bird_strike":      1.00,
+    "deicing_shortage": 0.60,
+    "fuel_contamination": 0.90,
+    "labor_action":     0.50,
+    "airport_emergency":0.95,
 }
 
 # Severity multipliers (on top of base)

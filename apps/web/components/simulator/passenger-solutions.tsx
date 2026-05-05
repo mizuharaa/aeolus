@@ -68,8 +68,8 @@ type Tab = typeof TABS[number]
 
 const card = {
   background: "#ffffff",
-  border: "1.5px solid rgba(43,168,162,0.18)",
-  boxShadow: "0 2px 16px rgba(43,168,162,0.07), 0 1px 3px rgba(0,0,0,0.04)",
+  border: "1px solid #DDDDDD",
+  boxShadow: "0 2px 16px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)",
 }
 
 function statusColor(status: string): string {
@@ -343,7 +343,7 @@ function HotelsTab({ activeEvents, schedule, flightStates }: {
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <Hotel size={14} style={{ color: "#2BA8A2" }} />
+        <Hotel size={14} style={{ color: "#0D9488" }} />
         <span className="text-sm font-bold" style={{ color: "#0f172a" }}>
           Hotels near {airport}
         </span>
@@ -354,7 +354,7 @@ function HotelsTab({ activeEvents, schedule, flightStates }: {
 
       {loading && (
         <div className="flex justify-center py-8">
-          <RefreshCw size={20} className="animate-spin" style={{ color: "#2BA8A2" }} />
+          <RefreshCw size={20} className="animate-spin" style={{ color: "#0D9488" }} />
         </div>
       )}
 
@@ -371,7 +371,7 @@ function HotelsTab({ activeEvents, schedule, flightStates }: {
             <div
               className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-base font-black"
               style={{
-                background: i === 0 ? "#2BA8A2" : i === 1 ? "#4ade80" : "#e2e8f0",
+                background: i === 0 ? "#0D9488" : i === 1 ? "#4ade80" : "#e2e8f0",
                 color: i < 2 ? "#fff" : "#64748b",
               }}
             >
@@ -442,7 +442,7 @@ function RebookingTab({ data }: { data: RebookingResponse | null }) {
         >
           {/* Header */}
           <div className="px-4 py-3 flex items-center gap-2" style={{ background: "#f8fafc" }}>
-            <Plane size={12} style={{ color: "#2BA8A2" }} />
+            <Plane size={12} style={{ color: "#0D9488" }} />
             <span className="text-xs font-mono font-bold" style={{ color: "#0f172a" }}>
               {opt.disrupted_flight_id}
             </span>
@@ -482,7 +482,7 @@ function RebookingTab({ data }: { data: RebookingResponse | null }) {
                 <div className="flex items-center gap-3 mt-0.5 text-xs" style={{ color: "#94a3b8" }}>
                   <span>{alt.seats_avail} seats avail</span>
                   <span>+{alt.delay_vs_original_hrs}h vs. original</span>
-                  <span className="ml-auto font-semibold" style={{ color: "#2BA8A2" }}>
+                  <span className="ml-auto font-semibold" style={{ color: "#0D9488" }}>
                     No change fee
                   </span>
                 </div>
@@ -592,12 +592,14 @@ export function PassengerSolutions() {
   const [impactData, setImpactData]     = useState<ImpactResponse | null>(null)
   const [rebookData, setRebookData]     = useState<RebookingResponse | null>(null)
   const [loading, setLoading]           = useState(false)
+  const [fetchError, setFetchError]     = useState<string | null>(null)
 
   const hasDisruption = activeEvents.length > 0
 
   const fetchAll = useCallback(async () => {
     if (!hasDisruption) return
     setLoading(true)
+    setFetchError(null)
     try {
       const [impact, rebook] = await Promise.all([
         apiClient.get<ImpactResponse>("/passengers/impact"),
@@ -605,7 +607,9 @@ export function PassengerSolutions() {
       ])
       setImpactData(impact.data)
       setRebookData(rebook.data)
-    } catch { /* ignore */ } finally {
+    } catch (err) {
+      setFetchError(err instanceof Error ? err.message : "Failed to load passenger data")
+    } finally {
       setLoading(false)
     }
   }, [hasDisruption])
@@ -621,13 +625,13 @@ export function PassengerSolutions() {
       {/* ── Header ── */}
       <div
         className="px-5 py-4 flex items-center gap-3 flex-shrink-0"
-        style={{ borderBottom: "1px solid rgba(43,168,162,0.14)" }}
+        style={{ borderBottom: "1px solid #DDDDDD" }}
       >
         <div
           className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-          style={{ background: "rgba(43,168,162,0.12)" }}
+          style={{ background: "rgba(13,148,136,0.10)" }}
         >
-          <Users2 size={18} style={{ color: "#2BA8A2" }} />
+          <Users2 size={18} style={{ color: "#0D9488" }} />
         </div>
         <div className="flex-1 min-w-0">
           <h2 className="text-sm font-bold" style={{ color: "#0f172a" }}>Passenger Solutions</h2>
@@ -640,7 +644,7 @@ export function PassengerSolutions() {
           disabled={loading || !hasDisruption}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
           style={{
-            background: hasDisruption ? "#2BA8A2" : "#e2e8f0",
+            background: hasDisruption ? "#0D9488" : "#e2e8f0",
             color: hasDisruption ? "#fff" : "#94a3b8",
             cursor: hasDisruption ? "pointer" : "not-allowed",
           }}
@@ -662,8 +666,8 @@ export function PassengerSolutions() {
             className="px-3 py-2 text-xs font-semibold rounded-t-lg transition-all"
             style={{
               background: activeTab === tab ? "#fff" : "transparent",
-              color: activeTab === tab ? "#2BA8A2" : "#94a3b8",
-              borderBottom: activeTab === tab ? "2px solid #2BA8A2" : "2px solid transparent",
+              color: activeTab === tab ? "#0D9488" : "#94a3b8",
+              borderBottom: activeTab === tab ? "2px solid #0D9488" : "2px solid transparent",
               marginBottom: -1,
             }}
           >
@@ -684,6 +688,19 @@ export function PassengerSolutions() {
             <p className="text-xs" style={{ color: "#cbd5e1" }}>
               Trigger an event to generate passenger solutions
             </p>
+          </div>
+        ) : fetchError ? (
+          <div className="flex flex-col items-center justify-center py-12 gap-2">
+            <AlertCircle size={32} style={{ color: "#ef4444" }} />
+            <p className="text-sm font-medium" style={{ color: "#ef4444" }}>Failed to load data</p>
+            <p className="text-xs text-center" style={{ color: "#94a3b8" }}>{fetchError}</p>
+            <button
+              onClick={fetchAll}
+              className="mt-2 px-4 py-1.5 rounded-lg text-xs font-semibold"
+              style={{ background: "#0D9488", color: "#fff" }}
+            >
+              Retry
+            </button>
           </div>
         ) : (
           <>

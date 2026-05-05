@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
   output: "standalone",
   reactStrictMode: false,
   experimental: {
-    typedRoutes: true,
+    typedRoutes: false,
   },
 }
 

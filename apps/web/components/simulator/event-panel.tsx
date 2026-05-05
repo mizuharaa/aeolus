@@ -411,7 +411,7 @@ function renderAlertRow(
             disabled={isLoadingEvent}
             onClick={() => onLoadToSim(alert.sim_event!.kind, alert.sim_event!.params)}
             className="shrink-0 flex items-center gap-1 text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition-all disabled:opacity-40"
-            style={{ background: "#2BA8A2", color: "white" }}
+            style={{ background: "#0D9488", color: "white" }}
           >
             <Zap className="w-3 h-3" /> Sim
           </button>
@@ -575,15 +575,15 @@ function LiveFeed({
       {/* ── Status strip ── */}
       <div
         className="rounded-2xl border p-3.5"
-        style={{ borderColor: "rgba(43,168,162,0.18)", background: "linear-gradient(135deg, #E8F6F5 0%, #FFFFFF 100%)" }}
+        style={{ borderColor: "#DDDDDD", background: "#F7F7F7" }}
       >
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <div
               className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-              style={{ background: "rgba(43,168,162,0.14)", border: "1px solid rgba(43,168,162,0.20)" }}
+              style={{ background: "rgba(13,148,136,0.10)", border: "1px solid rgba(13,148,136,0.15)" }}
             >
-              <Globe className="w-3.5 h-3.5" style={{ color: "#2BA8A2" }} />
+              <Globe className="w-3.5 h-3.5" style={{ color: "#0D9488" }} />
             </div>
             <div>
               <div className="text-xs font-bold text-foreground">US National Airspace</div>
@@ -599,7 +599,7 @@ function LiveFeed({
             onClick={fetchAll}
             disabled={fetching}
             className="flex items-center gap-1.5 text-[10px] font-semibold transition-colors disabled:opacity-40"
-            style={{ color: "#2BA8A2" }}
+            style={{ color: "#0D9488" }}
           >
             <RefreshCw className={`w-3 h-3 ${fetching ? "animate-spin" : ""}`} />
             Refresh
@@ -623,7 +623,7 @@ function LiveFeed({
       {/* ── Loading state ── */}
       {fetching && !faaData && !alertsData && (
         <div className="py-8 text-center text-xs text-muted-foreground">
-          <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" style={{ color: "#2BA8A2" }} />
+          <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" style={{ color: "#0D9488" }} />
           Fetching live national airspace data…
         </div>
       )}
@@ -680,7 +680,7 @@ function LiveFeed({
                       {d.typeLabel}
                     </span>
                     {d.isNimbus && (
-                      <span className="text-[9px] font-bold shrink-0" style={{ color: "#2BA8A2" }}>Nimbus</span>
+                      <span className="text-[9px] font-bold shrink-0" style={{ color: "#0D9488" }}>Nimbus</span>
                     )}
                   </div>
                   {d.detail && (
@@ -701,7 +701,7 @@ function LiveFeed({
                     disabled={isLoadingEvent}
                     onClick={() => onLoadToSim(d.simEvent!.kind, d.simEvent!.params)}
                     className="shrink-0 flex items-center gap-1 text-[10px] font-bold px-2 py-1.5 rounded-lg transition-all disabled:opacity-40"
-                    style={{ background: "#2BA8A2", color: "white" }}
+                    style={{ background: "#0D9488", color: "white" }}
                   >
                     <Zap className="w-3 h-3" /> Sim
                   </button>
@@ -747,7 +747,7 @@ function LiveFeed({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="font-mono font-bold text-sm text-foreground">{prog.airport_iata}</span>
-                        {prog.in_nimbus_network && <span className="text-[9px] font-bold" style={{ color: "#2BA8A2" }}>Nimbus</span>}
+                        {prog.in_nimbus_network && <span className="text-[9px] font-bold" style={{ color: "#0D9488" }}>Nimbus</span>}
                       </div>
                       <div className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">
                         {prog.reason}{prog.avg_delay_minutes ? ` · avg ${prog.avg_delay_minutes}m` : ""}
@@ -757,7 +757,7 @@ function LiveFeed({
                     {prog.in_nimbus_network && (
                       <button disabled={isLoadingEvent} onClick={() => onLoadToSim(prog.sim_event.kind, prog.sim_event.params)}
                         className="shrink-0 flex items-center gap-1 text-[10px] font-bold px-2 py-1.5 rounded-lg disabled:opacity-40"
-                        style={{ background: "#2BA8A2", color: "white" }}>
+                        style={{ background: "#0D9488", color: "white" }}>
                         <Zap className="w-3 h-3" /> Sim
                       </button>
                     )}
@@ -783,7 +783,7 @@ function LiveFeed({
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="font-mono font-bold text-sm">{prog.airport_iata}</span>
                         {prog.avg_delay_minutes && <span className="text-[9px] font-bold text-orange-700 bg-orange-100 px-1.5 py-0.5 rounded-full border border-orange-200">avg {prog.avg_delay_minutes}m</span>}
-                        {prog.in_nimbus_network && <span className="text-[9px] font-bold" style={{ color: "#2BA8A2" }}>Nimbus</span>}
+                        {prog.in_nimbus_network && <span className="text-[9px] font-bold" style={{ color: "#0D9488" }}>Nimbus</span>}
                       </div>
                       <div className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">{prog.reason}</div>
                       {(prog.start || prog.recheck) && (
@@ -795,7 +795,7 @@ function LiveFeed({
                     {prog.in_nimbus_network && (
                       <button disabled={isLoadingEvent} onClick={() => onLoadToSim(prog.sim_event.kind, prog.sim_event.params)}
                         className="shrink-0 flex items-center gap-1 text-[10px] font-bold px-2 py-1.5 rounded-lg disabled:opacity-40"
-                        style={{ background: "#2BA8A2", color: "white" }}>
+                        style={{ background: "#0D9488", color: "white" }}>
                         <Zap className="w-3 h-3" /> Sim
                       </button>
                     )}
@@ -823,7 +823,7 @@ function LiveFeed({
                     {prog.in_nimbus_network && (
                       <button disabled={isLoadingEvent} onClick={() => onLoadToSim(prog.sim_event.kind, prog.sim_event.params)}
                         className="shrink-0 flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg disabled:opacity-40"
-                        style={{ background: "#2BA8A2", color: "white" }}>
+                        style={{ background: "#0D9488", color: "white" }}>
                         <Zap className="w-3 h-3" /> Sim
                       </button>
                     )}
@@ -909,7 +909,15 @@ export function EventPanel() {
   const triggerEvent = async (kind: string, params: Record<string, any>) => {
     setIsLoading(true)
     try {
-      const r = await apiClient.post("/simulator/trigger", { kind, params })
+      const r = await apiClient.post<{
+        cascade_summary?: {
+          total_affected: number
+          directly_affected: number
+          cascade_1?: number
+          cascade_2?: number
+        }
+        [key: string]: unknown
+      }>("/simulator/trigger", { kind, params })
       const info = EVENT_TYPES.find((e) => e.value === kind)
       const cs = r.data?.cascade_summary
       toast.success(`${info?.label ?? kind} triggered`, {
@@ -941,50 +949,49 @@ export function EventPanel() {
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {/* Panel header */}
-      <div className="panel-header shrink-0">
+      <div className="panel-header shrink-0" style={{ paddingLeft: 12, paddingRight: 12 }}>
         <div
           className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-          style={{ background: "rgba(239,108,74,0.12)", border: "1px solid rgba(239,108,74,0.20)" }}
+          style={{ background: "rgba(13,148,136,0.10)", border: "1px solid rgba(13,148,136,0.18)" }}
         >
-          <Zap className="w-3.5 h-3.5" style={{ color: "#EF6C4A" }} />
+          <Zap className="w-3.5 h-3.5" style={{ color: "#0D9488" }} />
         </div>
         <div>
-          <div className="section-title">Trigger Events</div>
-          <div className="text-[10px] text-muted-foreground mt-0.5">21 disruption types · 5 categories</div>
+          <div className="section-title">Event Control</div>
+          <div className="text-[10px] text-muted-foreground mt-0.5">21 disruption types · live NAS feed</div>
         </div>
       </div>
 
       <Tabs defaultValue="trigger" className="flex-1 flex flex-col min-h-0">
 
         {/* Tab bar */}
-        <div className="px-4 pt-3.5 pb-0 shrink-0 border-b border-border/60">
+        <div className="px-3 pt-3 pb-0 shrink-0 border-b border-border/50">
           <TabsList
-            className="mb-3 h-9 rounded-xl gap-0.5 p-0.5"
-            style={{ background: "rgba(43,168,162,0.10)" }}
+            className="w-full mb-3 h-9 rounded-lg p-0.5"
+            style={{ background: "#EBEBEB" }}
           >
             <TabsTrigger
               value="trigger"
-              className="text-xs h-8 px-3 rounded-lg font-semibold data-[state=active]:bg-white data-[state=active]:shadow-nav"
-              style={{ color: "inherit" }}
+              className="flex-1 text-[11px] h-8 rounded-md font-semibold data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground"
             >
-              Trigger Event
+              Events
             </TabsTrigger>
             <TabsTrigger
               value="live"
-              className="text-xs h-8 px-3 rounded-lg font-semibold data-[state=active]:bg-white data-[state=active]:shadow-nav relative"
+              className="flex-1 text-[11px] h-8 rounded-md font-semibold data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground"
             >
-              Live Feed
-              <span className="ml-1.5 w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse" />
+              Live
+              <span className="ml-1.5 w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block shrink-0" />
             </TabsTrigger>
             <TabsTrigger
               value="active"
-              className="text-xs h-8 px-3 rounded-lg font-semibold data-[state=active]:bg-white data-[state=active]:shadow-nav relative"
+              className="flex-1 text-[11px] h-8 rounded-md font-semibold data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground"
             >
               Active
               {activeEvents.length > 0 && (
                 <span
-                  className="ml-1.5 text-[9px] font-bold rounded-full w-4 h-4 inline-flex items-center justify-center text-white"
-                  style={{ background: "#EF6C4A" }}
+                  className="ml-1.5 text-[9px] font-bold rounded-full w-4 h-4 inline-flex items-center justify-center text-white shrink-0"
+                  style={{ background: "#0D9488" }}
                 >
                   {activeEvents.length}
                 </span>
@@ -994,15 +1001,15 @@ export function EventPanel() {
         </div>
 
         {/* ── Trigger tab ── */}
-        <TabsContent value="trigger" className="flex-1 overflow-y-auto p-4 space-y-4 mt-0">
+        <TabsContent value="trigger" className="flex-1 overflow-y-auto px-3 py-3 space-y-4 mt-0">
 
           {/* Categorized event grid */}
-          <div className="space-y-3">
+          <div className="space-y-3.5">
             {EVENT_CATEGORIES.map((cat) => {
               const catEvents = cat.events.map((v) => EVENT_TYPES.find((e) => e.value === v)!).filter(Boolean)
               return (
                 <div key={cat.label}>
-                  <div className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-1.5 px-0.5">
+                  <div className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50 mb-2 px-0.5">
                     {cat.label}
                   </div>
                   <div className="grid grid-cols-2 gap-1.5">
@@ -1013,16 +1020,16 @@ export function EventPanel() {
                         <button
                           key={et.value}
                           onClick={() => selectKind(et.value)}
-                          className={`flex items-center gap-2 px-2.5 py-2 rounded-xl border text-left transition-all ${
+                          className={`flex items-center gap-2 px-2.5 py-2.5 rounded-xl border text-left transition-all ${
                             isSel
                               ? `${c.soft} ${c.text} border-transparent ring-2 ${c.ring} shadow-sm`
-                              : "bg-white text-foreground/80 border-border/50 hover:border-teal/40 hover:bg-teal-bg/60"
+                              : "bg-white text-foreground/75 border-border/60 hover:bg-secondary/60 hover:border-border"
                           }`}
                         >
-                          <span className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${isSel ? c.iconBg : "bg-secondary"}`}>
+                          <span className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${isSel ? c.iconBg : "bg-muted"}`}>
                             <et.Icon className={`w-3.5 h-3.5 ${isSel ? c.text : "text-muted-foreground"}`} />
                           </span>
-                          <span className="text-[10px] font-semibold leading-tight">{et.label}</span>
+                          <span className="text-[11px] font-semibold leading-tight">{et.label}</span>
                         </button>
                       )
                     })}
@@ -1040,108 +1047,110 @@ export function EventPanel() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
               transition={{ duration: 0.15 }}
-              className={`rounded-2xl border ${palette.border} ${palette.soft} p-4 space-y-3`}
+              className={`rounded-2xl border ${palette.border} ${palette.soft} overflow-hidden`}
             >
-              {/* Event header + Read More toggle */}
-              <div className="flex items-center justify-between gap-2">
+              {/* Event header */}
+              <div className={`flex items-center justify-between gap-2 px-4 py-3 border-b ${palette.border}`}>
                 <div className="flex items-center gap-2.5">
-                  <span className={`w-8 h-8 rounded-lg flex items-center justify-center ${palette.iconBg}`}>
+                  <span className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${palette.iconBg}`}>
                     <selectedInfo.Icon className={`w-4 h-4 ${palette.text}`} />
                   </span>
-                  <div className={`text-sm font-bold ${palette.text}`}>{selectedInfo.label}</div>
+                  <div className={`text-sm font-bold leading-tight ${palette.text}`}>{selectedInfo.label}</div>
                 </div>
                 <button
                   onClick={() => setShowDescription((d) => !d)}
-                  className={`flex items-center gap-1 text-[10px] font-semibold shrink-0 transition-opacity opacity-60 hover:opacity-100 ${palette.text}`}
+                  className={`flex items-center gap-1 text-[10px] font-semibold shrink-0 opacity-60 hover:opacity-100 transition-opacity ${palette.text}`}
                 >
-                  {showDescription ? "Less" : "Read more"}
+                  {showDescription ? "Less" : "Info"}
                   <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${showDescription ? "rotate-180" : ""}`} />
                 </button>
               </div>
 
-              {/* Expandable description */}
-              <AnimatePresence>
-                {showDescription && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="overflow-hidden"
-                  >
-                    <p className={`text-[11px] leading-relaxed border-t ${palette.border} pt-2.5 ${palette.text} opacity-80`}>
-                      {EVENT_DESCRIPTIONS[selectedKind]}
-                    </p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              <div className="px-4 py-3.5 space-y-3">
+                {/* Expandable description */}
+                <AnimatePresence>
+                  {showDescription && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
+                    >
+                      <p className={`text-[11px] leading-relaxed pb-3 border-b mb-0.5 ${palette.border} ${palette.text} opacity-80`}>
+                        {EVENT_DESCRIPTIONS[selectedKind]}
+                      </p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
-              {/* Form fields */}
-              <div className="grid grid-cols-1 gap-2.5">
-                {schema.fields.map((f) => (
-                  <div key={f.key}>
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1 block">
-                      {f.label}
-                    </label>
-                    {f.type === "select" ? (
-                      <select
-                        value={values[f.key] ?? ""}
-                        onChange={(e) => setField(f.key, e.target.value)}
-                        className="w-full h-9 text-xs bg-white border border-border/60 rounded-xl px-3 outline-none transition"
-                        style={{ boxShadow: "none" }}
-                        onFocus={(e) => e.currentTarget.style.boxShadow = "0 0 0 3px rgba(43,168,162,0.18)"}
-                        onBlur={(e) => e.currentTarget.style.boxShadow = "none"}
-                      >
-                        {f.options?.map((opt) => (
-                          <option key={opt} value={opt}>{opt}</option>
-                        ))}
-                      </select>
-                    ) : (
-                      <input
-                        type="number"
-                        value={values[f.key] ?? ""}
-                        onChange={(e) => setField(f.key, e.target.value)}
-                        min={f.min} max={f.max} step={f.step}
-                        className="w-full h-9 text-xs bg-white border border-border/60 rounded-xl px-3 outline-none transition"
-                        style={{ boxShadow: "none" }}
-                        onFocus={(e) => e.currentTarget.style.boxShadow = "0 0 0 3px rgba(43,168,162,0.18)"}
-                        onBlur={(e) => e.currentTarget.style.boxShadow = "none"}
-                      />
-                    )}
-                  </div>
-                ))}
+                {/* Form fields */}
+                <div className="grid grid-cols-1 gap-3">
+                  {schema.fields.map((f) => (
+                    <div key={f.key}>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 block">
+                        {f.label}
+                      </label>
+                      {f.type === "select" ? (
+                        <select
+                          value={values[f.key] ?? ""}
+                          onChange={(e) => setField(f.key, e.target.value)}
+                          className="w-full h-9 text-xs bg-white border border-border rounded-lg px-3 outline-none transition-shadow"
+                          style={{ boxShadow: "none" }}
+                          onFocus={(e) => e.currentTarget.style.boxShadow = "0 0 0 3px rgba(13,148,136,0.18)"}
+                          onBlur={(e) => e.currentTarget.style.boxShadow = "none"}
+                        >
+                          {f.options?.map((opt) => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          type="number"
+                          value={values[f.key] ?? ""}
+                          onChange={(e) => setField(f.key, e.target.value)}
+                          min={f.min} max={f.max} step={f.step}
+                          className="w-full h-9 text-xs bg-white border border-border rounded-lg px-3 outline-none transition-shadow"
+                          style={{ boxShadow: "none" }}
+                          onFocus={(e) => e.currentTarget.style.boxShadow = "0 0 0 3px rgba(13,148,136,0.18)"}
+                          onBlur={(e) => e.currentTarget.style.boxShadow = "none"}
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Trigger button */}
+                <button
+                  onClick={handleTrigger}
+                  disabled={isLoading}
+                  className="btn-primary w-full h-10 text-[13px] mt-1"
+                >
+                  {isLoading ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Solving…</>
+                  ) : (
+                    <><Zap className="w-4 h-4" /> Trigger {selectedInfo.label}</>
+                  )}
+                </button>
               </div>
-
-              {/* Trigger button */}
-              <button
-                onClick={handleTrigger}
-                disabled={isLoading}
-                className="btn-gold w-full h-11 text-sm"
-              >
-                {isLoading ? (
-                  <><Loader2 className="w-4 h-4 animate-spin" /> Solving…</>
-                ) : (
-                  <><Zap className="w-4 h-4" /> Trigger {selectedInfo.label}</>
-                )}
-              </button>
             </motion.div>
           </AnimatePresence>
         </TabsContent>
 
         {/* ── Live Feed tab ── */}
-        <TabsContent value="live" className="flex-1 overflow-y-auto p-4 mt-0">
+        <TabsContent value="live" className="flex-1 overflow-y-auto px-3 py-3 mt-0">
           <LiveFeed onLoadToSim={triggerEvent} isLoadingEvent={isLoading} />
         </TabsContent>
 
         {/* ── Active tab ── */}
-        <TabsContent value="active" className="flex-1 overflow-y-auto p-4 mt-0">
+        <TabsContent value="active" className="flex-1 overflow-y-auto px-3 py-3 mt-0">
           {activeEvents.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-36 text-center">
               <div
                 className="w-12 h-12 rounded-2xl flex items-center justify-center mb-3"
-                style={{ background: "rgba(43,168,162,0.10)", border: "1px solid rgba(43,168,162,0.15)" }}
+                style={{ background: "rgba(13,148,136,0.08)", border: "1px solid rgba(13,148,136,0.12)" }}
               >
-                <Activity className="w-6 h-6" style={{ color: "#2BA8A2", opacity: 0.5 }} />
+                <Activity className="w-6 h-6" style={{ color: "#0D9488", opacity: 0.5 }} />
               </div>
               <p className="text-sm font-semibold text-foreground/80">No active events</p>
               <p className="text-xs text-muted-foreground mt-1">Trigger an event to see cascade effects.</p>

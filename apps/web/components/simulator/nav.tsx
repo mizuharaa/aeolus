@@ -1,6 +1,6 @@
 "use client"
 import Link from "next/link"
-import { Plane, Wifi, WifiOff, RotateCcw, BookOpen } from "lucide-react"
+import { Plane, Wifi, WifiOff, RotateCcw } from "lucide-react"
 import { useSimulationStore } from "@/stores/simulation"
 import { apiClient } from "@/lib/api"
 import { toast } from "sonner"
@@ -16,10 +16,10 @@ export function SimulatorNav({ isConnected }: SimulatorNavProps) {
 
   const stats = useMemo(() => {
     const states = Object.values(flightStates)
-    const total = schedule.length || states.length
+    const total     = schedule.length || states.length
     const cancelled = states.filter((f) => f.status === "cancelled").length
-    const delayed = states.filter(
-      (f) => f.status === "delayed" || (f.status !== "cancelled" && f.delay_minutes > 0)
+    const delayed   = states.filter(
+      (f) => f.status === "delayed" || (f.status !== "cancelled" && f.delay_minutes > 0),
     ).length
     return { total, onTime: Math.max(0, total - cancelled - delayed), delayed, cancelled }
   }, [flightStates, schedule.length])
@@ -36,123 +36,102 @@ export function SimulatorNav({ isConnected }: SimulatorNavProps) {
   }
 
   return (
-    <div
-      className="shrink-0 z-40 flex items-center justify-between px-5 h-14"
+    <nav
       style={{
-        background: "linear-gradient(135deg, #1E8C86 0%, #2BA8A2 100%)",
-        boxShadow: "0 2px 12px rgba(30,140,134,0.28)",
+        height: 48,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        paddingLeft: 16,
+        paddingRight: 16,
+        background: "linear-gradient(135deg, #042F2E 0%, #0F766E 100%)",
+        borderBottom: "1px solid rgba(255,255,255,0.10)",
+        flexShrink: 0,
+        zIndex: 50,
       }}
     >
       {/* ── Brand + stats ── */}
-      <div className="flex items-center gap-4 min-w-0">
+      <div style={{ display: "flex", alignItems: "center", gap: 16, minWidth: 0 }}>
         <Link
           href="/"
-          className="flex items-center gap-2.5 hover:opacity-85 transition-opacity min-w-0 shrink-0"
+          style={{ display: "flex", alignItems: "center", gap: 9, textDecoration: "none", flexShrink: 0 }}
+          className="hover:opacity-80 transition-opacity"
         >
-          {/* Logo icon — gold circle */}
           <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-            style={{ background: "#FFD23F", boxShadow: "0 2px 10px rgba(255,210,63,0.50)" }}
+            style={{
+              width: 26,
+              height: 26,
+              borderRadius: 7,
+              background: "#F59E0B",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
           >
-            <Plane className="w-[18px] h-[18px]" style={{ color: "#1E8C86" }} />
+            <Plane style={{ width: 13, height: 13, color: "#fff" }} />
           </div>
-          <div className="min-w-0">
-            <div className="text-white font-bold text-[15px] leading-none tracking-wide">
+          <div>
+            <div style={{ fontFamily: "'Nunito Sans', sans-serif", fontWeight: 800, fontSize: 14, lineHeight: 1, color: "#ffffff", letterSpacing: "-0.01em" }}>
               Aeolus
             </div>
-            <div
-              className="text-[10px] font-medium leading-none mt-0.5 hidden sm:block"
-              style={{ color: "rgba(255,255,255,0.72)" }}
-            >
+            <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, color: "rgba(255,255,255,0.55)", lineHeight: 1, marginTop: 2 }}>
               Nimbus Air OCC
             </div>
           </div>
         </Link>
 
-        {/* Flight status summary pills */}
+        <div style={{ width: 1, height: 18, background: "rgba(255,255,255,0.18)", flexShrink: 0 }} />
+
         {stats.total > 0 && (
-          <div className="hidden md:flex items-center gap-1.5">
-            <div
-              className="flex items-center gap-1.5 text-[11px] px-3 py-1 rounded-full font-semibold"
-              style={{ background: "rgba(255,255,255,0.14)" }}
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
-              <span className="text-white">{stats.onTime}</span>
-              <span style={{ color: "rgba(255,255,255,0.68)" }}>on-time</span>
-            </div>
-            {stats.delayed > 0 && (
-              <div
-                className="flex items-center gap-1.5 text-[11px] px-3 py-1 rounded-full font-semibold"
-                style={{ background: "rgba(255,255,255,0.14)" }}
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
-                <span className="text-white">{stats.delayed}</span>
-                <span style={{ color: "rgba(255,255,255,0.68)" }}>delayed</span>
-              </div>
-            )}
-            {stats.cancelled > 0 && (
-              <div
-                className="flex items-center gap-1.5 text-[11px] px-3 py-1 rounded-full font-semibold"
-                style={{ background: "rgba(239,108,74,0.38)" }}
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-red-400 shrink-0" />
-                <span className="text-white">{stats.cancelled}</span>
-                <span style={{ color: "rgba(255,255,255,0.78)" }}>cancelled</span>
-              </div>
-            )}
+          <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+            <StatPill dot="#008A05" value={stats.onTime} label="on-time" />
+            {stats.delayed > 0 && <StatPill dot="#E07912" value={stats.delayed} label="delayed" accent />}
+            {stats.cancelled > 0 && <StatPill dot="#C13515" value={stats.cancelled} label="cancelled" danger />}
           </div>
         )}
       </div>
 
       {/* ── Right controls ── */}
-      <div className="flex items-center gap-2">
-        {/* Connection status */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <div
-          className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full font-semibold border ${
-            isConnected
-              ? "border-emerald-400/40"
-              : "border-red-400/40"
-          }`}
           style={{
-            background: isConnected
-              ? "rgba(52,211,153,0.18)"
-              : "rgba(248,113,113,0.18)",
-            color: "white",
+            display: "flex", alignItems: "center", gap: 5,
+            fontSize: 11, fontFamily: "'DM Sans', sans-serif", fontWeight: 600,
+            padding: "3px 9px", borderRadius: 6,
+            background: isConnected ? "rgba(52,211,153,0.15)" : "rgba(248,113,113,0.15)",
+            color:      isConnected ? "#6EE7B7" : "#FCA5A5",
+            border:    `1px solid ${isConnected ? "rgba(52,211,153,0.30)" : "rgba(248,113,113,0.30)"}`,
           }}
         >
-          {isConnected ? (
-            <Wifi className="w-3 h-3" />
-          ) : (
-            <WifiOff className="w-3 h-3" />
-          )}
-          <span>{isConnected ? "Live" : "Offline"}</span>
+          {isConnected ? <Wifi style={{ width: 11, height: 11 }} /> : <WifiOff style={{ width: 11, height: 11 }} />}
+          {isConnected ? "Live" : "Offline"}
         </div>
 
-        {/* Docs link */}
-        <Link href="/docs">
-          <button
-            className="hidden sm:flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full font-medium transition-all hover:opacity-80"
-            style={{ background: "rgba(255,255,255,0.14)", color: "white" }}
-          >
-            <BookOpen className="w-3.5 h-3.5" />
-            Docs
-          </button>
-        </Link>
-
-        {/* Reset — gold CTA */}
         <button
           onClick={handleReset}
-          className="flex items-center gap-1.5 text-xs px-4 py-1.5 rounded-full font-bold transition-all hover:scale-105 active:scale-95"
-          style={{
-            background: "#FFD23F",
-            color: "#1E8C86",
-            boxShadow: "0 2px 10px rgba(255,210,63,0.42)",
-          }}
+          className="btn-primary"
+          style={{ height: 30, fontSize: 12, paddingLeft: 12, paddingRight: 12, gap: 5 }}
         >
-          <RotateCcw className="w-3.5 h-3.5" />
+          <RotateCcw style={{ width: 11, height: 11 }} />
           Reset
         </button>
       </div>
+    </nav>
+  )
+}
+
+function StatPill({ dot, value, label, accent, danger }: {
+  dot: string; value: number; label: string; accent?: boolean; danger?: boolean
+}) {
+  const bg     = danger ? "rgba(239,68,68,0.15)"  : accent ? "rgba(251,146,60,0.15)"  : "rgba(52,211,153,0.12)"
+  const border = danger ? "rgba(239,68,68,0.28)"  : accent ? "rgba(251,146,60,0.28)"  : "rgba(52,211,153,0.28)"
+  const text   = danger ? "#FCA5A5"               : accent ? "#FCD34D"                : "#6EE7B7"
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontFamily: "'DM Sans', sans-serif", fontWeight: 600, padding: "3px 8px", borderRadius: 5, background: bg, border: `1px solid ${border}`, color: text }}>
+      <span style={{ width: 6, height: 6, borderRadius: "50%", background: dot, flexShrink: 0 }} />
+      <span style={{ fontWeight: 700 }}>{value}</span>
+      <span style={{ opacity: 0.7 }}>{label}</span>
     </div>
   )
 }

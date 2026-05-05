@@ -13,7 +13,7 @@ import type { RecoveryPlan } from "@/stores/simulation"
 
 const PLAN_META: Record<string, { label: string; accentText: string; bg: string; border: string; accent: string }> = {
   A: { label: "Minimize Cost",    accent: "#FFD23F", accentText: "#92700A", bg: "bg-yellow-50",  border: "border-yellow-300"  },
-  B: { label: "Min. Pax Impact",  accent: "#2BA8A2", accentText: "#1E8C86", bg: "bg-teal-50",   border: "border-teal-300"    },
+  B: { label: "Min. Pax Impact",  accent: "#6366F1", accentText: "#4338CA", bg: "bg-indigo-50", border: "border-indigo-300"  },
   C: { label: "Protect Tomorrow", accent: "#5DADE2", accentText: "#1A6FA0", bg: "bg-sky-50",    border: "border-sky-300"     },
 }
 
@@ -96,7 +96,7 @@ function PlanPills({
               className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all disabled:opacity-30 disabled:cursor-not-allowed ${
                 isSel
                   ? `${meta.bg} ${meta.border} shadow-sm`
-                  : "bg-white border-border/50 text-muted-foreground hover:border-teal-300"
+                  : "bg-white border-border/50 text-muted-foreground hover:border-border hover:bg-secondary/50"
               }`}
               style={isSel ? { color: meta.accentText } : {}}
             >
@@ -171,8 +171,8 @@ export function PlanCompare() {
       className="rounded-2xl overflow-hidden"
       style={{
         background: "#ffffff",
-        border: "1.5px solid rgba(43,168,162,0.20)",
-        boxShadow: "0 2px 16px rgba(43,168,162,0.07), 0 1px 3px rgba(0,0,0,0.05)",
+        border: "1px solid #DDDDDD",
+        boxShadow: "0 2px 16px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.05)",
       }}
     >
       {/* Header */}
@@ -180,9 +180,9 @@ export function PlanCompare() {
         <div className="flex items-center gap-3">
           <div
             className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-            style={{ background: "rgba(43,168,162,0.12)", border: "1px solid rgba(43,168,162,0.20)" }}
+            style={{ background: "rgba(13,148,136,0.10)", border: "1px solid rgba(13,148,136,0.15)" }}
           >
-            <BarChart3 className="w-3.5 h-3.5" style={{ color: "#2BA8A2" }} />
+            <BarChart3 className="w-3.5 h-3.5" style={{ color: "#0D9488" }} />
           </div>
           <div>
             <div className="section-title">Plan Comparison</div>

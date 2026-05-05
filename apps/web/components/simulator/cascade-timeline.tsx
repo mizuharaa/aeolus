@@ -18,7 +18,7 @@ function getBarStyle(status: string, cascadeOrder: number) {
   if (cascadeOrder === 2) {
     return "bg-gradient-to-b from-amber-200 to-amber-300 border-amber-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)]"
   }
-  return "bg-gradient-to-b from-teal-500 to-teal-600 border-teal-800 shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]"
+  return "bg-gradient-to-b from-emerald-500 to-emerald-600 border-emerald-800 shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]"
 }
 
 function parseHourUTC(isoStr: string): number {
@@ -59,15 +59,13 @@ export function CascadeTimeline({
   }, [flightStates, schedule])
 
   return (
-    <div className="h-full min-h-0 flex flex-col overflow-hidden bg-gradient-to-br from-slate-50 via-white to-teal-bg/30">
+    <div className="h-full min-h-0 flex flex-col overflow-hidden bg-white">
       {/* Header */}
-      <div className="panel-header shrink-0 border-b-2 border-teal/20 shadow-sm bg-gradient-to-r from-teal-bg/90 via-white to-white">
+      <div className="panel-header shrink-0">
         <div className="flex-1 flex items-center justify-between min-w-0 gap-4">
           <div>
-            <div className="section-title tracking-[0.14em]">Cascade Timeline</div>
-            <div className="text-xs font-semibold text-slate-600 mt-1">
-              18-hour window (UTC)
-            </div>
+            <div className="section-title">Cascade Timeline</div>
+            <div className="text-[10px] text-muted-foreground mt-0.5">18-hour window · UTC</div>
           </div>
 
           {/* Legend */}
@@ -85,9 +83,7 @@ export function CascadeTimeline({
               Cancelled
             </span>
             <span className="flex items-center gap-2 whitespace-nowrap">
-              <span
-                className="w-6 h-3 rounded-sm border border-teal-800 shadow-sm shrink-0 bg-gradient-to-b from-teal-500 to-teal-600"
-              />
+              <span className="w-6 h-3 rounded-sm bg-gradient-to-b from-emerald-500 to-emerald-600 border border-emerald-800 shadow-sm shrink-0" />
               On time
             </span>
           </div>
@@ -97,7 +93,7 @@ export function CascadeTimeline({
       {/* Hour axis */}
       <div
         className="flex border-b border-slate-300/90 shrink-0 bg-slate-100/95 backdrop-blur-[2px]"
-        style={{ boxShadow: "inset 0 -1px 0 rgba(43,168,162,0.12)" }}
+        style={{ boxShadow: "inset 0 -1px 0 rgba(0,0,0,0.06)" }}
       >
         <div className="w-[112px] shrink-0 flex items-center px-3 py-2 border-r border-slate-300/80 bg-slate-100/90">
           <span className="text-[10px] font-bold uppercase tracking-wide text-slate-500">
@@ -142,15 +138,14 @@ export function CascadeTimeline({
                 key={flight.id}
                 className={`flex items-stretch border-b border-slate-200 cursor-pointer transition-colors min-h-[46px] ${
                   rowIdx % 2 === 0 ? "bg-white" : "bg-slate-50/95"
-                } ${isSelected ? "bg-teal-bg/70 ring-inset ring-2 ring-teal/35 z-[1]" : "hover:bg-teal-bg/35"}`}
+                } ${isSelected ? "bg-orange-50/60 ring-inset ring-2 ring-orange-300/60 z-[1]" : "hover:bg-slate-50"}`}
                 onClick={() => onFlightSelect(isSelected ? null : flight.id)}
               >
                 <div className="w-[112px] shrink-0 px-3 py-2 flex flex-col justify-center border-r border-slate-200/90 bg-slate-50/80">
                   <span
                     className={`text-[12px] font-mono font-extrabold leading-tight tracking-tight ${
-                      isSelected ? "text-teal-dark" : "text-slate-900"
+                      isSelected ? "text-orange-700" : "text-slate-900"
                     }`}
-                    style={isSelected ? { color: "#1E8C86" } : {}}
                   >
                     {flight.id}
                   </span>
@@ -180,7 +175,7 @@ export function CascadeTimeline({
 
                   <motion.div
                     className={`absolute top-2 bottom-2 rounded-md border-2 ${style} ${
-                      isSelected ? "ring-2 ring-offset-1 ring-teal/60 ring-offset-white" : ""
+                      isSelected ? "ring-2 ring-offset-1 ring-orange-400/60 ring-offset-white" : ""
                     }`}
                     style={{ left: `${leftPct}%`, width: `${widthPct}%`, minWidth: 6 }}
                     initial={{ opacity: 0 }}

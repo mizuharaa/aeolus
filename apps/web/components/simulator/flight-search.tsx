@@ -115,14 +115,14 @@ export function FlightSearch({ selectedFlight, onSelect }: Props) {
           open ? "" : ""
         }`}
         style={{
-          border: "1.5px solid rgba(43,168,162,0.25)",
+          border: "1px solid #DDDDDD",
           boxShadow: open
-            ? "0 0 0 3px rgba(43,168,162,0.15), 0 4px 16px rgba(43,168,162,0.10)"
+            ? "0 0 0 3px rgba(13,148,136,0.15), 0 4px 16px rgba(0,0,0,0.10)"
             : "0 2px 8px rgba(0,0,0,0.06)",
         }}
       >
         {searching ? (
-          <Loader2 className="w-4 h-4 animate-spin shrink-0" style={{ color: "#2BA8A2" }} />
+          <Loader2 className="w-4 h-4 animate-spin shrink-0" style={{ color: "#0D9488" }} />
         ) : (
           <Search className="w-4 h-4 text-muted-foreground shrink-0" />
         )}
@@ -154,8 +154,8 @@ export function FlightSearch({ selectedFlight, onSelect }: Props) {
         <div
           className="absolute z-[1000] left-0 right-0 mt-2 bg-white rounded-2xl overflow-hidden"
           style={{
-            border: "1.5px solid rgba(43,168,162,0.20)",
-            boxShadow: "0 8px 32px rgba(43,168,162,0.16), 0 2px 8px rgba(0,0,0,0.08)",
+            border: "1px solid #DDDDDD",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)",
           }}
         >
           <div className="max-h-[70vh] overflow-y-auto">
@@ -248,13 +248,13 @@ export function FlightSearch({ selectedFlight, onSelect }: Props) {
                     : cascadeOrder === 0   ? "#F97316"
                     : cascadeOrder >= 1    ? "#FCA5A5"
                     : delay > 0            ? "#F59E0B"
-                    :                        "#2BA8A2"
+                    :                        "#0D9488"
                   return (
                     <button
                       key={f.id}
                       onClick={() => handleSelectScheduled(f.id)}
-                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors hover:bg-teal-bg/50 ${
-                        isSel ? "bg-teal-bg/70" : ""
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors hover:bg-orange-50/40 ${
+                        isSel ? "bg-orange-50/60" : ""
                       }`}
                     >
                       <span className="w-2 h-2 rounded-full shrink-0" style={{ background: dotColor }} />
@@ -294,9 +294,9 @@ export function FlightSearch({ selectedFlight, onSelect }: Props) {
             {!q.trim() && (
               <div
                 className="border-t px-4 py-3"
-                style={{ borderColor: "rgba(43,168,162,0.12)", background: "rgba(43,168,162,0.03)" }}
+                style={{ borderColor: "#DDDDDD", background: "#F7F7F7" }}
               >
-                <div className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: "#2BA8A2" }}>
+                <div className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: "#0D9488" }}>
                   Jump to Airport
                 </div>
                 <div className="flex flex-wrap gap-1.5">
@@ -307,18 +307,18 @@ export function FlightSearch({ selectedFlight, onSelect }: Props) {
                       className="inline-flex items-center gap-1 text-[10px] font-mono px-2.5 py-1 rounded-full border transition-all hover:scale-105"
                       style={{
                         background: "white",
-                        borderColor: "rgba(43,168,162,0.25)",
-                        color: "#1E8C86",
+                        borderColor: "#DDDDDD",
+                        color: "#717171",
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.background = "#2BA8A2"
+                        e.currentTarget.style.background = "#0D9488"
                         e.currentTarget.style.color = "white"
-                        e.currentTarget.style.borderColor = "#2BA8A2"
+                        e.currentTarget.style.borderColor = "#0D9488"
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.background = "white"
-                        e.currentTarget.style.color = "#1E8C86"
-                        e.currentTarget.style.borderColor = "rgba(43,168,162,0.25)"
+                        e.currentTarget.style.color = "#717171"
+                        e.currentTarget.style.borderColor = "#DDDDDD"
                       }}
                     >
                       <MapPin className="w-2.5 h-2.5" />
@@ -333,7 +333,7 @@ export function FlightSearch({ selectedFlight, onSelect }: Props) {
             {q.trim().length < 2 && liveFlights.length > 0 && (
               <div
                 className="px-4 py-2 border-t text-[10px] text-muted-foreground"
-                style={{ borderColor: "rgba(43,168,162,0.10)" }}
+                style={{ borderColor: "#DDDDDD" }}
               >
                 {liveFlights.length.toLocaleString()} live aircraft tracked · type a flight code to search
               </div>

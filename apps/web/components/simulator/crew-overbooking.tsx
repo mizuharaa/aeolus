@@ -54,13 +54,13 @@ interface OverbookingResult {
 
 const card = {
   background: "#ffffff",
-  border: "1.5px solid rgba(43,168,162,0.18)",
-  boxShadow: "0 2px 16px rgba(43,168,162,0.07), 0 1px 3px rgba(0,0,0,0.04)",
+  border: "1px solid #DDDDDD",
+  boxShadow: "0 2px 16px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)",
 }
 
 const STATUS_COLOR: Record<string, string> = {
   optimal:    "#10b981",
-  feasible:   "#2BA8A2",
+  feasible:   "#0D9488",
   heuristic:  "#f59e0b",
   infeasible: "#ef4444",
 }
@@ -171,13 +171,13 @@ export function CrewOverbooking() {
       {/* ── Header ── */}
       <div
         className="px-5 py-4 flex items-center gap-3 flex-shrink-0"
-        style={{ borderBottom: "1px solid rgba(43,168,162,0.14)" }}
+        style={{ borderBottom: "1px solid #DDDDDD" }}
       >
         <div
           className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-          style={{ background: "rgba(43,168,162,0.12)" }}
+          style={{ background: "rgba(13,148,136,0.10)" }}
         >
-          <Users size={18} style={{ color: "#2BA8A2" }} />
+          <Users size={18} style={{ color: "#0D9488" }} />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
@@ -198,7 +198,7 @@ export function CrewOverbooking() {
           disabled={loading || !hasDisruption}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
           style={{
-            background: hasDisruption ? "#2BA8A2" : "#e2e8f0",
+            background: hasDisruption ? "#0D9488" : "#e2e8f0",
             color: hasDisruption ? "#fff" : "#94a3b8",
             cursor: hasDisruption ? "pointer" : "not-allowed",
           }}
@@ -310,7 +310,7 @@ export function CrewOverbooking() {
                 <button
                   onClick={() => setShowAssignments(v => !v)}
                   className="flex items-center gap-2 text-xs font-semibold w-full"
-                  style={{ color: "#2BA8A2" }}
+                  style={{ color: "#0D9488" }}
                 >
                   <CheckCircle2 size={13} />
                   Crew Assignments ({result.covered_assignments.length})
@@ -416,11 +416,11 @@ export function CrewOverbooking() {
           <div className="flex flex-col items-center justify-center py-10 gap-3">
             <div
               className="w-10 h-10 rounded-full flex items-center justify-center"
-              style={{ background: "rgba(43,168,162,0.12)" }}
+              style={{ background: "rgba(13,148,136,0.10)" }}
             >
-              <RefreshCw size={20} className="animate-spin" style={{ color: "#2BA8A2" }} />
+              <RefreshCw size={20} className="animate-spin" style={{ color: "#0D9488" }} />
             </div>
-            <p className="text-sm font-medium" style={{ color: "#2BA8A2" }}>Running CP-SAT solver…</p>
+            <p className="text-sm font-medium" style={{ color: "#0D9488" }}>Running CP-SAT solver…</p>
           </div>
         )}
       </div>

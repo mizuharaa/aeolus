@@ -212,8 +212,8 @@ export function MyFlights({ onFlightSelect }: { onFlightSelect?: (id: string | n
     <div className="rounded-2xl overflow-hidden"
       style={{
         background: "#ffffff",
-        border: "1.5px solid rgba(43,168,162,0.20)",
-        boxShadow: "0 2px 16px rgba(43,168,162,0.07), 0 1px 3px rgba(0,0,0,0.05)",
+        border: "1px solid #DDDDDD",
+        boxShadow: "0 2px 16px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.05)",
       }}
     >
       {/* Header */}
@@ -221,9 +221,9 @@ export function MyFlights({ onFlightSelect }: { onFlightSelect?: (id: string | n
         <div className="flex items-center gap-3">
           <div
             className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-            style={{ background: "rgba(43,168,162,0.12)", border: "1px solid rgba(43,168,162,0.20)" }}
+            style={{ background: "rgba(13,148,136,0.10)", border: "1px solid rgba(13,148,136,0.15)" }}
           >
-            <BookmarkCheck className="w-3.5 h-3.5" style={{ color: "#2BA8A2" }} />
+            <BookmarkCheck className="w-3.5 h-3.5" style={{ color: "#0D9488" }} />
           </div>
           <div>
             <div className="section-title">My Flights</div>
@@ -244,7 +244,7 @@ export function MyFlights({ onFlightSelect }: { onFlightSelect?: (id: string | n
           <button
             onClick={() => { setShowSearch((s) => !s); setQuery("") }}
             className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl transition-all hover:opacity-80"
-            style={{ background: "rgba(43,168,162,0.10)", color: "#2BA8A2" }}
+            style={{ background: "rgba(13,148,136,0.08)", color: "#0D9488" }}
           >
             <Search className="w-3.5 h-3.5" />
             Add flight
@@ -287,7 +287,7 @@ export function MyFlights({ onFlightSelect }: { onFlightSelect?: (id: string | n
                         placeholder="Search by flight ID, tail, or route (e.g. N001NB, KORD)…"
                         className="w-full h-10 pl-9 pr-3 text-sm bg-white border border-border/60 rounded-xl outline-none"
                         style={{ boxShadow: "none" }}
-                        onFocus={(e) => e.currentTarget.style.boxShadow = "0 0 0 3px rgba(43,168,162,0.18)"}
+                        onFocus={(e) => e.currentTarget.style.boxShadow = "0 0 0 3px rgba(13,148,136,0.18)"}
                         onBlur={(e) => e.currentTarget.style.boxShadow = "none"}
                       />
                     </div>
@@ -332,12 +332,12 @@ export function MyFlights({ onFlightSelect }: { onFlightSelect?: (id: string | n
                 <div className="flex flex-col items-center justify-center py-10 text-center">
                   <div
                     className="w-12 h-12 rounded-2xl flex items-center justify-center mb-3"
-                    style={{ background: "rgba(43,168,162,0.08)", border: "1px solid rgba(43,168,162,0.15)" }}
+                    style={{ background: "rgba(0,0,0,0.03)", border: "1px solid #DDDDDD" }}
                   >
-                    <Plane className="w-6 h-6" style={{ color: "#2BA8A2", opacity: 0.4 }} />
+                    <Plane className="w-6 h-6" style={{ color: "#0D9488", opacity: 0.4 }} />
                   </div>
                   <p className="text-sm font-semibold text-foreground/70">No flights tracked yet</p>
-                  <p className="text-xs text-muted-foreground mt-1">Click "Add flight" to watch Nimbus flights and get real-time disruption alerts.</p>
+                  <p className="text-xs text-muted-foreground mt-1">Click &quot;Add flight&quot; to watch Nimbus flights and get real-time disruption alerts.</p>
                 </div>
               ) : (
                 <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}>

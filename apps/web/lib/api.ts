@@ -10,24 +10,24 @@ export const apiClient = {
     return { data: (await res.json()) as T }
   },
 
-  async post(path: string, body?: any) {
+  async post<T = unknown>(path: string, body?: unknown): Promise<{ data: T }> {
     const res = await fetch(`${API_URL}/api/v1${path}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: body ? JSON.stringify(body) : undefined,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
     })
     if (!res.ok) {
       const err = await res.json().catch(() => ({}))
-      throw new Error(err.detail || `API error: ${res.status}`)
+      throw new Error((err as { detail?: string }).detail || `API error: ${res.status}`)
     }
-    return { data: await res.json() }
+    return { data: (await res.json()) as T }
   },
 
-  async del(path: string) {
+  async del<T = unknown>(path: string): Promise<{ data: T }> {
     const res = await fetch(`${API_URL}/api/v1${path}`, {
       method: "DELETE",
     })
     if (!res.ok) throw new Error(`API error: ${res.status}`)
-    return { data: await res.json() }
+    return { data: (await res.json()) as T }
   },
 }

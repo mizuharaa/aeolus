@@ -1,284 +1,354 @@
-@import url('https://fonts.googleapis.com/css2?family=Sofia+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
 @import 'leaflet/dist/leaflet.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Aeolus — Flip7 teal-coral-gold design system */
+/* ══════════════════════════════════════════════════════════════════
+   Aeolus / Nimbus Air OCC — Teal Design System
+   Fonts loaded via <link> in layout.tsx
+   ══════════════════════════════════════════════════════════════════ */
 
 @layer base {
   :root {
-    /* ── Flip7 color palette (CSS variables) ── */
-    --teal:         177 59% 41%;    /* #2BA8A2 */
-    --teal-light:   178 52% 49%;    /* #3CC4BD */
-    --teal-dark:    177 62% 33%;    /* #1E8C86 */
-    --teal-bg:      177 47% 95%;    /* #E8F6F5 */
-    --gold:          47 100% 62%;   /* #FFD23F */
-    --gold-light:    47 100% 73%;   /* #FFE47A */
-    --gold-dark:     47 100% 45%;   /* #E6B800 */
-    --coral:         14  83% 58%;   /* #EF6C4A */
-    --coral-light:   14  83% 70%;   /* #FF8A6A */
-    --coral-dark:    14  61% 51%;   /* #D45233 */
-    --cream:         44 100% 95%;   /* #FFF8E7 */
-    --sky-blue:     204  69% 56%;   /* #5DADE2 */
+    /* ── Nimbus Teal palette ── */
+    --cs-primary:       #0D9488;   /* teal-600 */
+    --cs-primary-hover: #0F766E;   /* teal-700 */
+    --cs-secondary:     #F59E0B;   /* amber — warm accent */
+    --cs-bg:            #FFFFFF;
+    --cs-surface:       #F7F7F7;
+    --cs-surface-raised:#EBEBEB;
+    --cs-border:        #DDDDDD;
+    --cs-text:          #222222;
+    --cs-text-2:        #717171;
+    --cs-neutral:       #767676;
+    --cs-success:       #008A05;
+    --cs-warning:       #E07912;
+    --cs-error:         #C13515;
+
+    /* ── ember-* aliases — components reference these ── */
+    --ember-primary:        var(--cs-primary);
+    --ember-primary-hover:  var(--cs-primary-hover);
+    --ember-accent:         var(--cs-secondary);
+    --ember-bg:             var(--cs-bg);
+    --ember-surface:        var(--cs-surface);
+    --ember-surface-raised: var(--cs-surface-raised);
+    --ember-border:         var(--cs-border);
+    --ember-text:           var(--cs-text);
+    --ember-text-2:         var(--cs-text-2);
+    --ember-neutral:        var(--cs-neutral);
 
     /* ── Tailwind semantic bridge ── */
-    --background:   177 39% 96%;    /* #EFF8F7 surface base */
-    --foreground:   215 28% 17%;    /* #1F2937 */
-
-    --card:           0  0% 100%;   /* #FFFFFF */
-    --card-foreground: 215 28% 17%;
-
-    --primary:      177 59% 41%;    /* teal */
+    --background:   0 0% 100%;
+    --foreground:   0 0% 13%;
+    --card:         0 0% 100%;
+    --card-foreground: 0 0% 13%;
+    --primary:      176 84% 47%;    /* #0D9488 teal */
     --primary-foreground: 0 0% 100%;
-
-    --primary-soft: 177 39% 92%;
-    --secondary:    177 30% 93%;
-    --secondary-foreground: 177 62% 22%;
-
-    --muted:        177 18% 91%;
-    --muted-foreground: 220 9% 46%; /* #6B7280 */
-
-    --accent:        47 100% 62%;   /* gold */
-    --accent-foreground: 177 62% 22%;
-    --accent-warm:   44 100% 90%;
-
-    --destructive:   14  83% 58%;   /* coral */
+    --secondary:    38 92% 50%;     /* #F59E0B amber */
+    --secondary-foreground: 0 0% 100%;
+    --muted:        0 0% 97%;
+    --muted-foreground: 0 0% 44%;
+    --accent:       0 0% 97%;
+    --accent-foreground: 0 0% 13%;
+    --destructive:  4 73% 43%;       /* #C13515 */
     --destructive-foreground: 0 0% 100%;
+    --border:       0 0% 87%;        /* #DDDDDD */
+    --input:        0 0% 87%;
+    --ring:         176 84% 47%;     /* teal ring */
+    --radius:       0.75rem;
 
-    --border:       177 22% 86%;
-    --input:        177 22% 86%;
-    --ring:         177 59% 41%;
-
-    --radius: 1rem;
-
-    /* Aviation semantics */
-    --status-on-time:  152 70% 38%;
-    --status-delayed:   30 95% 50%;
-    --status-cancelled:  0 78% 56%;
-    --status-swapped:   60  3% 35%;
-    --status-airborne: 200 90% 45%;
-
-    /* ── Shadows — Flip7 colored glow system ── */
-    --shadow-nav:        0 2px 8px rgba(0,0,0,0.08);
-    --shadow-sm:         0 2px 8px rgba(0,0,0,0.08);
-    --shadow-md:         0 4px 16px rgba(0,0,0,0.12);
-    --shadow-lg:         0 8px 32px rgba(0,0,0,0.16);
-    --shadow-card:       0 4px 20px rgba(43,168,162,0.10);
-    --shadow-teal-glow:  0 4px 20px rgba(43,168,162,0.30);
-    --shadow-coral-glow: 0 4px 20px rgba(239,108,74,0.35);
-    --shadow-gold-glow:  0 4px 20px rgba(255,210,63,0.40);
-    --shadow-sky-glow:   0 4px 16px rgba(93,173,226,0.30);
-    --shadow-focus:      0 0 0 4px rgba(43,168,162,0.15);
-
-    /* Legacy aliases */
-    --nav-pill-shadow: var(--shadow-nav);
-    --elev-card:       var(--shadow-md);
+    /* ── Shadows ── */
+    --shadow-card:  0 1px 2px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.05);
+    --shadow-hover: 0 2px 4px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.12);
+    --shadow-modal: 0 6px 20px rgba(0,0,0,0.12), 0 16px 40px rgba(0,0,0,0.16);
+    --shadow-coral: 0 4px 16px rgba(13,148,136,0.32);   /* renamed value → teal glow */
+    --shadow-teal:  0 4px 16px rgba(13,148,136,0.32);
+    --shadow-nav:   0 1px 0 var(--cs-border);
   }
 
   html { color-scheme: light; }
-
-  * { @apply border-border; }
+  * { @apply border-border; box-sizing: border-box; }
 
   body {
-    @apply bg-background text-foreground antialiased;
-    font-family: "Sofia Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    font-weight: 400;
-  }
-
-  h1, h2, h3, h4, h5, h6 {
-    font-family: "Sofia Sans", -apple-system, BlinkMacSystemFont, sans-serif;
-    font-weight: 700;
-    letter-spacing: 0.01em;
+    background: var(--cs-bg);
+    color: var(--cs-text);
+    font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
-@layer utilities {
-  /* ─── Surface utilities ───────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════════
+   Shared component primitives
+   ══════════════════════════════════════════════════════════════════ */
 
-  .surface-card {
-    @apply bg-white border rounded-2xl;
-    border-color: rgba(43, 168, 162, 0.15);
-    box-shadow: var(--shadow-card);
-  }
+/* Primary CTA — teal */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 14px;
+  height: 32px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+  background: var(--cs-primary);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 150ms ease, box-shadow 150ms ease;
+  white-space: nowrap;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--cs-primary-hover);
+  box-shadow: var(--shadow-teal);
+}
+.btn-primary:active:not(:disabled) { transform: scale(0.97); }
+.btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
 
-  .surface-card-tight {
-    @apply bg-white border rounded-xl;
-    border-color: rgba(43, 168, 162, 0.15);
-    box-shadow: var(--shadow-card);
-  }
+/* Secondary / outlined */
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 14px;
+  height: 32px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cs-text);
+  background: transparent;
+  border: 1px solid var(--cs-border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease;
+  white-space: nowrap;
+  line-height: 1;
+}
+.btn-secondary:hover:not(:disabled) {
+  background: var(--cs-surface);
+  border-color: #C0C0C0;
+}
+.btn-secondary:disabled { opacity: 0.45; cursor: not-allowed; }
 
-  .surface-floating {
-    @apply bg-white/95 backdrop-blur-md border rounded-xl;
-    border-color: rgba(43, 168, 162, 0.18);
-    box-shadow: var(--shadow-md);
-  }
+/* Gold CTA — amber accent */
+.btn-gold {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 14px;
+  height: 32px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1C1612;
+  background: #F59E0B;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 150ms ease, box-shadow 150ms ease;
+  white-space: nowrap;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.btn-gold:hover:not(:disabled) {
+  background: #D97706;
+  box-shadow: 0 4px 16px rgba(245,158,11,0.38);
+}
+.btn-gold:active:not(:disabled) { transform: scale(0.97); }
+.btn-gold:disabled { opacity: 0.45; cursor: not-allowed; }
 
-  /* Panel section header — teal gradient strip */
-  .panel-header {
-    @apply flex items-center gap-3 px-4 py-3 shrink-0 border-b;
-    border-color: rgba(43, 168, 162, 0.12);
-    background: linear-gradient(135deg, rgba(232,246,245,0.85) 0%, rgba(255,255,255,0.85) 100%);
-  }
+/* Teal button */
+.btn-teal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 14px;
+  height: 32px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+  background: var(--cs-primary);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 150ms ease;
+  white-space: nowrap;
+}
+.btn-teal:hover:not(:disabled) { background: var(--cs-primary-hover); }
+.btn-teal:disabled { opacity: 0.45; cursor: not-allowed; }
 
-  /* ─── Left accent bars (Flip7 card state system) ─────────── */
-  .accent-bar-teal  { border-left: 4px solid #2BA8A2; }
-  .accent-bar-gold  { border-left: 4px solid #FFD23F; }
-  .accent-bar-coral { border-left: 4px solid #EF6C4A; }
-  .accent-bar-sky   { border-left: 4px solid #5DADE2; }
-
-  /* ─── Typography utilities ──────────────────────────────────── */
-
-  .section-title {
-    @apply text-[11px] font-bold uppercase;
-    letter-spacing: 0.1em;
-    color: #2BA8A2;
-  }
-
-  .section-badge {
-    @apply inline-flex items-center gap-2 text-xs font-bold uppercase;
-    letter-spacing: 0.08em;
-    color: #2BA8A2;
-  }
-  .section-badge::before {
-    content: "";
-    width: 6px;
-    height: 6px;
-    border-radius: 9999px;
-    background: #FFD23F;
-    flex-shrink: 0;
-  }
-
-  /* ─── Button styles ─────────────────────────────────────────── */
-
-  /* Gold CTA — primary action */
-  .btn-gold {
-    @apply rounded-full font-bold inline-flex items-center justify-center gap-2 transition-all cursor-pointer;
-    background: linear-gradient(135deg, #FFD23F 0%, #FFE47A 55%, #FFD23F 100%);
-    color: #1E8C86;
-    box-shadow: var(--shadow-gold-glow);
-  }
-  .btn-gold:hover:not(:disabled) {
-    box-shadow: 0 6px 24px rgba(255, 210, 63, 0.55);
-    transform: translateY(-1px);
-  }
-  .btn-gold:active:not(:disabled) { transform: scale(0.96); }
-  .btn-gold:disabled { opacity: 0.5; cursor: not-allowed; }
-
-  /* Teal button */
-  .btn-teal {
-    @apply rounded-full font-semibold inline-flex items-center justify-center gap-2 text-white transition-all;
-    background-color: #2BA8A2;
-    box-shadow: var(--shadow-teal-glow);
-  }
-  .btn-teal:hover:not(:disabled) { background-color: #3CC4BD; transform: translateY(-1px); }
-  .btn-teal:active:not(:disabled) { background-color: #1E8C86; transform: scale(0.96); }
-  .btn-teal:disabled { opacity: 0.5; cursor: not-allowed; }
-
-  /* Coral danger button */
-  .btn-coral {
-    @apply rounded-full font-semibold inline-flex items-center justify-center gap-2 text-white transition-all;
-    background-color: #EF6C4A;
-    box-shadow: var(--shadow-coral-glow);
-  }
-  .btn-coral:hover:not(:disabled) { background-color: #FF8A6A; transform: translateY(-1px); }
-  .btn-coral:active:not(:disabled) { transform: scale(0.96); }
-
-  /* ─── Status pills ───────────────────────────────────────────── */
-  .status-on-time   { @apply text-emerald-700 bg-emerald-50  border-emerald-200; }
-  .status-delayed   { @apply text-orange-700  bg-orange-50   border-orange-200; }
-  .status-cancelled { @apply text-red-700     bg-red-50      border-red-200; }
-  .status-swapped   { @apply text-gray-600    bg-gray-100    border-gray-200; }
-  .status-airborne  { @apply text-sky-700     bg-sky-50      border-sky-200; }
-
-  /* ─── Legacy compatibility ────────────────────────────────────── */
-  .nav-pill-surface { background: #2BA8A2; border-radius: 0; }
-  .text-link  { color: #2BA8A2; }
-  .text-ink   { color: #1F2937; }
-  .text-gradient-editorial {
-    background: linear-gradient(135deg, #1E8C86 0%, #5DADE2 50%, #1E8C86 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-  .gradient-ink { background: linear-gradient(135deg, #1E8C86 0%, #2BA8A2 100%); }
+/* Panel header — used across all side panels */
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--cs-border);
+  background: var(--cs-bg);
+  flex-shrink: 0;
 }
 
-/* ── Leaflet — teal-tinted map chrome ── */
+/* Section title typography */
+.section-title {
+  font-family: 'Nunito Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--cs-text);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.section-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cs-neutral);
+}
+
+/* Card surfaces */
+.ember-card {
+  background: var(--cs-bg);
+  border: 1px solid var(--cs-border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 200ms ease;
+}
+.ember-card:hover { box-shadow: var(--shadow-hover); }
+
+.surface-card {
+  background: var(--cs-bg);
+  border: 1px solid var(--cs-border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-card);
+}
+
+.surface-floating {
+  background: rgba(255,255,255,0.97);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--cs-border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-hover);
+}
+
+/* Monospace — flight IDs, codes */
+.ember-code {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.ember-label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cs-neutral);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Leaflet map
+   ══════════════════════════════════════════════════════════════════ */
+
 .leaflet-container {
-  background: #deeeed !important;
-  font-family: "Sofia Sans", -apple-system, sans-serif;
+  background: #E8E8E4 !important;
+  font-family: 'DM Sans', system-ui, sans-serif;
 }
 
-/*
- * Simulator map shell — clips raster tiles/markers so page scroll never reveals
- * Leaflet layers outside the rounded card (fixes “map escaping” on scroll).
- */
+/* Tightly clip map to its container */
 .simulator-map-shell {
   position: relative;
   overflow: hidden;
   isolation: isolate;
   contain: layout paint;
 }
-.simulator-map-shell .leaflet-container {
-  outline: none;
-}
-.simulator-map-shell .leaflet-control-container {
-  z-index: 1000;
+.simulator-map-shell .leaflet-container { outline: none; }
+.simulator-map-shell .leaflet-control-container { z-index: 1000; }
+
+/* Subtle warm tone for tiles */
+.leaflet-tile {
+  filter: saturate(0.82) brightness(1.03);
 }
 
-/* Cascade timeline — easier to grab than the global 6px rail */
-.cascade-timeline-scroll::-webkit-scrollbar {
-  width: 10px;
+/* Zoom control */
+.leaflet-bar a {
+  background: #fff !important;
+  color: var(--cs-text) !important;
+  border-color: var(--cs-border) !important;
+  font-weight: 600;
 }
-.cascade-timeline-scroll::-webkit-scrollbar-thumb {
-  background: rgba(43, 168, 162, 0.45);
-  border-radius: 9999px;
-  border: 2px solid rgba(255, 255, 255, 0.85);
+.leaflet-bar a:hover {
+  background: var(--cs-surface) !important;
+  color: var(--cs-primary) !important;
 }
-.cascade-timeline-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(30, 140, 134, 0.65);
-}
-.leaflet-control-attribution {
-  background: rgba(255,255,255,0.9) !important;
-  font-size: 9px !important;
-  padding: 1px 4px !important;
-  border-radius: 6px !important;
-}
-.leaflet-tile {
-  filter: saturate(0.85) hue-rotate(4deg) brightness(1.02);
-}
-.leaflet-popup-content-wrapper, .leaflet-tooltip {
-  border-radius: 12px !important;
-  border: 1px solid rgba(43,168,162,0.20) !important;
-  box-shadow: var(--shadow-teal-glow) !important;
+
+/* Tooltips */
+.leaflet-popup-content-wrapper,
+.leaflet-tooltip {
+  border-radius: 8px !important;
+  border: 1px solid var(--cs-border) !important;
+  box-shadow: var(--shadow-hover) !important;
   background: #ffffff !important;
-  color: #1F2937 !important;
+  color: var(--cs-text) !important;
 }
 .leaflet-tooltip {
   padding: 6px 10px !important;
   font-size: 11px !important;
+  font-family: 'DM Sans', sans-serif !important;
 }
 .leaflet-tooltip-top:before,
 .leaflet-tooltip-bottom:before,
 .leaflet-tooltip-left:before,
 .leaflet-tooltip-right:before { display: none; }
-.leaflet-bar a {
-  background: #fff !important;
-  color: #2BA8A2 !important;
-  border-color: rgba(43,168,162,0.25) !important;
+
+.leaflet-control-attribution {
+  background: rgba(255,255,255,0.88) !important;
+  font-size: 9px !important;
+  padding: 1px 4px !important;
+  border-radius: 4px !important;
+  color: var(--cs-neutral) !important;
 }
-.leaflet-bar a:hover { background: #E8F6F5 !important; }
 
-/* Custom scrollbar — teal tint */
-::-webkit-scrollbar { width: 6px; height: 6px; }
+/* ══════════════════════════════════════════════════════════════════
+   Scrollbars
+   ══════════════════════════════════════════════════════════════════ */
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(43,168,162,0.30); border-radius: 9999px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(43,168,162,0.55); }
+::-webkit-scrollbar-thumb {
+  background: var(--cs-border);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover { background: #C0BEBB; }
 
-/* ── Animations ── */
+.cascade-timeline-scroll::-webkit-scrollbar { width: 4px; }
+.cascade-timeline-scroll::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.15);
+  border-radius: 99px;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Animations
+   ══════════════════════════════════════════════════════════════════ */
+
 @keyframes plane-pulse {
-  0%, 100% { transform: scale(1);    opacity: 1; }
+  0%, 100% { transform: scale(1); opacity: 1; }
   50%       { transform: scale(1.18); opacity: 0.85; }
 }
 .animate-plane-pulse { animation: plane-pulse 1.6s ease-in-out infinite; }
@@ -294,19 +364,7 @@
   100% { background-position:  200% 0; }
 }
 .shimmer-bg {
-  background: linear-gradient(90deg, transparent, rgba(43,168,162,0.06), transparent);
+  background: linear-gradient(90deg, transparent, rgba(13,148,136,0.05), transparent);
   background-size: 200% 100%;
   animation: shimmer 2s linear infinite;
 }
-
-@keyframes teal-pulse {
-  0%, 100% { box-shadow: 0 4px 20px rgba(43,168,162,0.18); }
-  50%       { box-shadow: 0 4px 20px rgba(43,168,162,0.48); }
-}
-.animate-teal-pulse { animation: teal-pulse 2s ease-in-out infinite; }
-
-@keyframes gold-glow-pulse {
-  0%, 100% { box-shadow: 0 4px 20px rgba(255,210,63,0.22); }
-  50%       { box-shadow: 0 4px 20px rgba(255,210,63,0.52); }
-}
-.animate-gold-pulse { animation: gold-glow-pulse 2s ease-in-out infinite; }

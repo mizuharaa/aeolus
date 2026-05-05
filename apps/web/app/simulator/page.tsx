@@ -18,25 +18,34 @@ import { apiClient } from "@/lib/api"
 const FlightMap = dynamic(() => import("@/components/simulator/flight-map"), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-full flex items-center justify-center" style={{ background: "#E8F6F5" }}>
+    <div className="w-full h-full flex items-center justify-center" style={{ background: "#F0FDFA" }}>
       <div className="flex flex-col items-center gap-3">
         <div
-          className="w-12 h-12 rounded-full flex items-center justify-center"
-          style={{ background: "#2BA8A2", boxShadow: "0 4px 20px rgba(43,168,162,0.40)" }}
+          className="w-10 h-10 rounded-xl flex items-center justify-center"
+          style={{ background: "#0D9488", boxShadow: "0 4px 16px rgba(13,148,136,0.35)" }}
         >
-          <Loader2 className="w-6 h-6 text-white animate-spin" />
+          <Loader2 className="w-5 h-5 text-white animate-spin" />
         </div>
-        <span className="text-sm font-semibold" style={{ color: "#1E8C86" }}>Loading map…</span>
+        <span className="text-sm font-semibold" style={{ color: "#0D9488", fontFamily: "'DM Sans', sans-serif" }}>
+          Loading map…
+        </span>
       </div>
     </div>
   ),
 })
 
-const card = {
-  background: "#ffffff",
-  border: "1.5px solid rgba(43,168,162,0.20)",
-  boxShadow: "0 2px 16px rgba(43,168,162,0.07), 0 1px 3px rgba(0,0,0,0.05)",
-}
+const NAV_H   = 48   // slim nav height
+const RAIL_L  = 308  // left control rail width
+const RAIL_R  = 340  // right decision rail width
+const STRIP_H = 192  // docked timeline height
+
+const belowCard = {
+  background: "#FFFFFF",
+  border: "1px solid #DDDDDD",
+  borderRadius: 12,
+  overflow: "hidden" as const,
+  boxShadow: "0 1px 2px rgba(0,0,0,0.06)",
+} as const
 
 export default function SimulatorPage() {
   const { flightStates, schedule, setSchedule, setSelectedLiveFlight } = useSimulationStore()
@@ -62,88 +71,136 @@ export default function SimulatorPage() {
   }, [setSchedule])
 
   return (
-    <div className="min-h-screen" style={{ background: "#F0F4F8" }}>
+    <div style={{ background: "#FFFFFF", minHeight: "100vh" }}>
 
-      {/* ── Sticky nav ── */}
+      {/* ── Slim sticky nav ── */}
       <div className="sticky top-0 z-50">
         <SimulatorNav isConnected={isConnected} affectedCount={affectedCount} />
       </div>
 
-      {/* ── Scrollable page content ── */}
-      <div className="px-6 py-6 space-y-5 max-w-[1800px] mx-auto">
+      {/* ══════════════════════════════════════════════════════════
+          MAIN 3-ZONE WORKSPACE
+          Left control rail | Center map hero | Right decision rail
+          ══════════════════════════════════════════════════════════ */}
+      <div
+        style={{
+          height: `calc(100vh - ${NAV_H}px)`,
+          display: "flex",
+          overflow: "hidden",
+          borderBottom: "1px solid #DDDDDD",
+        }}
+      >
 
-        {/* ── Flight search ── */}
-        <div>
-          <FlightSearch selectedFlight={selectedFlight} onSelect={handleFlightSelect} />
-        </div>
-
-        {/* ── Main three-column row ── */}
-        <div
-          className="grid gap-5 items-stretch min-h-0"
-          style={{ gridTemplateColumns: "minmax(280px,1fr) minmax(0,2.4fr) minmax(280px,1fr)" }}
+        {/* LEFT: compact event control rail */}
+        <aside
+          style={{
+            width: RAIL_L,
+            flexShrink: 0,
+            borderRight: "1px solid #DDDDDD",
+            overflowY: "auto",
+            overflowX: "hidden",
+            background: "#FFFFFF",
+            display: "flex",
+            flexDirection: "column",
+          }}
         >
+          <EventPanel />
+        </aside>
 
-          {/* LEFT — Trigger Events */}
-          <div
-            className="rounded-2xl overflow-hidden flex flex-col min-h-0 min-w-0"
-            style={{ ...card, height: "clamp(480px, 58vh, 860px)" }}
-          >
-            <EventPanel />
-          </div>
+        {/* CENTER: map + docked timeline */}
+        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", background: "#F0EDE8" }}>
 
-          {/* CENTER — Flight Map (fixed height column + clip so Leaflet never paints outside the card on scroll) */}
-          <div
-            className="rounded-2xl overflow-hidden relative min-h-0 min-w-0 isolate"
-            style={{ ...card, height: "clamp(480px, 58vh, 860px)" }}
-          >
+          {/* Map — fills all available height above timeline */}
+          <div style={{ flex: 1, position: "relative", minHeight: 0 }}>
+
+            {/* Compact search overlaid on map top-left */}
+            <div
+              style={{
+                position: "absolute",
+                top: 12,
+                left: 12,
+                width: "min(460px, calc(100% - 180px))",
+                zIndex: 500,
+              }}
+            >
+              <FlightSearch selectedFlight={selectedFlight} onSelect={handleFlightSelect} />
+            </div>
+
             <FlightMap selectedFlight={selectedFlight} onFlightSelect={handleFlightSelect} />
           </div>
 
-          {/* RIGHT — Recovery Plans */}
+          {/* Docked cascade timeline strip */}
           <div
-            className="rounded-2xl overflow-hidden flex flex-col min-h-0 min-w-0"
-            style={{ ...card, height: "clamp(480px, 58vh, 860px)" }}
+            style={{
+              height: STRIP_H,
+              flexShrink: 0,
+              borderTop: "1px solid #DDDDDD",
+              background: "#FFFFFF",
+              overflow: "hidden",
+            }}
           >
-            <RecoveryPlans
-              selectedFlight={selectedFlight}
-              onFlightSelect={handleFlightSelect}
-            />
+            <CascadeTimeline selectedFlight={selectedFlight} onFlightSelect={handleFlightSelect} />
           </div>
-
         </div>
 
-        {/* ── Cascade Timeline ── */}
-        <div
-          className="rounded-2xl overflow-hidden flex flex-col min-h-0 min-w-0 shadow-[0_4px_24px_rgba(43,168,162,0.12)] border border-[rgba(43,168,162,0.22)]"
+        {/* RIGHT: recovery decision rail */}
+        <aside
           style={{
-            ...card,
-            minHeight: "min(520px, 70vh)",
-            height: "clamp(400px, 48vh, 720px)",
-            maxHeight: "min(720px, 78vh)",
+            width: RAIL_R,
+            flexShrink: 0,
+            borderLeft: "1px solid #DDDDDD",
+            overflowY: "auto",
+            overflowX: "hidden",
+            background: "#FFFFFF",
+            display: "flex",
+            flexDirection: "column",
           }}
         >
-          <CascadeTimeline
-            selectedFlight={selectedFlight}
-            onFlightSelect={handleFlightSelect}
-          />
-        </div>
-
-        {/* ── My Flights ── */}
-        <MyFlights onFlightSelect={handleFlightSelect} />
-
-        {/* ── Plan Comparison (only renders when 2+ recovery plans exist) ── */}
-        <PlanCompare />
-
-        {/* ── Crew + Passenger row ── */}
-        <div
-          className="grid gap-5"
-          style={{ gridTemplateColumns: "minmax(340px,1fr) minmax(340px,1.6fr)" }}
-        >
-          <CrewOverbooking />
-          <PassengerSolutions />
-        </div>
+          <RecoveryPlans selectedFlight={selectedFlight} onFlightSelect={handleFlightSelect} />
+        </aside>
 
       </div>
+
+      {/* ══════════════════════════════════════════════════════════
+          BELOW FOLD — secondary analysis panels
+          ══════════════════════════════════════════════════════════ */}
+      <div
+        style={{
+          padding: "24px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 20,
+          maxWidth: 1760,
+          margin: "0 auto",
+        }}
+      >
+        {/* ── Below-fold section label ── */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ flex: 1, height: 1, background: "#DDDDDD" }} />
+          <span style={{
+            fontSize: 10, fontFamily: "'DM Sans', sans-serif", fontWeight: 700,
+            letterSpacing: "0.08em", textTransform: "uppercase",
+            color: "#A0AEC0", whiteSpace: "nowrap",
+          }}>
+            Analysis Panels
+          </span>
+          <div style={{ flex: 1, height: 1, background: "#DDDDDD" }} />
+        </div>
+
+        <MyFlights onFlightSelect={handleFlightSelect} />
+        <PlanCompare />
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "minmax(320px, 1fr) minmax(320px, 1.6fr)",
+            gap: 20,
+          }}
+        >
+          <div style={belowCard}><CrewOverbooking /></div>
+          <div style={belowCard}><PassengerSolutions /></div>
+        </div>
+      </div>
+
     </div>
   )
 }

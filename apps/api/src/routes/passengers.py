@@ -239,9 +239,7 @@ async def passenger_impact(request: Request):
     Returns per-flight delay estimates + compensation obligations for all
     currently disrupted flights.
     """
-    engine    = getattr(request.app.state, "engine", None)
-    predictor = getattr(request.app.state, "predictor", None)
-    weather   = getattr(request.app.state, "weather", None)
+    engine = getattr(request.app.state, "engine", None)
 
     flights = _load_flights()
     flights_by_id = {f["id"]: f for f in flights}
@@ -250,23 +248,14 @@ async def passenger_impact(request: Request):
     flight_states: dict       = engine.state.flight_states if engine else {}
     event_kind = active_events[0].get("kind", "") if active_events else ""
 
-    # Get cascade predictions
-    metar_data   = weather.get_all_cached() if weather else {}
-    active_event = active_events[0] if active_events else {}
-    predictions  = (
-        predictor.predict(flights, active_event, metar_data, datetime.utcnow())
-        if predictor else {}
-    )
-
     results = []
     for fid, fstate in flight_states.items():
         if fstate.get("cascade_order", -1) < 0:
             continue
 
-        flight        = flights_by_id.get(fid, {})
-        pred          = predictions.get(fid, {})
-        delay_min     = max(0, int(fstate.get("delay_minutes", pred.get("expected_delay_min", 0))))
-        p_delayed     = pred.get("p_delayed", 0.5)
+        flight    = flights_by_id.get(fid, {})
+        delay_min = max(0, int(fstate.get("delay_minutes", 0)))
+        p_delayed = fstate.get("p_delayed", 0.5)
         is_cancelled  = fstate.get("status") == "cancelled"
         cascade_order = fstate.get("cascade_order", 0)
 

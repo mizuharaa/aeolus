@@ -4,23 +4,26 @@ import { Providers } from "@/components/providers"
 import { Toaster } from "sonner"
 
 export const metadata: Metadata = {
-  title: "Aeolus — Airline Disruption Recovery Engine",
-  description:
-    "Real-time simulation and recovery optimizer for airline disruptions. $34B annual problem solved.",
+  title: "Aeolus — Nimbus Air OCC",
+  description: "Real-time aircraft disruption simulation and recovery engine.",
   openGraph: {
-    title: "Aeolus",
-    description: "Airline disruption simulation and recovery engine",
+    title: "Aeolus — Nimbus Air OCC",
+    description: "Real-time aircraft disruption simulation and recovery engine.",
   },
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body suppressHydrationWarning>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,700;6..12,800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body suppressHydrationWarning className="min-h-screen">
         <Providers>
           {children}
           <Toaster
@@ -30,7 +33,8 @@ export default function RootLayout({
             closeButton
             toastOptions={{
               style: {
-                fontFamily: '"Sofia Sans", Arial, sans-serif',
+                fontFamily: "'DM Sans', system-ui, sans-serif",
+                fontSize: 13,
               },
             }}
           />

@@ -19,7 +19,7 @@ function HeroMap() {
     { x: 530, y: 255, code: "LAX", hot: false },
   ]
   const lines = [
-    { d: "M150,80 Q300,30 450,215",   color: "#EF6C4A", delay: 0.4 },
+    { d: "M150,80 Q300,30 450,215",   color: "#14B8A6", delay: 0.4 },
     { d: "M300,155 Q400,110 530,115", color: "#FFD23F", delay: 0.9 },
     { d: "M240,120 Q390,70 530,115",  color: "#3CC4BD", delay: 1.3 },
     { d: "M150,80 Q210,140 300,155",  color: "#5DADE2", delay: 1.7 },
@@ -54,13 +54,13 @@ function HeroMap() {
         {lines.map((l, i) => (
           <motion.path
             key={i}
+            initial={false}
             d={l.d}
             stroke={l.color}
             strokeWidth="1.8"
             strokeLinecap="round"
             fill="none"
             strokeDasharray="7 5"
-            initial={{ pathLength: 0, opacity: 0 }}
             animate={{ pathLength: 1, opacity: 0.88 }}
             transition={{ duration: 2.2, delay: l.delay }}
           />
@@ -70,17 +70,18 @@ function HeroMap() {
           <g key={ap.code}>
             <motion.circle
               cx={ap.x} cy={ap.y} r="5"
-              fill={ap.hot ? "#EF6C4A" : "rgba(255,255,255,0.88)"}
+              initial={false}
+              fill={ap.hot ? "#14B8A6" : "rgba(255,255,255,0.88)"}
               stroke="rgba(255,255,255,0.20)"
               strokeWidth="1.5"
-              initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ duration: 0.3, delay: 0.3 + idx * 0.1 }}
             />
             <motion.circle
               cx={ap.x} cy={ap.y} r={ap.hot ? 14 : 10}
+              initial={false}
               fill="none"
-              stroke={ap.hot ? "#EF6C4A" : "rgba(255,255,255,0.35)"}
+              stroke={ap.hot ? "#14B8A6" : "rgba(255,255,255,0.35)"}
               strokeWidth="1"
               animate={{
                 r: ap.hot ? [12, 22, 12] : [9, 15, 9],
@@ -102,7 +103,7 @@ function HeroMap() {
 
         <motion.circle
           cx={150} cy={80} r="18"
-          fill="none" stroke="#EF6C4A" strokeWidth="2.5"
+          fill="none" stroke="#14B8A6" strokeWidth="2.5"
           initial={{ scale: 1, opacity: 0.8 }}
           animate={{ scale: 3.5, opacity: 0 }}
           transition={{ duration: 2.2, repeat: Infinity, delay: 2 }}
@@ -111,7 +112,7 @@ function HeroMap() {
 
       {/* Disruption alert */}
       <motion.div
-        initial={{ opacity: 0, y: -14 }}
+        initial={false}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 2.5, duration: 0.5 }}
         className="absolute top-4 left-4 flex items-center gap-2 px-3.5 py-2 rounded-2xl"
@@ -121,8 +122,8 @@ function HeroMap() {
           backdropFilter: "blur(8px)",
         }}
       >
-        <AlertTriangle className="w-3.5 h-3.5 shrink-0" style={{ color: "#FCA5A5" }} />
-        <span className="text-[11px] font-bold" style={{ color: "#FCA5A5" }}>
+        <AlertTriangle className="w-3.5 h-3.5 shrink-0" style={{ color: "#99F6E4" }} />
+        <span className="text-[11px] font-bold" style={{ color: "#99F6E4" }}>
           ORD thunderstorm — 47 flights cascading
         </span>
       </motion.div>
@@ -138,13 +139,13 @@ function HeroMap() {
 
       {/* Recovery plans badge */}
       <motion.div
-        initial={{ opacity: 0, y: 14 }}
+        initial={false}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 3, duration: 0.5 }}
         className="absolute bottom-4 right-4 px-3.5 py-2.5 rounded-2xl"
         style={{
-          background: "rgba(43,168,162,0.20)",
-          border: "1px solid rgba(43,168,162,0.45)",
+          background: "rgba(13,148,136,0.20)",
+          border: "1px solid rgba(13,148,136,0.45)",
           backdropFilter: "blur(8px)",
         }}
       >
@@ -154,7 +155,7 @@ function HeroMap() {
 
       {/* Status pills */}
       <motion.div
-        initial={{ opacity: 0 }}
+        initial={false}
         animate={{ opacity: 1 }}
         transition={{ delay: 3.5 }}
         className="absolute bottom-4 left-4 flex gap-2"
@@ -180,10 +181,10 @@ function HeroMap() {
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
 const stats = [
-  { value: "$34B",  label: "Annual disruption cost (US)", color: "#EF6C4A", delay: 0    },
+  { value: "$34B",  label: "Annual disruption cost (US)", color: "#0D9488", delay: 0    },
   { value: "74%",   label: "Weather-caused delays",       color: "#FFD23F", delay: 0.08 },
   { value: "18h",   label: "Avg cascade duration",        color: "#5DADE2", delay: 0.16 },
-  { value: "<10ms", label: "Recovery plan solve time",    color: "#2BA8A2", delay: 0.24 },
+  { value: "<10ms", label: "Recovery plan solve time",    color: "#0D9488", delay: 0.24 },
 ]
 
 const features = [
@@ -191,8 +192,8 @@ const features = [
     Icon: CloudLightning,
     title: "10 disruption event types",
     desc: "Weather, mechanical AOG, crew sickouts, airspace closures, cyber incidents — all with realistic cascade propagation through aircraft rotations.",
-    accent: "#EF6C4A",
-    accentBg: "rgba(239,108,74,0.08)",
+    accent: "#0D9488",
+    accentBg: "rgba(13,148,136,0.08)",
   },
   {
     Icon: Zap,
@@ -205,8 +206,8 @@ const features = [
     Icon: Shield,
     title: "FAR Part 117 crew legality",
     desc: "Duty-time checks surface violation counts on every plan so you can compare regulatory tradeoffs before committing to a recovery strategy.",
-    accent: "#2BA8A2",
-    accentBg: "rgba(43,168,162,0.08)",
+    accent: "#6366F1",
+    accentBg: "rgba(99,102,241,0.08)",
   },
   {
     Icon: BarChart3,
@@ -228,22 +229,22 @@ const steps = [
 
 export default function LandingPage() {
   return (
-    <main className="min-h-screen overflow-x-hidden" style={{ background: "#EFF8F7" }}>
+    <main className="min-h-screen overflow-x-hidden" style={{ background: "#F7F7F7" }}>
 
       {/* ── Fixed navigation ── */}
       <nav
         className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between h-16 px-6 md:px-10"
         style={{
-          background: "linear-gradient(135deg, #0B3D3A 0%, #1E8C86 100%)",
+          background: "linear-gradient(135deg, #042F2E 0%, #0F766E 100%)",
           boxShadow: "0 2px 20px rgba(0,0,0,0.25)",
         }}
       >
         <div className="flex items-center gap-3">
           <div
             className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-            style={{ background: "#FFD23F", boxShadow: "0 2px 10px rgba(255,210,63,0.45)" }}
+            style={{ background: "#F59E0B", boxShadow: "0 2px 10px rgba(245,158,11,0.45)" }}
           >
-            <Plane className="w-5 h-5" style={{ color: "#1E8C86" }} />
+            <Plane className="w-5 h-5" style={{ color: "#042F2E" }} />
           </div>
           <span className="font-extrabold text-lg text-white tracking-tight">Aeolus</span>
         </div>
@@ -262,12 +263,12 @@ export default function LandingPage() {
       {/* ── Hero ── */}
       <section
         className="relative min-h-screen flex items-center pt-16 pb-24 px-6 md:px-10 overflow-hidden"
-        style={{ background: "linear-gradient(135deg, #0B3D3A 0%, #1A7A74 45%, #2BA8A2 100%)" }}
+        style={{ background: "linear-gradient(135deg, #020D0B 0%, #042F2E 45%, #0D9488 100%)" }}
       >
         {/* Decorative radial glows */}
         <div
           className="absolute -top-32 -right-32 w-[700px] h-[700px] rounded-full pointer-events-none"
-          style={{ background: "radial-gradient(circle, rgba(43,168,162,0.14) 0%, transparent 70%)" }}
+          style={{ background: "radial-gradient(circle, rgba(13,148,136,0.18) 0%, transparent 70%)" }}
         />
         <div
           className="absolute -bottom-32 -left-32 w-[600px] h-[600px] rounded-full pointer-events-none"
@@ -279,7 +280,7 @@ export default function LandingPage() {
           {/* Left: headline + CTA */}
           <div>
             <motion.div
-              initial={{ opacity: 0, y: -8 }}
+              initial={false}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4 }}
               className="inline-flex items-center gap-2.5 mb-7 px-4 py-2 rounded-full"
@@ -290,12 +291,12 @@ export default function LandingPage() {
             >
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               <span className="text-[11px] font-bold text-white/80 tracking-widest uppercase">
-                Nimbus Air · 40 aircraft · 142 daily flights
+                Nimbus Air · 40 aircraft · 200 daily flights
               </span>
             </motion.div>
 
             <motion.h1
-              initial={{ opacity: 0, y: 34 }}
+              initial={false}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.68, delay: 0.08 }}
               className="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.04] mb-6"
@@ -307,7 +308,7 @@ export default function LandingPage() {
             </motion.h1>
 
             <motion.p
-              initial={{ opacity: 0, y: 22 }}
+              initial={false}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.60, delay: 0.22 }}
               className="text-base md:text-lg mb-8 leading-relaxed max-w-xl"
@@ -317,7 +318,7 @@ export default function LandingPage() {
             </motion.p>
 
             <motion.div
-              initial={{ opacity: 0, y: 18 }}
+              initial={false}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.55, delay: 0.35 }}
               className="flex items-center gap-3 flex-wrap"
@@ -340,7 +341,7 @@ export default function LandingPage() {
 
             {/* Micro-stat pills */}
             <motion.div
-              initial={{ opacity: 0 }}
+              initial={false}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.52 }}
               className="flex items-center gap-3 mt-8 flex-wrap"
@@ -364,7 +365,7 @@ export default function LandingPage() {
 
           {/* Right: animated map card */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 24 }}
+            initial={false}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.85, delay: 0.28 }}
           >
@@ -374,7 +375,7 @@ export default function LandingPage() {
 
         {/* Scroll nudge */}
         <motion.div
-          initial={{ opacity: 0 }}
+          initial={false}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.6 }}
           className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
@@ -416,7 +417,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── Features ── */}
-      <section className="py-20 md:py-28 px-6 md:px-10" style={{ background: "#EFF8F7" }}>
+      <section className="py-20 md:py-28 px-6 md:px-10" style={{ background: "#F7F7F7" }}>
         <div className="max-w-6xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 32 }}
@@ -425,8 +426,8 @@ export default function LandingPage() {
             transition={{ duration: 0.55 }}
             className="text-center mb-16"
           >
-            <div className="inline-flex items-center gap-2 mb-5 text-xs font-black uppercase tracking-widest" style={{ color: "#2BA8A2" }}>
-              <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#FFD23F" }} />
+            <div className="inline-flex items-center gap-2 mb-5 text-xs font-black uppercase tracking-widest" style={{ color: "#0D9488" }}>
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#F59E0B" }} />
               System capabilities
             </div>
             <h2
@@ -488,8 +489,8 @@ export default function LandingPage() {
             transition={{ duration: 0.55 }}
             className="text-center mb-14"
           >
-            <div className="inline-flex items-center gap-2 mb-5 text-xs font-black uppercase tracking-widest" style={{ color: "#2BA8A2" }}>
-              <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#FFD23F" }} />
+            <div className="inline-flex items-center gap-2 mb-5 text-xs font-black uppercase tracking-widest" style={{ color: "#0D9488" }}>
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#F59E0B" }} />
               How it works
             </div>
             <h2
@@ -512,14 +513,14 @@ export default function LandingPage() {
               >
                 <div
                   className="absolute -top-2 -right-2 font-black select-none leading-none"
-                  style={{ fontSize: 88, color: "rgba(43,168,162,0.07)" }}
+                  style={{ fontSize: 88, color: "rgba(13,148,136,0.08)" }}
                 >
                   {step.n}
                 </div>
                 <div className="relative">
                   <div
                     className="text-[10px] font-black uppercase tracking-widest mb-3"
-                    style={{ color: "#2BA8A2" }}
+                    style={{ color: "#0D9488" }}
                   >
                     Step {step.n}
                   </div>
@@ -535,7 +536,7 @@ export default function LandingPage() {
       {/* ── CTA ── */}
       <section
         className="py-24 md:py-32 px-6 md:px-10 relative overflow-hidden"
-        style={{ background: "linear-gradient(135deg, #0B3D3A 0%, #1E8C86 60%, #2BA8A2 100%)" }}
+        style={{ background: "linear-gradient(135deg, #020D0B 0%, #042F2E 60%, #0D9488 100%)" }}
       >
         <div
           className="absolute -top-40 right-0 w-[500px] h-[500px] rounded-full pointer-events-none"
@@ -602,9 +603,9 @@ export default function LandingPage() {
           <div className="flex items-center gap-3">
             <div
               className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-              style={{ background: "#FFD23F", boxShadow: "0 2px 10px rgba(255,210,63,0.35)" }}
+              style={{ background: "#F59E0B", boxShadow: "0 2px 10px rgba(245,158,11,0.35)" }}
             >
-              <Plane className="w-5 h-5" style={{ color: "#1E8C86" }} />
+              <Plane className="w-5 h-5" style={{ color: "#042F2E" }} />
             </div>
             <div>
               <div className="text-sm font-bold text-white">Aeolus</div>

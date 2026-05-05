@@ -21,11 +21,11 @@ const PLAN_META = {
   B: {
     label:      "Min. Pax Impact",
     sublabel:   "Best passenger experience",
-    accent:     "#2BA8A2",
-    accentDim:  "rgba(43,168,162,0.10)",
-    accentText: "#1E8C86",
-    border:     "rgba(43,168,162,0.35)",
-    ring:       "rgba(43,168,162,0.55)",
+    accent:     "#6366F1",
+    accentDim:  "rgba(99,102,241,0.10)",
+    accentText: "#4338CA",
+    border:     "rgba(99,102,241,0.35)",
+    ring:       "rgba(99,102,241,0.55)",
   },
   C: {
     label:      "Protect Tomorrow",
@@ -462,8 +462,8 @@ export function RecoveryPlans({
     return (
       <div className="h-full flex flex-col">
         <div className="panel-header">
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(43,168,162,0.12)" }}>
-            <Activity className="w-3.5 h-3.5" style={{ color: "#2BA8A2" }} />
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(13,148,136,0.10)" }}>
+            <Activity className="w-3.5 h-3.5" style={{ color: "#0D9488" }} />
           </div>
           <div>
             <div className="section-title">Recovery Plans</div>
@@ -473,9 +473,9 @@ export function RecoveryPlans({
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
           <div
             className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
-            style={{ background: "linear-gradient(135deg, #E8F6F5 0%, #FFF8E7 100%)", border: "1px solid rgba(43,168,162,0.15)" }}
+            style={{ background: "linear-gradient(135deg, rgba(13,148,136,0.06) 0%, rgba(245,158,11,0.06) 100%)", border: "1px solid #DDDDDD" }}
           >
-            <Sparkles className="w-7 h-7" style={{ color: "#2BA8A2" }} />
+            <Sparkles className="w-7 h-7" style={{ color: "#0D9488" }} />
           </div>
           <p className="text-sm font-bold text-foreground mb-1.5">Awaiting disruption</p>
           <p className="text-xs text-muted-foreground/80 max-w-[200px]">
@@ -491,14 +491,14 @@ export function RecoveryPlans({
     <div className="h-full flex flex-col overflow-hidden">
       {/* Header */}
       <div className="panel-header shrink-0">
-        <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(43,168,162,0.12)" }}>
-          <Activity className="w-3.5 h-3.5" style={{ color: "#2BA8A2" }} />
+        <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(13,148,136,0.10)" }}>
+          <Activity className="w-3.5 h-3.5" style={{ color: "#0D9488" }} />
         </div>
         <div className="flex-1 min-w-0">
           <div className="section-title">Recovery Plans</div>
           {cascadeSummary && (
             <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mt-0.5 flex-wrap">
-              <span className="font-bold" style={{ color: "#EF6C4A" }}>{cascadeSummary.total_affected}</span>
+              <span className="font-bold" style={{ color: "#0D9488" }}>{cascadeSummary.total_affected}</span>
               <span>flights affected ·</span>
               <span>{cascadeSummary.directly_affected} direct ·</span>
               <span>{(cascadeSummary.cascade_1 || 0) + (cascadeSummary.cascade_2 || 0)} cascade</span>
