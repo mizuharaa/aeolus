@@ -2,6 +2,8 @@
 Crew sickout / mass callout disruption event.
 Models mass crew unavailability due to illness, labor action, or crew rest violations.
 """
+import hashlib
+import random
 from datetime import timedelta
 
 from src.events.base import DisruptionEvent, EventKind
@@ -113,8 +115,6 @@ class CrewSickoutEvent(DisruptionEvent):
         Flights whose crew pairings are at affected bases and overlapping
         the sickout window. Returns a proportion based on callout_pct.
         """
-        import random
-
         affected_bases = set(self.params.get("affected_bases", []))
         callout_pct = self.params.get("callout_pct", 15) / 100.0
         start, end = self.event_window()
@@ -143,9 +143,14 @@ class CrewSickoutEvent(DisruptionEvent):
             if flight_in_window and at_affected_base:
                 candidates.append(flight)
 
-        # Probabilistically select based on callout percentage
-        random.seed(42)  # deterministic for given event
-        return [f for f in candidates if random.random() < callout_pct]
+        # Probabilistically select based on callout percentage. Seed from the
+        # event's identity so the result is deterministic per event but two
+        # different sickout events don't pick the identical flight subset, and
+        # the global random stream isn't mutated as a side effect.
+        seed_src = f"{self.id}|{sorted(self.params.items())}".encode()
+        seed = int.from_bytes(hashlib.sha256(seed_src).digest()[:4], "big")
+        rng = random.Random(seed)
+        return [f for f in candidates if rng.random() < callout_pct]
 
     def constraints(self) -> list[dict]:
         return [

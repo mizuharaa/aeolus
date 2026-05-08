@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from src.events.airspace_closure import AirspaceClosureEvent
 from src.events.atc_staffing import ATCStaffingEvent
@@ -70,7 +70,7 @@ def create_event(
     return cls(
         id=event_id or str(uuid.uuid4()),
         kind=event_kind,
-        triggered_at=triggered_at or datetime.utcnow(),
+        triggered_at=triggered_at or datetime.now(timezone.utc),
         params=params,
     )
 

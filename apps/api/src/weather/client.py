@@ -8,7 +8,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import random
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 import httpx
@@ -167,7 +167,7 @@ class WeatherClient:
                     result[station] = metar
                     self._cache[station] = metar
 
-            self._last_fetch = datetime.utcnow()
+            self._last_fetch = datetime.now(timezone.utc)
             logger.info("Fetched METARs for %d airports", len(result))
             return result
 
@@ -225,7 +225,7 @@ class WeatherClient:
             result[aid] = MetarData(
                 {
                     "station_id": aid,
-                    "observation_time": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    "observation_time": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
                     "temp_c": rng.uniform(5.0, 28.0),
                     "dewpoint_c": rng.uniform(0.0, 18.0),
                     "wind_dir_degrees": rng.randint(0, 359),
@@ -270,4 +270,4 @@ class WeatherClient:
         """Return how many seconds ago the cache was last populated."""
         if self._last_fetch is None:
             return None
-        return (datetime.utcnow() - self._last_fetch).total_seconds()
+        return (datetime.now(timezone.utc) - self._last_fetch).total_seconds()

@@ -335,51 +335,52 @@ function RecoveryBanner({ plan, onUnapply }: { plan: RecoveryPlan; onUnapply: ()
     : `$${(plan.total_cost_usd / 1000).toFixed(0)}K`
 
   return (
-    <div className="absolute top-0 left-0 right-0 z-[450] px-3 pt-3">
+    // Banner anchored to top-right — leaves the left where FlightSearch lives
+    <div className="absolute top-3 right-3 z-[450]" style={{ maxWidth: 560, left: "min(460px, calc(50% - 40px))" }}>
       <div
-        className="rounded-2xl px-4 py-3 flex items-center gap-3 flex-wrap"
+        className="rounded-2xl px-3 py-2.5 flex items-center gap-2.5 flex-wrap"
         style={{
-          background: "rgba(8,25,22,0.92)",
+          background: "rgba(8,25,22,0.95)",
           backdropFilter: "blur(16px)",
           border: `1.5px solid ${meta.border}`,
           boxShadow: `0 6px 28px ${meta.colorDim}, 0 2px 8px rgba(0,0,0,0.30)`,
         }}
       >
-        {/* Animated checkmark + plan badge */}
-        <div className="flex items-center gap-2.5 shrink-0">
+        {/* Plan badge */}
+        <div className="flex items-center gap-2 shrink-0">
           <div
-            className="w-8 h-8 rounded-full flex items-center justify-center text-base font-black shrink-0"
+            className="w-7 h-7 rounded-full flex items-center justify-center text-sm font-black shrink-0"
             style={{ background: meta.colorDim, border: `1.5px solid ${meta.border}`, color: meta.color }}
           >
             ✓
           </div>
           <div>
-            <div className="text-[10px] font-black uppercase tracking-widest" style={{ color: meta.color }}>
+            <div className="text-[9px] font-black uppercase tracking-widest leading-none" style={{ color: meta.color }}>
               Plan {plan.plan_id} Applied
             </div>
-            <div className="text-xs font-bold text-white leading-tight">{meta.label}</div>
+            <div className="text-[11px] font-bold text-white leading-tight">{meta.label}</div>
           </div>
         </div>
 
         {/* Separator */}
-        <div className="hidden sm:block w-px h-8 shrink-0" style={{ background: "rgba(255,255,255,0.12)" }} />
+        <div className="hidden sm:block w-px h-7 shrink-0" style={{ background: "rgba(255,255,255,0.12)" }} />
 
         {/* Metrics row */}
-        <div className="flex items-center gap-4 flex-wrap flex-1 min-w-0">
-          <MetricChip icon="💵" label="Est. cost" value={cost} color="#FCD34D" />
+        <div className="flex items-center gap-3 flex-wrap flex-1 min-w-0">
+          <MetricChip icon="💵" label="Cost" value={cost} color="#FCD34D" />
           {(plan.cancelled_flights?.length ?? 0) > 0 && (
-            <MetricChip icon="✕" label="Cancelled" value={String(plan.cancelled_flights.length)} color="#F87171" />
+            <MetricChip icon="✕" label="Canc." value={String(plan.cancelled_flights.length)} color="#F87171" />
           )}
           {(plan.delayed_flights?.length ?? 0) > 0 && (
-            <MetricChip icon="⏱" label="Delayed" value={String(plan.delayed_flights.length)} color="#FB923C" />
+            <MetricChip icon="⏱" label="Delay" value={String(plan.delayed_flights.length)} color="#FB923C" />
           )}
           {(plan.aircraft_swaps?.length ?? 0) > 0 && (
-            <MetricChip icon="↕" label="Swapped" value={String(plan.aircraft_swaps.length)} color={meta.color} />
+            <MetricChip icon="↕" label="Swap" value={String(plan.aircraft_swaps.length)} color={meta.color} />
           )}
           <MetricChip
             icon={plan.crew_violations > 0 ? "⚠" : "✓"}
             label="FAR 117"
-            value={plan.crew_violations > 0 ? `${plan.crew_violations} viol.` : "OK"}
+            value={plan.crew_violations > 0 ? `${plan.crew_violations}v` : "OK"}
             color={plan.crew_violations > 0 ? "#FB923C" : "#4ADE80"}
           />
         </div>
@@ -387,11 +388,11 @@ function RecoveryBanner({ plan, onUnapply }: { plan: RecoveryPlan; onUnapply: ()
         {/* Unapply */}
         <button
           onClick={onUnapply}
-          className="shrink-0 text-[11px] font-bold px-3 py-1.5 rounded-full transition-all hover:opacity-75"
+          className="shrink-0 text-[11px] font-bold px-3 py-1.5 rounded-full transition-all hover:bg-white/20 whitespace-nowrap"
           style={{
-            background: "rgba(255,255,255,0.08)",
-            border: "1px solid rgba(255,255,255,0.18)",
-            color: "rgba(255,255,255,0.65)",
+            background: "rgba(255,255,255,0.10)",
+            border: "1px solid rgba(255,255,255,0.25)",
+            color: "rgba(255,255,255,0.90)",
           }}
         >
           × Unapply
@@ -420,10 +421,12 @@ function FlightDetailCard({
   applied: { cancelled: Set<string>; swap: Set<string>; delayed: Map<string, number> }
   onClose: () => void
 }) {
-  const isCancelled = applied.cancelled.has(flight.id) || state?.status === "cancelled"
+  const isPlanCancelled    = applied.cancelled.has(flight.id)
+  const isCascadeCancelled = !isPlanCancelled && state?.status === "cancelled"
+  const isCancelled        = isPlanCancelled || isCascadeCancelled
   const isSwapped   = applied.swap.has(flight.id)
   const planDelay   = applied.delayed.get(flight.id)
-  const delayMin    = planDelay ?? state?.delay_minutes ?? 0
+  const delayMin    = isCancelled ? 0 : (planDelay ?? state?.delay_minutes ?? 0)
   const cascOrder   = state?.cascade_order ?? -1
   const pDelay      = state?.p_delayed ?? 0
 
@@ -431,7 +434,8 @@ function FlightDetailCard({
   const dAp = NIMBUS_AIRPORTS[flight.destination]
 
   let actionLabel = "", actionColor = "#0D9488", actionIcon = ""
-  if (isCancelled)         { actionLabel = "Cancelled by recovery plan"; actionColor = "#EF4444"; actionIcon = "✕" }
+  if (isPlanCancelled)     { actionLabel = "Cancelled by recovery plan"; actionColor = "#EF4444"; actionIcon = "✕" }
+  else if (isCascadeCancelled){ actionLabel = "Grounded by disruption"; actionColor = "#EF4444"; actionIcon = "✕" }
   else if (isSwapped)      { actionLabel = "Aircraft swapped by plan";   actionColor = "#6366F1"; actionIcon = "↕" }
   else if (planDelay)      { actionLabel = `Delayed +${planDelay} min by plan`; actionColor = "#F59E0B"; actionIcon = "⏱" }
   else if (cascOrder === 0){ actionLabel = "Direct impact — epicenter"; actionColor = "#F97316"; actionIcon = "⚡" }
@@ -440,7 +444,7 @@ function FlightDetailCard({
   return (
     <div
       className="absolute z-[450] w-72"
-      style={{ top: appliedPlan ? 88 : 12, right: 12 }}
+      style={{ top: appliedPlan ? 72 : 12, right: 12 }}
     >
       <div
         className="rounded-2xl overflow-hidden"
@@ -550,24 +554,26 @@ function FlightDetailCard({
             ))}
           </div>
 
-          {/* P(delay) bar */}
-          <div
-            className="rounded-xl p-2.5 mb-2.5"
-            style={{ background: "rgba(0,166,153,0.05)", border: "1px solid rgba(0,166,153,0.12)" }}
-          >
-            <div className="flex items-center justify-between mb-1.5">
-              <div className="text-[10px] text-muted-foreground">Delay probability</div>
-              <div className="text-[11px] font-black font-mono" style={{ color: pDelay > 0.6 ? "#F97316" : "#0D9488" }}>
-                {(pDelay * 100).toFixed(0)}%
+          {/* P(delay) bar — hidden for cancelled flights */}
+          {!isCancelled && (
+            <div
+              className="rounded-xl p-2.5 mb-2.5"
+              style={{ background: "rgba(0,166,153,0.05)", border: "1px solid rgba(0,166,153,0.12)" }}
+            >
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="text-[10px] text-muted-foreground">Impact probability</div>
+                <div className="text-[11px] font-black font-mono" style={{ color: pDelay > 0.6 ? "#F97316" : "#0D9488" }}>
+                  {(pDelay * 100).toFixed(0)}%
+                </div>
+              </div>
+              <div className="h-1.5 rounded-full" style={{ background: "rgba(0,166,153,0.15)" }}>
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{ width: `${pDelay * 100}%`, background: pDelay > 0.6 ? "#F97316" : "#0D9488" }}
+                />
               </div>
             </div>
-            <div className="h-1.5 rounded-full" style={{ background: "rgba(0,166,153,0.15)" }}>
-              <div
-                className="h-full rounded-full transition-all duration-500"
-                style={{ width: `${pDelay * 100}%`, background: pDelay > 0.6 ? "#F97316" : "#0D9488" }}
-              />
-            </div>
-          </div>
+          )}
 
           {/* Recovery action tag */}
           {actionLabel && (
@@ -846,12 +852,14 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
     if (hasActiveEvents) setShowSimulation(true)
   }, [hasActiveEvents, setShowSimulation])
 
-  // Color by cascade/plan state
+  // Color by cascade/plan state.
+  // Plan colors (red/indigo/amber) ONLY appear after a plan is explicitly applied.
+  // Cascade colors (orange/yellow) appear as soon as an event fires.
   function cascColor(fid: string, state: any): string {
-    if (applied.cancelled.has(fid) || state?.status === "cancelled") return "#EF4444"
+    if (applied.cancelled.has(fid)) return "#EF4444"
     if (applied.swap.has(fid)) return "#6366F1"
     if (applied.delayed.has(fid)) return "#F59E0B"
-    if (!state) return "#22C55E"
+    if (!state || state.cascade_order < 0) return "#22C55E"
     if (state.cascade_order === 0) return "#F97316"
     if (state.cascade_order === 1) return "#FBBF24"
     if (state.cascade_order >= 2) return "#FDE68A"
@@ -865,7 +873,7 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
     for (const f of schedule) {
       const state = flightStates[f.id]
       const isCancelled = applied.cancelled.has(f.id)
-      const isAffected = state && (state.cascade_order >= 0 || state.status === "cancelled" || isCancelled || applied.delayed.has(f.id) || applied.swap.has(f.id))
+      const isAffected = state && (state.cascade_order >= 0 || isCancelled || applied.delayed.has(f.id) || applied.swap.has(f.id))
       if (!isAffected) continue
       const o = NIMBUS_AIRPORTS[f.origin], d = NIMBUS_AIRPORTS[f.destination]
       if (!o || !d) continue
@@ -878,7 +886,7 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
         color,
         weight: sel ? 4 : state?.cascade_order === 0 ? 2.5 : 2,
         opacity: sel ? 1 : state?.cascade_order === 0 ? 0.85 : 0.60,
-        dashed: isCancelled || state?.status === "cancelled",
+        dashed: isCancelled,
       })
       ids.add(f.id)
     }
@@ -943,10 +951,11 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
 
   const selState = selectedSched ? flightStates[selectedSched.id] : undefined
   const selArcColor = selectedSched
-    ? applied.cancelled.has(selectedSched.id) || selState?.status === "cancelled" ? "#EF4444"
+    ? applied.cancelled.has(selectedSched.id) ? "#EF4444"
     : applied.swap.has(selectedSched.id) ? "#6366F1"
     : applied.delayed.has(selectedSched.id) ? "#F59E0B"
     : selState?.cascade_order === 0 ? "#F97316"
+    : selState?.cascade_order != null && selState.cascade_order >= 1 ? "#FBBF24"
     : "#0D9488"
     : "#0D9488"
 
@@ -1035,7 +1044,7 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
               positions={selectedArc}
               pathOptions={{
                 color: selArcColor, weight: 3.5, opacity: 0.95,
-                dashArray: applied.cancelled.has(selectedSched!.id) || selState?.status === "cancelled" ? "12 7" : undefined,
+                dashArray: applied.cancelled.has(selectedSched!.id) ? "12 7" : undefined,
               }}
             />
           </>
@@ -1076,8 +1085,7 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
         {simPlanes.map(({ id, f, lat, lon, brg }) => {
           const state = flightStates[id]
           const sel = selectedFlight === id
-          const cascOrder = applied.cancelled.has(id) || state?.status === "cancelled" ? 0
-            : state?.cascade_order ?? -1
+          const cascOrder = applied.cancelled.has(id) ? 0 : state?.cascade_order ?? -1
           return (
             <Marker key={`sim-${id}`} position={[lat, lon]}
               icon={simIcon(cascColor(id, state), brg, sel, cascOrder)}
@@ -1136,7 +1144,7 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
 
       {/* When plan is active, show compact event list at top-left */}
       {activePlan && hasActiveEvents && (
-        <div className="absolute top-20 left-3 z-[450]" style={{ maxWidth: 240 }}>
+        <div className="absolute top-3 left-3 z-[450]" style={{ maxWidth: 240 }}>
           <div
             className="rounded-xl px-3 py-2"
             style={{

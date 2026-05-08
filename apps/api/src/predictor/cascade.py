@@ -20,6 +20,7 @@ estimates; the rotation propagation still drives delay_minutes.
 """
 from __future__ import annotations
 
+import hashlib
 import logging
 from collections import defaultdict
 from datetime import datetime
@@ -172,8 +173,16 @@ class CascadePredictor:
         affected_airports: set[str] = set()
         affected_tail: str = ""
         destination_airport: str = ""
+        _crew_callout_frac: float = 0.0  # set by crew_sickout / labor_action branch
 
-        if kind in ("weather_closure", "security_event", "runway_closure", "airspace_closure"):
+        # Airport-based events (origin or destination at the affected airport)
+        _airport_event_kinds = (
+            "weather_closure", "security_event", "runway_closure", "airspace_closure",
+            # Extended weather types
+            "thunderstorm", "blizzard", "sandstorm", "dense_fog", "wind_shear",
+            "hurricane", "deicing_shortage", "fuel_contamination", "airport_emergency",
+        )
+        if kind in _airport_event_kinds:
             ap = params.get("airport", "")
             if ap:
                 affected_airports.add(ap)
@@ -192,10 +201,24 @@ class CascadePredictor:
             if loc:
                 affected_airports.add(loc)
 
-        elif kind == "crew_sickout":
+        elif kind == "bird_strike":
+            # Specific tail grounded + airport affected
+            tail = params.get("aircraft_tail", "")
+            if tail:
+                affected_tail = tail
+            ap = params.get("airport", "")
+            if ap:
+                affected_airports.add(ap)
+
+        elif kind in ("crew_sickout", "labor_action"):
             base = params.get("base", params.get("airport", ""))
             if base:
                 affected_airports.add(base)
+            # callout_pct drives both which flights lose crew and how long delays are
+            # UI sends "percent_affected"; YAML scenarios may use "callout_pct"
+            _crew_callout_frac = float(
+                params.get("callout_pct", params.get("percent_affected", 15))
+            ) / 100.0
 
         elif kind == "atc_staffing":
             facility = params.get("facility_id", params.get("sector_or_airport", ""))
@@ -207,6 +230,11 @@ class CascadePredictor:
         elif kind == "volcanic_ash":
             # West-coast airports as default affected zone
             for ap in ("KSEA", "KSFO", "KLAX", "KPDX"):
+                affected_airports.add(ap)
+
+        elif kind == "wind_shear":
+            ap = params.get("airport", "")
+            if ap:
                 affected_airports.add(ap)
 
         elif kind == "cyber_incident":
@@ -231,7 +259,10 @@ class CascadePredictor:
 
         # Cyber: fraction of flights affected
         cyber_frac = float(params.get("degradation_pct", 60)) / 100.0 * sev_mult
-        rng = np.random.default_rng(seed=abs(hash(str(event))) % (2 ** 31))
+        # Stable seed: built-in hash() is salted per-process via PYTHONHASHSEED,
+        # so reproducibility across runs requires a deterministic digest.
+        seed_bytes = hashlib.sha256(repr(sorted(event.items())).encode()).digest()
+        rng = np.random.default_rng(seed=int.from_bytes(seed_bytes[:4], "big"))
 
         for fl in flights:
             fid = fl["id"]
@@ -258,11 +289,25 @@ class CascadePredictor:
                 if rng.random() < cyber_frac:
                     is_direct = True
 
+            # Crew sickout: callout_pct governs which flights actually lose their crew.
+            # A 50% callout means ~50% of base-airport flights are uncovered; 80% → ~80%.
+            # Without this, every base flight is affected regardless of sickout severity.
+            if kind in ("crew_sickout", "labor_action") and is_direct and _crew_callout_frac > 0:
+                if rng.random() > _crew_callout_frac:
+                    is_direct = False
+
             if not is_direct:
                 continue
 
             # ── Compute direct delay ──────────────────────────────────────
             base_delay_min = event_dur_min * base_frac * sev_mult
+
+            # Crew sickout: scale delay by how depleted reserves are.
+            # More sick crew → reserve pool exhausted faster → longer average delay.
+            # Formula: 0.4 + 0.6 * callout_frac  →  10%→×0.46, 50%→×0.70, 80%→×0.88
+            if kind in ("crew_sickout", "labor_action") and _crew_callout_frac > 0:
+                sickout_scale = 0.4 + 0.6 * _crew_callout_frac
+                base_delay_min *= sickout_scale
 
             # Runway closure reduces throughput — not full closure
             if kind == "runway_closure" and capacity_cut > 0:
@@ -297,8 +342,10 @@ class CascadePredictor:
             if fl is None:
                 continue
             p_del = _p_delayed_for_order(0, sev_mult)
+            # Per-flight jitter so every direct hit isn't identical (±4%)
+            fid_jitter = ((int(hashlib.sha256(fid.encode()).hexdigest()[:8], 16) % 80) - 40) / 1000.0
             results[fid] = {
-                "p_delayed":          round(min(0.99, p_del), 4),
+                "p_delayed":          round(min(0.99, max(0.50, p_del + fid_jitter)), 4),
                 "expected_delay_min": delay,
                 "cascade_order":      0,
                 "reason":             _reason(kind, 0, params),
@@ -348,8 +395,9 @@ class CascadePredictor:
                 if propagated > 0:
                     cascade_order = min(2, carry_order + 1)
                     p_del = _p_delayed_for_order(cascade_order, sev_mult)
+                    fid_jitter = ((int(hashlib.sha256(fid.encode()).hexdigest()[:8], 16) % 80) - 40) / 1000.0
                     results[fid] = {
-                        "p_delayed":          round(min(0.85, p_del), 4),
+                        "p_delayed":          round(min(0.85, max(0.05, p_del + fid_jitter)), 4),
                         "expected_delay_min": int(propagated),
                         "cascade_order":      cascade_order,
                         "reason":             _reason(kind, cascade_order, params),

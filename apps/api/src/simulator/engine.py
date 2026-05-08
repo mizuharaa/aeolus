@@ -11,7 +11,7 @@ import json
 import logging
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -29,7 +29,7 @@ class SimulationState:
     """Mutable simulation state — mutated in place as events are triggered."""
 
     sim_time: datetime = field(
-        default_factory=lambda: datetime.utcnow().replace(hour=6, minute=0, second=0, microsecond=0)
+        default_factory=lambda: datetime.now(timezone.utc).replace(hour=6, minute=0, second=0, microsecond=0)
     )
     active_events: list[dict] = field(default_factory=list)
     flight_states: dict[str, dict] = field(default_factory=dict)
@@ -169,7 +169,7 @@ class SimulationEngine:
         event = {
             **event,
             "id": event.get("id") or str(uuid.uuid4()),
-            "triggered_at": datetime.utcnow().isoformat(),
+            "triggered_at": datetime.now(timezone.utc).isoformat(),
         }
         self.state.active_events.append(event)
         self.state.event_history.append(event)
@@ -198,7 +198,7 @@ class SimulationEngine:
             flights=flights_list,
             event=event,
             metar_data=metar_data,
-            current_time=datetime.utcnow(),
+            current_time=datetime.now(timezone.utc),
         )
 
         orders = [p.get("cascade_order", -1) for p in predictions.values()]
@@ -263,7 +263,7 @@ class SimulationEngine:
             "cascade_summary": cascade_summary,
             "recovery_plans": self.state.recovery_plans,
             "predictions": predictions,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
         await self._broadcast(update)
@@ -390,7 +390,8 @@ class SimulationEngine:
                 {
                     "type": "crew_unavailable",
                     "affected_bases": params.get("affected_bases", []),
-                    "callout_pct": params.get("callout_pct", 15),
+                    # UI sends "percent_affected"; YAML scenarios use "callout_pct"
+                    "callout_pct": params.get("callout_pct", params.get("percent_affected", 15)),
                     "duration_hours": params.get("duration_hours", 24),
                 }
             )

@@ -48,7 +48,7 @@ const belowCard = {
 } as const
 
 export default function SimulatorPage() {
-  const { flightStates, schedule, setSchedule, setSelectedLiveFlight } = useSimulationStore()
+  const { flightStates, schedule, setSchedule, setSelectedLiveFlight, appliedPlanId } = useSimulationStore()
   const { isConnected } = useWebSocket()
   const [selectedFlight, setSelectedFlight] = useState<string | null>(null)
 
@@ -113,14 +113,15 @@ export default function SimulatorPage() {
           {/* Map — fills all available height above timeline */}
           <div style={{ flex: 1, position: "relative", minHeight: 0 }}>
 
-            {/* Compact search overlaid on map top-left */}
+            {/* Compact search overlaid on map — shifts down when recovery banner is active */}
             <div
               style={{
                 position: "absolute",
-                top: 12,
+                top: appliedPlanId ? 76 : 12,
                 left: 12,
-                width: "min(460px, calc(100% - 180px))",
+                width: "min(420px, calc(100% - 200px))",
                 zIndex: 500,
+                transition: "top 0.2s ease",
               }}
             >
               <FlightSearch selectedFlight={selectedFlight} onSelect={handleFlightSelect} />

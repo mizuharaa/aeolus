@@ -1,6 +1,6 @@
 """Simulator control endpoints."""
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -42,7 +42,7 @@ async def trigger_disruption(payload: TriggerRequest, request: Request):
         "cyber_incident": {"airline": "NimbusAir", "degradation_pct": 60, "duration_hours": 12},
     }
     merged = {**DEFAULT_PARAMS.get(payload.kind, {}), **payload.params}
-    event = {"id": str(uuid.uuid4()), "kind": payload.kind, "triggered_at": datetime.utcnow().isoformat(), "params": merged}
+    event = {"id": str(uuid.uuid4()), "kind": payload.kind, "triggered_at": datetime.now(timezone.utc).isoformat(), "params": merged}
     result = await engine.trigger_event(event, predictor, optimizer, weather)
     return result
 
@@ -119,7 +119,7 @@ async def load_scenario(scenario_name: str, request: Request):
         event = {
             "id": str(uuid.uuid4()),
             "kind": ev_def["kind"],
-            "triggered_at": datetime.utcnow().isoformat(),
+            "triggered_at": datetime.now(timezone.utc).isoformat(),
             "params": ev_def.get("params", {}),
             "scenario": scenario_name,
         }

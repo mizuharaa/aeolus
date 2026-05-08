@@ -3,7 +3,7 @@ Base classes for all Aeolus disruption events.
 """
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any
 
@@ -41,7 +41,7 @@ class DisruptionEvent(BaseModel):
 
     id: str = Field(default="", description="UUID assigned at trigger time")
     kind: EventKind
-    triggered_at: datetime = Field(default_factory=datetime.utcnow)
+    triggered_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     params: dict[str, Any] = Field(default_factory=dict)
 
     # ------------------------------------------------------------------

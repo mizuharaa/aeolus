@@ -64,7 +64,7 @@ async def solve_recovery(payload: SolveRequest, request: Request):
     )
     metar_data = weather.get_all_cached() if weather else {}
     event = active_events[0] if active_events else {}
-    predictions = predictor.predict(flights, event, metar_data, datetime.datetime.utcnow()) if predictor else {}
+    predictions = predictor.predict(flights, event, metar_data, datetime.datetime.now(datetime.timezone.utc)) if predictor else {}
 
     plans = optimizer.solve(
         schedule=flights,
@@ -131,7 +131,7 @@ async def solve_crew_overbooking(request: Request):
     metar_data  = weather.get_all_cached() if weather else {}
     active_ev   = active_events[0] if active_events else {}
     predictions = (
-        predictor.predict(flights, active_ev, metar_data, datetime.datetime.utcnow())
+        predictor.predict(flights, active_ev, metar_data, datetime.datetime.now(datetime.timezone.utc))
         if predictor else {}
     )
 

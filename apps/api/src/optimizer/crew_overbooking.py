@@ -21,7 +21,7 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from ortools.sat.python import cp_model
@@ -149,7 +149,7 @@ class CrewOverbookingOptimizer:
                 arr = datetime.fromisoformat(arr_str.replace("Z", "+00:00"))
                 ft_min = int((arr - dep).total_seconds() / 60)
             except (ValueError, AttributeError):
-                dep = datetime.utcnow()
+                dep = datetime.now(timezone.utc)
                 arr = dep + timedelta(hours=2)
                 ft_min = 120
 

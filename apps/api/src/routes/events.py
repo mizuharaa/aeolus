@@ -1,6 +1,6 @@
 """Disruption event endpoints."""
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -87,7 +87,7 @@ async def trigger_event(payload: TriggerEventRequest, request: Request):
     event = {
         "id": str(uuid.uuid4()),
         "kind": payload.kind,
-        "triggered_at": datetime.utcnow().isoformat(),
+        "triggered_at": datetime.now(timezone.utc).isoformat(),
         "params": merged_params,
     }
 
