@@ -7,6 +7,7 @@ import {
   ChevronDown, ChevronUp, TrendingDown, Repeat2, UserCheck, AlertTriangle,
 } from "lucide-react"
 import { useSimulationStore } from "@/stores/simulation"
+import { airportLabel, aircraftLabel } from "@/lib/labels"
 
 const PLAN_META = {
   A: {
@@ -149,6 +150,19 @@ function PlanCard({
 }) {
   const [expanded, setExpanded] = useState(false)
   const meta = PLAN_META[plan.plan_id as keyof typeof PLAN_META] || PLAN_META.A
+  const { schedule, fleet } = useSimulationStore()
+  // Build flight_id → "ORG → DST (City → City)" lookup once per render so the
+  // cancellation/delay chips can show route context next to the bare ID.
+  const flightRoute = (fid: string): { codes: string; cities: string } => {
+    const f = schedule.find((x) => x.id === fid)
+    if (!f) return { codes: "", cities: "" }
+    const o = airportLabel(f.origin)
+    const d = airportLabel(f.destination)
+    return {
+      codes: `${o.iata || f.origin} → ${d.iata || f.destination}`,
+      cities: o.city && d.city ? `${o.city} → ${d.city}` : "",
+    }
+  }
 
   const cancelled = plan.cancelled_flights?.length  || 0
   const delayed   = plan.delayed_flights?.length    || 0
@@ -383,15 +397,22 @@ function PlanCard({
                     <X className="w-3 h-3 text-red-500" /> Cancellations ({cancelled})
                   </div>
                   <div className="flex flex-wrap gap-1.5">
-                    {plan.cancelled_flights.map((fid: string) => (
-                      <button
-                        key={fid}
-                        onClick={() => onFlightSelect(fid)}
-                        className="text-[10px] px-2 py-0.5 rounded-md bg-red-50 border border-red-200 text-red-700 font-mono hover:bg-red-100 transition-colors"
-                      >
-                        {fid}
-                      </button>
-                    ))}
+                    {plan.cancelled_flights.map((fid: string) => {
+                      const r = flightRoute(fid)
+                      return (
+                        <button
+                          key={fid}
+                          onClick={() => onFlightSelect(fid)}
+                          title={r.cities || r.codes || fid}
+                          className="text-[10px] px-2 py-0.5 rounded-md bg-red-50 border border-red-200 text-red-700 hover:bg-red-100 transition-colors flex items-center gap-1.5"
+                        >
+                          <span className="font-mono font-semibold">{fid}</span>
+                          {r.codes && (
+                            <span className="font-mono text-red-600/70">{r.codes}</span>
+                          )}
+                        </button>
+                      )
+                    })}
                   </div>
                 </div>
               )}
@@ -403,16 +424,25 @@ function PlanCard({
                     <Clock className="w-3 h-3 text-orange-500" /> Delays ({delayed})
                   </div>
                   <div className="max-h-28 overflow-y-auto space-y-0.5 pr-0.5">
-                    {plan.delayed_flights.slice(0, 30).map((d: any) => (
-                      <div
-                        key={d.flight_id}
-                        className="flex items-center justify-between text-[10px] rounded-md px-2 py-1 hover:bg-white/80 cursor-pointer transition-colors"
-                        onClick={() => onFlightSelect(d.flight_id)}
-                      >
-                        <span className="font-mono text-foreground/80">{d.flight_id}</span>
-                        <span className="font-mono font-bold text-orange-600">+{d.delay_minutes}m</span>
-                      </div>
-                    ))}
+                    {plan.delayed_flights.slice(0, 30).map((d: any) => {
+                      const r = flightRoute(d.flight_id)
+                      return (
+                        <div
+                          key={d.flight_id}
+                          title={r.cities || r.codes || d.flight_id}
+                          className="flex items-center justify-between gap-2 text-[10px] rounded-md px-2 py-1 hover:bg-white/80 cursor-pointer transition-colors"
+                          onClick={() => onFlightSelect(d.flight_id)}
+                        >
+                          <span className="flex items-center gap-1.5 min-w-0 flex-1">
+                            <span className="font-mono font-semibold text-foreground/80 shrink-0">{d.flight_id}</span>
+                            {r.codes && (
+                              <span className="font-mono text-muted-foreground/70 truncate">{r.codes}</span>
+                            )}
+                          </span>
+                          <span className="font-mono font-bold text-orange-600 shrink-0">+{d.delay_minutes}m</span>
+                        </div>
+                      )
+                    })}
                     {delayed > 30 && (
                       <p className="text-[9px] text-muted-foreground/60 px-2 pt-0.5">+{delayed - 30} more…</p>
                     )}
@@ -420,21 +450,45 @@ function PlanCard({
                 </div>
               )}
 
-              {/* Aircraft swaps list */}
+              {/* Aircraft swaps list — annotate every tail with its type so
+                  users see "N001NB · 737-800 → N007NB · A320" instead of
+                  two opaque registrations */}
               {swaps > 0 && (
                 <div>
                   <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
                     <Repeat2 className="w-3 h-3 text-sky-500" /> Aircraft swaps ({swaps})
                   </div>
                   <div className="space-y-1">
-                    {plan.aircraft_swaps.map((s: any, i: number) => (
-                      <div key={i} className="flex items-center gap-1.5 text-[10px] bg-white/70 rounded-md px-2 py-1">
-                        <span className="font-mono text-foreground/80 flex-1">{s.flight_id}</span>
-                        <span className="font-mono text-red-600">{s.old_aircraft}</span>
-                        <span className="text-muted-foreground">→</span>
-                        <span className="font-mono text-emerald-600">{s.new_aircraft}</span>
-                      </div>
-                    ))}
+                    {plan.aircraft_swaps.map((s: any, i: number) => {
+                      const oldAc = aircraftLabel(s.old_aircraft, fleet)
+                      const newAc = aircraftLabel(s.new_aircraft, fleet)
+                      const r = flightRoute(s.flight_id)
+                      return (
+                        <div
+                          key={i}
+                          title={r.cities || r.codes || s.flight_id}
+                          className="flex flex-col gap-0.5 text-[10px] bg-white/70 rounded-md px-2 py-1.5"
+                        >
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-mono font-semibold text-foreground/80 shrink-0">{s.flight_id}</span>
+                            {r.codes && (
+                              <span className="font-mono text-muted-foreground/70 truncate">{r.codes}</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-mono text-red-600">{oldAc.tail || s.old_aircraft}</span>
+                            {oldAc.typeLabel && (
+                              <span className="text-[9px] text-red-600/70">({oldAc.typeLabel})</span>
+                            )}
+                            <span className="text-muted-foreground">→</span>
+                            <span className="font-mono text-emerald-600">{newAc.tail || s.new_aircraft}</span>
+                            {newAc.typeLabel && (
+                              <span className="text-[9px] text-emerald-700/70">({newAc.typeLabel})</span>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
               )}

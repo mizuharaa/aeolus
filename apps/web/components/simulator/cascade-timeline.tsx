@@ -2,6 +2,7 @@
 import { useMemo } from "react"
 import { motion } from "framer-motion"
 import { useSimulationStore } from "@/stores/simulation"
+import { AirportCode } from "./airport-code"
 
 const HOURS = Array.from({ length: 18 }, (_, i) => i + 6) // 6:00–23:00 UTC
 

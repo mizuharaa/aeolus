@@ -6,7 +6,9 @@ import {
   Bookmark, BookmarkCheck, ChevronDown, ArrowRight,
 } from "lucide-react"
 import { useSimulationStore } from "@/stores/simulation"
-import type { ScheduledFlight, FlightState } from "@/stores/simulation"
+import type { ScheduledFlight, FlightState, FleetAircraft } from "@/stores/simulation"
+import { airportLabel, aircraftLabel } from "@/lib/labels"
+import { AirportCode } from "./airport-code"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -62,17 +64,23 @@ function getStatusMeta(state: FlightState | undefined): {
 function FlightCard({
   flight,
   state,
+  fleet,
   onRemove,
   onSelect,
 }: {
   flight: ScheduledFlight
   state: FlightState | undefined
+  fleet: FleetAircraft[]
   onRemove: () => void
   onSelect: (id: string) => void
 }) {
   const status = getStatusMeta(state)
   const isAffected = state && state.cascade_order >= 0
   const reason = state?.reason
+  const origin = airportLabel(flight.origin)
+  const dest = airportLabel(flight.destination)
+  const tailRef = flight.tail_number ?? flight.aircraft_id ?? ""
+  const ac = aircraftLabel(tailRef, fleet)
 
   return (
     <motion.div
@@ -107,15 +115,25 @@ function FlightCard({
         </span>
       </div>
 
-      {/* Route */}
-      <div className="flex items-center gap-2">
-        <span className="font-mono font-bold text-base text-foreground">{flight.origin}</span>
-        <ArrowRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-        <span className="font-mono font-bold text-base text-foreground">{flight.destination}</span>
+      {/* Route — codes on top, city subtitle underneath so non-experts know
+          KORD = Chicago at a glance. Hover the code for the full popover. */}
+      <div>
+        <div className="flex items-center gap-2 font-bold text-base text-foreground">
+          <AirportCode code={flight.origin} />
+          <ArrowRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+          <AirportCode code={flight.destination} />
+        </div>
+        {(origin.city || dest.city) && (
+          <div className="text-[10px] text-muted-foreground/80 truncate mt-0.5">
+            {origin.city || origin.icao}
+            <span className="mx-1 text-muted-foreground/40">→</span>
+            {dest.city || dest.icao}
+          </div>
+        )}
       </div>
 
-      {/* Times */}
-      <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+      {/* Times + tail */}
+      <div className="flex items-center gap-3 text-[11px] text-muted-foreground flex-wrap">
         <div className="flex items-center gap-1">
           <Clock className="w-3 h-3 shrink-0" />
           <span>{fmtTime(flight.scheduled_departure)}</span>
@@ -125,13 +143,27 @@ function FlightCard({
         </div>
         <span className="text-border">·</span>
         <span>{fmtDate(flight.scheduled_departure)}</span>
-        {flight.tail_number && (
-          <>
-            <span className="text-border">·</span>
-            <span className="font-mono">{flight.tail_number}</span>
-          </>
-        )}
       </div>
+
+      {/* Aircraft line — tail + type so users know it's a 737 vs a regional jet */}
+      {ac.tail && (
+        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/90">
+          <Plane className="w-3 h-3 shrink-0" />
+          <span className="font-mono font-semibold text-foreground/80">{ac.tail}</span>
+          {ac.typeLabel && (
+            <>
+              <span className="text-border">·</span>
+              <span>{ac.typeLabel}</span>
+            </>
+          )}
+          {ac.seats != null && ac.seats > 0 && (
+            <>
+              <span className="text-border">·</span>
+              <span>{ac.seats} seats</span>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Reason if affected */}
       {reason && (
@@ -156,7 +188,7 @@ function FlightCard({
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function MyFlights({ onFlightSelect }: { onFlightSelect?: (id: string | null) => void }) {
-  const { schedule, flightStates } = useSimulationStore()
+  const { schedule, flightStates, fleet } = useSimulationStore()
   const [watchedIds, setWatchedIds]   = useState<string[]>([])
   const [query, setQuery]             = useState("")
   const [showSearch, setShowSearch]   = useState(false)
@@ -347,6 +379,7 @@ export function MyFlights({ onFlightSelect }: { onFlightSelect?: (id: string | n
                         key={id}
                         flight={flight}
                         state={state}
+                        fleet={fleet}
                         onRemove={() => removeFlight(id)}
                         onSelect={(fid) => onFlightSelect?.(fid)}
                       />

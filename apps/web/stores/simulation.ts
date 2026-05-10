@@ -71,6 +71,15 @@ export interface ScheduledFlight {
   status?: string
 }
 
+export interface FleetAircraft {
+  id: string
+  type?: string
+  seats?: number
+  base_airport_id?: string
+  range_nm?: number
+  min_turn_minutes?: number
+}
+
 /** A real aircraft state from OpenSky Network */
 export interface LiveFlight {
   icao24: string
@@ -104,6 +113,7 @@ interface SimulationStore {
   recoveryPlans: RecoveryPlan[]
   cascadeSummary: CascadeSummary | null
   schedule: ScheduledFlight[]
+  fleet: FleetAircraft[]
   isLoading: boolean
   lastEventAt: number | null
   appliedPlanId: string | null
@@ -118,6 +128,7 @@ interface SimulationStore {
   // Actions
   setUpdate: (update: any) => void
   setSchedule: (schedule: ScheduledFlight[]) => void
+  setFleet: (fleet: FleetAircraft[]) => void
   reset: () => void
   setLoading: (loading: boolean) => void
   applyPlan: (planId: string | null) => void
@@ -133,6 +144,7 @@ export const useSimulationStore = create<SimulationStore>((set) => ({
   recoveryPlans: [],
   cascadeSummary: null,
   schedule: [],
+  fleet: [],
   isLoading: false,
   lastEventAt: null,
   appliedPlanId: null,
@@ -167,6 +179,8 @@ export const useSimulationStore = create<SimulationStore>((set) => ({
     })),
 
   setSchedule: (schedule) => set({ schedule }),
+
+  setFleet: (fleet) => set({ fleet }),
 
   reset: () =>
     set({
