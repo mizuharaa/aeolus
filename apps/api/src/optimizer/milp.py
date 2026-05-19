@@ -1,13 +1,16 @@
 """
 Recovery optimizer — OR-Tools CP-SAT MILP.
 
-Produces 3 recovery plans with distinct strategic objectives:
+Produces 4 recovery plans with distinct strategic objectives:
   Plan A — Minimize Cost        (jointly optimal cancel + swap decisions)
   Plan B — Minimize Pax Impact  (maximize service continuity)
   Plan C — Protect Tomorrow     (free aircraft rotations via early cancellations)
+  Plan D — Green Recovery       (minimise EU-ETS-priced net CO₂ — Slice 4)
 
 Each plan runs the CP-SAT solver with a per-plan timeout. Falls back to the
 deterministic heuristic if the solver cannot find a feasible solution in time.
+Every plan, regardless of objective, is scored against the carbon ledger so
+the UI can surface CO₂ alongside dollars on every card.
 """
 from __future__ import annotations
 
@@ -19,7 +22,19 @@ from datetime import datetime, timedelta
 from ortools.sat.python import cp_model
 
 from src.costs.calculator import AirlineDelayCalculator
+from src.costs.carbon import (
+    EU_ETS_USD_PER_TONNE,
+    FERRY_STAGE_HOURS,
+    block_burn_kg_for,
+    portfolio_carbon,
+)
 from src.crew.far117 import CrewLegalityEngine
+
+
+def block_burn_kg_for_default() -> float:
+    """Average ferry burn for a generic narrowbody — used by the CP-SAT
+    objective term that prices ferries in dollars before solve."""
+    return block_burn_kg_for("UNKN", FERRY_STAGE_HOURS)
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +47,9 @@ PLAN_WEIGHTS = {
     "A": {"label": "Minimize Cost",              "alpha": 10.0, "beta": 1.0,  "gamma": 5.0,  "delta": 2.0},
     "B": {"label": "Minimize Passenger Impact",  "alpha": 1.0,  "beta": 10.0, "gamma": 2.0,  "delta": 1.0},
     "C": {"label": "Protect Tomorrow's Schedule","alpha": 2.0,  "beta": 3.0,  "gamma": 2.0,  "delta": 10.0},
+    # Plan D — Green Recovery (Slice 4). Optimises the EU-ETS-priced CO₂
+    # ledger: cancellations earn a credit, delays and ferries are billed.
+    "D": {"label": "Green Recovery",             "alpha": 1.0,  "beta": 2.0,  "gamma": 4.0,  "delta": 1.0},
 }
 
 
@@ -52,6 +70,12 @@ class RecoveryPlan:
     crew_violations:               int  = 0
     aircraft_out_of_position:      int  = 0
     cost_breakdown:               dict = field(default_factory=dict)
+    # Carbon ledger (Slice 4 — Plan D). Populated for every plan so the
+    # frontend can show CO₂ alongside dollars on every card, regardless of
+    # which objective the plan was optimised against.
+    total_co2_kg:        float = 0.0
+    eu_ets_cost_usd:     float = 0.0
+    carbon_breakdown:    dict  = field(default_factory=dict)
     summary:                       str  = ""
 
     def to_dict(self) -> dict:
@@ -258,6 +282,53 @@ class RecoveryOptimizer:
                 for sv in spares.values():
                     obj.append(AIRCRAFT_REPOSITION_COST * sv)
 
+        elif plan_id == "D":
+            # Plan D — Green Recovery. Minimise net CO₂ priced via EU ETS.
+            # Cancellations *save* burn → encourage them when delay is long
+            # enough that the ground hold + rerouting exceeds saved block fuel.
+            # Ferries and aircraft repositioning are pure overhead carbon and
+            # are penalised heavily.
+            for fid in active:
+                pred           = predictions.get(fid, {})
+                expected_delay = max(0, int(pred.get("expected_delay_min", 60)))
+                ac_type        = aircraft_map.get(
+                    flights_map[fid].get("aircraft_id", ""), {},
+                ).get("type", "")
+                # Cost (in ETS-equivalent dollars) of running the flight late
+                # vs. cancelling it. Use the carbon module so the math here
+                # stays consistent with the post-solve ledger we report.
+                from src.costs.carbon import (
+                    carbon_for_delay,
+                    carbon_for_cancellation,
+                )
+                delay_co2 = carbon_for_delay(
+                    flights_map[fid], expected_delay, ac_type,
+                ).co2_kg
+                save_co2 = abs(carbon_for_cancellation(
+                    flights_map[fid], ac_type,
+                ).co2_kg)
+
+                # Convert to dollars at ETS price; scale up so it dominates
+                # the integer objective (CP-SAT requires int coefficients).
+                delay_usd_int  = int((delay_co2 / 1000.0) * EU_ETS_USD_PER_TONNE)
+                save_usd_int   = int((save_co2  / 1000.0) * EU_ETS_USD_PER_TONNE)
+
+                # Add a soft passenger-impact term so Plan D doesn't degenerate
+                # into "cancel everything" on long delays.
+                pax_term = pax[fid] * expected_delay // 100
+
+                obj.append(delay_usd_int * cancel[fid].negated())
+                obj.append(-save_usd_int * cancel[fid])      # credit for cancel
+                obj.append(pax_term * cancel[fid])           # soft pax penalty
+            for fid, spares in swap.items():
+                for sv in spares.values():
+                    # Ferry burn priced at EU ETS — typically ~$300/ferry.
+                    ferry_usd_int = int(
+                        (block_burn_kg_for_default() * 3.16 / 1000.0)
+                        * EU_ETS_USD_PER_TONNE
+                    )
+                    obj.append(ferry_usd_int * sv)
+
         model.minimize(sum(obj))
 
         # ── Solve ─────────────────────────────────────────────────────────────
@@ -431,6 +502,17 @@ class RecoveryOptimizer:
             if cascade_order == 1 and expected_delay >= 150:
                 return True
             return False
+        elif plan_id == "D":
+            # Plan D heuristic — cancel when avoided block-burn outweighs
+            # the burn we'd incur by holding the flight late.
+            from src.costs.carbon import (
+                carbon_for_delay, carbon_for_cancellation,
+            )
+            if expected_delay < 90:
+                return False
+            delay_co2 = carbon_for_delay(flight, expected_delay, aircraft_type).co2_kg
+            saved_co2 = abs(carbon_for_cancellation(flight, aircraft_type).co2_kg)
+            return delay_co2 > saved_co2 * 0.7
         return expected_delay > 180
 
     # ── Shared plan builder ───────────────────────────────────────────────────
@@ -465,10 +547,23 @@ class RecoveryOptimizer:
             "grand_total_usd":     round(total_cost),
         }
 
+        # Carbon ledger — EU-ETS-priced CO₂ for every plan (Slice 4).
+        carbon = portfolio_carbon(
+            flights=flights_map,
+            cancelled=cancelled,
+            delayed=delayed,
+            swaps=swaps,
+            aircraft_type_map=ac_type_map,
+        )
+        carbon_breakdown = carbon.to_dict()
+
         n_can   = len(cancelled)
         n_del   = len(delayed)
         avg_del = (sum(d["delay_minutes"] for d in delayed) // n_del) if n_del else 0
-        summary = f"{n_can} cancelled, {n_del} delayed (avg {avg_del} min), {len(swaps)} swaps"
+        summary = (
+            f"{n_can} cancelled, {n_del} delayed (avg {avg_del} min), "
+            f"{len(swaps)} swaps · {carbon.total_co2_kg / 1000:+.1f} tCO₂e"
+        )
 
         crew_violations = self._count_far117_violations(crews, flights_map, cancelled, delayed)
 
@@ -486,6 +581,9 @@ class RecoveryOptimizer:
             crew_violations=crew_violations,
             aircraft_out_of_position=len(swaps),
             cost_breakdown=cost_breakdown,
+            total_co2_kg=carbon.total_co2_kg,
+            eu_ets_cost_usd=carbon.eu_ets_cost_usd,
+            carbon_breakdown=carbon_breakdown,
             summary=summary,
         )
 

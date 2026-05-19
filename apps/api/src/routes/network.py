@@ -3,6 +3,13 @@ from pathlib import Path
 
 import yaml
 from fastapi import APIRouter, Request
+from pydantic import BaseModel
+
+from src.network.stress_test import (
+    DEFAULT_AIRPORTS,
+    DEFAULT_EVENT_KINDS,
+    run_stress_test,
+)
 
 router = APIRouter()
 
@@ -109,3 +116,39 @@ async def get_schedule(request: Request):
     if engine:
         return {"flights": engine.get_schedule_snapshot()}
     return {"flights": _load_yaml("flights.yaml").get("flights", [])}
+
+
+class StressTestRequest(BaseModel):
+    airports: list[str] | None = None
+    event_kinds: list[str] | None = None
+    iterations_per_airport: int = 5
+    seed: int | None = 42
+
+
+@router.post("/network/stress-test")
+async def post_stress_test(payload: StressTestRequest, request: Request):
+    """
+    Network vulnerability stress test — Slice 6.
+
+    Runs a Monte-Carlo sweep of single-airport disruptions across the
+    Nimbus Air schedule and returns a ranked vulnerability heatmap. Used
+    by `/simulator/stress-test` to surface the most fragile hubs before
+    a real disruption hits.
+    """
+    predictor = getattr(request.app.state, "predictor", None)
+    if predictor is None:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=503, detail="Cascade predictor not initialised")
+
+    flights = _load_yaml("flights.yaml").get("flights", [])
+    aircraft = _load_yaml("aircraft.yaml").get("aircraft", [])
+
+    return run_stress_test(
+        flights=flights,
+        aircraft=aircraft,
+        predictor=predictor,
+        airports=payload.airports or DEFAULT_AIRPORTS,
+        event_kinds=payload.event_kinds or DEFAULT_EVENT_KINDS,
+        iterations_per_airport=max(1, min(20, payload.iterations_per_airport)),
+        seed=payload.seed,
+    )

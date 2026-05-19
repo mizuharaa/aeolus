@@ -8,13 +8,17 @@ import {
 } from "lucide-react"
 import { useSimulationStore } from "@/stores/simulation"
 import type { RecoveryPlan } from "@/stores/simulation"
+import { c, ff, r, sp, sh, type } from "@/lib/design-tokens"
+import { Eyebrow, Type } from "@/components/ds/primitives"
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const PLAN_META: Record<string, { label: string; accentText: string; bg: string; border: string; accent: string }> = {
-  A: { label: "Minimize Cost",    accent: "#FFD23F", accentText: "#92700A", bg: "bg-yellow-50",  border: "border-yellow-300"  },
-  B: { label: "Min. Pax Impact",  accent: "#6366F1", accentText: "#4338CA", bg: "bg-indigo-50", border: "border-indigo-300"  },
-  C: { label: "Protect Tomorrow", accent: "#5DADE2", accentText: "#1A6FA0", bg: "bg-sky-50",    border: "border-sky-300"     },
+// ─── Plan signature colors — matches recovery-plans.tsx ───────────────────
+// Each plan keeps its identity (mustard / mint / peach / forest) so a Plan A
+// chip on this comparison view matches the Plan A card on the right rail.
+const PLAN_META: Record<string, { label: string; surface: string; ink: string; accent: string }> = {
+  A: { label: "Minimize Cost",    accent: c.signatureMustard, surface: c.signatureCream,    ink: "#5C3D0F" },
+  B: { label: "Min. Pax Impact",  accent: c.signatureMint,    surface: c.statusRecovered.bg, ink: c.signatureForest },
+  C: { label: "Protect Tomorrow", accent: c.signaturePeach,   surface: c.statusDelayed.bg,  ink: c.statusDelayed.ink },
+  D: { label: "Green Recovery",   accent: c.signatureForest,  surface: c.statusOnTime.bg,   ink: c.signatureForest },
 }
 
 function fmt$(n: number) {
@@ -32,7 +36,7 @@ function fmtMin(n: number) {
 function CompareRow({
   label, Icon, aVal, bVal, fmt, lowerIsBetter = true,
 }: {
-  label: string; Icon: any; aVal: number; bVal: number
+  label: string; Icon: typeof DollarSign; aVal: number; bVal: number
   fmt: (n: number) => string; lowerIsBetter?: boolean
 }) {
   const tied  = aVal === bVal
@@ -42,30 +46,58 @@ function CompareRow({
   const diffPct = bVal !== 0 ? Math.round(Math.abs(diff / bVal) * 100) : 0
 
   return (
-    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-      <div className={`rounded-xl px-3 py-2.5 text-center transition-all border ${aWins ? "ring-2 ring-emerald-400/60 bg-emerald-50 border-emerald-200" : "bg-secondary/30 border-border/40"}`}>
-        <div className="font-mono font-bold text-sm text-foreground">{fmt(aVal)}</div>
-        {aWins && <div className="text-[9px] text-emerald-700 font-bold uppercase mt-0.5">Best</div>}
-      </div>
+    <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: sp.xs }}>
+      <CompareCell value={fmt(aVal)} winner={aWins} />
 
-      <div className="flex flex-col items-center gap-1 min-w-[88px]">
-        <div className="flex items-center gap-1">
-          <Icon className="w-3 h-3 text-muted-foreground shrink-0" />
-          <span className="text-[10px] font-semibold text-muted-foreground whitespace-nowrap">{label}</span>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, minWidth: 88 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <Icon style={{ width: 12, height: 12, color: c.muted, flexShrink: 0 }} />
+          <span style={{ fontSize: 11, fontWeight: 500, color: c.muted, whiteSpace: "nowrap" }}>{label}</span>
         </div>
-        <div className="flex items-center gap-1 text-[9px] text-muted-foreground">
-          {tied ? <Minus className="w-3 h-3" /> : aWins
-            ? <TrendingDown className="w-3 h-3 text-emerald-600" />
-            : <TrendingUp className="w-3 h-3 text-red-500" />
-          }
+        <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: c.muted }}>
+          {tied ? (
+            <Minus style={{ width: 12, height: 12 }} />
+          ) : aWins ? (
+            <TrendingDown style={{ width: 12, height: 12, color: c.statusOnTime.ink }} />
+          ) : (
+            <TrendingUp style={{ width: 12, height: 12, color: c.signatureCoral }} />
+          )}
           {!tied && diffPct > 0 && <span>{diffPct}%</span>}
         </div>
       </div>
 
-      <div className={`rounded-xl px-3 py-2.5 text-center transition-all border ${bWins ? "ring-2 ring-emerald-400/60 bg-emerald-50 border-emerald-200" : "bg-secondary/30 border-border/40"}`}>
-        <div className="font-mono font-bold text-sm text-foreground">{fmt(bVal)}</div>
-        {bWins && <div className="text-[9px] text-emerald-700 font-bold uppercase mt-0.5">Best</div>}
+      <CompareCell value={fmt(bVal)} winner={bWins} />
+    </div>
+  )
+}
+
+function CompareCell({ value, winner }: { value: string; winner: boolean }) {
+  return (
+    <div
+      style={{
+        borderRadius: r.md,
+        padding: "10px 12px",
+        textAlign: "center",
+        border: `1px solid ${winner ? c.statusOnTime.dot : c.hairline}`,
+        background: winner ? c.statusOnTime.bg : c.canvas,
+      }}
+    >
+      <div
+        style={{
+          fontFamily: ff.mono,
+          fontWeight: 600,
+          fontSize: 14,
+          color: c.ink,
+          fontVariantNumeric: "tabular-nums",
+        }}
+      >
+        {value}
       </div>
+      {winner && (
+        <div style={{ fontSize: 9, color: c.statusOnTime.ink, fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase", marginTop: 2 }}>
+          Best
+        </div>
+      )}
     </div>
   )
 }
@@ -79,9 +111,9 @@ function PlanPills({
   onSelect: (id: string) => void; colLabel: string
 }) {
   return (
-    <div className="flex flex-col items-center gap-2">
-      <div className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">{colLabel}</div>
-      <div className="flex gap-1.5 flex-wrap justify-center">
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: sp.xs }}>
+      <Eyebrow>{colLabel}</Eyebrow>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
         {plans.map((p) => {
           const meta = PLAN_META[p.plan_id]
           const isSel = selected === p.plan_id
@@ -93,12 +125,19 @@ function PlanPills({
               onClick={() => !isDisabled && onSelect(p.plan_id)}
               disabled={isDisabled}
               title={isDisabled ? "Already selected on the other side" : `Compare Plan ${p.plan_id}`}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all disabled:opacity-30 disabled:cursor-not-allowed ${
-                isSel
-                  ? `${meta.bg} ${meta.border} shadow-sm`
-                  : "bg-white border-border/50 text-muted-foreground hover:border-border hover:bg-secondary/50"
-              }`}
-              style={isSel ? { color: meta.accentText } : {}}
+              style={{
+                padding: "6px 12px",
+                borderRadius: r.md,
+                fontSize: 12,
+                fontWeight: 500,
+                fontFamily: ff.body,
+                border: `1px solid ${isSel ? meta.accent : c.hairline}`,
+                background: isSel ? meta.surface : c.canvas,
+                color: isSel ? meta.ink : c.muted,
+                cursor: isDisabled ? "not-allowed" : "pointer",
+                opacity: isDisabled ? 0.3 : 1,
+                transition: "all 150ms ease",
+              }}
             >
               {p.plan_id} — {meta.label}
             </button>
@@ -168,32 +207,69 @@ export function PlanCompare() {
 
   return (
     <div
-      className="rounded-2xl overflow-hidden"
       style={{
-        background: "#ffffff",
-        border: "1px solid #DDDDDD",
-        boxShadow: "0 2px 16px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.05)",
+        background: c.canvas,
+        border: `1px solid ${c.hairline}`,
+        borderRadius: r.lg,
+        overflow: "hidden",
+        boxShadow: sh.cardSoft,
+        fontFamily: ff.body,
       }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-3.5 border-b border-border/50">
-        <div className="flex items-center gap-3">
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: `${sp.sm}px ${sp.lg}px`,
+          borderBottom: `1px solid ${c.hairline}`,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: sp.sm }}>
           <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-            style={{ background: "rgba(13,148,136,0.10)", border: "1px solid rgba(13,148,136,0.15)" }}
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: r.sm,
+              background: c.surfaceSoft,
+              border: `1px solid ${c.hairline}`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
           >
-            <BarChart3 className="w-3.5 h-3.5" style={{ color: "#0D9488" }} />
+            <BarChart3 style={{ width: 14, height: 14, color: c.ink }} />
           </div>
           <div>
-            <div className="section-title">Plan Comparison</div>
-            <div className="text-[10px] text-muted-foreground mt-0.5">Side-by-side recovery plan diff</div>
+            <div style={{ ...type("titleMd", c.ink), fontSize: 16 }}>Plan Comparison</div>
+            <div style={{ ...type("caption", c.muted), fontSize: 11, marginTop: 1 }}>Side-by-side recovery plan diff</div>
           </div>
         </div>
         <button
           onClick={() => setCollapsed((c) => !c)}
-          className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors hover:bg-secondary"
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: r.sm,
+            border: `1px solid ${c.hairline}`,
+            background: c.canvas,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+          }}
         >
-          <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsed ? "rotate-180" : ""}`} />
+          <ChevronDown
+            style={{
+              width: 14,
+              height: 14,
+              color: c.muted,
+              transform: collapsed ? "rotate(180deg)" : undefined,
+              transition: "transform 200ms ease",
+            }}
+          />
         </button>
       </div>
 
@@ -204,12 +280,12 @@ export function PlanCompare() {
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="overflow-hidden"
+            style={{ overflow: "hidden" }}
           >
-            <div className="p-5 space-y-5">
+            <div style={{ padding: sp.lg, display: "flex", flexDirection: "column", gap: sp.lg }}>
 
               {/* Plan selectors side by side */}
-              <div className="grid grid-cols-[1fr_28px_1fr] items-start gap-2">
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 28px 1fr", alignItems: "flex-start", gap: sp.xs }}>
                 <PlanPills
                   plans={recoveryPlans}
                   selected={selA}
@@ -217,7 +293,7 @@ export function PlanCompare() {
                   onSelect={handleSelA}
                   colLabel="Left"
                 />
-                <div className="text-center text-muted-foreground text-xs font-bold mt-6">vs</div>
+                <div style={{ textAlign: "center", color: c.muted, fontSize: 12, fontWeight: 500, marginTop: 24 }}>vs</div>
                 <PlanPills
                   plans={recoveryPlans}
                   selected={selB}
@@ -230,53 +306,38 @@ export function PlanCompare() {
               {/* Plan name banners */}
               {planA && planB && metaA && metaB && (
                 <>
-                  <div className="grid grid-cols-[1fr_28px_1fr] gap-2 items-center">
-                    <div className={`rounded-xl px-3 py-2 text-center ${metaA.bg} border ${metaA.border}`}>
-                      <div className="text-xs font-bold" style={{ color: metaA.accentText }}>{metaA.label}</div>
-                      <div className="text-[9px] text-muted-foreground mt-0.5">Plan {selA}</div>
-                    </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 28px 1fr", gap: sp.xs, alignItems: "center" }}>
+                    <PlanBanner meta={metaA} planId={selA} />
                     <div />
-                    <div className={`rounded-xl px-3 py-2 text-center ${metaB.bg} border ${metaB.border}`}>
-                      <div className="text-xs font-bold" style={{ color: metaB.accentText }}>{metaB.label}</div>
-                      <div className="text-[9px] text-muted-foreground mt-0.5">Plan {selB}</div>
-                    </div>
+                    <PlanBanner meta={metaB} planId={selB} />
                   </div>
 
                   {/* Comparison rows */}
-                  <div className="space-y-2">
-                    <CompareRow label="Total cost"      Icon={DollarSign}   aVal={planA.total_cost_usd}                    bVal={planB.total_cost_usd}                    fmt={fmt$}                                            lowerIsBetter />
-                    <CompareRow label="Cancellations"   Icon={Plane}        aVal={planA.cancelled_flights.length}           bVal={planB.cancelled_flights.length}           fmt={(n) => `${n} flight${n !== 1 ? "s" : ""}`}      lowerIsBetter />
-                    <CompareRow label="Pax delay"        Icon={Users}        aVal={planA.total_passenger_delay_minutes}      bVal={planB.total_passenger_delay_minutes}      fmt={(n) => fmtMin(Math.round(n))}                    lowerIsBetter />
-                    <CompareRow label="Delayed flights"  Icon={Clock}        aVal={planA.delayed_flights.length}             bVal={planB.delayed_flights.length}             fmt={(n) => `${n} flight${n !== 1 ? "s" : ""}`}      lowerIsBetter />
-                    <CompareRow label="Aircraft swaps"   Icon={Repeat2}      aVal={planA.aircraft_swaps.length}              bVal={planB.aircraft_swaps.length}              fmt={(n) => `${n} swap${n !== 1 ? "s" : ""}`}         lowerIsBetter={false} />
-                    <CompareRow label="Crew flags"       Icon={AlertTriangle} aVal={planA.crew_violations}                  bVal={planB.crew_violations}                    fmt={(n) => n === 0 ? "None" : `${n} flag${n !== 1 ? "s" : ""}`} lowerIsBetter />
+                  <div style={{ display: "flex", flexDirection: "column", gap: sp.xs }}>
+                    <CompareRow label="Total cost"      Icon={DollarSign}    aVal={planA.total_cost_usd}                bVal={planB.total_cost_usd}                fmt={fmt$}                                            lowerIsBetter />
+                    <CompareRow label="Cancellations"   Icon={Plane}         aVal={planA.cancelled_flights.length}      bVal={planB.cancelled_flights.length}      fmt={(n) => `${n} flight${n !== 1 ? "s" : ""}`}      lowerIsBetter />
+                    <CompareRow label="Pax delay"       Icon={Users}         aVal={planA.total_passenger_delay_minutes} bVal={planB.total_passenger_delay_minutes} fmt={(n) => fmtMin(Math.round(n))}                    lowerIsBetter />
+                    <CompareRow label="Delayed flights" Icon={Clock}         aVal={planA.delayed_flights.length}        bVal={planB.delayed_flights.length}        fmt={(n) => `${n} flight${n !== 1 ? "s" : ""}`}      lowerIsBetter />
+                    <CompareRow label="Aircraft swaps"  Icon={Repeat2}       aVal={planA.aircraft_swaps.length}         bVal={planB.aircraft_swaps.length}         fmt={(n) => `${n} swap${n !== 1 ? "s" : ""}`}         lowerIsBetter={false} />
+                    <CompareRow label="Crew flags"      Icon={AlertTriangle} aVal={planA.crew_violations}               bVal={planB.crew_violations}               fmt={(n) => n === 0 ? "None" : `${n} flag${n !== 1 ? "s" : ""}`} lowerIsBetter />
                   </div>
 
-                  {/* Verdict */}
-                  <div className="rounded-2xl border border-border/50 bg-secondary/30 p-4">
-                    <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-3 text-center">Overall Verdict</div>
-                    <div className="grid grid-cols-[1fr_auto_1fr] gap-3 items-center">
-                      <div className="text-center">
-                        <div className="text-2xl font-black font-mono" style={{ color: metaA.accentText }}>{scoreA}</div>
-                        <div className="text-[10px] text-muted-foreground">metrics better</div>
-                        {scoreA > scoreB && (
-                          <div className="flex items-center justify-center gap-1 mt-1">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                            <span className="text-[10px] text-emerald-700 font-bold">Recommended</span>
-                          </div>
-                        )}
-                      </div>
-                      <div className="text-center text-muted-foreground text-sm font-bold px-2">vs</div>
-                      <div className="text-center">
-                        <div className="text-2xl font-black font-mono" style={{ color: metaB.accentText }}>{scoreB}</div>
-                        <div className="text-[10px] text-muted-foreground">metrics better</div>
-                        {scoreB > scoreA && (
-                          <div className="flex items-center justify-center gap-1 mt-1">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                            <span className="text-[10px] text-emerald-700 font-bold">Recommended</span>
-                          </div>
-                        )}
-                      </div>
+                  {/* Verdict — neutral surface, semantic green for the recommended side */}
+                  <div
+                    style={{
+                      borderRadius: r.lg,
+                      border: `1px solid ${c.hairline}`,
+                      background: c.surfaceSoft,
+                      padding: sp.md,
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "center", marginBottom: sp.sm }}>
+                      <Eyebrow>Overall Verdict</Eyebrow>
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: sp.sm, alignItems: "center" }}>
+                      <VerdictColumn score={scoreA} ink={metaA.ink} winning={scoreA > scoreB} />
+                      <div style={{ textAlign: "center", color: c.muted, fontSize: 14, fontWeight: 500, padding: "0 8px" }}>vs</div>
+                      <VerdictColumn score={scoreB} ink={metaB.ink} winning={scoreB > scoreA} />
                     </div>
                   </div>
                 </>
@@ -285,6 +346,50 @@ export function PlanCompare() {
           </motion.div>
         )}
       </AnimatePresence>
+    </div>
+  )
+}
+
+function PlanBanner({ meta, planId }: { meta: typeof PLAN_META[string]; planId: string }) {
+  return (
+    <div
+      style={{
+        borderRadius: r.md,
+        padding: "8px 12px",
+        textAlign: "center",
+        background: meta.surface,
+        border: `1px solid ${meta.accent}`,
+        color: meta.ink,
+      }}
+    >
+      <div style={{ fontSize: 13, fontWeight: 500 }}>{meta.label}</div>
+      <div style={{ fontSize: 10, color: meta.ink, opacity: 0.7, marginTop: 2 }}>Plan {planId}</div>
+    </div>
+  )
+}
+
+function VerdictColumn({ score, ink, winning }: { score: number; ink: string; winning: boolean }) {
+  return (
+    <div style={{ textAlign: "center" }}>
+      <div
+        style={{
+          fontFamily: ff.display,
+          fontWeight: 500,
+          fontSize: 32,
+          color: ink,
+          fontVariantNumeric: "tabular-nums",
+          lineHeight: 1,
+        }}
+      >
+        {score}
+      </div>
+      <div style={{ fontSize: 11, color: c.muted, marginTop: 4 }}>metrics better</div>
+      {winning && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4, marginTop: 6 }}>
+          <CheckCircle2 style={{ width: 13, height: 13, color: c.statusOnTime.ink }} />
+          <span style={{ fontSize: 11, color: c.statusOnTime.ink, fontWeight: 500 }}>Recommended</span>
+        </div>
+      )}
     </div>
   )
 }

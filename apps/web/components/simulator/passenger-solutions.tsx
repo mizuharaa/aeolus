@@ -3,11 +3,13 @@ import { useState, useEffect, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Users2, Clock, Hotel, RefreshCw, ArrowRightLeft,
-  CheckCircle2, AlertCircle, Info, ChevronDown, ChevronUp,
+  CheckCircle2, AlertCircle, ChevronDown, ChevronUp,
   Plane, Car, ShieldCheck, ShieldAlert, Star,
 } from "lucide-react"
 import { useSimulationStore } from "@/stores/simulation"
 import { apiClient } from "@/lib/api"
+import { c, ff, r, sp, type } from "@/lib/design-tokens"
+import { ButtonSecondary, CreamCallout, Eyebrow, Type } from "@/components/ds/primitives"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -66,16 +68,11 @@ interface RebookingResponse { disrupted_count: number; rebooking_options: Rebook
 const TABS = ["Delay Estimates", "Nearest Hotels", "Rebooking"] as const
 type Tab = typeof TABS[number]
 
-const card = {
-  background: "#ffffff",
-  border: "1px solid #DDDDDD",
-  boxShadow: "0 2px 16px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)",
-}
-
-function statusColor(status: string): string {
-  if (status === "cancelled") return "#ef4444"
-  if (status === "delayed")   return "#f59e0b"
-  return "#10b981"
+// Semantic palette per flight status. Same colors as cascade-timeline + my-flights.
+function statusPalette(status: string) {
+  if (status === "cancelled") return c.statusCancelled
+  if (status === "delayed")   return c.statusDelayed
+  return c.statusOnTime
 }
 
 function fmtTime(iso: string): string {
@@ -86,11 +83,52 @@ function fmtTime(iso: string): string {
 
 function Stars({ n }: { n: number }) {
   return (
-    <span className="flex gap-0.5">
+    <span style={{ display: "inline-flex", gap: 2 }}>
       {Array.from({ length: 5 }).map((_, i) => (
-        <Star key={i} size={10} fill={i < n ? "#f59e0b" : "none"} style={{ color: "#f59e0b" }} />
+        <Star
+          key={i}
+          size={10}
+          fill={i < n ? c.signatureMustard : "none"}
+          style={{ color: c.signatureMustard }}
+        />
       ))}
     </span>
+  )
+}
+
+// Fault banner — coral surface for airline fault, peach surface for force majeure.
+// Mirrors the semantic split used in CompensationStrategy at the bottom.
+function FaultBanner({ isAirlineFault, eventKind, totalAffected }: {
+  isAirlineFault: boolean
+  eventKind: string
+  totalAffected: number
+}) {
+  const palette = isAirlineFault ? c.statusCancelled : c.statusDelayed
+  return (
+    <div
+      style={{
+        borderRadius: r.md,
+        padding: `${sp.sm}px ${sp.md}px`,
+        display: "flex",
+        alignItems: "center",
+        gap: sp.sm,
+        background: palette.bg,
+        border: `1px solid ${palette.dot}`,
+      }}
+    >
+      {isAirlineFault
+        ? <ShieldAlert size={16} style={{ color: palette.ink, flexShrink: 0 }} />
+        : <ShieldCheck size={16} style={{ color: palette.ink, flexShrink: 0 }} />}
+      <div>
+        <Eyebrow color={palette.ink}>
+          {isAirlineFault ? "Airline Operational Fault" : "Force Majeure"}
+        </Eyebrow>
+        <p style={{ ...type("bodyMd", c.muted), fontSize: 12, marginTop: 2 }}>
+          Event: <span style={{ fontWeight: 500, color: c.ink }}>{eventKind.replace(/_/g, " ")}</span>
+          {" · "}{totalAffected} flights affected
+        </p>
+      </div>
+    </div>
   )
 }
 
@@ -101,42 +139,26 @@ function DelayTab({ data }: { data: ImpactResponse | null }) {
 
   if (!data || data.flights.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 gap-2">
-        <Clock size={32} style={{ color: "#cbd5e1" }} />
-        <p className="text-sm" style={{ color: "#94a3b8" }}>No disrupted flights yet</p>
-      </div>
+      <CreamCallout style={{ display: "flex", flexDirection: "column", gap: sp.xs }}>
+        <Eyebrow>No Disruptions</Eyebrow>
+        <Type as="p" role="bodyMd" color={c.muted}>
+          No disrupted flights yet. Trigger an event from the simulator controls to populate
+          delay estimates with confidence intervals.
+        </Type>
+      </CreamCallout>
     )
   }
 
-  const faultLabel = data.is_airline_fault ? "Airline Operational Fault" : "Force Majeure"
-  const faultColor = data.is_airline_fault ? "#ef4444" : "#f59e0b"
-
   return (
-    <div className="space-y-3">
-      {/* Event fault banner */}
-      <div
-        className="rounded-xl px-4 py-3 flex items-center gap-3"
-        style={{
-          background: data.is_airline_fault ? "#fef2f2" : "#fffbeb",
-          border: `1px solid ${faultColor}40`,
-        }}
-      >
-        {data.is_airline_fault
-          ? <ShieldAlert size={16} style={{ color: faultColor }} />
-          : <ShieldCheck size={16} style={{ color: faultColor }} />
-        }
-        <div>
-          <p className="text-xs font-bold" style={{ color: faultColor }}>{faultLabel}</p>
-          <p className="text-xs" style={{ color: "#64748b" }}>
-            Event: <span className="font-semibold">{data.event_kind.replace(/_/g, " ")}</span>
-            {" · "}{data.total_affected} flights affected
-          </p>
-        </div>
-      </div>
+    <div style={{ display: "flex", flexDirection: "column", gap: sp.sm }}>
+      <FaultBanner
+        isAirlineFault={data.is_airline_fault}
+        eventKind={data.event_kind}
+        totalAffected={data.total_affected}
+      />
 
-      {/* Flight cards */}
       {data.flights.map((f, i) => {
-        const sc = statusColor(f.status)
+        const palette = statusPalette(f.status)
         const isExpanded = expandedFlight === f.flight_id
         const ci = f.confidence_interval
         const confRange = `${ci.low_min}–${ci.high_min} min`
@@ -147,52 +169,86 @@ function DelayTab({ data }: { data: ImpactResponse | null }) {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.05 }}
-            className="rounded-xl overflow-hidden"
-            style={{ border: `1px solid ${sc}30`, background: "#fafafa" }}
+            style={{
+              borderRadius: r.md,
+              overflow: "hidden",
+              border: `1px solid ${palette.dot}`,
+              background: c.surfaceSoft,
+            }}
           >
-            {/* Row header */}
             <button
-              className="w-full px-4 py-3 flex items-center gap-3 text-left"
               onClick={() => setExpandedFlight(isExpanded ? null : f.flight_id)}
+              style={{
+                width: "100%",
+                padding: `${sp.sm}px ${sp.md}px`,
+                display: "flex",
+                alignItems: "center",
+                gap: sp.sm,
+                textAlign: "left",
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+              }}
             >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <Plane size={12} style={{ color: sc }} />
-                  <span className="text-xs font-mono font-bold" style={{ color: "#0f172a" }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <Plane size={12} style={{ color: palette.ink }} />
+                  <span style={{ fontFamily: ff.mono, fontSize: 12, fontWeight: 600, color: c.ink }}>
                     {f.flight_id}
                   </span>
-                  <span className="text-xs" style={{ color: "#64748b" }}>
+                  <span style={{ fontSize: 12, color: c.muted }}>
                     {f.origin} → {f.destination}
                   </span>
                   <span
-                    className="text-xs px-1.5 py-0.5 rounded font-semibold ml-auto"
-                    style={{ background: `${sc}20`, color: sc }}
+                    style={{
+                      fontSize: 11,
+                      padding: "2px 8px",
+                      borderRadius: r.sm,
+                      fontWeight: 500,
+                      marginLeft: "auto",
+                      background: palette.bg,
+                      color: palette.ink,
+                      letterSpacing: "0.04em",
+                      textTransform: "uppercase",
+                    }}
                   >
                     {f.status}
                   </span>
                 </div>
               </div>
-              {isExpanded ? <ChevronUp size={12} style={{ color: "#94a3b8" }} /> : <ChevronDown size={12} style={{ color: "#94a3b8" }} />}
+              {isExpanded
+                ? <ChevronUp size={12} style={{ color: c.muted }} />
+                : <ChevronDown size={12} style={{ color: c.muted }} />}
             </button>
 
             {/* Delay estimate bar */}
-            <div className="px-4 pb-3">
-              <div className="flex items-end gap-3">
-                {/* Delay number */}
+            <div style={{ padding: `0 ${sp.md}px ${sp.sm}px ${sp.md}px` }}>
+              <div style={{ display: "flex", alignItems: "flex-end", gap: sp.sm }}>
                 <div>
-                  <span className="text-2xl font-black" style={{ color: sc }}>
+                  <span
+                    style={{
+                      fontFamily: ff.display,
+                      fontSize: 28,
+                      fontWeight: 500,
+                      color: palette.ink,
+                      fontVariantNumeric: "tabular-nums",
+                      lineHeight: 1,
+                    }}
+                  >
                     {f.delay_minutes}
                   </span>
-                  <span className="text-xs ml-1" style={{ color: "#64748b" }}>min</span>
+                  <span style={{ fontSize: 12, color: c.muted, marginLeft: 4 }}>min</span>
                 </div>
 
-                {/* Confidence band visualization */}
-                <div className="flex-1 min-w-0">
-                  <div className="relative h-3 rounded-full" style={{ background: "#e2e8f0" }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ position: "relative", height: 8, borderRadius: r.pill, background: c.surfaceStrong }}>
                     <motion.div
-                      className="absolute h-3 rounded-full"
                       style={{
-                        background: `${sc}40`,
+                        position: "absolute",
+                        height: 8,
+                        borderRadius: r.pill,
+                        background: palette.dot,
+                        opacity: 0.35,
                         left: `${Math.min(100, (ci.low_min / 480) * 100)}%`,
                         width: `${Math.min(100, ((ci.high_min - ci.low_min) / 480) * 100)}%`,
                       }}
@@ -200,16 +256,20 @@ function DelayTab({ data }: { data: ImpactResponse | null }) {
                       animate={{ scaleX: 1 }}
                     />
                     <motion.div
-                      className="absolute top-0.5 w-2 h-2 rounded-full"
                       style={{
-                        background: sc,
-                        left: `calc(${Math.min(98, (f.delay_minutes / 480) * 100)}% - 4px)`,
+                        position: "absolute",
+                        top: 1,
+                        width: 6,
+                        height: 6,
+                        borderRadius: r.full,
+                        background: palette.dot,
+                        left: `calc(${Math.min(98, (f.delay_minutes / 480) * 100)}% - 3px)`,
                       }}
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
                     />
                   </div>
-                  <div className="flex justify-between text-xs mt-0.5" style={{ color: "#94a3b8" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginTop: 2, color: c.muted, fontFamily: ff.mono }}>
                     <span>{confRange}</span>
                     <span>{Math.round(f.p_delayed * 100)}% p(delay)</span>
                   </div>
@@ -217,70 +277,87 @@ function DelayTab({ data }: { data: ImpactResponse | null }) {
               </div>
             </div>
 
-            {/* Expanded detail: compensation */}
+            {/* Expanded compensation */}
             <AnimatePresence>
               {isExpanded && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: "auto" }}
                   exit={{ opacity: 0, height: 0 }}
-                  className="px-4 pb-4"
-                  style={{ borderTop: "1px solid #e2e8f0" }}
+                  style={{
+                    padding: `0 ${sp.md}px ${sp.md}px ${sp.md}px`,
+                    borderTop: `1px solid ${c.hairline}`,
+                  }}
                 >
-                  <div className="pt-3 space-y-2">
-                    <p className="text-xs font-semibold" style={{ color: "#374151" }}>
-                      New departure: {fmtTime(f.new_departure)}
-                      {" · "}{f.passengers} pax
+                  <div style={{ paddingTop: sp.sm, display: "flex", flexDirection: "column", gap: sp.xs }}>
+                    <p style={{ fontSize: 12, fontWeight: 500, color: c.body }}>
+                      New departure: {fmtTime(f.new_departure)} · {f.passengers} pax
                     </p>
 
-                    {/* Compensation actions */}
                     {f.compensation.actions.length > 0 && (
                       <div
-                        className="rounded-lg p-2.5"
-                        style={{ background: "#fef2f2", border: "1px solid #fecaca" }}
+                        style={{
+                          borderRadius: r.sm,
+                          padding: sp.xs,
+                          background: c.statusCancelled.bg,
+                          border: `1px solid ${c.statusCancelled.dot}`,
+                        }}
                       >
-                        <p className="text-xs font-semibold mb-1.5" style={{ color: "#ef4444" }}>
+                        <Eyebrow color={c.statusCancelled.ink}>
                           Required actions (airline fault)
-                        </p>
-                        {f.compensation.actions.map((a, j) => (
-                          <p key={j} className="text-xs" style={{ color: "#374151" }}>• {a}</p>
-                        ))}
-                        <p className="text-xs mt-1.5 font-semibold" style={{ color: "#64748b" }}>
-                          Est. obligation: ${f.compensation.estimated_total_usd.toLocaleString()}
+                        </Eyebrow>
+                        <div style={{ marginTop: 4, display: "flex", flexDirection: "column", gap: 2 }}>
+                          {f.compensation.actions.map((a, j) => (
+                            <p key={j} style={{ fontSize: 12, color: c.body }}>• {a}</p>
+                          ))}
+                        </div>
+                        <p style={{ fontSize: 12, marginTop: 6, fontWeight: 500, color: c.muted }}>
+                          Est. obligation:{" "}
+                          <span style={{ fontFamily: ff.mono, color: c.statusCancelled.ink, fontVariantNumeric: "tabular-nums" }}>
+                            ${f.compensation.estimated_total_usd.toLocaleString()}
+                          </span>
                         </p>
                       </div>
                     )}
 
-                    {/* Goodwill notes */}
                     {f.compensation.goodwill_notes.length > 0 && (
                       <div
-                        className="rounded-lg p-2.5"
-                        style={{ background: "#fffbeb", border: "1px solid #fde68a" }}
+                        style={{
+                          borderRadius: r.sm,
+                          padding: sp.xs,
+                          background: c.statusDelayed.bg,
+                          border: `1px solid ${c.statusDelayed.dot}`,
+                        }}
                       >
-                        <p className="text-xs font-semibold mb-1.5" style={{ color: "#f59e0b" }}>
+                        <Eyebrow color={c.statusDelayed.ink}>
                           Goodwill actions (force majeure)
-                        </p>
-                        {f.compensation.goodwill_notes.map((n, j) => (
-                          <p key={j} className="text-xs" style={{ color: "#374151" }}>• {n}</p>
-                        ))}
+                        </Eyebrow>
+                        <div style={{ marginTop: 4, display: "flex", flexDirection: "column", gap: 2 }}>
+                          {f.compensation.goodwill_notes.map((n, j) => (
+                            <p key={j} style={{ fontSize: 12, color: c.body }}>• {n}</p>
+                          ))}
+                        </div>
                       </div>
                     )}
 
-                    {/* Ground transport alt */}
                     {f.ground_transport_alternative && (
                       <div
-                        className="rounded-lg p-2.5 flex gap-2"
-                        style={{ background: "#f0f9ff", border: "1px solid #bae6fd" }}
+                        style={{
+                          borderRadius: r.sm,
+                          padding: sp.xs,
+                          display: "flex",
+                          gap: 8,
+                          background: c.surfaceSoft,
+                          border: `1px solid ${c.link}`,
+                        }}
                       >
-                        <Car size={14} style={{ color: "#0284c7", flexShrink: 0, marginTop: 1 }} />
+                        <Car size={14} style={{ color: c.link, flexShrink: 0, marginTop: 2 }} />
                         <div>
-                          <p className="text-xs font-semibold" style={{ color: "#0284c7" }}>
-                            Ground Transport Option
-                          </p>
-                          <p className="text-xs" style={{ color: "#374151" }}>
+                          <Eyebrow color={c.link}>Ground Transport Option</Eyebrow>
+                          <p style={{ fontSize: 12, color: c.body, marginTop: 2 }}>
                             {f.ground_transport_alternative.note}
                           </p>
-                          <p className="text-xs" style={{ color: "#64748b" }}>
+                          <p style={{ fontSize: 12, color: c.muted }}>
                             Est. drive: {f.ground_transport_alternative.estimated_drive_hrs}h
                           </p>
                         </div>
@@ -299,21 +376,20 @@ function DelayTab({ data }: { data: ImpactResponse | null }) {
 
 // ── Hotels tab ────────────────────────────────────────────────────────────────
 
-function HotelsTab({ activeEvents, schedule, flightStates }: {
-  activeEvents: any[]; schedule: any[]; flightStates: Record<string, any>
+function HotelsTab({ activeEvents, flightStates }: {
+  activeEvents: any[]
+  flightStates: Record<string, any>
 }) {
-  const [hotels, setHotels]       = useState<HotelInfo[]>([])
-  const [airport, setAirport]     = useState<string>("")
-  const [loading, setLoading]     = useState(false)
+  const [hotels, setHotels] = useState<HotelInfo[]>([])
+  const [airport, setAirport] = useState<string>("")
+  const [loading, setLoading] = useState(false)
 
-  // Pick the most impacted airport from active events
   useEffect(() => {
     if (activeEvents.length === 0) return
     const params = activeEvents[0]?.params ?? {}
-    const airport = params.airport ?? params.origin ?? ""
-    if (airport) setAirport(airport)
+    const ap = params.airport ?? params.origin ?? ""
+    if (ap) setAirport(ap)
     else {
-      // Fall back to most disrupted flight's destination
       const disrupted = Object.values(flightStates)
         .filter((f: any) => f.cascade_order === 0)
         .sort((a: any, b: any) => b.delay_minutes - a.delay_minutes)[0]
@@ -333,28 +409,28 @@ function HotelsTab({ activeEvents, schedule, flightStates }: {
 
   if (!airport) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 gap-2">
-        <Hotel size={32} style={{ color: "#cbd5e1" }} />
-        <p className="text-sm" style={{ color: "#94a3b8" }}>Trigger a disruption to see hotels</p>
-      </div>
+      <CreamCallout style={{ display: "flex", flexDirection: "column", gap: sp.xs }}>
+        <Eyebrow>Awaiting Disruption</Eyebrow>
+        <Type as="p" role="bodyMd" color={c.muted}>
+          Trigger a disruption to surface the closest hotels with shuttle availability.
+        </Type>
+      </CreamCallout>
     )
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2">
-        <Hotel size={14} style={{ color: "#0D9488" }} />
-        <span className="text-sm font-bold" style={{ color: "#0f172a" }}>
-          Hotels near {airport}
-        </span>
-        <span className="text-xs ml-auto" style={{ color: "#64748b" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: sp.sm }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <Hotel size={14} style={{ color: c.ink }} />
+        <Eyebrow color={c.ink}>Hotels near {airport}</Eyebrow>
+        <span style={{ fontSize: 11, marginLeft: "auto", color: c.muted }}>
           Nimbus covers costs for airline-fault delays
         </span>
       </div>
 
       {loading && (
-        <div className="flex justify-center py-8">
-          <RefreshCw size={20} className="animate-spin" style={{ color: "#0D9488" }} />
+        <div style={{ display: "flex", justifyContent: "center", padding: `${sp.lg}px 0` }}>
+          <RefreshCw size={20} className="animate-spin" style={{ color: c.ink }} />
         </div>
       )}
 
@@ -364,49 +440,69 @@ function HotelsTab({ activeEvents, schedule, flightStates }: {
           initial={{ opacity: 0, x: -8 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: i * 0.08 }}
-          className="rounded-xl p-4"
-          style={{ background: "#f8fafc", border: "1px solid #e2e8f0" }}
+          style={{
+            borderRadius: r.md,
+            padding: sp.md,
+            background: c.surfaceSoft,
+            border: `1px solid ${c.hairline}`,
+          }}
         >
-          <div className="flex items-start gap-3">
+          <div style={{ display: "flex", alignItems: "flex-start", gap: sp.sm }}>
             <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-base font-black"
               style={{
-                background: i === 0 ? "#0D9488" : i === 1 ? "#4ade80" : "#e2e8f0",
-                color: i < 2 ? "#fff" : "#64748b",
+                width: 32,
+                height: 32,
+                borderRadius: r.md,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+                fontFamily: ff.display,
+                fontSize: 16,
+                fontWeight: 500,
+                background:
+                  i === 0 ? c.signatureForest :
+                  i === 1 ? c.signatureMint   :
+                            c.surfaceStrong,
+                color: i === 0 ? c.onPrimary : c.ink,
               }}
             >
               {i + 1}
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <p className="text-sm font-bold" style={{ color: "#0f172a" }}>{h.name}</p>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <p style={{ fontSize: 14, fontWeight: 500, color: c.ink }}>{h.name}</p>
                 <Stars n={h.stars} />
               </div>
-              <div className="flex items-center gap-3 mt-1 flex-wrap">
-                <span className="text-xs" style={{ color: "#64748b" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: sp.sm, marginTop: 4, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 12, color: c.muted, fontFamily: ff.mono }}>
                   {h.distance_mi < 1 ? `${(h.distance_mi * 5280).toFixed(0)} ft` : `${h.distance_mi} mi`}
                 </span>
                 <span
-                  className="text-xs px-1.5 py-0.5 rounded font-semibold"
                   style={{
-                    background: h.shuttle ? "#f0fdf4" : "#f8fafc",
-                    color: h.shuttle ? "#059669" : "#94a3b8",
+                    fontSize: 11,
+                    padding: "2px 8px",
+                    borderRadius: r.sm,
+                    fontWeight: 500,
+                    background: h.shuttle ? c.statusOnTime.bg : c.surfaceSoft,
+                    color:      h.shuttle ? c.statusOnTime.ink : c.muted,
+                    border: h.shuttle ? "none" : `1px solid ${c.hairline}`,
                   }}
                 >
-                  {h.shuttle ? "✓ Shuttle" : "No shuttle"}
+                  {h.shuttle ? "Shuttle" : "No shuttle"}
                 </span>
-                <span className="text-xs font-bold ml-auto" style={{ color: "#0f172a" }}>
+                <span style={{ fontSize: 12, fontWeight: 600, marginLeft: "auto", color: c.ink, fontFamily: ff.mono, fontVariantNumeric: "tabular-nums" }}>
                   ${h.price_usd}/night
                 </span>
               </div>
-              <p className="text-xs mt-1" style={{ color: "#94a3b8" }}>{h.phone}</p>
+              <p style={{ fontSize: 11, marginTop: 4, color: c.muted, fontFamily: ff.mono }}>{h.phone}</p>
             </div>
           </div>
         </motion.div>
       ))}
 
       {!loading && hotels.length === 0 && (
-        <p className="text-sm text-center py-4" style={{ color: "#94a3b8" }}>
+        <p style={{ fontSize: 13, textAlign: "center", padding: `${sp.md}px 0`, color: c.muted }}>
           No hotel data for {airport}
         </p>
       )}
@@ -419,16 +515,18 @@ function HotelsTab({ activeEvents, schedule, flightStates }: {
 function RebookingTab({ data }: { data: RebookingResponse | null }) {
   if (!data || data.rebooking_options.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 gap-2">
-        <ArrowRightLeft size={32} style={{ color: "#cbd5e1" }} />
-        <p className="text-sm" style={{ color: "#94a3b8" }}>No disrupted flights yet</p>
-      </div>
+      <CreamCallout style={{ display: "flex", flexDirection: "column", gap: sp.xs }}>
+        <Eyebrow>No Rebookings</Eyebrow>
+        <Type as="p" role="bodyMd" color={c.muted}>
+          No disrupted flights yet. Rebooking options will appear once a disruption is in flight.
+        </Type>
+      </CreamCallout>
     )
   }
 
   return (
-    <div className="space-y-4">
-      <p className="text-xs" style={{ color: "#64748b" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: sp.md }}>
+      <p style={{ fontSize: 12, color: c.muted }}>
         Next available Nimbus Air flights on each disrupted city-pair.
       </p>
       {data.rebooking_options.map((opt, i) => (
@@ -437,62 +535,97 @@ function RebookingTab({ data }: { data: RebookingResponse | null }) {
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: i * 0.06 }}
-          className="rounded-xl overflow-hidden"
-          style={{ border: "1px solid #e2e8f0" }}
+          style={{
+            borderRadius: r.md,
+            overflow: "hidden",
+            border: `1px solid ${c.hairline}`,
+          }}
         >
-          {/* Header */}
-          <div className="px-4 py-3 flex items-center gap-2" style={{ background: "#f8fafc" }}>
-            <Plane size={12} style={{ color: "#0D9488" }} />
-            <span className="text-xs font-mono font-bold" style={{ color: "#0f172a" }}>
+          <div
+            style={{
+              padding: `${sp.sm}px ${sp.md}px`,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              background: c.surfaceSoft,
+            }}
+          >
+            <Plane size={12} style={{ color: c.ink }} />
+            <span style={{ fontFamily: ff.mono, fontSize: 12, fontWeight: 600, color: c.ink }}>
               {opt.disrupted_flight_id}
             </span>
-            <span className="text-xs" style={{ color: "#64748b" }}>
+            <span style={{ fontSize: 12, color: c.muted }}>
               {opt.origin} → {opt.destination}
             </span>
             {!opt.has_options && (
-              <span className="text-xs ml-auto px-1.5 py-0.5 rounded font-semibold"
-                style={{ background: "#fef2f2", color: "#ef4444" }}>
+              <span
+                style={{
+                  fontSize: 11,
+                  marginLeft: "auto",
+                  padding: "2px 8px",
+                  borderRadius: r.sm,
+                  fontWeight: 500,
+                  background: c.statusCancelled.bg,
+                  color: c.statusCancelled.ink,
+                }}
+              >
                 No options
               </span>
             )}
           </div>
 
-          {/* Alternatives */}
           {opt.alternatives.map((alt, j) => (
             <div
               key={alt.flight_id}
-              className="px-4 py-3 flex items-center gap-3"
-              style={{ borderTop: "1px solid #e2e8f0" }}
+              style={{
+                padding: `${sp.sm}px ${sp.md}px`,
+                display: "flex",
+                alignItems: "center",
+                gap: sp.sm,
+                borderTop: `1px solid ${c.hairline}`,
+              }}
             >
               <div
-                className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-                style={{ background: "#ecfdf5", color: "#059669" }}
+                style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: r.full,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 11,
+                  fontWeight: 600,
+                  flexShrink: 0,
+                  background: c.statusOnTime.bg,
+                  color: c.statusOnTime.ink,
+                  fontFamily: ff.mono,
+                }}
               >
                 {j + 1}
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono font-semibold" style={{ color: "#0f172a" }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontFamily: ff.mono, fontSize: 12, fontWeight: 500, color: c.ink }}>
                     {alt.flight_id}
                   </span>
-                  <span className="text-xs" style={{ color: "#64748b" }}>
+                  <span style={{ fontSize: 12, color: c.muted, fontFamily: ff.mono }}>
                     {fmtTime(alt.departure)} → {fmtTime(alt.arrival)}
                   </span>
                 </div>
-                <div className="flex items-center gap-3 mt-0.5 text-xs" style={{ color: "#94a3b8" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: sp.sm, marginTop: 2, fontSize: 11, color: c.muted, fontFamily: ff.mono }}>
                   <span>{alt.seats_avail} seats avail</span>
                   <span>+{alt.delay_vs_original_hrs}h vs. original</span>
-                  <span className="ml-auto font-semibold" style={{ color: "#0D9488" }}>
+                  <span style={{ marginLeft: "auto", fontWeight: 500, color: c.statusOnTime.ink, fontFamily: ff.body }}>
                     No change fee
                   </span>
                 </div>
               </div>
-              <CheckCircle2 size={16} style={{ color: "#10b981" }} />
+              <CheckCircle2 size={16} style={{ color: c.statusOnTime.ink }} />
             </div>
           ))}
 
           {opt.has_options === false && (
-            <div className="px-4 py-3 text-xs" style={{ color: "#94a3b8", borderTop: "1px solid #e2e8f0" }}>
+            <div style={{ padding: `${sp.sm}px ${sp.md}px`, fontSize: 12, color: c.muted, borderTop: `1px solid ${c.hairline}` }}>
               No same-carrier alternatives found — consider partner airline rebooking.
             </div>
           )}
@@ -522,30 +655,41 @@ function CompensationStrategy({ isAirlineFault }: { isAirlineFault: boolean }) {
         { trigger: "Cash compensation",      action: "Not required by DOT for force majeure",    required: false },
       ]
 
-  const headerColor = isAirlineFault ? "#ef4444" : "#f59e0b"
-  const headerBg    = isAirlineFault ? "#fef2f2" : "#fffbeb"
+  const palette = isAirlineFault ? c.statusCancelled : c.statusDelayed
 
   return (
     <div
-      className="rounded-xl overflow-hidden mt-4"
-      style={{ border: `1px solid ${headerColor}30` }}
+      style={{
+        marginTop: sp.md,
+        borderRadius: r.md,
+        overflow: "hidden",
+        border: `1px solid ${palette.dot}`,
+      }}
     >
       <button
-        className="w-full px-4 py-3 flex items-center gap-2 text-left"
-        style={{ background: headerBg }}
         onClick={() => setOpen(v => !v)}
+        style={{
+          width: "100%",
+          padding: `${sp.sm}px ${sp.md}px`,
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          textAlign: "left",
+          background: palette.bg,
+          border: "none",
+          cursor: "pointer",
+        }}
       >
         {isAirlineFault
-          ? <ShieldAlert size={14} style={{ color: headerColor }} />
-          : <ShieldCheck size={14} style={{ color: headerColor }} />
-        }
-        <span className="text-xs font-bold" style={{ color: headerColor }}>
-          Airline Compensation Strategy
-        </span>
-        <span className="text-xs ml-2" style={{ color: "#64748b" }}>
+          ? <ShieldAlert size={14} style={{ color: palette.ink }} />
+          : <ShieldCheck size={14} style={{ color: palette.ink }} />}
+        <Eyebrow color={palette.ink}>Airline Compensation Strategy</Eyebrow>
+        <span style={{ fontSize: 11, marginLeft: 8, color: c.muted }}>
           {isAirlineFault ? "Airline fault — DOT 14 CFR §250 obligations" : "Force majeure — goodwill only"}
         </span>
-        {open ? <ChevronUp size={12} className="ml-auto" style={{ color: "#94a3b8" }} /> : <ChevronDown size={12} className="ml-auto" style={{ color: "#94a3b8" }} />}
+        {open
+          ? <ChevronUp size={12} style={{ marginLeft: "auto", color: c.muted }} />
+          : <ChevronDown size={12} style={{ marginLeft: "auto", color: c.muted }} />}
       </button>
       <AnimatePresence>
         {open && (
@@ -554,24 +698,29 @@ function CompensationStrategy({ isAirlineFault }: { isAirlineFault: boolean }) {
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
           >
-            <table className="w-full text-xs" style={{ borderCollapse: "collapse" }}>
+            <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse", fontFamily: ff.body }}>
               <thead>
-                <tr style={{ background: "#f8fafc" }}>
-                  <th className="text-left px-4 py-2" style={{ color: "#64748b", fontWeight: 600 }}>Trigger</th>
-                  <th className="text-left px-4 py-2" style={{ color: "#64748b", fontWeight: 600 }}>Action</th>
-                  <th className="text-center px-4 py-2" style={{ color: "#64748b", fontWeight: 600 }}>DOT Required</th>
+                <tr style={{ background: c.surfaceSoft }}>
+                  <th style={{ textAlign: "left", padding: `${sp.xs}px ${sp.md}px`, color: c.muted, fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase", fontSize: 11 }}>
+                    Trigger
+                  </th>
+                  <th style={{ textAlign: "left", padding: `${sp.xs}px ${sp.md}px`, color: c.muted, fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase", fontSize: 11 }}>
+                    Action
+                  </th>
+                  <th style={{ textAlign: "center", padding: `${sp.xs}px ${sp.md}px`, color: c.muted, fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase", fontSize: 11 }}>
+                    DOT Required
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {rows.map((r, i) => (
-                  <tr key={i} style={{ borderTop: "1px solid #f1f5f9" }}>
-                    <td className="px-4 py-2.5" style={{ color: "#374151" }}>{r.trigger}</td>
-                    <td className="px-4 py-2.5" style={{ color: "#374151" }}>{r.action}</td>
-                    <td className="px-4 py-2.5 text-center">
-                      {r.required
-                        ? <CheckCircle2 size={13} style={{ color: "#10b981", margin: "0 auto" }} />
-                        : <AlertCircle size={13} style={{ color: "#94a3b8", margin: "0 auto" }} />
-                      }
+                {rows.map((row, i) => (
+                  <tr key={i} style={{ borderTop: `1px solid ${c.hairline}` }}>
+                    <td style={{ padding: `${sp.xs + 2}px ${sp.md}px`, color: c.body }}>{row.trigger}</td>
+                    <td style={{ padding: `${sp.xs + 2}px ${sp.md}px`, color: c.body }}>{row.action}</td>
+                    <td style={{ padding: `${sp.xs + 2}px ${sp.md}px`, textAlign: "center" }}>
+                      {row.required
+                        ? <CheckCircle2 size={13} style={{ color: c.statusOnTime.ink, margin: "0 auto" }} />
+                        : <AlertCircle size={13} style={{ color: c.muted, margin: "0 auto" }} />}
                     </td>
                   </tr>
                 ))}
@@ -587,12 +736,12 @@ function CompensationStrategy({ isAirlineFault }: { isAirlineFault: boolean }) {
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export function PassengerSolutions() {
-  const { activeEvents, flightStates, schedule } = useSimulationStore()
+  const { activeEvents, flightStates } = useSimulationStore()
   const [activeTab, setActiveTab] = useState<Tab>("Delay Estimates")
-  const [impactData, setImpactData]     = useState<ImpactResponse | null>(null)
-  const [rebookData, setRebookData]     = useState<RebookingResponse | null>(null)
-  const [loading, setLoading]           = useState(false)
-  const [fetchError, setFetchError]     = useState<string | null>(null)
+  const [impactData, setImpactData] = useState<ImpactResponse | null>(null)
+  const [rebookData, setRebookData] = useState<RebookingResponse | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [fetchError, setFetchError] = useState<string | null>(null)
 
   const hasDisruption = activeEvents.length > 0
 
@@ -621,103 +770,119 @@ export function PassengerSolutions() {
   const isAirlineFault = impactData?.is_airline_fault ?? false
 
   return (
-    <div className="rounded-2xl flex flex-col min-h-0" style={card}>
-      {/* ── Header ── */}
+    <div style={{ display: "flex", flexDirection: "column", minHeight: 0, height: "100%", fontFamily: ff.body }}>
+      {/* Header */}
       <div
-        className="px-5 py-4 flex items-center gap-3 flex-shrink-0"
-        style={{ borderBottom: "1px solid #DDDDDD" }}
+        style={{
+          padding: `${sp.md}px ${sp.lg}px`,
+          display: "flex",
+          alignItems: "center",
+          gap: sp.sm,
+          flexShrink: 0,
+          borderBottom: `1px solid ${c.hairline}`,
+        }}
       >
         <div
-          className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-          style={{ background: "rgba(13,148,136,0.10)" }}
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: r.md,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+            background: c.surfaceSoft,
+            border: `1px solid ${c.hairline}`,
+          }}
         >
-          <Users2 size={18} style={{ color: "#0D9488" }} />
+          <Users2 size={16} style={{ color: c.ink }} />
         </div>
-        <div className="flex-1 min-w-0">
-          <h2 className="text-sm font-bold" style={{ color: "#0f172a" }}>Passenger Solutions</h2>
-          <p className="text-xs mt-0.5" style={{ color: "#64748b" }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h2 style={{ ...type("titleMd", c.ink), fontSize: 16 }}>Passenger Solutions</h2>
+          <p style={{ ...type("caption", c.muted), fontSize: 11, marginTop: 2 }}>
             Delay estimates · Hotel recommendations · Rebooking
           </p>
         </div>
-        <button
+        <ButtonSecondary
+          size="sm"
           onClick={fetchAll}
           disabled={loading || !hasDisruption}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
-          style={{
-            background: hasDisruption ? "#0D9488" : "#e2e8f0",
-            color: hasDisruption ? "#fff" : "#94a3b8",
-            cursor: hasDisruption ? "pointer" : "not-allowed",
-          }}
+          leadingIcon={<RefreshCw size={12} className={loading ? "animate-spin" : ""} />}
         >
-          <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
           {loading ? "Loading…" : "Refresh"}
-        </button>
+        </ButtonSecondary>
       </div>
 
-      {/* ── Tabs ── */}
+      {/* Tabs */}
       <div
-        className="flex px-5 pt-3 gap-1 flex-shrink-0"
-        style={{ borderBottom: "1px solid #e2e8f0" }}
+        style={{
+          display: "flex",
+          padding: `${sp.xs}px ${sp.lg}px 0 ${sp.lg}px`,
+          gap: 4,
+          flexShrink: 0,
+          borderBottom: `1px solid ${c.hairline}`,
+        }}
       >
-        {TABS.map(tab => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className="px-3 py-2 text-xs font-semibold rounded-t-lg transition-all"
-            style={{
-              background: activeTab === tab ? "#fff" : "transparent",
-              color: activeTab === tab ? "#0D9488" : "#94a3b8",
-              borderBottom: activeTab === tab ? "2px solid #0D9488" : "2px solid transparent",
-              marginBottom: -1,
-            }}
-          >
-            {tab === "Delay Estimates" && <Clock size={11} className="inline mr-1" />}
-            {tab === "Nearest Hotels"  && <Hotel size={11} className="inline mr-1" />}
-            {tab === "Rebooking"       && <ArrowRightLeft size={11} className="inline mr-1" />}
-            {tab}
-          </button>
-        ))}
+        {TABS.map(tab => {
+          const isActive = activeTab === tab
+          return (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              style={{
+                padding: `${sp.xs}px ${sp.sm}px`,
+                fontSize: 12,
+                fontWeight: 500,
+                letterSpacing: "0.04em",
+                background: "transparent",
+                color: isActive ? c.ink : c.muted,
+                border: "none",
+                borderBottom: isActive ? `2px solid ${c.ink}` : "2px solid transparent",
+                marginBottom: -1,
+                cursor: "pointer",
+                fontFamily: ff.body,
+              }}
+            >
+              {tab === "Delay Estimates" && <Clock size={11} style={{ display: "inline", marginRight: 4 }} />}
+              {tab === "Nearest Hotels"  && <Hotel size={11} style={{ display: "inline", marginRight: 4 }} />}
+              {tab === "Rebooking"       && <ArrowRightLeft size={11} style={{ display: "inline", marginRight: 4 }} />}
+              {tab}
+            </button>
+          )
+        })}
       </div>
 
-      {/* ── Tab content ── */}
-      <div className="overflow-y-auto flex-1 px-5 py-4">
+      {/* Tab content */}
+      <div style={{ overflowY: "auto", flex: 1, padding: `${sp.md}px ${sp.lg}px` }}>
         {!hasDisruption ? (
-          <div className="flex flex-col items-center justify-center py-12 gap-2">
-            <Info size={32} style={{ color: "#cbd5e1" }} />
-            <p className="text-sm font-medium" style={{ color: "#94a3b8" }}>Awaiting disruption</p>
-            <p className="text-xs" style={{ color: "#cbd5e1" }}>
-              Trigger an event to generate passenger solutions
-            </p>
-          </div>
+          <CreamCallout style={{ display: "flex", flexDirection: "column", gap: sp.xs }}>
+            <Eyebrow>Awaiting Disruption</Eyebrow>
+            <Type as="div" role="titleSm" color={c.ink}>
+              Trigger an event to generate passenger solutions.
+            </Type>
+            <Type as="p" role="bodyMd" color={c.muted}>
+              We'll surface delay estimates with confidence intervals, nearby hotels with shuttle data,
+              and Nimbus rebooking alternatives — plus the DOT 14 CFR §250 obligations on the table.
+            </Type>
+          </CreamCallout>
         ) : fetchError ? (
-          <div className="flex flex-col items-center justify-center py-12 gap-2">
-            <AlertCircle size={32} style={{ color: "#ef4444" }} />
-            <p className="text-sm font-medium" style={{ color: "#ef4444" }}>Failed to load data</p>
-            <p className="text-xs text-center" style={{ color: "#94a3b8" }}>{fetchError}</p>
-            <button
-              onClick={fetchAll}
-              className="mt-2 px-4 py-1.5 rounded-lg text-xs font-semibold"
-              style={{ background: "#0D9488", color: "#fff" }}
-            >
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 0", gap: sp.xs }}>
+            <AlertCircle size={28} style={{ color: c.statusCancelled.ink }} />
+            <Type as="p" role="titleSm" color={c.statusCancelled.ink}>Failed to load data</Type>
+            <Type as="p" role="bodyMd" color={c.muted}>{fetchError}</Type>
+            <ButtonSecondary size="sm" onClick={fetchAll} style={{ marginTop: sp.xs }}>
               Retry
-            </button>
+            </ButtonSecondary>
           </div>
         ) : (
           <>
             {activeTab === "Delay Estimates" && <DelayTab data={impactData} />}
             {activeTab === "Nearest Hotels"  && (
-              <HotelsTab
-                activeEvents={activeEvents}
-                schedule={schedule}
-                flightStates={flightStates}
-              />
+              <HotelsTab activeEvents={activeEvents} flightStates={flightStates} />
             )}
             {activeTab === "Rebooking"       && <RebookingTab data={rebookData} />}
 
-            {/* Compensation strategy table — shown on all tabs */}
-            {impactData && (
-              <CompensationStrategy isAirlineFault={isAirlineFault} />
-            )}
+            {impactData && <CompensationStrategy isAirlineFault={isAirlineFault} />}
           </>
         )}
       </div>

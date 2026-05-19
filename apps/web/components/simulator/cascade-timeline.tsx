@@ -2,24 +2,28 @@
 import { useMemo } from "react"
 import { motion } from "framer-motion"
 import { useSimulationStore } from "@/stores/simulation"
-import { AirportCode } from "./airport-code"
+import { c, ff, r, sp, type } from "@/lib/design-tokens"
+import { Eyebrow, Type } from "@/components/ds/primitives"
 
 const HOURS = Array.from({ length: 18 }, (_, i) => i + 6) // 6:00–23:00 UTC
 
-function getBarStyle(status: string, cascadeOrder: number) {
+// ─── Cascade severity → token color ───────────────────────────────────────
+// Same palette used by the map markers and plan badges so a coral block here
+// means the same thing as a coral marker on the map.
+function getBarColor(status: string, cascadeOrder: number): { bg: string; border: string } {
   if (status === "cancelled") {
-    return "bg-gradient-to-b from-red-500 to-red-600 border-red-800 shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]"
+    return { bg: c.signatureCoral,   border: c.signatureCoral }
   }
   if (cascadeOrder === 0) {
-    return "bg-gradient-to-b from-orange-500 to-orange-600 border-orange-800 shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]"
+    return { bg: c.cascadeDirect,    border: c.cascadeDirect }    // coral — direct hit
   }
   if (cascadeOrder === 1) {
-    return "bg-gradient-to-b from-amber-400 to-amber-500 border-amber-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.25)]"
+    return { bg: c.cascadeOrder1,    border: c.cascadeOrder1 }    // mustard
   }
   if (cascadeOrder === 2) {
-    return "bg-gradient-to-b from-amber-200 to-amber-300 border-amber-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)]"
+    return { bg: c.cascadeOrder2,    border: c.cascadeOrder2 }    // yellow
   }
-  return "bg-gradient-to-b from-emerald-500 to-emerald-600 border-emerald-800 shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]"
+  return { bg: c.statusOnTime.dot, border: c.statusOnTime.ink }    // forest
 }
 
 function parseHourUTC(isoStr: string): number {
@@ -60,52 +64,72 @@ export function CascadeTimeline({
   }, [flightStates, schedule])
 
   return (
-    <div className="h-full min-h-0 flex flex-col overflow-hidden bg-white">
-      {/* Header */}
-      <div className="panel-header shrink-0">
-        <div className="flex-1 flex items-center justify-between min-w-0 gap-4">
+    <div style={{ height: "100%", minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden", background: c.canvas }}>
+      {/* ── Header ── */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: sp.sm,
+          padding: `${sp.sm}px ${sp.md}px`,
+          background: c.canvas,
+          borderBottom: `1px solid ${c.hairline}`,
+          flexShrink: 0,
+        }}
+      >
+        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "space-between", minWidth: 0, gap: sp.lg }}>
           <div>
-            <div className="section-title">Cascade Timeline</div>
-            <div className="text-[10px] text-muted-foreground mt-0.5">18-hour window · UTC</div>
+            <div style={{ ...type("titleMd", c.ink), fontSize: 16 }}>Cascade Timeline</div>
+            <div style={{ ...type("caption", c.muted), fontSize: 11, marginTop: 1 }}>18-hour window · UTC</div>
           </div>
 
-          {/* Legend */}
-          <div className="hidden md:flex flex-wrap items-center justify-end gap-x-4 gap-y-2 text-[11px] font-semibold text-slate-700">
-            <span className="flex items-center gap-2 whitespace-nowrap">
-              <span className="w-6 h-3 rounded-sm bg-gradient-to-b from-orange-500 to-orange-600 border border-orange-800 shadow-sm shrink-0" />
-              Direct
-            </span>
-            <span className="flex items-center gap-2 whitespace-nowrap">
-              <span className="w-6 h-3 rounded-sm bg-gradient-to-b from-amber-200 to-amber-400 border border-amber-600 shadow-sm shrink-0" />
-              Cascade
-            </span>
-            <span className="flex items-center gap-2 whitespace-nowrap">
-              <span className="w-6 h-3 rounded-sm bg-gradient-to-b from-red-500 to-red-600 border border-red-800 shadow-sm shrink-0" />
-              Cancelled
-            </span>
-            <span className="flex items-center gap-2 whitespace-nowrap">
-              <span className="w-6 h-3 rounded-sm bg-gradient-to-b from-emerald-500 to-emerald-600 border border-emerald-800 shadow-sm shrink-0" />
-              On time
-            </span>
+          {/* Legend — semantic palette, hairline borders */}
+          <div className="hidden md:flex flex-wrap items-center justify-end" style={{ gap: 16, fontSize: 11, color: c.body, fontFamily: ff.body, fontWeight: 500 }}>
+            <LegendSwatch color={c.cascadeDirect}     label="Direct" />
+            <LegendSwatch color={c.cascadeOrder1}     label="Cascade" />
+            <LegendSwatch color={c.signatureCoral}    label="Cancelled" />
+            <LegendSwatch color={c.statusOnTime.dot}  label="On time" />
           </div>
         </div>
       </div>
 
       {/* Hour axis */}
       <div
-        className="flex border-b border-slate-300/90 shrink-0 bg-slate-100/95 backdrop-blur-[2px]"
-        style={{ boxShadow: "inset 0 -1px 0 rgba(0,0,0,0.06)" }}
+        style={{
+          display: "flex",
+          borderBottom: `1px solid ${c.hairline}`,
+          flexShrink: 0,
+          background: c.surfaceSoft,
+        }}
       >
-        <div className="w-[112px] shrink-0 flex items-center px-3 py-2 border-r border-slate-300/80 bg-slate-100/90">
-          <span className="text-[10px] font-bold uppercase tracking-wide text-slate-500">
-            Flight
-          </span>
+        <div
+          style={{
+            width: 112,
+            flexShrink: 0,
+            display: "flex",
+            alignItems: "center",
+            padding: "8px 12px",
+            borderRight: `1px solid ${c.hairline}`,
+            background: c.surfaceSoft,
+          }}
+        >
+          <Eyebrow color={c.muted}>Flight</Eyebrow>
         </div>
-        <div className="flex-1 flex">
+        <div style={{ flex: 1, display: "flex" }}>
           {HOURS.filter((_, i) => i % 3 === 0).map((h) => (
             <div
               key={h}
-              className="flex-1 text-[11px] font-bold tabular-nums text-slate-700 py-2 pl-2 border-l border-slate-300/70 bg-white/80 font-mono"
+              style={{
+                flex: 1,
+                fontSize: 11,
+                fontFamily: ff.mono,
+                fontWeight: 500,
+                color: c.body,
+                padding: "8px 0 8px 8px",
+                borderLeft: `1px solid ${c.hairline}`,
+                background: c.canvas,
+                fontVariantNumeric: "tabular-nums",
+              }}
             >
               {h < 24 ? `${String(h).padStart(2, "0")}:00` : `${h - 24}:00+1`}
             </div>
@@ -113,14 +137,25 @@ export function CascadeTimeline({
         </div>
       </div>
 
-      {/* Flight rows — generous row height + zebra striping + scroll */}
-      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden scrollbar-thick cascade-timeline-scroll">
+      {/* Flight rows */}
+      <div className="cascade-timeline-scroll" style={{ flex: 1, minHeight: 0, overflowY: "auto", overflowX: "hidden" }}>
         {displayFlights.length === 0 ? (
-          <div className="flex flex-col items-center justify-center min-h-[180px] text-sm font-medium text-slate-600 px-8 text-center gap-2">
-            <span className="text-base font-bold text-slate-700">No schedule rows yet</span>
-            <span className="text-xs text-slate-500 max-w-md">
-              Load the simulator or trigger a disruption — affected flights appear here with Direct vs cascade coloring.
-            </span>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              minHeight: 180,
+              padding: "24px 32px",
+              textAlign: "center",
+              gap: 6,
+            }}
+          >
+            <Type as="span" role="titleSm" color={c.ink}>No schedule rows yet</Type>
+            <Type as="span" role="bodyMd" color={c.muted} style={{ maxWidth: 480 }}>
+              Load the simulator or trigger a disruption — affected flights appear here with direct vs cascade coloring.
+            </Type>
           </div>
         ) : (
           displayFlights.map((flight, rowIdx) => {
@@ -132,42 +167,84 @@ export function CascadeTimeline({
             const leftPct = Math.max(0, ((newDep - 6) / 18) * 100)
             const widthPct = Math.max(1.2, ((newArr - newDep) / 18) * 100)
             const isSelected = selectedFlight === flight.id
-            const style = getBarStyle(flight.state.status, flight.state.cascade_order)
+            const palette = getBarColor(flight.state.status, flight.state.cascade_order)
+            const zebra = rowIdx % 2 === 0 ? c.canvas : c.surfaceSoft
 
             return (
               <div
                 key={flight.id}
-                className={`flex items-stretch border-b border-slate-200 cursor-pointer transition-colors min-h-[46px] ${
-                  rowIdx % 2 === 0 ? "bg-white" : "bg-slate-50/95"
-                } ${isSelected ? "bg-orange-50/60 ring-inset ring-2 ring-orange-300/60 z-[1]" : "hover:bg-slate-50"}`}
                 onClick={() => onFlightSelect(isSelected ? null : flight.id)}
+                style={{
+                  display: "flex",
+                  alignItems: "stretch",
+                  borderBottom: `1px solid ${c.hairline}`,
+                  cursor: "pointer",
+                  minHeight: 46,
+                  background: isSelected ? c.statusDelayed.bg : zebra,
+                  boxShadow: isSelected ? `inset 0 0 0 1px ${c.signaturePeach}` : undefined,
+                }}
               >
-                <div className="w-[112px] shrink-0 px-3 py-2 flex flex-col justify-center border-r border-slate-200/90 bg-slate-50/80">
+                <div
+                  style={{
+                    width: 112,
+                    flexShrink: 0,
+                    padding: "8px 12px",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "center",
+                    borderRight: `1px solid ${c.hairline}`,
+                    background: zebra,
+                  }}
+                >
                   <span
-                    className={`text-[12px] font-mono font-extrabold leading-tight tracking-tight ${
-                      isSelected ? "text-orange-700" : "text-slate-900"
-                    }`}
+                    style={{
+                      fontSize: 12,
+                      fontFamily: ff.mono,
+                      fontWeight: 600,
+                      lineHeight: 1.2,
+                      color: isSelected ? c.statusDelayed.ink : c.ink,
+                      fontVariantNumeric: "tabular-nums",
+                    }}
                   >
                     {flight.id}
                   </span>
-                  <span className="text-[10px] font-semibold text-slate-600 leading-snug mt-0.5 font-mono">
+                  <span
+                    style={{
+                      fontSize: 10,
+                      fontFamily: ff.mono,
+                      fontWeight: 500,
+                      color: c.muted,
+                      marginTop: 2,
+                    }}
+                  >
                     {flight.origin}→{flight.destination}
                   </span>
                 </div>
 
-                <div className="flex-1 relative min-h-[46px] bg-white/40">
+                <div style={{ flex: 1, position: "relative", minHeight: 46, background: zebra }}>
                   {HOURS.filter((_, i) => i % 3 === 0).map((h) => (
                     <div
                       key={h}
-                      className="absolute top-0 bottom-0 border-l border-slate-200/90 pointer-events-none"
-                      style={{ left: `${((h - 6) / 18) * 100}%` }}
+                      style={{
+                        position: "absolute",
+                        top: 0,
+                        bottom: 0,
+                        borderLeft: `1px solid ${c.hairline}`,
+                        pointerEvents: "none",
+                        left: `${((h - 6) / 18) * 100}%`,
+                      }}
                     />
                   ))}
 
                   {flight.state.delay_minutes > 0 && (
                     <div
-                      className="absolute top-2 bottom-2 border-2 border-dashed border-orange-400/70 rounded-md bg-orange-50/70"
                       style={{
+                        position: "absolute",
+                        top: 8,
+                        bottom: 8,
+                        border: `1.5px dashed ${c.signaturePeach}`,
+                        borderRadius: r.sm,
+                        background: c.statusDelayed.bg,
                         left: `${Math.max(0, ((depHour - 6) / 18) * 100)}%`,
                         width: `${(delayHr / 18) * 100}%`,
                       }}
@@ -175,10 +252,18 @@ export function CascadeTimeline({
                   )}
 
                   <motion.div
-                    className={`absolute top-2 bottom-2 rounded-md border-2 ${style} ${
-                      isSelected ? "ring-2 ring-offset-1 ring-orange-400/60 ring-offset-white" : ""
-                    }`}
-                    style={{ left: `${leftPct}%`, width: `${widthPct}%`, minWidth: 6 }}
+                    style={{
+                      position: "absolute",
+                      top: 8,
+                      bottom: 8,
+                      borderRadius: r.sm,
+                      background: palette.bg,
+                      border: `1px solid ${palette.border}`,
+                      left: `${leftPct}%`,
+                      width: `${widthPct}%`,
+                      minWidth: 6,
+                      boxShadow: isSelected ? `0 0 0 2px ${c.canvas}, 0 0 0 4px ${c.signaturePeach}` : undefined,
+                    }}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     title={`${flight.id} ${flight.origin}→${flight.destination}${
@@ -192,5 +277,22 @@ export function CascadeTimeline({
         )}
       </div>
     </div>
+  )
+}
+
+function LegendSwatch({ color, label }: { color: string; label: string }) {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 8, whiteSpace: "nowrap" }}>
+      <span
+        style={{
+          width: 24,
+          height: 12,
+          borderRadius: r.sm,
+          background: color,
+          flexShrink: 0,
+        }}
+      />
+      {label}
+    </span>
   )
 }

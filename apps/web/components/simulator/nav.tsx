@@ -1,17 +1,42 @@
 "use client"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { Plane, Wifi, WifiOff, RotateCcw } from "lucide-react"
 import { useSimulationStore } from "@/stores/simulation"
 import { apiClient } from "@/lib/api"
 import { toast } from "sonner"
 import { useMemo } from "react"
+import { c, ff, r, sp } from "@/lib/design-tokens"
+import { ButtonPrimary, ButtonSecondary, StatusBadge } from "@/components/ds/primitives"
 
+/**
+ * Top nav — `{component.top-nav}` from DESIGN.md.
+ *
+ * White canvas, 64px tall, hairline bottom border. The nav stays light on
+ * every page; never inverts over dark sections.
+ *
+ * Left:   Aeolus wordmark (with the small near-black tile icon, no gold).
+ * Center: Horizontal route menu (Simulator / Plans / Cascade / Crew /
+ *         Passengers / Stress Test / Carbon).
+ * Right:  Connection pill + Reset (secondary) + status badges as compact pills.
+ */
 interface SimulatorNavProps {
   isConnected: boolean
   affectedCount: number
 }
 
+const NAV_LINKS = [
+  { href: "/simulator",              label: "Simulator" },
+  { href: "/simulator/plans",        label: "Plans" },
+  { href: "/simulator/cascade",      label: "Cascade" },
+  { href: "/simulator/crew",         label: "Crew" },
+  { href: "/simulator/passengers",   label: "Passengers" },
+  { href: "/simulator/stress-test",  label: "Stress test" },
+  { href: "/simulator/carbon",       label: "Carbon" },
+] as const
+
 export function SimulatorNav({ isConnected }: SimulatorNavProps) {
+  const pathname = usePathname() ?? "/simulator"
   const { reset, flightStates, schedule } = useSimulationStore()
 
   const stats = useMemo(() => {
@@ -35,103 +60,159 @@ export function SimulatorNav({ isConnected }: SimulatorNavProps) {
     }
   }
 
+  const isActiveLink = (href: string) => {
+    if (href === "/simulator") return pathname === "/simulator"
+    return pathname.startsWith(href)
+  }
+
   return (
     <nav
       style={{
-        height: 48,
+        height: 64,
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        paddingLeft: 16,
-        paddingRight: 16,
-        background: "linear-gradient(135deg, #042F2E 0%, #0F766E 100%)",
-        borderBottom: "1px solid rgba(255,255,255,0.10)",
+        paddingLeft: sp.lg,
+        paddingRight: sp.lg,
+        background: c.canvas,
+        borderBottom: `1px solid ${c.hairline}`,
         flexShrink: 0,
         zIndex: 50,
+        fontFamily: ff.body,
       }}
     >
-      {/* ── Brand + stats ── */}
-      <div style={{ display: "flex", alignItems: "center", gap: 16, minWidth: 0 }}>
+      {/* ── Wordmark ── */}
+      <div style={{ display: "flex", alignItems: "center", gap: 32, minWidth: 0 }}>
         <Link
           href="/"
-          style={{ display: "flex", alignItems: "center", gap: 9, textDecoration: "none", flexShrink: 0 }}
-          className="hover:opacity-80 transition-opacity"
+          style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", flexShrink: 0 }}
         >
           <div
             style={{
-              width: 26,
-              height: 26,
-              borderRadius: 7,
-              background: "#F59E0B",
+              width: 28,
+              height: 28,
+              borderRadius: r.sm,
+              background: c.primary,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
             }}
           >
-            <Plane style={{ width: 13, height: 13, color: "#fff" }} />
+            <Plane style={{ width: 14, height: 14, color: c.onPrimary }} />
           </div>
-          <div>
-            <div style={{ fontFamily: "'Nunito Sans', sans-serif", fontWeight: 800, fontSize: 14, lineHeight: 1, color: "#ffffff", letterSpacing: "-0.01em" }}>
-              Aeolus
-            </div>
-            <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, color: "rgba(255,255,255,0.55)", lineHeight: 1, marginTop: 2 }}>
-              Nimbus Air OCC
-            </div>
-          </div>
+          <span
+            style={{
+              fontFamily: ff.display,
+              fontWeight: 500,
+              fontSize: 18,
+              lineHeight: 1,
+              color: c.ink,
+              letterSpacing: "-0.01em",
+            }}
+          >
+            Aeolus
+          </span>
+          <span
+            style={{
+              fontFamily: ff.body,
+              fontSize: 13,
+              fontWeight: 400,
+              color: c.muted,
+              borderLeft: `1px solid ${c.hairline}`,
+              paddingLeft: 10,
+              marginLeft: 2,
+            }}
+          >
+            Nimbus Air OCC
+          </span>
         </Link>
 
-        <div style={{ width: 1, height: 18, background: "rgba(255,255,255,0.18)", flexShrink: 0 }} />
-
-        {stats.total > 0 && (
-          <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-            <StatPill dot="#008A05" value={stats.onTime} label="on-time" />
-            {stats.delayed > 0 && <StatPill dot="#E07912" value={stats.delayed} label="delayed" accent />}
-            {stats.cancelled > 0 && <StatPill dot="#C13515" value={stats.cancelled} label="cancelled" danger />}
-          </div>
-        )}
+        {/* ── Center route menu ── */}
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          {NAV_LINKS.map((link) => {
+            const active = isActiveLink(link.href)
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                style={{
+                  fontFamily: ff.body,
+                  fontSize: 14,
+                  fontWeight: active ? 500 : 400,
+                  color: active ? c.ink : c.body,
+                  textDecoration: "none",
+                  padding: "8px 12px",
+                  borderRadius: r.sm,
+                  background: active ? c.surfaceSoft : "transparent",
+                  transition: "background 150ms ease, color 150ms ease",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {link.label}
+              </Link>
+            )
+          })}
+        </div>
       </div>
 
-      {/* ── Right controls ── */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <div
-          style={{
-            display: "flex", alignItems: "center", gap: 5,
-            fontSize: 11, fontFamily: "'DM Sans', sans-serif", fontWeight: 600,
-            padding: "3px 9px", borderRadius: 6,
-            background: isConnected ? "rgba(52,211,153,0.15)" : "rgba(248,113,113,0.15)",
-            color:      isConnected ? "#6EE7B7" : "#FCA5A5",
-            border:    `1px solid ${isConnected ? "rgba(52,211,153,0.30)" : "rgba(248,113,113,0.30)"}`,
-          }}
-        >
-          {isConnected ? <Wifi style={{ width: 11, height: 11 }} /> : <WifiOff style={{ width: 11, height: 11 }} />}
-          {isConnected ? "Live" : "Offline"}
-        </div>
+      {/* ── Right cluster ── */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        {/* Compact status pills — only render counts that exist */}
+        {stats.total > 0 && (
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <StatusBadge kind="on-time"   count={stats.onTime}    compact />
+            {stats.delayed   > 0 && <StatusBadge kind="delayed"   count={stats.delayed}   compact />}
+            {stats.cancelled > 0 && <StatusBadge kind="cancelled" count={stats.cancelled} compact />}
+          </div>
+        )}
 
-        <button
+        <div style={{ width: 1, height: 20, background: c.hairline }} />
+
+        <ConnectionPill connected={isConnected} />
+
+        <ButtonSecondary
+          size="sm"
           onClick={handleReset}
-          className="btn-primary"
-          style={{ height: 30, fontSize: 12, paddingLeft: 12, paddingRight: 12, gap: 5 }}
+          leadingIcon={<RotateCcw style={{ width: 13, height: 13 }} />}
         >
-          <RotateCcw style={{ width: 11, height: 11 }} />
           Reset
-        </button>
+        </ButtonSecondary>
+
+        {/* Primary CTA — one per viewport. On the simulator surface this is
+            the "Run stress test" call-to-action that drives users to the
+            new vulnerability dashboard. */}
+        <Link href="/simulator/stress-test" style={{ textDecoration: "none" }}>
+          <ButtonPrimary size="sm">Run stress test</ButtonPrimary>
+        </Link>
       </div>
     </nav>
   )
 }
 
-function StatPill({ dot, value, label, accent, danger }: {
-  dot: string; value: number; label: string; accent?: boolean; danger?: boolean
-}) {
-  const bg     = danger ? "rgba(239,68,68,0.15)"  : accent ? "rgba(251,146,60,0.15)"  : "rgba(52,211,153,0.12)"
-  const border = danger ? "rgba(239,68,68,0.28)"  : accent ? "rgba(251,146,60,0.28)"  : "rgba(52,211,153,0.28)"
-  const text   = danger ? "#FCA5A5"               : accent ? "#FCD34D"                : "#6EE7B7"
-
+function ConnectionPill({ connected }: { connected: boolean }) {
+  // Connection state lives off the semantic palette: green forest tint when
+  // live, coral tint when offline. No more arbitrary opacity-on-teal pills.
+  const palette = connected ? c.statusOnTime : c.statusCancelled
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontFamily: "'DM Sans', sans-serif", fontWeight: 600, padding: "3px 8px", borderRadius: 5, background: bg, border: `1px solid ${border}`, color: text }}>
-      <span style={{ width: 6, height: 6, borderRadius: "50%", background: dot, flexShrink: 0 }} />
-      <span style={{ fontWeight: 700 }}>{value}</span>
-      <span style={{ opacity: 0.7 }}>{label}</span>
-    </div>
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        fontFamily: ff.body,
+        fontSize: 12,
+        fontWeight: 500,
+        padding: "5px 10px",
+        borderRadius: r.pill,
+        background: palette.bg,
+        color: palette.ink,
+        lineHeight: 1,
+      }}
+    >
+      {connected
+        ? <Wifi    style={{ width: 12, height: 12 }} />
+        : <WifiOff style={{ width: 12, height: 12 }} />}
+      {connected ? "Live" : "Offline"}
+    </span>
   )
 }

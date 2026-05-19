@@ -17,6 +17,37 @@ import {
 } from "@/stores/simulation"
 import { NIMBUS_AIRPORTS, HUB_AIRPORTS } from "./airports"
 import { apiClient } from "@/lib/api"
+import { c as tc } from "@/lib/design-tokens"
+
+// ── Map colors — sourced from design tokens so the map shares the same
+//    semantic palette as cascade-timeline, my-flights, plan cards, etc.
+//    `tc.*` is aliased so it doesn't collide with the local `c` variable
+//    used in this file as a [number, number] tuple shorthand.
+const MAP_COLORS = {
+  // Plan-applied actions
+  planCancelled: tc.statusCancelled.dot,   // coral
+  planSwap:      "#6366F1",                // indigo — no semantic token, kept
+  planDelayed:   tc.statusDelayed.dot,     // peach
+
+  // Cascade severity (warmth = severity)
+  cascadeDirect: tc.cascadeDirect,         // coral
+  cascadeOrder1: tc.cascadeOrder1,         // mustard
+  cascadeOrder2: tc.cascadeOrder2,         // yellow
+  unaffected:    tc.statusOnTime.dot,      // forest
+
+  // Live ADS-B — kept distinct from sim semantic palette
+  live:          "#38BDF8",
+  liveSelected:  tc.link,                  // crisp brand link blue
+
+  // Airport state
+  airportHub:    tc.statusOnTime.ink,      // forest
+  airportNormal: tc.body,
+  groundStop:    tc.statusCancelled.dot,
+  gdp:           tc.cascadeOrder1,
+  depDelay:      tc.statusDelayed.dot,
+  eventEpicenter: tc.cascadeDirect,        // coral — same as direct-hit cascade
+  weather:       "#7C3AED",                // purple — kept (no token)
+} as const
 
 // ── Pure helpers ───────────────────────────────────────────────────────────────
 
@@ -72,7 +103,7 @@ function liveIcon(heading: number | null, sel: boolean, velKt: number | null): L
   const key = `lv|${hdg}|${sel}|${slow}`
   return icon(key, () => {
     const sz = sel ? 30 : 16
-    const fill = sel ? "#0D9488" : "#38BDF8"
+    const fill = sel ? MAP_COLORS.liveSelected : MAP_COLORS.live
     const op = slow ? 0.4 : 1
     return L.divIcon({
       className: "",
@@ -119,25 +150,25 @@ function airportIcon(isHub: boolean, faa: FAAStatus | undefined, hasWx: boolean,
   const key = `ap|${isHub}|${fk}|${hasWx}|${isEvt}|${isSel}`
   return icon(key, () => {
     const r = isHub ? 9 : 6
-    let fill = isHub ? "#0D9488" : "#374151"
+    let fill = isHub ? MAP_COLORS.airportHub : MAP_COLORS.airportNormal
     let ring = "", top = "", bot = ""
     if (faa?.type === "ground_stop") {
-      fill = "#DC2626"
-      ring = `<span style="position:absolute;inset:-3px;border-radius:9999px;border:2px solid #DC2626;opacity:0.55"></span>`
-      top = apBadge("#DC2626", "GS")
+      fill = MAP_COLORS.groundStop
+      ring = `<span style="position:absolute;inset:-3px;border-radius:9999px;border:2px solid ${MAP_COLORS.groundStop};opacity:0.55"></span>`
+      top = apBadge(MAP_COLORS.groundStop, "GS")
     } else if (faa?.type === "ground_delay_program") {
-      fill = "#EA580C"
-      ring = `<span style="position:absolute;inset:-3px;border-radius:9999px;border:2px solid #EA580C;opacity:0.5"></span>`
-      top = apBadge("#EA580C", faa.delay_minutes > 0 ? `+${faa.delay_minutes}m` : "GDP")
+      fill = MAP_COLORS.gdp
+      ring = `<span style="position:absolute;inset:-3px;border-radius:9999px;border:2px solid ${MAP_COLORS.gdp};opacity:0.5"></span>`
+      top = apBadge(MAP_COLORS.gdp, faa.delay_minutes > 0 ? `+${faa.delay_minutes}m` : "GDP")
     } else if (faa?.type === "departure_delay") {
-      fill = "#CA8A04"
-      if (faa.delay_minutes > 0) top = apBadge("#CA8A04", `+${faa.delay_minutes}m`)
+      fill = MAP_COLORS.depDelay
+      if (faa.delay_minutes > 0) top = apBadge(MAP_COLORS.depDelay, `+${faa.delay_minutes}m`)
     } else if (isEvt) {
-      fill = "#F97316"
-      ring = `<span style="position:absolute;inset:-4px;border-radius:9999px;border:2px solid #F97316;opacity:0.6"></span>`
+      fill = MAP_COLORS.eventEpicenter
+      ring = `<span style="position:absolute;inset:-4px;border-radius:9999px;border:2px solid ${MAP_COLORS.eventEpicenter};opacity:0.6"></span>`
     }
-    if (hasWx) bot = apBadge("#7C3AED", "⚡WX", true)
-    const sel = isSel ? `<span style="position:absolute;inset:-6px;border-radius:9999px;border:2.5px solid #0D9488"></span>` : ""
+    if (hasWx) bot = apBadge(MAP_COLORS.weather, "⚡WX", true)
+    const sel = isSel ? `<span style="position:absolute;inset:-6px;border-radius:9999px;border:2.5px solid ${MAP_COLORS.liveSelected}"></span>` : ""
     const s = r * 2 + 28
     return L.divIcon({
       className: "",
@@ -853,17 +884,18 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
   }, [hasActiveEvents, setShowSimulation])
 
   // Color by cascade/plan state.
-  // Plan colors (red/indigo/amber) ONLY appear after a plan is explicitly applied.
-  // Cascade colors (orange/yellow) appear as soon as an event fires.
+  // Plan colors (cancelled/indigo/peach) ONLY appear after a plan is explicitly applied.
+  // Cascade colors (coral/mustard/yellow) appear as soon as an event fires.
+  // Same semantic palette as cascade-timeline + my-flights + plan-compare.
   function cascColor(fid: string, state: any): string {
-    if (applied.cancelled.has(fid)) return "#EF4444"
-    if (applied.swap.has(fid)) return "#6366F1"
-    if (applied.delayed.has(fid)) return "#F59E0B"
-    if (!state || state.cascade_order < 0) return "#22C55E"
-    if (state.cascade_order === 0) return "#F97316"
-    if (state.cascade_order === 1) return "#FBBF24"
-    if (state.cascade_order >= 2) return "#FDE68A"
-    return "#22C55E"
+    if (applied.cancelled.has(fid)) return MAP_COLORS.planCancelled
+    if (applied.swap.has(fid))      return MAP_COLORS.planSwap
+    if (applied.delayed.has(fid))   return MAP_COLORS.planDelayed
+    if (!state || state.cascade_order < 0) return MAP_COLORS.unaffected
+    if (state.cascade_order === 0)         return MAP_COLORS.cascadeDirect
+    if (state.cascade_order === 1)         return MAP_COLORS.cascadeOrder1
+    if (state.cascade_order >= 2)          return MAP_COLORS.cascadeOrder2
+    return MAP_COLORS.unaffected
   }
 
   // Impact routes
@@ -951,13 +983,13 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
 
   const selState = selectedSched ? flightStates[selectedSched.id] : undefined
   const selArcColor = selectedSched
-    ? applied.cancelled.has(selectedSched.id) ? "#EF4444"
-    : applied.swap.has(selectedSched.id) ? "#6366F1"
-    : applied.delayed.has(selectedSched.id) ? "#F59E0B"
-    : selState?.cascade_order === 0 ? "#F97316"
-    : selState?.cascade_order != null && selState.cascade_order >= 1 ? "#FBBF24"
-    : "#0D9488"
-    : "#0D9488"
+    ? applied.cancelled.has(selectedSched.id) ? MAP_COLORS.planCancelled
+    : applied.swap.has(selectedSched.id)      ? MAP_COLORS.planSwap
+    : applied.delayed.has(selectedSched.id)   ? MAP_COLORS.planDelayed
+    : selState?.cascade_order === 0 ? MAP_COLORS.cascadeDirect
+    : selState?.cascade_order != null && selState.cascade_order >= 1 ? MAP_COLORS.cascadeOrder1
+    : MAP_COLORS.liveSelected
+    : MAP_COLORS.liveSelected
 
   const selTrail = useMemo(() => {
     const lf = selectedLiveFlight
@@ -999,11 +1031,11 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
           const c: [number, number] = [ap.lat, ap.lon]
           return [
             <Circle key={`ep0-${icao}`} center={c} radius={70_000}
-              pathOptions={{ color: "#F97316", weight: 2.5, opacity: 0.70, fillColor: "#F97316", fillOpacity: 0.10 }} />,
+              pathOptions={{ color: MAP_COLORS.eventEpicenter, weight: 2.5, opacity: 0.70, fillColor: MAP_COLORS.eventEpicenter, fillOpacity: 0.10 }} />,
             <Circle key={`ep1-${icao}`} center={c} radius={160_000}
-              pathOptions={{ color: "#F97316", weight: 1.5, opacity: 0.40, fillColor: "#F97316", fillOpacity: 0.05, dashArray: "6 5" }} />,
+              pathOptions={{ color: MAP_COLORS.eventEpicenter, weight: 1.5, opacity: 0.40, fillColor: MAP_COLORS.eventEpicenter, fillOpacity: 0.05, dashArray: "6 5" }} />,
             <Circle key={`ep2-${icao}`} center={c} radius={300_000}
-              pathOptions={{ color: "#F97316", weight: 1, opacity: 0.18, fillColor: "#F97316", fillOpacity: 0.02, dashArray: "3 9" }} />,
+              pathOptions={{ color: MAP_COLORS.eventEpicenter, weight: 1, opacity: 0.18, fillColor: MAP_COLORS.eventEpicenter, fillOpacity: 0.02, dashArray: "3 9" }} />,
           ]
         })}
 
@@ -1053,7 +1085,7 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
         {/* Live trail for selected live flight */}
         {selTrail && (
           <Polyline positions={[selTrail.from, selTrail.to]}
-            pathOptions={{ color: "#0D9488", weight: 2.5, opacity: 0.60 }} />
+            pathOptions={{ color: MAP_COLORS.liveSelected, weight: 2.5, opacity: 0.60 }} />
         )}
 
         {/* Airport nodes */}

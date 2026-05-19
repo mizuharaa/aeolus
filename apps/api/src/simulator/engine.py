@@ -34,6 +34,10 @@ class SimulationState:
     active_events: list[dict] = field(default_factory=list)
     flight_states: dict[str, dict] = field(default_factory=dict)
     recovery_plans: list[dict] = field(default_factory=list)
+    # Persisted so fresh WS clients (page navigation, deep-link, refresh) can
+    # rebuild the cascade panel without re-triggering the event. Previously
+    # only sent inline on broadcast and lost on reconnect.
+    cascade_summary: dict = field(default_factory=dict)
     ws_subscribers: set = field(default_factory=set)
     is_running: bool = False
     event_history: list[dict] = field(default_factory=list)
@@ -252,8 +256,11 @@ class SimulationEngine:
             for p in plans
         ]
 
-        # Compute cascade summary
+        # Compute cascade summary and persist it on state so that secondary
+        # pages (carbon, cascade, plans, etc.) hitting the WS for the first
+        # time can rebuild the same view without re-triggering the event.
         cascade_summary = self._compute_cascade_summary(predictions)
+        self.state.cascade_summary = cascade_summary
 
         # Build broadcast payload
         update: dict = {
@@ -275,6 +282,7 @@ class SimulationEngine:
             self.state.flight_states[fid] = self._default_flight_state(fid)
         self.state.active_events.clear()
         self.state.recovery_plans.clear()
+        self.state.cascade_summary = {}
         # Keep event_history for audit log
         logger.info("Simulation state reset")
 

@@ -4,262 +4,339 @@
 @tailwind utilities;
 
 /* ══════════════════════════════════════════════════════════════════
-   Aeolus / Nimbus Air OCC — Teal Design System
-   Fonts loaded via <link> in layout.tsx
+   Aeolus — Airtable Editorial Design System
+
+   White canvas + near-black ink as the floor. Brand voltage lives in
+   signature surface cards (coral / forest / cream / peach / mint /
+   yellow / mustard) that punctuate the page every 2–3 screens.
+
+   Source of truth: apps/web/lib/design-tokens.ts
+   Fonts loaded via <link> in layout.tsx (Inter Display + Inter).
+
+   Legacy --cs-* / --ember-* aliases are kept pointing at Airtable
+   tokens so existing components keep working until they get rewritten
+   in Slice 2. New code should reference tokens.ts directly.
    ══════════════════════════════════════════════════════════════════ */
 
 @layer base {
   :root {
-    /* ── Nimbus Teal palette ── */
-    --cs-primary:       #0D9488;   /* teal-600 */
-    --cs-primary-hover: #0F766E;   /* teal-700 */
-    --cs-secondary:     #F59E0B;   /* amber — warm accent */
-    --cs-bg:            #FFFFFF;
-    --cs-surface:       #F7F7F7;
-    --cs-surface-raised:#EBEBEB;
-    --cs-border:        #DDDDDD;
-    --cs-text:          #222222;
-    --cs-text-2:        #717171;
-    --cs-neutral:       #767676;
-    --cs-success:       #008A05;
-    --cs-warning:       #E07912;
-    --cs-error:         #C13515;
+    /* ── Airtable palette (canonical) ─────────────────────────────── */
+    --ae-primary:          #181d26;
+    --ae-primary-active:   #0d1218;
+    --ae-canvas:           #FFFFFF;
+    --ae-surface-soft:     #F8FAFC;
+    --ae-surface-strong:   #E0E2E6;
+    --ae-surface-dark:     #181d26;
+    --ae-surface-dark-elv: #1d1f25;
+    --ae-hairline:         #DDDDDD;
 
-    /* ── ember-* aliases — components reference these ── */
-    --ember-primary:        var(--cs-primary);
-    --ember-primary-hover:  var(--cs-primary-hover);
-    --ember-accent:         var(--cs-secondary);
-    --ember-bg:             var(--cs-bg);
-    --ember-surface:        var(--cs-surface);
-    --ember-surface-raised: var(--cs-surface-raised);
-    --ember-border:         var(--cs-border);
-    --ember-text:           var(--cs-text);
-    --ember-text-2:         var(--cs-text-2);
-    --ember-neutral:        var(--cs-neutral);
+    --ae-ink:           #181d26;
+    --ae-body:          #333840;
+    --ae-muted:         #41454D;
+    --ae-border-strong: #9297A0;
+    --ae-on-primary:    #FFFFFF;
 
-    /* ── Tailwind semantic bridge ── */
+    --ae-signature-coral:   #AA2D00;
+    --ae-signature-forest:  #0A2E0E;
+    --ae-signature-cream:   #F5E9D4;
+    --ae-signature-peach:   #FCAB79;
+    --ae-signature-mint:    #A8D8C4;
+    --ae-signature-yellow:  #F4D35E;
+    --ae-signature-mustard: #D9A441;
+
+    --ae-link:    #1B61C9;
+    --ae-info:    #254FAD;
+    --ae-success: #006400;
+
+    /* ── Status palette ───────────────────────────────────────────── */
+    --ae-status-ontime-ink:    #0A2E0E;
+    --ae-status-ontime-bg:     #E8F1E9;
+    --ae-status-delayed-ink:   #7A3E0F;
+    --ae-status-delayed-bg:    #FDEBD9;
+    --ae-status-cancelled-ink: #AA2D00;
+    --ae-status-cancelled-bg:  #F8E3D9;
+    --ae-status-recovered-ink: #0A2E0E;
+    --ae-status-recovered-bg:  #DDEFE5;
+
+    /* ── Cascade severity ─────────────────────────────────────────── */
+    --ae-cascade-direct:  #AA2D00;
+    --ae-cascade-order1:  #D9A441;
+    --ae-cascade-order2:  #F4D35E;
+    --ae-cascade-none:    #DDDDDD;
+
+    /* ── Radii ────────────────────────────────────────────────────── */
+    --ae-r-xs:   2px;
+    --ae-r-sm:   6px;
+    --ae-r-md:   10px;
+    --ae-r-lg:   12px;
+    --ae-r-pill: 9999px;
+
+    /* ── Spacing ──────────────────────────────────────────────────── */
+    --ae-sp-xxs:     4px;
+    --ae-sp-xs:      8px;
+    --ae-sp-sm:     12px;
+    --ae-sp-md:     16px;
+    --ae-sp-lg:     24px;
+    --ae-sp-xl:     32px;
+    --ae-sp-xxl:    48px;
+    --ae-sp-section: 96px;
+
+    /* ── Fonts ────────────────────────────────────────────────────── */
+    --ae-font-display: "Inter Display", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --ae-font-body:    "Inter", "Inter Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --ae-font-mono:    "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+    /* ── Shadows (sparse, color-block-first) ──────────────────────── */
+    --ae-shadow-button:    0 1px 2px rgba(24,29,38,0.08);
+    --ae-shadow-card:      0 1px 2px rgba(24,29,38,0.06);
+    --ae-shadow-card-elev: 0 4px 16px rgba(24,29,38,0.08);
+    --ae-shadow-overlay:   0 12px 36px rgba(24,29,38,0.12);
+    --ae-shadow-focus:     0 0 0 3px rgba(27,97,201,0.35);
+
+    /* ── Legacy aliases — point at Airtable tokens so old components keep working ── */
+    --cs-primary:        var(--ae-primary);
+    --cs-primary-hover:  var(--ae-primary-active);
+    --cs-secondary:      var(--ae-signature-mustard);
+    --cs-bg:             var(--ae-canvas);
+    --cs-surface:        var(--ae-surface-soft);
+    --cs-surface-raised: var(--ae-surface-strong);
+    --cs-border:         var(--ae-hairline);
+    --cs-text:           var(--ae-ink);
+    --cs-text-2:         var(--ae-muted);
+    --cs-neutral:        var(--ae-border-strong);
+    --cs-success:        var(--ae-success);
+    --cs-warning:        var(--ae-signature-mustard);
+    --cs-error:          var(--ae-signature-coral);
+
+    --ember-primary:        var(--ae-primary);
+    --ember-primary-hover:  var(--ae-primary-active);
+    --ember-accent:         var(--ae-signature-mustard);
+    --ember-bg:             var(--ae-canvas);
+    --ember-surface:        var(--ae-surface-soft);
+    --ember-surface-raised: var(--ae-surface-strong);
+    --ember-border:         var(--ae-hairline);
+    --ember-text:           var(--ae-ink);
+    --ember-text-2:         var(--ae-muted);
+    --ember-neutral:        var(--ae-border-strong);
+
+    /* ── Tailwind / shadcn semantic bridge ────────────────────────── */
     --background:   0 0% 100%;
-    --foreground:   0 0% 13%;
+    --foreground:   220 17% 12%;        /* #181d26 */
     --card:         0 0% 100%;
-    --card-foreground: 0 0% 13%;
-    --primary:      176 84% 47%;    /* #0D9488 teal */
+    --card-foreground: 220 17% 12%;
+    --primary:      220 17% 12%;        /* near-black */
     --primary-foreground: 0 0% 100%;
-    --secondary:    38 92% 50%;     /* #F59E0B amber */
+    --secondary:    18 100% 33%;        /* coral signature */
     --secondary-foreground: 0 0% 100%;
-    --muted:        0 0% 97%;
-    --muted-foreground: 0 0% 44%;
-    --accent:       0 0% 97%;
-    --accent-foreground: 0 0% 13%;
-    --destructive:  4 73% 43%;       /* #C13515 */
+    --muted:        210 20% 98%;
+    --muted-foreground: 220 8% 28%;
+    --accent:       210 20% 98%;
+    --accent-foreground: 220 17% 12%;
+    --destructive:  18 100% 33%;        /* coral */
     --destructive-foreground: 0 0% 100%;
-    --border:       0 0% 87%;        /* #DDDDDD */
+    --border:       0 0% 87%;           /* #DDDDDD hairline */
     --input:        0 0% 87%;
-    --ring:         176 84% 47%;     /* teal ring */
-    --radius:       0.75rem;
+    --ring:         215 70% 45%;        /* link blue for focus */
+    --radius:       0.625rem;           /* 10px md */
 
-    /* ── Shadows ── */
-    --shadow-card:  0 1px 2px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.05);
-    --shadow-hover: 0 2px 4px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.12);
-    --shadow-modal: 0 6px 20px rgba(0,0,0,0.12), 0 16px 40px rgba(0,0,0,0.16);
-    --shadow-coral: 0 4px 16px rgba(13,148,136,0.32);   /* renamed value → teal glow */
-    --shadow-teal:  0 4px 16px rgba(13,148,136,0.32);
-    --shadow-nav:   0 1px 0 var(--cs-border);
+    /* Legacy shadow names */
+    --shadow-card:  var(--ae-shadow-card);
+    --shadow-hover: var(--ae-shadow-card-elev);
+    --shadow-modal: var(--ae-shadow-overlay);
+    --shadow-coral: 0 4px 16px rgba(170,45,0,0.25);
+    --shadow-teal:  0 4px 16px rgba(24,29,38,0.10);
+    --shadow-nav:   0 1px 0 var(--ae-hairline);
   }
 
   html { color-scheme: light; }
   * { @apply border-border; box-sizing: border-box; }
 
   body {
-    background: var(--cs-bg);
-    color: var(--cs-text);
-    font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+    background: var(--ae-canvas);
+    color: var(--ae-body);
+    font-family: var(--ae-font-body);
     font-size: 14px;
-    line-height: 1.5;
+    font-weight: 400;
+    line-height: 1.25;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--ae-font-display);
+    color: var(--ae-ink);
+    font-weight: 400;   /* display weight is intentionally light */
+    letter-spacing: 0;
   }
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   Shared component primitives
+   Component primitives — Airtable button system
    ══════════════════════════════════════════════════════════════════ */
 
-/* Primary CTA — teal */
+/* Primary CTA — near-black ink. One per viewport. */
 .btn-primary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 0 14px;
-  height: 32px;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  color: #ffffff;
-  background: var(--cs-primary);
-  border: none;
-  border-radius: 8px;
+  gap: 8px;
+  padding: 12px 24px;
+  min-height: 44px;
+  font-family: var(--ae-font-body);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: 0;
+  color: var(--ae-on-primary);
+  background: var(--ae-primary);
+  border: 1px solid var(--ae-primary);
+  border-radius: var(--ae-r-lg);     /* 12px */
   cursor: pointer;
-  transition: background 150ms ease, box-shadow 150ms ease;
+  transition: background 150ms ease, transform 100ms ease;
   white-space: nowrap;
-  line-height: 1;
-  flex-shrink: 0;
+  box-shadow: var(--ae-shadow-button);
 }
-.btn-primary:hover:not(:disabled) {
-  background: var(--cs-primary-hover);
-  box-shadow: var(--shadow-teal);
-}
-.btn-primary:active:not(:disabled) { transform: scale(0.97); }
+.btn-primary:hover:not(:disabled) { background: var(--ae-primary-active); border-color: var(--ae-primary-active); }
+.btn-primary:active:not(:disabled) { background: var(--ae-primary-active); transform: scale(0.98); }
+.btn-primary:focus-visible { outline: none; box-shadow: var(--ae-shadow-focus); }
 .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
 
-/* Secondary / outlined */
+/* Secondary CTA — canvas with hairline outline. The pair to btn-primary. */
 .btn-secondary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 0 14px;
-  height: 32px;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--cs-text);
-  background: transparent;
-  border: 1px solid var(--cs-border);
-  border-radius: 8px;
+  gap: 8px;
+  padding: 12px 24px;
+  min-height: 44px;
+  font-family: var(--ae-font-body);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--ae-ink);
+  background: var(--ae-canvas);
+  border: 1px solid var(--ae-hairline);
+  border-radius: var(--ae-r-lg);
   cursor: pointer;
-  transition: background 150ms ease, border-color 150ms ease;
+  transition: background 150ms ease, border-color 150ms ease, transform 100ms ease;
   white-space: nowrap;
-  line-height: 1;
 }
-.btn-secondary:hover:not(:disabled) {
-  background: var(--cs-surface);
-  border-color: #C0C0C0;
-}
-.btn-secondary:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-secondary:hover:not(:disabled) { background: var(--ae-surface-soft); border-color: var(--ae-border-strong); }
+.btn-secondary:active:not(:disabled) { transform: scale(0.98); }
+.btn-secondary:focus-visible { outline: none; box-shadow: var(--ae-shadow-focus); }
+.btn-secondary:disabled { color: var(--ae-border-strong); border-color: var(--ae-hairline); cursor: not-allowed; }
 
-/* Gold CTA — amber accent */
-.btn-gold {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 0 14px;
-  height: 32px;
-  font-family: 'DM Sans', sans-serif;
+/* Small CTA — compact variant for dense panels. Keeps shape, scales down. */
+.btn-primary--sm,
+.btn-secondary--sm {
+  padding: 8px 14px;
+  min-height: 32px;
   font-size: 13px;
-  font-weight: 700;
-  color: #1C1612;
-  background: #F59E0B;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 150ms ease, box-shadow 150ms ease;
-  white-space: nowrap;
-  line-height: 1;
-  flex-shrink: 0;
 }
-.btn-gold:hover:not(:disabled) {
-  background: #D97706;
-  box-shadow: 0 4px 16px rgba(245,158,11,0.38);
-}
-.btn-gold:active:not(:disabled) { transform: scale(0.97); }
-.btn-gold:disabled { opacity: 0.45; cursor: not-allowed; }
 
-/* Teal button */
+/* Legacy classes — kept as aliases so old components still render correctly. */
+.btn-gold,
 .btn-teal {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 0 14px;
-  height: 32px;
-  font-family: 'DM Sans', sans-serif;
+  gap: 8px;
+  padding: 8px 14px;
+  min-height: 32px;
+  font-family: var(--ae-font-body);
   font-size: 13px;
-  font-weight: 600;
-  color: #ffffff;
-  background: var(--cs-primary);
-  border: none;
-  border-radius: 8px;
+  font-weight: 500;
+  color: var(--ae-on-primary);
+  background: var(--ae-primary);
+  border: 1px solid var(--ae-primary);
+  border-radius: var(--ae-r-lg);
   cursor: pointer;
   transition: background 150ms ease;
   white-space: nowrap;
 }
-.btn-teal:hover:not(:disabled) { background: var(--cs-primary-hover); }
+.btn-gold:hover:not(:disabled),
+.btn-teal:hover:not(:disabled) { background: var(--ae-primary-active); }
+.btn-gold:disabled,
 .btn-teal:disabled { opacity: 0.45; cursor: not-allowed; }
 
-/* Panel header — used across all side panels */
+/* Panel header — kept for compatibility */
 .panel-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--cs-border);
-  background: var(--cs-bg);
+  gap: 12px;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--ae-hairline);
+  background: var(--ae-canvas);
   flex-shrink: 0;
 }
 
-/* Section title typography */
+/* Typography utility classes */
 .section-title {
-  font-family: 'Nunito Sans', sans-serif;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--cs-text);
-  line-height: 1.2;
-  letter-spacing: -0.01em;
+  font-family: var(--ae-font-display);
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--ae-ink);
+  letter-spacing: 0;
 }
 
-.section-badge {
+.section-badge,
+.ember-label {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  font-family: var(--ae-font-body);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--cs-neutral);
+  color: var(--ae-muted);
 }
 
 /* Card surfaces */
-.ember-card {
-  background: var(--cs-bg);
-  border: 1px solid var(--cs-border);
-  border-radius: 12px;
-  box-shadow: var(--shadow-card);
+.ember-card,
+.surface-card {
+  background: var(--ae-canvas);
+  border: 1px solid var(--ae-hairline);
+  border-radius: var(--ae-r-md);
+  box-shadow: var(--ae-shadow-card);
   transition: box-shadow 200ms ease;
 }
-.ember-card:hover { box-shadow: var(--shadow-hover); }
-
-.surface-card {
-  background: var(--cs-bg);
-  border: 1px solid var(--cs-border);
-  border-radius: 12px;
-  box-shadow: var(--shadow-card);
-}
+.ember-card:hover { box-shadow: var(--ae-shadow-card-elev); }
 
 .surface-floating {
   background: rgba(255,255,255,0.97);
   backdrop-filter: blur(16px);
-  border: 1px solid var(--cs-border);
-  border-radius: 12px;
-  box-shadow: var(--shadow-hover);
+  border: 1px solid var(--ae-hairline);
+  border-radius: var(--ae-r-lg);
+  box-shadow: var(--ae-shadow-overlay);
 }
 
-/* Monospace — flight IDs, codes */
+/* Signature surface cards — brand voltage moments. Use sparingly. */
+.signature-coral,
+.signature-forest,
+.signature-dark {
+  border-radius: var(--ae-r-lg);
+  padding: var(--ae-sp-xxl);
+  color: var(--ae-on-primary);
+}
+.signature-coral  { background: var(--ae-signature-coral); }
+.signature-forest { background: var(--ae-signature-forest); }
+.signature-dark   { background: var(--ae-surface-dark); }
+
+.signature-cream {
+  background: var(--ae-signature-cream);
+  color: var(--ae-ink);
+  border-radius: var(--ae-r-md);
+  padding: var(--ae-sp-lg);
+}
+
+/* Monospace — flight IDs, delay minutes, costs */
 .ember-code {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--ae-font-mono);
   font-size: 12px;
-  font-weight: 400;
-}
-
-.ember-label {
-  font-family: 'DM Sans', sans-serif;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--cs-neutral);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -267,11 +344,10 @@
    ══════════════════════════════════════════════════════════════════ */
 
 .leaflet-container {
-  background: #E8E8E4 !important;
-  font-family: 'DM Sans', system-ui, sans-serif;
+  background: #EDEEF0 !important;
+  font-family: var(--ae-font-body);
 }
 
-/* Tightly clip map to its container */
 .simulator-map-shell {
   position: relative;
   overflow: hidden;
@@ -281,36 +357,35 @@
 .simulator-map-shell .leaflet-container { outline: none; }
 .simulator-map-shell .leaflet-control-container { z-index: 1000; }
 
-/* Subtle warm tone for tiles */
+/* Subtle neutral tile treatment — no warm tint */
 .leaflet-tile {
-  filter: saturate(0.82) brightness(1.03);
+  filter: saturate(0.85) brightness(1.02) contrast(0.98);
 }
 
-/* Zoom control */
 .leaflet-bar a {
-  background: #fff !important;
-  color: var(--cs-text) !important;
-  border-color: var(--cs-border) !important;
-  font-weight: 600;
+  background: var(--ae-canvas) !important;
+  color: var(--ae-ink) !important;
+  border-color: var(--ae-hairline) !important;
+  font-weight: 500;
 }
 .leaflet-bar a:hover {
-  background: var(--cs-surface) !important;
-  color: var(--cs-primary) !important;
+  background: var(--ae-surface-soft) !important;
+  color: var(--ae-primary) !important;
 }
 
-/* Tooltips */
 .leaflet-popup-content-wrapper,
 .leaflet-tooltip {
-  border-radius: 8px !important;
-  border: 1px solid var(--cs-border) !important;
-  box-shadow: var(--shadow-hover) !important;
-  background: #ffffff !important;
-  color: var(--cs-text) !important;
+  border-radius: var(--ae-r-md) !important;
+  border: 1px solid var(--ae-hairline) !important;
+  box-shadow: var(--ae-shadow-card-elev) !important;
+  background: var(--ae-canvas) !important;
+  color: var(--ae-ink) !important;
 }
 .leaflet-tooltip {
   padding: 6px 10px !important;
-  font-size: 11px !important;
-  font-family: 'DM Sans', sans-serif !important;
+  font-size: 12px !important;
+  font-family: var(--ae-font-body) !important;
+  font-weight: 500;
 }
 .leaflet-tooltip-top:before,
 .leaflet-tooltip-bottom:before,
@@ -319,27 +394,27 @@
 
 .leaflet-control-attribution {
   background: rgba(255,255,255,0.88) !important;
-  font-size: 9px !important;
-  padding: 1px 4px !important;
-  border-radius: 4px !important;
-  color: var(--cs-neutral) !important;
+  font-size: 10px !important;
+  padding: 2px 6px !important;
+  border-radius: var(--ae-r-sm) !important;
+  color: var(--ae-muted) !important;
 }
 
 /* ══════════════════════════════════════════════════════════════════
    Scrollbars
    ══════════════════════════════════════════════════════════════════ */
 
-::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: var(--cs-border);
+  background: var(--ae-hairline);
   border-radius: 99px;
 }
-::-webkit-scrollbar-thumb:hover { background: #C0BEBB; }
+::-webkit-scrollbar-thumb:hover { background: var(--ae-border-strong); }
 
 .cascade-timeline-scroll::-webkit-scrollbar { width: 4px; }
 .cascade-timeline-scroll::-webkit-scrollbar-thumb {
-  background: rgba(0,0,0,0.15);
+  background: rgba(24,29,38,0.15);
   border-radius: 99px;
 }
 
@@ -364,7 +439,7 @@
   100% { background-position:  200% 0; }
 }
 .shimmer-bg {
-  background: linear-gradient(90deg, transparent, rgba(13,148,136,0.05), transparent);
+  background: linear-gradient(90deg, transparent, rgba(24,29,38,0.04), transparent);
   background-size: 200% 100%;
   animation: shimmer 2s linear infinite;
 }

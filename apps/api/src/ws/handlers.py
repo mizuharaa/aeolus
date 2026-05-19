@@ -7,20 +7,48 @@ from fastapi import WebSocket, WebSocketDisconnect
 logger = logging.getLogger(__name__)
 
 
+def _snapshot_payload(engine, msg_type: str) -> dict:
+    """
+    Build the canonical "rebuild client state from scratch" payload.
+
+    Used by both the initial `connected` push and the explicit `get_state`
+    request. Returns EVERY field a secondary page (carbon, cascade, plans,
+    crew, passengers) needs to render without re-triggering the event:
+
+      - flight_states     : per-flight cascade order, delay, status
+      - active_events     : list of disruptions still in flight
+      - recovery_plans    : last optimizer solve output (A / B / C / D)
+      - cascade_summary   : direct / order-1 / order-2 / total counts
+      - schedule          : for /connected only — gives the schedule chrome
+                            its rows without a separate REST call.
+
+    Previously the snapshot OMITTED `cascade_summary`, which is why pages
+    like /simulator/cascade flashed the empty state on every navigation
+    even after a real event had been triggered.
+    """
+    payload: dict = {
+        "type":            msg_type,
+        "flight_states":   engine.state.flight_states,
+        "active_events":   engine.state.active_events,
+        "recovery_plans":  engine.state.recovery_plans,
+        "cascade_summary": engine.state.cascade_summary,
+    }
+    if msg_type == "connected":
+        # Schedule only needs to ship once on initial connect — it's static
+        # within a session and the client caches it in the Zustand store.
+        payload["schedule"] = engine.get_schedule_snapshot()
+    return payload
+
+
 async def simulation_ws_handler(websocket: WebSocket, engine) -> None:
     await websocket.accept()
     engine.add_subscriber(websocket)
     logger.info("WebSocket client connected")
 
-    # Send current state immediately on connect
+    # Send current state immediately on connect so the client lands with a
+    # populated cascade / plans / event view (no "Awaiting disruption" flash).
     try:
-        await websocket.send_text(json.dumps({
-            "type": "connected",
-            "flight_states": engine.state.flight_states,
-            "active_events": engine.state.active_events,
-            "recovery_plans": engine.state.recovery_plans,
-            "schedule": engine.get_schedule_snapshot(),
-        }))
+        await websocket.send_text(json.dumps(_snapshot_payload(engine, "connected")))
     except Exception as e:
         logger.warning("Failed to send initial state: %s", e)
         engine.remove_subscriber(websocket)
@@ -49,12 +77,11 @@ async def simulation_ws_handler(websocket: WebSocket, engine) -> None:
                 }))
 
             elif msg_type == "get_state":
-                await websocket.send_text(json.dumps({
-                    "type": "state_snapshot",
-                    "flight_states": engine.state.flight_states,
-                    "active_events": engine.state.active_events,
-                    "recovery_plans": engine.state.recovery_plans,
-                }))
+                # Re-uses the same canonical snapshot builder. Clients that
+                # detect a stale store (e.g. after waking from sleep) can
+                # send `{"type":"get_state"}` to rehydrate without
+                # tearing down the connection.
+                await websocket.send_text(json.dumps(_snapshot_payload(engine, "state_snapshot")))
 
     except WebSocketDisconnect:
         logger.info("WebSocket client disconnected")

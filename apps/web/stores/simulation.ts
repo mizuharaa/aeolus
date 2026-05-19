@@ -42,6 +42,7 @@ export interface RecoveryPlan {
     flight_id: string
     old_aircraft: string
     new_aircraft: string
+    aircraft_type?: string
   }>
   crew_violations: number
   aircraft_out_of_position?: number
@@ -55,6 +56,27 @@ export interface RecoveryPlan {
     total_pax_delay_minutes: number
     cancelled_count: number
     delayed_count: number
+  }
+  // Carbon ledger — Slice 4 / Plan D. Present on every plan, regardless of
+  // which objective it was optimised against, so the UI can surface CO₂
+  // alongside dollars.
+  total_co2_kg?: number
+  eu_ets_cost_usd?: number
+  carbon_breakdown?: {
+    total_co2_kg: number
+    total_co2_tonnes: number
+    total_fuel_kg: number
+    eu_ets_cost_usd: number
+    saved_co2_kg: number
+    burned_co2_kg: number
+    ets_price_usd_per_tonne: number
+    per_flight: Array<{
+      flight_id: string
+      co2_kg: number
+      fuel_kg: number
+      breakdown: Record<string, number | string>
+      note: string
+    }>
   }
 }
 
@@ -138,6 +160,73 @@ interface SimulationStore {
   setSelectedLiveFlight: (flight: LiveFlight | null) => void
 }
 
+// ────────────────────────────────────────────────────────────────────
+// Internal merge helpers
+//
+// The backend emits four kinds of inbound messages we care about:
+//   1. `connected`        — initial WS snapshot on (re)connect
+//   2. `state_snapshot`   — same shape, fired on explicit `get_state`
+//   3. `simulation_update`— a real new event was just processed
+//   4. `flight_state`     — single-flight push
+//
+// Pre-fix, the store collapsed all four into one merge that:
+//   a) wiped `recoveryPlans` if the snapshot sent `[]`  (`?? ` doesn't
+//      coalesce empty arrays, so `[]` overwrote a populated list)
+//   b) reset `appliedPlanId` to `null` on EVERY message, including pings
+//      and snapshots — operators lost their applied plan whenever they
+//      navigated routes or refreshed.
+//
+// Post-fix:
+//   • A snapshot (connected / state_snapshot) is treated as a hint, not a
+//     truth: it can REPLACE empty client state, but never REPLACE non-empty
+//     client state with empty server state. The server might restart between
+//     navigations; we don't let a transient gap erase what we already know.
+//   • An empty-array recovery_plans on a real `simulation_update` IS honored
+//     (a new event with no feasible plan is a legitimate "wipe").
+//   • `appliedPlanId` only resets when a brand-new `event` arrives.
+// ────────────────────────────────────────────────────────────────────
+
+type UpdateKind = "snapshot" | "event" | "single-flight" | "unknown"
+
+function classify(update: any): UpdateKind {
+  const t = update?.type
+  if (t === "connected" || t === "state_snapshot") return "snapshot"
+  if (t === "simulation_update" || update?.event)  return "event"
+  if (t === "flight_state")                        return "single-flight"
+  // Some legacy paths broadcast without a `type`. If they carry plans or
+  // an `event` payload, treat as event; otherwise let the merge keep state.
+  if (update?.recovery_plans || update?.cascade_summary) return "event"
+  return "unknown"
+}
+
+/** Pick a fresh value only when it would not REGRESS the client. */
+function pickArray<T>(incoming: T[] | undefined | null, existing: T[], kind: UpdateKind): T[] {
+  if (incoming == null) return existing
+  // Snapshot messages can only REPLACE empty client state. They never
+  // overwrite a populated list with an empty one — that's the bug that
+  // caused "Awaiting Disruption" to flash on every secondary page.
+  if (kind === "snapshot" && incoming.length === 0 && existing.length > 0) return existing
+  return incoming
+}
+
+function pickObj<T extends object>(incoming: T | undefined | null, existing: T | null, kind: UpdateKind): T | null {
+  if (incoming == null) return existing
+  if (kind === "snapshot" && existing != null && Object.keys(incoming).length === 0) return existing
+  return incoming
+}
+
+function pickRecord<V>(
+  incoming: Record<string, V> | undefined | null,
+  existing: Record<string, V>,
+  kind: UpdateKind,
+): Record<string, V> {
+  if (incoming == null) return existing
+  if (kind === "snapshot" && Object.keys(incoming).length === 0 && Object.keys(existing).length > 0) {
+    return existing
+  }
+  return incoming
+}
+
 export const useSimulationStore = create<SimulationStore>((set) => ({
   flightStates: {},
   activeEvents: [],
@@ -156,27 +245,46 @@ export const useSimulationStore = create<SimulationStore>((set) => ({
   selectedLiveFlight: null,
 
   setUpdate: (update) =>
-    set((state) => ({
-      flightStates: update.flight_states
-        ? update.flight_states
-        : state.flightStates,
-      activeEvents:
-        update.active_events !== undefined
-          ? update.active_events
-          : update.event
-          ? state.activeEvents.some((e) => e.id === update.event.id)
-            ? state.activeEvents
-            : [...state.activeEvents, update.event]
-          : state.activeEvents,
-      recoveryPlans: update.recovery_plans ?? state.recoveryPlans,
-      cascadeSummary: update.cascade_summary ?? state.cascadeSummary,
-      schedule:
-        update.schedule || update.flights
-          ? update.schedule || update.flights
-          : state.schedule,
-      lastEventAt: update.event ? Date.now() : state.lastEventAt,
-      appliedPlanId: null,
-    })),
+    set((state) => {
+      const kind = classify(update)
+
+      // `single-flight` updates only patch one flight's state; everything
+      // else stays put.
+      if (kind === "single-flight" && update?.flight_id && update?.state) {
+        return {
+          flightStates: { ...state.flightStates, [update.flight_id]: { ...state.flightStates[update.flight_id], ...update.state } },
+        }
+      }
+
+      // Merge `active_events`: an event-kind update with a single new event
+      // (no full list) appends — same as before. Snapshots replace the list
+      // (subject to the snapshot guard).
+      let nextActive = state.activeEvents
+      if (Array.isArray(update?.active_events)) {
+        nextActive = pickArray(update.active_events as ActiveEvent[], state.activeEvents, kind)
+      } else if (update?.event) {
+        const e = update.event as ActiveEvent
+        nextActive = state.activeEvents.some((x) => x.id === e.id)
+          ? state.activeEvents
+          : [...state.activeEvents, e]
+      }
+
+      const nextSchedule = update?.schedule || update?.flights
+        ? (update.schedule || update.flights) as ScheduledFlight[]
+        : state.schedule
+
+      return {
+        flightStates:   pickRecord(update?.flight_states as Record<string, FlightState> | undefined, state.flightStates, kind),
+        activeEvents:   nextActive,
+        recoveryPlans:  pickArray<RecoveryPlan>(update?.recovery_plans, state.recoveryPlans, kind),
+        cascadeSummary: pickObj<CascadeSummary>(update?.cascade_summary, state.cascadeSummary, kind),
+        schedule:       nextSchedule,
+        // Only reset the operator's applied plan when a genuinely NEW event
+        // arrived — not on every snapshot or ping.
+        appliedPlanId:  kind === "event" && update?.event ? null : state.appliedPlanId,
+        lastEventAt:    kind === "event" && update?.event ? Date.now() : state.lastEventAt,
+      }
+    }),
 
   setSchedule: (schedule) => set({ schedule }),
 
@@ -206,3 +314,36 @@ export const useSimulationStore = create<SimulationStore>((set) => ({
   setSelectedLiveFlight: (flight) =>
     set({ selectedLiveFlight: flight }),
 }))
+
+// ────────────────────────────────────────────────────────────────────
+// Selectors
+//
+// `useHasActiveDisruption()` is the canonical "should we show the
+// awaiting-disruption empty state?" predicate. It looks at THREE signals
+// instead of just `recoveryPlans.length === 0`, so a page that lands
+// mid-snapshot doesn't flash empty:
+//
+//   1. recoveryPlans non-empty — optimizer already produced plans
+//   2. activeEvents non-empty — engine has at least one event in flight
+//   3. any flight has cascade_order >= 0 — cascade predictor already
+//      annotated the schedule
+//
+// Any one of these means "we have a disruption to display".
+// ────────────────────────────────────────────────────────────────────
+
+export function useHasActiveDisruption(): boolean {
+  return useSimulationStore((s) => {
+    if (s.recoveryPlans.length > 0) return true
+    if (s.activeEvents.length > 0)  return true
+    for (const fid in s.flightStates) {
+      if ((s.flightStates[fid]?.cascade_order ?? -1) >= 0) return true
+    }
+    return false
+  })
+}
+
+/** Number of plans currently available. Use sparingly — most pages should
+ *  use `useHasActiveDisruption()` so they don't flash empty mid-snapshot. */
+export function usePlanCount(): number {
+  return useSimulationStore((s) => s.recoveryPlans.length)
+}

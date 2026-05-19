@@ -2,11 +2,13 @@
 import { useState, useEffect, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
-  Users, AlertTriangle, CheckCircle2, XCircle, RefreshCw,
+  Users, CheckCircle2, XCircle, RefreshCw,
   ChevronDown, ChevronUp, Clock, Plane, ShieldAlert, DollarSign,
 } from "lucide-react"
 import { useSimulationStore } from "@/stores/simulation"
 import { apiClient } from "@/lib/api"
+import { c, ff, r, sp, sh, type } from "@/lib/design-tokens"
+import { ButtonSecondary, CreamCallout, Eyebrow, Type } from "@/components/ds/primitives"
 
 interface CrewAssignment {
   flight_id: string
@@ -52,31 +54,32 @@ interface OverbookingResult {
   summary: string
 }
 
-const card = {
-  background: "#ffffff",
-  border: "1px solid #DDDDDD",
-  boxShadow: "0 2px 16px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)",
-}
-
-const STATUS_COLOR: Record<string, string> = {
-  optimal:    "#10b981",
-  feasible:   "#0D9488",
-  heuristic:  "#f59e0b",
-  infeasible: "#ef4444",
+// Solver status → semantic palette. Same tokens as the recovery-plans
+// SolverStatus pill so a feasible result looks the same in both panels.
+const SOLVER_PALETTE: Record<string, { ink: string; bg: string }> = {
+  optimal:    { ink: c.statusOnTime.ink,    bg: c.statusOnTime.bg },
+  feasible:   { ink: c.statusRecovered.ink, bg: c.statusRecovered.bg },
+  heuristic:  { ink: c.statusDelayed.ink,   bg: c.statusDelayed.bg },
+  infeasible: { ink: c.statusCancelled.ink, bg: c.statusCancelled.bg },
 }
 
 function CoverageMeter({ pct }: { pct: number }) {
-  const color = pct >= 80 ? "#10b981" : pct >= 50 ? "#f59e0b" : "#ef4444"
+  // Coverage health: green ≥80%, peach 50-79%, coral <50%.
+  const palette =
+    pct >= 80 ? c.statusOnTime    :
+    pct >= 50 ? c.statusDelayed   :
+                c.statusCancelled
   return (
-    <div className="space-y-1">
-      <div className="flex justify-between text-xs" style={{ color: "#64748b" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: c.muted }}>
         <span>Coverage</span>
-        <span style={{ color, fontWeight: 700 }}>{pct.toFixed(0)}%</span>
+        <span style={{ color: palette.ink, fontWeight: 600, fontFamily: ff.mono, fontVariantNumeric: "tabular-nums" }}>
+          {pct.toFixed(0)}%
+        </span>
       </div>
-      <div className="h-2 rounded-full" style={{ background: "#e2e8f0" }}>
+      <div style={{ height: 8, borderRadius: r.pill, background: c.surfaceStrong }}>
         <motion.div
-          className="h-2 rounded-full"
-          style={{ background: color }}
+          style={{ height: 8, borderRadius: r.pill, background: palette.dot }}
           initial={{ width: 0 }}
           animate={{ width: `${Math.min(100, pct)}%` }}
           transition={{ duration: 0.6, ease: "easeOut" }}
@@ -87,7 +90,7 @@ function CoverageMeter({ pct }: { pct: number }) {
 }
 
 function CompCard({ ob, expanded }: { ob: CompensationObligation; expanded: boolean }) {
-  const faultColor = ob.is_airline_fault ? "#ef4444" : "#f59e0b"
+  const palette = ob.is_airline_fault ? c.statusCancelled : c.statusDelayed
   const faultLabel = ob.is_airline_fault ? "Airline Fault" : "Force Majeure"
   const totalEst   = (
     ob.meal_voucher_usd * ob.pax +
@@ -103,28 +106,36 @@ function CompCard({ ob, expanded }: { ob: CompensationObligation; expanded: bool
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: "auto" }}
           exit={{ opacity: 0, height: 0 }}
-          className="rounded-xl p-3 mt-2"
-          style={{ background: ob.is_airline_fault ? "#fef2f2" : "#fffbeb", border: `1px solid ${faultColor}30` }}
+          style={{
+            borderRadius: r.md,
+            padding: sp.sm,
+            marginTop: sp.xs,
+            background: palette.bg,
+            border: `1px solid ${palette.dot}`,
+          }}
         >
-          <div className="flex items-center gap-2 mb-2">
-            <ShieldAlert size={13} style={{ color: faultColor }} />
-            <span className="text-xs font-semibold" style={{ color: faultColor }}>{faultLabel}</span>
-            <span className="text-xs ml-auto" style={{ color: "#64748b" }}>{ob.pax} pax</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+            <ShieldAlert style={{ width: 13, height: 13, color: palette.ink }} />
+            <span style={{ fontSize: 12, fontWeight: 500, color: palette.ink }}>{faultLabel}</span>
+            <span style={{ fontSize: 12, color: c.muted, marginLeft: "auto" }}>{ob.pax} pax</span>
           </div>
-          <p className="text-xs mb-2" style={{ color: "#64748b" }}>{ob.legal_basis}</p>
-          <div className="space-y-1">
+          <p style={{ fontSize: 12, color: c.muted, marginBottom: 6 }}>{ob.legal_basis}</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
             {ob.notes.map((n, i) => (
-              <div key={i} className="flex gap-1.5 text-xs" style={{ color: "#374151" }}>
-                <span style={{ color: faultColor, flexShrink: 0 }}>•</span>
+              <div key={i} style={{ display: "flex", gap: 6, fontSize: 12, color: c.body }}>
+                <span style={{ color: palette.ink, flexShrink: 0 }}>•</span>
                 <span>{n}</span>
               </div>
             ))}
           </div>
           {totalEst > 0 && (
-            <div className="mt-2 pt-2 flex items-center gap-1.5" style={{ borderTop: "1px solid #e2e8f0" }}>
-              <DollarSign size={11} style={{ color: "#64748b" }} />
-              <span className="text-xs" style={{ color: "#64748b" }}>
-                Est. obligation: <span style={{ fontWeight: 700, color: faultColor }}>${totalEst.toLocaleString()}</span>
+            <div style={{ marginTop: sp.xs, paddingTop: sp.xs, borderTop: `1px solid ${c.hairline}`, display: "flex", alignItems: "center", gap: 6 }}>
+              <DollarSign style={{ width: 11, height: 11, color: c.muted }} />
+              <span style={{ fontSize: 12, color: c.muted }}>
+                Est. obligation:{" "}
+                <span style={{ fontFamily: ff.mono, fontWeight: 600, color: palette.ink, fontVariantNumeric: "tabular-nums" }}>
+                  ${totalEst.toLocaleString()}
+                </span>
               </span>
             </div>
           )}
@@ -135,15 +146,13 @@ function CompCard({ ob, expanded }: { ob: CompensationObligation; expanded: bool
 }
 
 export function CrewOverbooking() {
-  const { activeEvents, flightStates } = useSimulationStore()
+  const { activeEvents } = useSimulationStore()
   const [result, setResult]           = useState<OverbookingResult | null>(null)
   const [loading, setLoading]         = useState(false)
   const [expandedComp, setExpandedComp] = useState<string | null>(null)
   const [showAssignments, setShowAssignments] = useState(false)
 
   const hasDisruption = activeEvents.length > 0
-  const eventKind     = activeEvents[0]?.kind ?? ""
-  const isCrewEvent   = ["crew_sickout", "mechanical_aog", "cyber_incident"].includes(eventKind)
 
   const runSolver = useCallback(async () => {
     setLoading(true)
@@ -162,115 +171,133 @@ export function CrewOverbooking() {
     if (hasDisruption) runSolver()
   }, [activeEvents.length, hasDisruption, runSolver])
 
-  const affectedFlightCount = Object.values(flightStates).filter(
-    f => f.cascade_order >= 0
-  ).length
-
   return (
-    <div className="rounded-2xl flex flex-col min-h-0" style={card}>
+    <div style={{ display: "flex", flexDirection: "column", minHeight: 0, height: "100%", fontFamily: ff.body }}>
       {/* ── Header ── */}
       <div
-        className="px-5 py-4 flex items-center gap-3 flex-shrink-0"
-        style={{ borderBottom: "1px solid #DDDDDD" }}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: sp.sm,
+          padding: `${sp.md}px ${sp.lg}px`,
+          borderBottom: `1px solid ${c.hairline}`,
+          flexShrink: 0,
+        }}
       >
         <div
-          className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-          style={{ background: "rgba(13,148,136,0.10)" }}
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: r.md,
+            background: c.surfaceSoft,
+            border: `1px solid ${c.hairline}`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}
         >
-          <Users size={18} style={{ color: "#0D9488" }} />
+          <Users size={16} style={{ color: c.ink }} />
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <h2 className="text-sm font-bold" style={{ color: "#0f172a" }}>Crew Coverage Optimizer</h2>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <h2 style={{ ...type("titleMd", c.ink), fontSize: 16 }}>Crew Coverage Optimizer</h2>
             <span
-              className="text-xs px-2 py-0.5 rounded-full font-semibold"
-              style={{ background: "#ecfdf5", color: "#059669" }}
+              style={{
+                fontSize: 10,
+                fontWeight: 500,
+                letterSpacing: "0.06em",
+                padding: "2px 8px",
+                borderRadius: r.pill,
+                background: c.statusOnTime.bg,
+                color: c.statusOnTime.ink,
+              }}
             >
               CP-SAT MILP
             </span>
           </div>
-          <p className="text-xs mt-0.5" style={{ color: "#64748b" }}>
+          <p style={{ ...type("caption", c.muted), fontSize: 11, marginTop: 2 }}>
             Maximize legal crew assignment under disruption
           </p>
         </div>
-        <button
+        <ButtonSecondary
+          size="sm"
           onClick={runSolver}
           disabled={loading || !hasDisruption}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
-          style={{
-            background: hasDisruption ? "#0D9488" : "#e2e8f0",
-            color: hasDisruption ? "#fff" : "#94a3b8",
-            cursor: hasDisruption ? "pointer" : "not-allowed",
-          }}
+          leadingIcon={<RefreshCw size={12} className={loading ? "animate-spin" : ""} />}
         >
-          <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
           {loading ? "Solving…" : "Re-solve"}
-        </button>
+        </ButtonSecondary>
       </div>
 
-      <div className="overflow-y-auto flex-1 px-5 py-4 space-y-4">
-        {/* ── No disruption state ── */}
+      <div style={{ flex: 1, overflowY: "auto", padding: `${sp.md}px ${sp.lg}px`, display: "flex", flexDirection: "column", gap: sp.md }}>
+        {/* ── No disruption state — cream callout per Complaint 2 ── */}
         {!hasDisruption && (
-          <div className="flex flex-col items-center justify-center py-10 text-center gap-2">
-            <Users size={32} style={{ color: "#cbd5e1" }} />
-            <p className="text-sm font-medium" style={{ color: "#94a3b8" }}>
-              Awaiting disruption
-            </p>
-            <p className="text-xs" style={{ color: "#cbd5e1" }}>
-              Trigger an event to analyze crew coverage
-            </p>
-          </div>
+          <CreamCallout style={{ display: "flex", flexDirection: "column", gap: sp.xs }}>
+            <Eyebrow color={c.signatureForest}>Awaiting Disruption</Eyebrow>
+            <Type as="div" role="titleSm" color={c.ink}>
+              All crew assignments holding FAR 117 compliance.
+            </Type>
+            <Type as="p" role="bodyMd" color={c.muted}>
+              Trigger an event to analyze crew coverage. The CP-SAT solver maximizes legal pairings against the
+              disrupted schedule and surfaces compensation obligations under DOT 14 CFR §250.
+            </Type>
+          </CreamCallout>
         )}
 
         {/* ── Summary stats ── */}
         {hasDisruption && result && (
           <>
             {/* Solver badge */}
-            <div className="flex items-center gap-2">
-              <div
-                className="w-2 h-2 rounded-full"
-                style={{ background: STATUS_COLOR[result.solver_status] ?? "#94a3b8" }}
-              />
-              <span className="text-xs font-semibold" style={{ color: STATUS_COLOR[result.solver_status] ?? "#64748b" }}>
-                {result.solver_status.toUpperCase()} — {result.solve_time_ms}ms
-              </span>
-              <span className="text-xs ml-auto" style={{ color: "#94a3b8" }}>
-                {result.summary}
-              </span>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              {(() => {
+                const p = SOLVER_PALETTE[result.solver_status] ?? SOLVER_PALETTE.heuristic
+                return (
+                  <>
+                    <div style={{ width: 8, height: 8, borderRadius: r.full, background: p.ink }} />
+                    <span style={{ fontSize: 12, fontWeight: 500, color: p.ink, letterSpacing: "0.04em", textTransform: "uppercase" }}>
+                      {result.solver_status} — {result.solve_time_ms}ms
+                    </span>
+                  </>
+                )
+              })()}
+              <span style={{ fontSize: 12, color: c.muted, marginLeft: "auto" }}>{result.summary}</span>
             </div>
 
             {/* Coverage meter */}
             <CoverageMeter pct={result.coverage_pct} />
 
             {/* Stats grid */}
-            <div className="grid grid-cols-3 gap-3">
-              {[
-                { label: "Open Flights", value: result.total_open_flights, color: "#f59e0b" },
-                { label: "Staffed",      value: result.total_covered,      color: "#10b981" },
-                { label: "Uncovered",    value: result.total_uncovered,     color: "#ef4444" },
-              ].map(s => (
-                <div
-                  key={s.label}
-                  className="rounded-xl p-3 text-center"
-                  style={{ background: "#f8fafc", border: "1px solid #e2e8f0" }}
-                >
-                  <div className="text-xl font-bold" style={{ color: s.color }}>{s.value}</div>
-                  <div className="text-xs mt-0.5" style={{ color: "#64748b" }}>{s.label}</div>
-                </div>
-              ))}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: sp.sm }}>
+              <StatCell label="Open Flights" value={result.total_open_flights} palette={c.statusDelayed} />
+              <StatCell label="Staffed"      value={result.total_covered}      palette={c.statusOnTime} />
+              <StatCell label="Uncovered"    value={result.total_uncovered}    palette={c.statusCancelled} />
             </div>
 
             {/* Pax impact */}
             <div
-              className="rounded-xl p-3 flex justify-between items-center"
-              style={{ background: "#f0fdf4", border: "1px solid #bbf7d0" }}
+              style={{
+                borderRadius: r.md,
+                padding: sp.sm,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                background: c.statusOnTime.bg,
+                border: `1px solid ${c.statusOnTime.dot}`,
+              }}
             >
-              <div className="text-xs" style={{ color: "#166534" }}>
-                <span className="font-semibold">{result.pax_covered.toLocaleString()}</span> pax covered
+              <div style={{ fontSize: 12, color: c.statusOnTime.ink }}>
+                <span style={{ fontFamily: ff.mono, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
+                  {result.pax_covered.toLocaleString()}
+                </span>{" "}
+                pax covered
               </div>
               {result.pax_uncovered > 0 && (
-                <div className="text-xs" style={{ color: "#991b1b" }}>
-                  <span className="font-semibold">{result.pax_uncovered.toLocaleString()}</span> pax impacted
+                <div style={{ fontSize: 12, color: c.statusCancelled.ink }}>
+                  <span style={{ fontFamily: ff.mono, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
+                    {result.pax_uncovered.toLocaleString()}
+                  </span>{" "}
+                  pax impacted
                 </div>
               )}
             </div>
@@ -278,24 +305,36 @@ export function CrewOverbooking() {
             {/* Cancelled recommended */}
             {result.cancelled_recommended.length > 0 && (
               <div
-                className="rounded-xl p-3"
-                style={{ background: "#fef2f2", border: "1px solid #fecaca" }}
+                style={{
+                  borderRadius: r.md,
+                  padding: sp.sm,
+                  background: c.statusCancelled.bg,
+                  border: `1px solid ${c.statusCancelled.dot}`,
+                }}
               >
-                <div className="flex items-center gap-2 mb-2">
-                  <XCircle size={14} style={{ color: "#ef4444" }} />
-                  <span className="text-xs font-semibold" style={{ color: "#ef4444" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                  <XCircle size={14} style={{ color: c.statusCancelled.ink }} />
+                  <span style={{ fontSize: 12, fontWeight: 500, color: c.statusCancelled.ink }}>
                     Recommended Cancellations ({result.cancelled_recommended.length})
                   </span>
                 </div>
-                <p className="text-xs mb-2" style={{ color: "#64748b" }}>
+                <p style={{ fontSize: 12, color: c.muted, marginBottom: 8 }}>
                   No legal crew available for these flights — cancellation advised.
                 </p>
-                <div className="flex flex-wrap gap-1.5">
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                   {result.cancelled_recommended.map(fid => (
                     <span
                       key={fid}
-                      className="px-2 py-0.5 rounded text-xs font-mono font-semibold"
-                      style={{ background: "#fecaca", color: "#991b1b" }}
+                      style={{
+                        padding: "2px 8px",
+                        borderRadius: r.sm,
+                        fontSize: 11,
+                        fontFamily: ff.mono,
+                        fontWeight: 500,
+                        background: c.canvas,
+                        color: c.statusCancelled.ink,
+                        border: `1px solid ${c.statusCancelled.dot}`,
+                      }}
                     >
                       {fid}
                     </span>
@@ -309,12 +348,25 @@ export function CrewOverbooking() {
               <div>
                 <button
                   onClick={() => setShowAssignments(v => !v)}
-                  className="flex items-center gap-2 text-xs font-semibold w-full"
-                  style={{ color: "#0D9488" }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    fontSize: 12,
+                    fontWeight: 500,
+                    width: "100%",
+                    color: c.ink,
+                    background: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: 0,
+                  }}
                 >
-                  <CheckCircle2 size={13} />
+                  <CheckCircle2 size={13} style={{ color: c.statusOnTime.ink }} />
                   Crew Assignments ({result.covered_assignments.length})
-                  {showAssignments ? <ChevronUp size={13} className="ml-auto" /> : <ChevronDown size={13} className="ml-auto" />}
+                  {showAssignments
+                    ? <ChevronUp size={13} style={{ marginLeft: "auto", color: c.muted }} />
+                    : <ChevronDown size={13} style={{ marginLeft: "auto", color: c.muted }} />}
                 </button>
 
                 <AnimatePresence>
@@ -323,34 +375,44 @@ export function CrewOverbooking() {
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
                       exit={{ opacity: 0, height: 0 }}
-                      className="mt-2 space-y-2"
+                      style={{ marginTop: sp.xs, display: "flex", flexDirection: "column", gap: sp.xs }}
                     >
                       {result.covered_assignments.map(a => (
                         <div
                           key={a.flight_id}
-                          className="rounded-xl p-3"
-                          style={{ background: "#f0fdf4", border: "1px solid #bbf7d0" }}
+                          style={{
+                            borderRadius: r.md,
+                            padding: sp.sm,
+                            background: c.statusOnTime.bg,
+                            border: `1px solid ${c.statusOnTime.dot}`,
+                          }}
                         >
-                          <div className="flex items-center gap-2 mb-1">
-                            <Plane size={12} style={{ color: "#059669" }} />
-                            <span className="text-xs font-mono font-bold" style={{ color: "#0f172a" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                            <Plane size={12} style={{ color: c.statusOnTime.ink }} />
+                            <span style={{ fontSize: 12, fontFamily: ff.mono, fontWeight: 600, color: c.ink }}>
                               {a.flight_id}
                             </span>
                             {a.is_reassigned && (
                               <span
-                                className="text-xs px-1.5 py-0.5 rounded font-semibold"
-                                style={{ background: "#fef9c3", color: "#854d0e" }}
+                                style={{
+                                  fontSize: 11,
+                                  padding: "2px 6px",
+                                  borderRadius: r.sm,
+                                  fontWeight: 500,
+                                  background: c.signatureCream,
+                                  color: "#5C3D0F",
+                                }}
                               >
                                 Reassigned
                               </span>
                             )}
-                            <span className="text-xs ml-auto" style={{ color: "#10b981", fontWeight: 600 }}>
+                            <span style={{ fontSize: 12, marginLeft: "auto", color: c.statusOnTime.ink, fontWeight: 500 }}>
                               FAR 117 ✓
                             </span>
                           </div>
-                          <div className="text-xs" style={{ color: "#374151" }}>
+                          <div style={{ fontSize: 12, color: c.body }}>
                             CPT: {a.captain_name} ({a.captain_id})
-                            {a.fo_name && <span className="ml-3">F/O: {a.fo_name}</span>}
+                            {a.fo_name && <span style={{ marginLeft: 12 }}>F/O: {a.fo_name}</span>}
                           </div>
                         </div>
                       ))}
@@ -364,43 +426,57 @@ export function CrewOverbooking() {
             {result.compensation_obligations.length > 0 && (
               <div>
                 <div
-                  className="flex items-center gap-2 mb-2 pt-2"
-                  style={{ borderTop: "1px solid #e2e8f0" }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    marginBottom: sp.xs,
+                    paddingTop: sp.xs,
+                    borderTop: `1px solid ${c.hairline}`,
+                  }}
                 >
-                  <DollarSign size={14} style={{ color: "#f59e0b" }} />
-                  <span className="text-sm font-bold" style={{ color: "#0f172a" }}>
-                    Passenger Compensation
-                  </span>
+                  <DollarSign size={14} style={{ color: c.muted }} />
+                  <Eyebrow>Passenger Compensation</Eyebrow>
                 </div>
-                <div className="space-y-2">
+                <div style={{ display: "flex", flexDirection: "column", gap: sp.xs }}>
                   {result.compensation_obligations.map(ob => (
                     <div key={ob.flight_id}>
                       <button
                         onClick={() => setExpandedComp(expandedComp === ob.flight_id ? null : ob.flight_id)}
-                        className="w-full rounded-xl p-3 flex items-center gap-3 text-left transition-all"
                         style={{
-                          background: "#f8fafc",
-                          border: `1px solid ${ob.is_airline_fault ? "#fecaca" : "#fde68a"}`,
+                          width: "100%",
+                          borderRadius: r.md,
+                          padding: sp.sm,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: sp.sm,
+                          textAlign: "left",
+                          background: c.surfaceSoft,
+                          border: `1px solid ${ob.is_airline_fault ? c.statusCancelled.dot : c.statusDelayed.dot}`,
+                          cursor: "pointer",
                         }}
                       >
-                        <span className="text-xs font-mono font-bold" style={{ color: "#0f172a" }}>
+                        <span style={{ fontSize: 12, fontFamily: ff.mono, fontWeight: 600, color: c.ink }}>
                           {ob.flight_id}
                         </span>
                         <span
-                          className="text-xs px-1.5 py-0.5 rounded font-semibold"
                           style={{
-                            background: ob.is_airline_fault ? "#fef2f2" : "#fffbeb",
-                            color: ob.is_airline_fault ? "#ef4444" : "#f59e0b",
+                            fontSize: 11,
+                            padding: "2px 6px",
+                            borderRadius: r.sm,
+                            fontWeight: 500,
+                            background: ob.is_airline_fault ? c.statusCancelled.bg : c.statusDelayed.bg,
+                            color: ob.is_airline_fault ? c.statusCancelled.ink : c.statusDelayed.ink,
                           }}
                         >
                           {ob.is_airline_fault ? "Airline Fault" : "Force Majeure"}
                         </span>
-                        <span className="text-xs ml-auto flex items-center gap-1" style={{ color: "#64748b" }}>
+                        <span style={{ fontSize: 12, marginLeft: "auto", display: "flex", alignItems: "center", gap: 4, color: c.muted }}>
                           <Clock size={10} /> {ob.delay_minutes}min
                         </span>
                         {expandedComp === ob.flight_id
-                          ? <ChevronUp size={12} style={{ color: "#94a3b8" }} />
-                          : <ChevronDown size={12} style={{ color: "#94a3b8" }} />}
+                          ? <ChevronUp size={12} style={{ color: c.muted }} />
+                          : <ChevronDown size={12} style={{ color: c.muted }} />}
                       </button>
                       <CompCard ob={ob} expanded={expandedComp === ob.flight_id} />
                     </div>
@@ -413,17 +489,61 @@ export function CrewOverbooking() {
 
         {/* Loading state */}
         {hasDisruption && loading && !result && (
-          <div className="flex flex-col items-center justify-center py-10 gap-3">
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 0", gap: sp.sm }}>
             <div
-              className="w-10 h-10 rounded-full flex items-center justify-center"
-              style={{ background: "rgba(13,148,136,0.10)" }}
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: r.full,
+                background: c.surfaceSoft,
+                border: `1px solid ${c.hairline}`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
             >
-              <RefreshCw size={20} className="animate-spin" style={{ color: "#0D9488" }} />
+              <RefreshCw size={20} className="animate-spin" style={{ color: c.ink }} />
             </div>
-            <p className="text-sm font-medium" style={{ color: "#0D9488" }}>Running CP-SAT solver…</p>
+            <p style={{ ...type("bodyMd", c.body), fontWeight: 500 }}>Running CP-SAT solver…</p>
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+function StatCell({
+  label,
+  value,
+  palette,
+}: {
+  label: string
+  value: number
+  palette: { ink: string; bg: string; dot: string }
+}) {
+  return (
+    <div
+      style={{
+        borderRadius: r.md,
+        padding: sp.sm,
+        textAlign: "center",
+        background: palette.bg,
+        border: `1px solid ${palette.dot}`,
+      }}
+    >
+      <div
+        style={{
+          fontSize: 24,
+          fontWeight: 500,
+          fontFamily: ff.display,
+          color: palette.ink,
+          fontVariantNumeric: "tabular-nums",
+          lineHeight: 1.1,
+        }}
+      >
+        {value}
+      </div>
+      <div style={{ fontSize: 11, color: c.muted, marginTop: 2 }}>{label}</div>
     </div>
   )
 }

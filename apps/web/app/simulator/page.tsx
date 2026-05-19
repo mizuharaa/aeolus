@@ -11,23 +11,34 @@ import { RecoveryPlans } from "@/components/simulator/recovery-plans"
 import { SimulatorNav } from "@/components/simulator/nav"
 import { FlightSearch } from "@/components/simulator/flight-search"
 import { MyFlights } from "@/components/simulator/my-flights"
-import { PlanCompare } from "@/components/simulator/plan-compare"
-import { CrewOverbooking } from "@/components/simulator/crew-overbooking"
-import { PassengerSolutions } from "@/components/simulator/passenger-solutions"
 import { apiClient } from "@/lib/api"
+import { c, ff, r, sp, sh } from "@/lib/design-tokens"
+import { Eyebrow, Hairline } from "@/components/ds/primitives"
+import Link from "next/link"
+import { ArrowRight, Leaf, Network as NetworkIcon, Users as UsersIcon, GitCompareArrows, ShieldCheck } from "lucide-react"
 
 const FlightMap = dynamic(() => import("@/components/simulator/flight-map"), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-full flex items-center justify-center" style={{ background: "#F0FDFA" }}>
+    <div
+      className="w-full h-full flex items-center justify-center"
+      style={{ background: c.surfaceSoft }}
+    >
       <div className="flex flex-col items-center gap-3">
         <div
-          className="w-10 h-10 rounded-xl flex items-center justify-center"
-          style={{ background: "#0D9488", boxShadow: "0 4px 16px rgba(13,148,136,0.35)" }}
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: r.lg,
+            background: c.primary,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
         >
-          <Loader2 className="w-5 h-5 text-white animate-spin" />
+          <Loader2 className="w-5 h-5 animate-spin" style={{ color: c.onPrimary }} />
         </div>
-        <span className="text-sm font-semibold" style={{ color: "#0D9488", fontFamily: "'DM Sans', sans-serif" }}>
+        <span style={{ fontFamily: ff.body, fontSize: 14, fontWeight: 500, color: c.body }}>
           Loading map…
         </span>
       </div>
@@ -35,7 +46,7 @@ const FlightMap = dynamic(() => import("@/components/simulator/flight-map"), {
   ),
 })
 
-const NAV_H   = 48   // slim nav height
+const NAV_H   = 64   // Airtable-style nav height (DESIGN.md top-nav spec)
 const RAIL_L  = 308  // left control rail width
 const RAIL_R  = 340  // right decision rail width
 const STRIP_H = 192  // docked timeline height
@@ -43,14 +54,6 @@ const STRIP_H = 192  // docked timeline height
 // Smooth motion preset shared by every collapse-driven element so the rails,
 // timeline, and overlay card all glide in unison rather than racing each other.
 const FOCUS_TRANSITION = { duration: 0.42, ease: [0.22, 0.9, 0.28, 1] as const }
-
-const belowCard = {
-  background: "#FFFFFF",
-  border: "1px solid #DDDDDD",
-  borderRadius: 12,
-  overflow: "hidden" as const,
-  boxShadow: "0 1px 2px rgba(0,0,0,0.06)",
-} as const
 
 export default function SimulatorPage() {
   const {
@@ -128,9 +131,9 @@ export default function SimulatorPage() {
   }, [setSchedule, setFleet])
 
   return (
-    <div style={{ background: "#FFFFFF", minHeight: "100vh" }}>
+    <div style={{ background: c.canvas, minHeight: "100vh" }}>
 
-      {/* ── Slim sticky nav ── */}
+      {/* ── Sticky top nav (Airtable editorial — see components/simulator/nav.tsx) ── */}
       <div className="sticky top-0 z-50">
         <SimulatorNav isConnected={isConnected} affectedCount={affectedCount} />
       </div>
@@ -138,15 +141,13 @@ export default function SimulatorPage() {
       {/* ══════════════════════════════════════════════════════════
           MAIN 3-ZONE WORKSPACE
           Left control rail | Center map hero | Right decision rail
-          When mapFocused is true the rails + timeline animate to 0 so the map
-          gets the full canvas — overlays surface the key info.
           ══════════════════════════════════════════════════════════ */}
       <div
         style={{
           height: `calc(100vh - ${NAV_H}px)`,
           display: "flex",
           overflow: "hidden",
-          borderBottom: "1px solid #DDDDDD",
+          borderBottom: `1px solid ${c.hairline}`,
         }}
       >
 
@@ -157,10 +158,10 @@ export default function SimulatorPage() {
           transition={FOCUS_TRANSITION}
           style={{
             flexShrink: 0,
-            borderRight: mapFocused ? "0px" : "1px solid #DDDDDD",
+            borderRight: mapFocused ? "0px" : `1px solid ${c.hairline}`,
             overflowY: "auto",
             overflowX: "hidden",
-            background: "#FFFFFF",
+            background: c.canvas,
             display: "flex",
             flexDirection: "column",
           }}
@@ -171,13 +172,12 @@ export default function SimulatorPage() {
         </motion.aside>
 
         {/* CENTER: map + docked timeline */}
-        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", background: "#F0EDE8" }}>
+        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", background: c.surfaceSoft }}>
 
           {/* Map — fills all available height above timeline */}
           <div style={{ flex: 1, position: "relative", minHeight: 0 }}>
 
-            {/* Compact search overlaid on map — hides when focus mode hides
-                the rails so the operator gets a totally clean canvas. */}
+            {/* Compact search overlaid on map */}
             <AnimatePresence>
               {!mapFocused && (
                 <motion.div
@@ -199,7 +199,7 @@ export default function SimulatorPage() {
               )}
             </AnimatePresence>
 
-            {/* Focus toggle — top-right of the map, always visible */}
+            {/* Focus toggle — top-right of map. Near-black, white canvas, hairline. */}
             <motion.button
               type="button"
               onClick={() => setMapFocused((v) => !v)}
@@ -215,14 +215,14 @@ export default function SimulatorPage() {
                 zIndex: 600,
                 width: 40,
                 height: 40,
-                borderRadius: 12,
+                borderRadius: r.lg,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "#0D9488",
+                color: c.ink,
                 background: "rgba(255,255,255,0.95)",
-                border: "1px solid #DDDDDD",
-                boxShadow: "0 4px 14px rgba(0,0,0,0.08)",
+                border: `1px solid ${c.hairline}`,
+                boxShadow: sh.cardElev,
                 backdropFilter: "blur(8px)",
                 cursor: "pointer",
               }}
@@ -241,9 +241,7 @@ export default function SimulatorPage() {
               </AnimatePresence>
             </motion.button>
 
-            {/* Floating overlay summary — only shown in focus mode. Surfaces the
-                stats the operator otherwise reads off the rails (impact totals,
-                applied plan, active disruptions). */}
+            {/* Floating overlay summary — only shown in focus mode. */}
             <AnimatePresence>
               {mapFocused && (
                 <FocusOverlay
@@ -272,8 +270,8 @@ export default function SimulatorPage() {
             transition={FOCUS_TRANSITION}
             style={{
               flexShrink: 0,
-              borderTop: mapFocused ? "0px" : "1px solid #DDDDDD",
-              background: "#FFFFFF",
+              borderTop: mapFocused ? "0px" : `1px solid ${c.hairline}`,
+              background: c.canvas,
               overflow: "hidden",
             }}
           >
@@ -290,10 +288,10 @@ export default function SimulatorPage() {
           transition={FOCUS_TRANSITION}
           style={{
             flexShrink: 0,
-            borderLeft: mapFocused ? "0px" : "1px solid #DDDDDD",
+            borderLeft: mapFocused ? "0px" : `1px solid ${c.hairline}`,
             overflowY: "auto",
             overflowX: "hidden",
-            background: "#FFFFFF",
+            background: c.canvas,
             display: "flex",
             flexDirection: "column",
           }}
@@ -306,53 +304,148 @@ export default function SimulatorPage() {
       </div>
 
       {/* ══════════════════════════════════════════════════════════
-          BELOW FOLD — secondary analysis panels
+          BELOW FOLD — operator's continuing-context summary.
+          Slice 3 moved heavyweight analysis panels (Crew, Passengers,
+          PlanCompare, Carbon, Stress test) into their own dedicated
+          routes. The simulator surface now keeps only the always-on
+          "my flights" tracker plus a deep-link strip into those routes.
           ══════════════════════════════════════════════════════════ */}
       <div
         style={{
-          padding: "24px",
+          padding: sp.lg,
           display: "flex",
           flexDirection: "column",
-          gap: 20,
+          gap: sp.lg,
           maxWidth: 1760,
           margin: "0 auto",
         }}
       >
-        {/* ── Below-fold section label ── */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ flex: 1, height: 1, background: "#DDDDDD" }} />
-          <span style={{
-            fontSize: 10, fontFamily: "'DM Sans', sans-serif", fontWeight: 700,
-            letterSpacing: "0.08em", textTransform: "uppercase",
-            color: "#A0AEC0", whiteSpace: "nowrap",
-          }}>
-            Analysis Panels
-          </span>
-          <div style={{ flex: 1, height: 1, background: "#DDDDDD" }} />
+        <div style={{ display: "flex", alignItems: "center", gap: sp.sm }}>
+          <Hairline style={{ flex: 1 }} />
+          <Eyebrow>Continuing Context</Eyebrow>
+          <Hairline style={{ flex: 1 }} />
         </div>
 
         <MyFlights onFlightSelect={handleFlightSelect} />
-        <PlanCompare />
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "minmax(320px, 1fr) minmax(320px, 1.6fr)",
-            gap: 20,
-          }}
-        >
-          <div style={belowCard}><CrewOverbooking /></div>
-          <div style={belowCard}><PassengerSolutions /></div>
-        </div>
+
+        <DeepLinkStrip />
       </div>
 
     </div>
   )
 }
 
+// ─── Deep-link strip ─────────────────────────────────────────────────────
+// Surfaces every secondary analysis route the user might need next, with
+// the same surface tokens as the rest of the dashboard. This replaces the
+// embedded heavy panels that used to live below the fold.
+
+function DeepLinkStrip() {
+  const tiles = [
+    {
+      href: "/simulator/plans/compare",
+      Icon: GitCompareArrows,
+      label: "Compare plans",
+      sub: "Side-by-side cost / pax / FAR 117 / carbon",
+      accent: c.signatureMustard,
+      surface: c.signatureCream,
+      ink: "#5C3D0F",
+    },
+    {
+      href: "/simulator/crew",
+      Icon: ShieldCheck,
+      label: "Crew shortage",
+      sub: "FAR 117 legality + max-coverage MILP",
+      accent: c.signaturePeach,
+      surface: c.statusDelayed.bg,
+      ink: c.statusDelayed.ink,
+    },
+    {
+      href: "/simulator/passengers",
+      Icon: UsersIcon,
+      label: "Passenger solutions",
+      sub: "Rebooking · hotel · DOT 261 vouchers",
+      accent: c.signatureMint,
+      surface: c.statusRecovered.bg,
+      ink: c.signatureForest,
+    },
+    {
+      href: "/simulator/carbon",
+      Icon: Leaf,
+      label: "Carbon dashboard",
+      sub: "Net CO\u2082 ledger priced under EU ETS",
+      accent: c.signatureForest,
+      surface: c.statusOnTime.bg,
+      ink: c.signatureForest,
+    },
+    {
+      href: "/simulator/stress-test",
+      Icon: NetworkIcon,
+      label: "Stress test",
+      sub: "Monte-Carlo network vulnerability sweep",
+      accent: c.signatureCoral,
+      surface: c.statusCancelled.bg,
+      ink: c.statusCancelled.ink,
+    },
+  ]
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+        gap: sp.md,
+      }}
+    >
+      {tiles.map((t) => (
+        <Link
+          key={t.href}
+          href={t.href}
+          style={{
+            textDecoration: "none",
+            display: "flex",
+            flexDirection: "column",
+            gap: 10,
+            padding: sp.lg,
+            borderRadius: r.lg,
+            background: t.surface,
+            border: `1px solid ${t.accent}33`,
+            color: t.ink,
+            boxShadow: sh.cardSoft,
+            transition: "transform 150ms ease",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: r.sm,
+                background: c.canvas,
+                color: t.accent,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <t.Icon style={{ width: 16, height: 16 }} />
+            </span>
+            <ArrowRight style={{ width: 14, height: 14, color: t.ink, opacity: 0.55 }} />
+          </div>
+          <div style={{ fontFamily: ff.display, fontSize: 18, fontWeight: 500, color: t.ink, lineHeight: 1.25 }}>
+            {t.label}
+          </div>
+          <div style={{ fontFamily: ff.body, fontSize: 12, color: t.ink, opacity: 0.75, lineHeight: 1.5 }}>
+            {t.sub}
+          </div>
+        </Link>
+      ))}
+    </div>
+  )
+}
+
 // ─── Focus-mode overlay ─────────────────────────────────────────────────────
-// When the rails and timeline are collapsed away, the operator still needs
-// to see fleet status and any active disruption / applied plan at a glance.
-// This compact card lives top-center of the map and animates in/out smoothly.
+// Compact glass card that surfaces fleet status when the rails collapse.
+// Lives top-center of the map in focus mode.
 
 function FocusOverlay({
   total, onTime, delayed, cancelled, affected, directHit, totalDelayMin,
@@ -389,53 +482,56 @@ function FocusOverlay({
       <div
         style={{
           background: "rgba(255,255,255,0.96)",
-          border: "1px solid #DDDDDD",
-          borderRadius: 16,
-          boxShadow: "0 12px 36px rgba(2,15,14,0.12), 0 2px 8px rgba(0,0,0,0.06)",
+          border: `1px solid ${c.hairline}`,
+          borderRadius: r.lg,
+          boxShadow: sh.overlay,
           backdropFilter: "blur(14px)",
           padding: "12px 16px",
           display: "flex",
           alignItems: "center",
           gap: 16,
           flexWrap: "wrap",
-          fontFamily: "'DM Sans', sans-serif",
+          fontFamily: ff.body,
         }}
       >
-        {/* Mode label */}
+        {/* Mode label — uses near-black ink, no teal glow */}
         <div className="flex items-center gap-2 shrink-0">
           <span
             className="w-2 h-2 rounded-full"
-            style={{ background: "#0D9488", boxShadow: "0 0 0 3px rgba(13,148,136,0.25)" }}
+            style={{ background: c.ink }}
           />
-          <span className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: "#0D9488" }}>
-            Focus Mode
-          </span>
+          <Eyebrow color={c.ink}>Focus Mode</Eyebrow>
         </div>
 
-        <span className="hidden md:block w-px h-7" style={{ background: "#E5E7EB" }} />
+        <span className="hidden md:block w-px h-7" style={{ background: c.hairline }} />
 
-        {/* Fleet status pills */}
-        <FocusStat label="On time" value={onTime} color="#10B981" />
-        <FocusStat label="Delayed" value={delayed} color="#F59E0B" />
-        <FocusStat label="Cancelled" value={cancelled} color="#EF4444" />
+        {/* Fleet status pills — semantic palette: forest / peach / coral */}
+        <FocusStat label="On time"   value={onTime}    palette={c.statusOnTime} />
+        <FocusStat label="Delayed"   value={delayed}   palette={c.statusDelayed} />
+        <FocusStat label="Cancelled" value={cancelled} palette={c.statusCancelled} />
 
         {affected > 0 && (
           <>
-            <span className="hidden md:block w-px h-7" style={{ background: "#E5E7EB" }} />
+            <span className="hidden md:block w-px h-7" style={{ background: c.hairline }} />
             <div className="flex items-center gap-2 shrink-0">
-              <AlertTriangle className="w-3.5 h-3.5" style={{ color: "#F97316" }} />
+              <AlertTriangle className="w-3.5 h-3.5" style={{ color: c.cascadeDirect }} />
               <div className="flex flex-col leading-tight">
-                <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Cascade</span>
-                <span className="text-[12px] font-mono font-bold text-foreground">
+                <span style={{ fontSize: 9, fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase", color: c.muted }}>
+                  Cascade
+                </span>
+                <span style={{ fontSize: 12, fontFamily: ff.mono, fontWeight: 600, color: c.ink, fontVariantNumeric: "tabular-nums" }}>
                   {directHit} direct
                   {cascadeTotal != null && cascadeTotal !== directHit && (
-                    <span className="text-muted-foreground"> · {cascadeTotal} total</span>
+                    <span style={{ color: c.muted }}> · {cascadeTotal} total</span>
                   )}
                 </span>
               </div>
             </div>
             {totalDelayMin > 0 && (
-              <div className="flex items-center gap-1.5 shrink-0 text-[11px] font-mono font-bold" style={{ color: "#EA580C" }}>
+              <div
+                className="flex items-center gap-1.5 shrink-0"
+                style={{ fontSize: 11, fontFamily: ff.mono, fontWeight: 600, color: c.statusDelayed.ink }}
+              >
                 <Clock className="w-3 h-3" />
                 +{totalDelayMin >= 60 ? `${(totalDelayMin / 60).toFixed(1)}h` : `${totalDelayMin}m`}
               </div>
@@ -446,30 +542,32 @@ function FocusOverlay({
         {/* Applied recovery plan badge */}
         {appliedPlan && (
           <>
-            <span className="hidden md:block w-px h-7" style={{ background: "#E5E7EB" }} />
+            <span className="hidden md:block w-px h-7" style={{ background: c.hairline }} />
             <div
-              className="flex items-center gap-2 shrink-0 px-2.5 py-1 rounded-full"
+              className="flex items-center gap-2 shrink-0"
               style={{
-                background: "rgba(13,148,136,0.10)",
-                border: "1px solid rgba(13,148,136,0.30)",
+                padding: "5px 10px",
+                borderRadius: r.pill,
+                background: c.statusRecovered.bg,
+                color: c.statusRecovered.ink,
               }}
             >
-              <Activity className="w-3 h-3" style={{ color: "#0D9488" }} />
-              <span className="text-[10px] font-extrabold uppercase tracking-wider" style={{ color: "#0F766E" }}>
+              <Activity className="w-3 h-3" />
+              <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase" }}>
                 Plan {appliedPlan.plan_id} applied
               </span>
               {appliedPlan.cancelled_flights?.length > 0 && (
-                <span className="text-[10px] font-bold text-red-600 inline-flex items-center gap-0.5">
+                <span style={{ fontSize: 10, fontWeight: 600, color: c.signatureCoral, display: "inline-flex", alignItems: "center", gap: 2 }}>
                   <X className="w-2.5 h-2.5" /> {appliedPlan.cancelled_flights.length}
                 </span>
               )}
               {appliedPlan.delayed_flights?.length > 0 && (
-                <span className="text-[10px] font-bold text-orange-600 inline-flex items-center gap-0.5">
+                <span style={{ fontSize: 10, fontWeight: 600, color: c.statusDelayed.ink, display: "inline-flex", alignItems: "center", gap: 2 }}>
                   <Clock className="w-2.5 h-2.5" /> {appliedPlan.delayed_flights.length}
                 </span>
               )}
               {appliedPlan.aircraft_swaps?.length > 0 && (
-                <span className="text-[10px] font-bold text-sky-600 inline-flex items-center gap-0.5">
+                <span style={{ fontSize: 10, fontWeight: 600, color: c.link, display: "inline-flex", alignItems: "center", gap: 2 }}>
                   <Plane className="w-2.5 h-2.5" /> {appliedPlan.aircraft_swaps.length}
                 </span>
               )}
@@ -480,16 +578,18 @@ function FocusOverlay({
         {/* Active disruption count when no plan is applied yet */}
         {!appliedPlan && activeEventCount > 0 && (
           <>
-            <span className="hidden md:block w-px h-7" style={{ background: "#E5E7EB" }} />
+            <span className="hidden md:block w-px h-7" style={{ background: c.hairline }} />
             <div
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full shrink-0"
+              className="flex items-center gap-1.5 shrink-0"
               style={{
-                background: "rgba(249,115,22,0.10)",
-                border: "1px solid rgba(249,115,22,0.30)",
+                padding: "5px 10px",
+                borderRadius: r.pill,
+                background: c.statusDelayed.bg,
+                color: c.statusDelayed.ink,
               }}
             >
-              <AlertTriangle className="w-3 h-3" style={{ color: "#EA580C" }} />
-              <span className="text-[10px] font-extrabold uppercase tracking-wider" style={{ color: "#9A3412" }}>
+              <AlertTriangle className="w-3 h-3" />
+              <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase" }}>
                 {activeEventCount} disruption{activeEventCount !== 1 ? "s" : ""} active
               </span>
             </div>
@@ -497,24 +597,69 @@ function FocusOverlay({
         )}
 
         {/* Total schedule context — pushed to the right */}
-        <div className="ml-auto text-[10px] text-muted-foreground/80 shrink-0 hidden lg:block">
-          {total.toLocaleString()} scheduled · press <kbd className="px-1 py-0.5 rounded border text-[9px] font-mono bg-white/60">F</kbd> to toggle
+        <div
+          className="ml-auto shrink-0 hidden lg:block"
+          style={{ fontSize: 11, color: c.muted }}
+        >
+          {total.toLocaleString()} scheduled · press{" "}
+          <kbd
+            style={{
+              padding: "1px 4px",
+              borderRadius: r.xs,
+              border: `1px solid ${c.hairline}`,
+              fontSize: 9,
+              fontFamily: ff.mono,
+              background: "rgba(255,255,255,0.6)",
+              color: c.ink,
+            }}
+          >
+            F
+          </kbd>{" "}
+          to toggle
         </div>
       </div>
     </motion.div>
   )
 }
 
-function FocusStat({ label, value, color }: { label: string; value: number; color: string }) {
+function FocusStat({
+  label,
+  value,
+  palette,
+}: {
+  label: string
+  value: number
+  palette: { ink: string; bg: string; dot: string }
+}) {
   return (
     <div className="flex items-center gap-2 shrink-0">
       <span
         className="w-2 h-2 rounded-full"
-        style={{ background: color, boxShadow: `0 0 0 3px ${color}26` }}
+        style={{ background: palette.dot }}
       />
       <div className="flex flex-col leading-tight">
-        <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">{label}</span>
-        <span className="text-[12px] font-mono font-bold text-foreground tabular-nums">{value}</span>
+        <span
+          style={{
+            fontSize: 9,
+            fontWeight: 500,
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            color: c.muted,
+          }}
+        >
+          {label}
+        </span>
+        <span
+          style={{
+            fontSize: 12,
+            fontFamily: ff.mono,
+            fontWeight: 600,
+            color: c.ink,
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
+          {value}
+        </span>
       </div>
     </div>
   )

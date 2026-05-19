@@ -9,6 +9,13 @@ import { useSimulationStore } from "@/stores/simulation"
 import type { ScheduledFlight, FlightState, FleetAircraft } from "@/stores/simulation"
 import { airportLabel, aircraftLabel } from "@/lib/labels"
 import { AirportCode } from "./airport-code"
+import { c, ff, r, sp, sh, type } from "@/lib/design-tokens"
+import {
+  ButtonSecondary,
+  CreamCallout,
+  Eyebrow,
+  Type,
+} from "@/components/ds/primitives"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -30,33 +37,30 @@ function fmtDate(iso: string) {
   }
 }
 
+// ─── Status meta — single semantic palette across the whole app ───────────
+// Maps a `FlightState` to a label + the canonical token-driven palette so
+// flight cards, search rows, and the map all share one color language.
 function getStatusMeta(state: FlightState | undefined): {
   label: string
-  color: string
-  bg: string
-  border: string
-  dot: string
+  palette: { ink: string; bg: string; dot: string }
   priority: number
 } {
   if (!state || state.cascade_order < 0) {
-    return { label: "On Time", color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200", dot: "bg-emerald-500", priority: 0 }
+    return { label: "On Time", palette: c.statusOnTime, priority: 0 }
   }
   if (state.status === "cancelled") {
-    return { label: "Cancelled", color: "text-red-700", bg: "bg-red-50", border: "border-red-200", dot: "bg-red-500", priority: 3 }
+    return { label: "Cancelled", palette: c.statusCancelled, priority: 3 }
   }
   if (state.status === "diverted") {
-    return { label: "Diverted", color: "text-purple-700", bg: "bg-purple-50", border: "border-purple-200", dot: "bg-purple-500", priority: 3 }
+    return { label: "Diverted", palette: c.statusCancelled, priority: 3 }
   }
   if (state.cascade_order === 0) {
-    return { label: "Direct Hit", color: "text-red-700", bg: "bg-red-50", border: "border-red-200", dot: "bg-orange-500", priority: 3 }
-  }
-  if (state.delay_minutes > 120) {
-    return { label: `+${state.delay_minutes}m`, color: "text-orange-700", bg: "bg-orange-50", border: "border-orange-200", dot: "bg-orange-500", priority: 2 }
+    return { label: "Direct Hit", palette: c.statusCancelled, priority: 3 }
   }
   if (state.delay_minutes > 0) {
-    return { label: `+${state.delay_minutes}m`, color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-200", dot: "bg-amber-400", priority: 1 }
+    return { label: `+${state.delay_minutes}m`, palette: c.statusDelayed, priority: state.delay_minutes > 120 ? 2 : 1 }
   }
-  return { label: "On Time", color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200", dot: "bg-emerald-500", priority: 0 }
+  return { label: "On Time", palette: c.statusOnTime, priority: 0 }
 }
 
 // ─── Flight Card ──────────────────────────────────────────────────────────────
@@ -75,7 +79,7 @@ function FlightCard({
   onSelect: (id: string) => void
 }) {
   const status = getStatusMeta(state)
-  const isAffected = state && state.cascade_order >= 0
+  const isAffected = !!(state && state.cascade_order >= 0)
   const reason = state?.reason
   const origin = airportLabel(flight.origin)
   const dest = airportLabel(flight.destination)
@@ -88,77 +92,121 @@ function FlightCard({
       initial={{ opacity: 0, scale: 0.96 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.96 }}
-      className={`relative rounded-2xl border bg-white p-4 flex flex-col gap-3 cursor-pointer hover:shadow-md transition-shadow group ${
-        isAffected ? `${status.border}` : "border-border/50"
-      }`}
-      style={isAffected ? { background: `${status.bg.replace("bg-", "")}` } : {}}
       onClick={() => onSelect(flight.id)}
+      className="group"
+      style={{
+        position: "relative",
+        background: isAffected ? status.palette.bg : c.canvas,
+        border: `1px solid ${isAffected ? status.palette.dot : c.hairline}`,
+        borderRadius: r.lg,
+        padding: sp.md,
+        display: "flex",
+        flexDirection: "column",
+        gap: sp.sm,
+        cursor: "pointer",
+        boxShadow: sh.cardSoft,
+        fontFamily: ff.body,
+        transition: "box-shadow 200ms ease",
+      }}
     >
       {/* Remove button */}
       <button
         onClick={(e) => { e.stopPropagation(); onRemove() }}
-        className="absolute top-3 right-3 w-6 h-6 rounded-full bg-white border border-border/50 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-10"
+        className="opacity-0 group-hover:opacity-100"
+        style={{
+          position: "absolute",
+          top: 12,
+          right: 12,
+          width: 24,
+          height: 24,
+          borderRadius: r.full,
+          background: c.canvas,
+          border: `1px solid ${c.hairline}`,
+          boxShadow: sh.cardSoft,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 10,
+          cursor: "pointer",
+          transition: "opacity 150ms ease",
+        }}
       >
-        <X className="w-3 h-3 text-muted-foreground" />
+        <X style={{ width: 12, height: 12, color: c.muted }} />
       </button>
 
       {/* Top row: flight ID + status */}
-      <div className="flex items-start justify-between gap-2 pr-4">
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: sp.xs, paddingRight: 16 }}>
         <div>
-          <div className="font-mono font-bold text-sm text-foreground">{flight.id}</div>
+          <div style={{ fontFamily: ff.mono, fontWeight: 600, fontSize: 14, color: c.ink, fontVariantNumeric: "tabular-nums" }}>
+            {flight.id}
+          </div>
           {flight.flight_number && (
-            <div className="text-[10px] text-muted-foreground font-mono">{flight.flight_number}</div>
+            <div style={{ fontFamily: ff.mono, fontSize: 11, color: c.muted, marginTop: 1 }}>{flight.flight_number}</div>
           )}
         </div>
-        <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${status.color} ${status.bg} ${status.border}`}>
+        <span
+          style={{
+            fontSize: 10,
+            fontWeight: 500,
+            letterSpacing: "0.04em",
+            padding: "2px 8px",
+            borderRadius: r.pill,
+            background: status.palette.bg,
+            color: status.palette.ink,
+            flexShrink: 0,
+          }}
+        >
           {status.label}
         </span>
       </div>
 
-      {/* Route — codes on top, city subtitle underneath so non-experts know
-          KORD = Chicago at a glance. Hover the code for the full popover. */}
+      {/* Route — codes on top, city subtitle underneath */}
       <div>
-        <div className="flex items-center gap-2 font-bold text-base text-foreground">
+        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 16, fontWeight: 500, color: c.ink, fontFamily: ff.body }}>
           <AirportCode code={flight.origin} />
-          <ArrowRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+          <ArrowRight style={{ width: 14, height: 14, color: c.muted, flexShrink: 0 }} />
           <AirportCode code={flight.destination} />
         </div>
         {(origin.city || dest.city) && (
-          <div className="text-[10px] text-muted-foreground/80 truncate mt-0.5">
+          <div style={{ fontSize: 11, color: c.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: 2 }}>
             {origin.city || origin.icao}
-            <span className="mx-1 text-muted-foreground/40">→</span>
+            <span style={{ margin: "0 4px", color: c.hairline }}>→</span>
             {dest.city || dest.icao}
           </div>
         )}
       </div>
 
       {/* Times + tail */}
-      <div className="flex items-center gap-3 text-[11px] text-muted-foreground flex-wrap">
-        <div className="flex items-center gap-1">
-          <Clock className="w-3 h-3 shrink-0" />
-          <span>{fmtTime(flight.scheduled_departure)}</span>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 11, color: c.muted, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <Clock style={{ width: 12, height: 12, flexShrink: 0 }} />
+          <span style={{ fontFamily: ff.mono, fontVariantNumeric: "tabular-nums" }}>
+            {fmtTime(flight.scheduled_departure)}
+          </span>
           {state?.new_departure && (
-            <span className="text-orange-600 font-semibold ml-1">→ {fmtTime(state.new_departure)}</span>
+            <span style={{ color: c.statusDelayed.ink, fontWeight: 500, marginLeft: 4 }}>
+              → {fmtTime(state.new_departure)}
+            </span>
           )}
         </div>
-        <span className="text-border">·</span>
+        <span style={{ color: c.hairline }}>·</span>
         <span>{fmtDate(flight.scheduled_departure)}</span>
       </div>
 
-      {/* Aircraft line — tail + type so users know it's a 737 vs a regional jet */}
+      {/* Aircraft line */}
       {ac.tail && (
-        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/90">
-          <Plane className="w-3 h-3 shrink-0" />
-          <span className="font-mono font-semibold text-foreground/80">{ac.tail}</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: c.muted }}>
+          <Plane style={{ width: 12, height: 12, flexShrink: 0 }} />
+          <span style={{ fontFamily: ff.mono, fontWeight: 500, color: c.body }}>{ac.tail}</span>
           {ac.typeLabel && (
             <>
-              <span className="text-border">·</span>
+              <span style={{ color: c.hairline }}>·</span>
               <span>{ac.typeLabel}</span>
             </>
           )}
           {ac.seats != null && ac.seats > 0 && (
             <>
-              <span className="text-border">·</span>
+              <span style={{ color: c.hairline }}>·</span>
               <span>{ac.seats} seats</span>
             </>
           )}
@@ -167,16 +215,16 @@ function FlightCard({
 
       {/* Reason if affected */}
       {reason && (
-        <div className={`text-[10px] font-medium ${status.color} leading-snug`}>
+        <div style={{ fontSize: 11, fontWeight: 500, color: status.palette.ink, lineHeight: 1.4 }}>
           {reason}
         </div>
       )}
 
       {/* Cascade indicator */}
       {state && state.cascade_order >= 0 && (
-        <div className="flex items-center gap-1.5">
-          <span className={`w-2 h-2 rounded-full ${status.dot}`} />
-          <span className="text-[10px] text-muted-foreground">
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ width: 8, height: 8, borderRadius: r.full, background: status.palette.dot }} />
+          <span style={{ fontSize: 11, color: c.muted }}>
             {state.cascade_order === 0 ? "Directly disrupted" : `Cascade level ${state.cascade_order}`}
           </span>
         </div>
@@ -241,51 +289,98 @@ export function MyFlights({ onFlightSelect }: { onFlightSelect?: (id: string | n
   const removeFlight = (id: string) => setWatchedIds((prev) => prev.filter((w) => w !== id))
 
   return (
-    <div className="rounded-2xl overflow-hidden"
+    <div
       style={{
-        background: "#ffffff",
-        border: "1px solid #DDDDDD",
-        boxShadow: "0 2px 16px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.05)",
+        background: c.canvas,
+        border: `1px solid ${c.hairline}`,
+        borderRadius: r.lg,
+        overflow: "hidden",
+        boxShadow: sh.cardSoft,
+        fontFamily: ff.body,
       }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-3.5 border-b border-border/50">
-        <div className="flex items-center gap-3">
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: `${sp.sm}px ${sp.lg}px`,
+          borderBottom: `1px solid ${c.hairline}`,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: sp.sm }}>
           <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-            style={{ background: "rgba(13,148,136,0.10)", border: "1px solid rgba(13,148,136,0.15)" }}
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: r.sm,
+              background: c.surfaceSoft,
+              border: `1px solid ${c.hairline}`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
           >
-            <BookmarkCheck className="w-3.5 h-3.5" style={{ color: "#0D9488" }} />
+            <BookmarkCheck style={{ width: 14, height: 14, color: c.ink }} />
           </div>
           <div>
-            <div className="section-title">My Flights</div>
-            <div className="text-[10px] text-muted-foreground mt-0.5">
+            <div style={{ ...type("titleMd", c.ink), fontSize: 16 }}>My Flights</div>
+            <div style={{ ...type("caption", c.muted), fontSize: 11, marginTop: 1 }}>
               {watchedFlights.length === 0
                 ? "Track flights from the Nimbus schedule"
                 : `${watchedFlights.length} tracked${affectedCount > 0 ? ` · ${affectedCount} affected` : ""}`}
             </div>
           </div>
           {affectedCount > 0 && (
-            <span className="ml-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 border border-orange-200">
+            <span
+              style={{
+                marginLeft: 4,
+                fontSize: 11,
+                fontWeight: 500,
+                padding: "2px 8px",
+                borderRadius: r.pill,
+                background: c.statusDelayed.bg,
+                color: c.statusDelayed.ink,
+              }}
+            >
               {affectedCount} alert{affectedCount !== 1 ? "s" : ""}
             </span>
           )}
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
+        <div style={{ display: "flex", alignItems: "center", gap: sp.xs }}>
+          <ButtonSecondary
+            size="sm"
             onClick={() => { setShowSearch((s) => !s); setQuery("") }}
-            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl transition-all hover:opacity-80"
-            style={{ background: "rgba(13,148,136,0.08)", color: "#0D9488" }}
+            leadingIcon={<Search style={{ width: 13, height: 13 }} />}
           >
-            <Search className="w-3.5 h-3.5" />
             Add flight
-          </button>
+          </ButtonSecondary>
           <button
             onClick={() => setCollapsed((c) => !c)}
-            className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors hover:bg-secondary"
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: r.sm,
+              border: `1px solid ${c.hairline}`,
+              background: c.canvas,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+            }}
           >
-            <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsed ? "rotate-180" : ""}`} />
+            <ChevronDown
+              style={{
+                width: 14,
+                height: 14,
+                color: c.muted,
+                transform: collapsed ? "rotate(180deg)" : undefined,
+                transition: "transform 200ms ease",
+              }}
+            />
           </button>
         </div>
       </div>
@@ -297,7 +392,7 @@ export function MyFlights({ onFlightSelect }: { onFlightSelect?: (id: string | n
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="overflow-hidden"
+            style={{ overflow: "hidden" }}
           >
             {/* Search bar */}
             <AnimatePresence>
@@ -307,24 +402,59 @@ export function MyFlights({ onFlightSelect }: { onFlightSelect?: (id: string | n
                   animate={{ height: "auto", opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
                   transition={{ duration: 0.15 }}
-                  className="overflow-hidden border-b border-border/40"
+                  style={{ overflow: "hidden", borderBottom: `1px solid ${c.hairline}` }}
                 >
-                  <div className="p-4 relative">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <div style={{ padding: sp.md, position: "relative" }}>
+                    <div style={{ position: "relative" }}>
+                      <Search
+                        style={{
+                          position: "absolute",
+                          left: 12,
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          width: 16,
+                          height: 16,
+                          color: c.muted,
+                        }}
+                      />
                       <input
                         autoFocus
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         placeholder="Search by flight ID, tail, or route (e.g. N001NB, KORD)…"
-                        className="w-full h-10 pl-9 pr-3 text-sm bg-white border border-border/60 rounded-xl outline-none"
-                        style={{ boxShadow: "none" }}
-                        onFocus={(e) => e.currentTarget.style.boxShadow = "0 0 0 3px rgba(13,148,136,0.18)"}
-                        onBlur={(e) => e.currentTarget.style.boxShadow = "none"}
+                        style={{
+                          width: "100%",
+                          height: 40,
+                          paddingLeft: 36,
+                          paddingRight: 12,
+                          fontSize: 14,
+                          fontFamily: ff.body,
+                          background: c.canvas,
+                          border: `1px solid ${c.hairline}`,
+                          borderRadius: r.md,
+                          outline: "none",
+                          color: c.ink,
+                          boxShadow: "none",
+                        }}
+                        onFocus={(e) => (e.currentTarget.style.boxShadow = sh.buttonFocus)}
+                        onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
                       />
                     </div>
                     {searchResults.length > 0 && (
-                      <div className="absolute left-4 right-4 top-[calc(100%-8px)] rounded-xl border border-border bg-white shadow-lg z-20 overflow-hidden">
+                      <div
+                        style={{
+                          position: "absolute",
+                          left: sp.md,
+                          right: sp.md,
+                          top: "calc(100% - 8px)",
+                          borderRadius: r.md,
+                          border: `1px solid ${c.hairline}`,
+                          background: c.canvas,
+                          boxShadow: sh.overlay,
+                          zIndex: 20,
+                          overflow: "hidden",
+                        }}
+                      >
                         {searchResults.map((f) => {
                           const alreadyWatched = watchedIds.includes(f.id)
                           const st = flightStates[f.id]
@@ -334,20 +464,44 @@ export function MyFlights({ onFlightSelect }: { onFlightSelect?: (id: string | n
                               key={f.id}
                               onClick={() => addFlight(f.id)}
                               disabled={alreadyWatched}
-                              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-secondary/60 text-left transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              style={{
+                                width: "100%",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: sp.sm,
+                                padding: "10px 16px",
+                                fontSize: 14,
+                                fontFamily: ff.body,
+                                background: "transparent",
+                                border: "none",
+                                textAlign: "left",
+                                cursor: alreadyWatched ? "not-allowed" : "pointer",
+                                opacity: alreadyWatched ? 0.5 : 1,
+                                color: c.ink,
+                              }}
                             >
-                              <Plane className="w-4 h-4 text-muted-foreground shrink-0" />
-                              <div className="flex-1 min-w-0">
-                                <span className="font-mono font-bold">{f.id}</span>
-                                <span className="text-muted-foreground ml-2">{f.origin} → {f.destination}</span>
+                              <Plane style={{ width: 16, height: 16, color: c.muted, flexShrink: 0 }} />
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <span style={{ fontFamily: ff.mono, fontWeight: 600 }}>{f.id}</span>
+                                <span style={{ color: c.muted, marginLeft: 8 }}>{f.origin} → {f.destination}</span>
                                 {f.flight_number && (
-                                  <span className="text-muted-foreground/60 ml-2 text-xs">{f.flight_number}</span>
+                                  <span style={{ color: c.muted, opacity: 0.7, marginLeft: 8, fontSize: 12 }}>{f.flight_number}</span>
                                 )}
                               </div>
-                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${sm.color} ${sm.bg} ${sm.border}`}>
+                              <span
+                                style={{
+                                  fontSize: 10,
+                                  fontWeight: 500,
+                                  padding: "2px 8px",
+                                  borderRadius: r.pill,
+                                  background: sm.palette.bg,
+                                  color: sm.palette.ink,
+                                  flexShrink: 0,
+                                }}
+                              >
                                 {sm.label}
                               </span>
-                              {alreadyWatched && <Bookmark className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
+                              {alreadyWatched && <Bookmark style={{ width: 13, height: 13, color: c.muted, flexShrink: 0 }} />}
                             </button>
                           )
                         })}
@@ -359,20 +513,20 @@ export function MyFlights({ onFlightSelect }: { onFlightSelect?: (id: string | n
             </AnimatePresence>
 
             {/* Flight grid */}
-            <div className="p-4">
+            <div style={{ padding: sp.md }}>
               {watchedFlights.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-10 text-center">
-                  <div
-                    className="w-12 h-12 rounded-2xl flex items-center justify-center mb-3"
-                    style={{ background: "rgba(0,0,0,0.03)", border: "1px solid #DDDDDD" }}
-                  >
-                    <Plane className="w-6 h-6" style={{ color: "#0D9488", opacity: 0.4 }} />
-                  </div>
-                  <p className="text-sm font-semibold text-foreground/70">No flights tracked yet</p>
-                  <p className="text-xs text-muted-foreground mt-1">Click &quot;Add flight&quot; to watch Nimbus flights and get real-time disruption alerts.</p>
-                </div>
+                // Complaint 2 fix: cream-callout, not decorative empty state.
+                <CreamCallout style={{ display: "flex", flexDirection: "column", gap: sp.xs }}>
+                  <Eyebrow color={c.signatureForest}>No Flights Tracked</Eyebrow>
+                  <Type as="div" role="titleSm" color={c.ink}>
+                    Pin Nimbus flights to monitor in real time.
+                  </Type>
+                  <Type as="p" role="bodyMd" color={c.muted}>
+                    Click <span style={{ fontWeight: 500, color: c.ink }}>Add flight</span> to watch any tail in the Nimbus schedule and receive disruption alerts the moment cascade order changes.
+                  </Type>
+                </CreamCallout>
               ) : (
-                <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}>
+                <div style={{ display: "grid", gap: sp.sm, gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}>
                   <AnimatePresence>
                     {watchedFlights.map(({ id, flight, state }) => (
                       <FlightCard

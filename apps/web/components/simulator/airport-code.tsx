@@ -10,6 +10,7 @@
 import { useState, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { airportLabel } from "@/lib/labels"
+import { c, ff, r, sh } from "@/lib/design-tokens"
 
 export type AirportCodeFormat = "iata" | "icao"
 
@@ -51,9 +52,9 @@ export function AirportCode({
       onBlur={() => setOpen(false)}
       tabIndex={0}
       className={`relative inline-flex items-center cursor-help outline-none ${className}`}
-      style={{ borderBottom: "1px dotted rgba(13,148,136,0.45)" }}
+      style={{ borderBottom: `1px dotted ${c.muted}` }}
     >
-      <span className="font-mono">{display}</span>
+      <span style={{ fontFamily: ff.mono, fontVariantNumeric: "tabular-nums" }}>{display}</span>
       <AnimatePresence>
         {open && (
           <motion.span
@@ -67,31 +68,41 @@ export function AirportCode({
             } as React.CSSProperties}
           >
             <span
-              className="inline-block whitespace-nowrap rounded-lg px-2.5 py-1.5 text-left"
               style={{
-                background: "rgba(13,38,36,0.96)",
-                color: "#FFFFFF",
-                border: "1px solid rgba(13,148,136,0.45)",
-                boxShadow: "0 8px 22px rgba(0,0,0,0.22)",
-                backdropFilter: "blur(8px)",
-                fontFamily: "'DM Sans', sans-serif",
+                display: "inline-block",
+                whiteSpace: "nowrap",
+                borderRadius: r.md,
+                padding: "8px 12px",
+                textAlign: "left",
+                background: c.surfaceDark,
+                color: c.onPrimary,
+                border: `1px solid ${c.surfaceDark}`,
+                boxShadow: sh.overlay,
+                fontFamily: ff.body,
               }}
             >
-              <span className="block text-[11px] font-bold tracking-wide">
-                <span className="font-mono">{ap.iata || ap.icao}</span>
+              <span style={{ display: "block", fontSize: 11, fontWeight: 500, letterSpacing: "0.02em" }}>
+                <span style={{ fontFamily: ff.mono, fontWeight: 600 }}>{ap.iata || ap.icao}</span>
                 {ap.iata && ap.icao && ap.iata !== ap.icao && (
-                  <span className="font-mono text-teal-200/70 ml-1.5">· {ap.icao}</span>
+                  <span style={{ fontFamily: ff.mono, color: "rgba(255,255,255,0.55)", marginLeft: 6 }}>
+                    · {ap.icao}
+                  </span>
                 )}
               </span>
               {(ap.name || ap.city) && (
-                <span className="block text-[10px] text-teal-100/85 mt-0.5">
+                <span style={{ display: "block", fontSize: 10, color: "rgba(255,255,255,0.78)", marginTop: 2 }}>
                   {[ap.name, ap.city].filter(Boolean).join(" · ")}
                 </span>
               )}
               {showFAA && faa && (
                 <span
-                  className="block text-[10px] mt-1 font-semibold"
-                  style={{ color: faa.type === "ground_stop" ? "#FCA5A5" : "#FED7AA" }}
+                  style={{
+                    display: "block",
+                    fontSize: 10,
+                    fontWeight: 500,
+                    marginTop: 4,
+                    color: faa.type === "ground_stop" ? c.statusCancelled.dot : c.signaturePeach,
+                  }}
                 >
                   {faa.type === "ground_stop"
                     ? "Ground Stop in effect"
@@ -101,15 +112,19 @@ export function AirportCode({
                 </span>
               )}
               <span
-                className="absolute left-1/2 -translate-x-1/2 w-2 h-2 rotate-45"
                 style={{
-                  [pos === "top" ? "bottom" : "top"]: "-4px",
-                  background: "rgba(13,38,36,0.96)",
-                  border: "1px solid rgba(13,148,136,0.45)",
+                  position: "absolute",
+                  left: "50%",
+                  transform: "translateX(-50%) rotate(45deg)",
+                  width: 8,
+                  height: 8,
+                  background: c.surfaceDark,
+                  border: `1px solid ${c.surfaceDark}`,
                   borderTop: pos === "top" ? "none" : undefined,
                   borderLeft: pos === "top" ? "none" : undefined,
                   borderBottom: pos === "bottom" ? "none" : undefined,
                   borderRight: pos === "bottom" ? "none" : undefined,
+                  [pos === "top" ? "bottom" : "top"]: "-4px",
                 } as React.CSSProperties}
               />
             </span>
@@ -136,7 +151,7 @@ export function RoutePair({
   return (
     <span className={`inline-flex items-center gap-1.5 ${className}`}>
       <AirportCode code={origin} format={format} />
-      <span className="text-muted-foreground/70">→</span>
+      <span style={{ color: c.muted }}>→</span>
       <AirportCode code={destination} format={format} />
     </span>
   )

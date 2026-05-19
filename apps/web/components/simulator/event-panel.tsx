@@ -12,6 +12,48 @@ import { apiClient } from "@/lib/api"
 import { useSimulationStore } from "@/stores/simulation"
 import { toast } from "sonner"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { airportLabel } from "@/lib/labels"
+import { AirportCode } from "./airport-code"
+import { c, ff, r } from "@/lib/design-tokens"
+import { ButtonPrimary, Eyebrow } from "@/components/ds/primitives"
+
+// Airports + ARTCC facilities are surfaced as ICAO-only codes that mean nothing
+// to a non-airline-ops viewer. These helpers turn raw codes into "KORD — Chicago
+// O'Hare" inside <option> labels (where we can't render JSX) and to expose a
+// canonical name for ARTCC centers in the same dropdowns.
+
+function airportOptionLabel(icao: string): string {
+  const ap = airportLabel(icao)
+  if (!ap.name && !ap.city) return icao
+  const tail = [ap.city, ap.name].filter(Boolean).join(" ")
+  return `${icao} — ${tail}`
+}
+
+const ARTCC_NAMES: Record<string, string> = {
+  ZAU: "Chicago Center",
+  ZTL: "Atlanta Center",
+  ZFW: "Fort Worth Center",
+  ZLA: "Los Angeles Center",
+  ZDV: "Denver Center",
+  ZNY: "New York Center",
+  ZSE: "Seattle Center",
+  ZMA: "Miami Center",
+  ZAB: "Albuquerque Center",
+  ZMP: "Minneapolis Center",
+}
+
+function isAirportField(key: string) {
+  return key === "airport" || key === "destination_airport" || key === "base"
+}
+
+function selectOptionLabel(fieldKey: string, raw: string): string {
+  if (isAirportField(fieldKey)) return airportOptionLabel(raw)
+  if (fieldKey === "facility_id") {
+    const name = ARTCC_NAMES[raw]
+    return name ? `${raw} — ${name}` : raw
+  }
+  return raw
+}
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -272,23 +314,91 @@ const FORM_SCHEMA: Record<EventKind, {
   },
 }
 
-const COLOR_CLASSES: Record<string, { soft: string; ring: string; text: string; iconBg: string; border: string }> = {
-  sky:     { soft: "bg-sky-50",      ring: "ring-sky-300",     text: "text-sky-700",     iconBg: "bg-sky-100",     border: "border-sky-200"     },
-  blue:    { soft: "bg-blue-50",     ring: "ring-blue-300",    text: "text-blue-700",    iconBg: "bg-blue-100",    border: "border-blue-200"    },
-  slate:   { soft: "bg-slate-50",    ring: "ring-slate-300",   text: "text-slate-700",   iconBg: "bg-slate-100",   border: "border-slate-200"   },
-  cyan:    { soft: "bg-cyan-50",     ring: "ring-cyan-300",    text: "text-cyan-700",    iconBg: "bg-cyan-100",    border: "border-cyan-200"    },
-  purple:  { soft: "bg-purple-50",   ring: "ring-purple-300",  text: "text-purple-700",  iconBg: "bg-purple-100",  border: "border-purple-200"  },
-  orange:  { soft: "bg-orange-50",   ring: "ring-orange-300",  text: "text-orange-700",  iconBg: "bg-orange-100",  border: "border-orange-200"  },
-  red:     { soft: "bg-red-50",      ring: "ring-red-300",     text: "text-red-700",     iconBg: "bg-red-100",     border: "border-red-200"     },
-  rose:    { soft: "bg-rose-50",     ring: "ring-rose-300",    text: "text-rose-700",    iconBg: "bg-rose-100",    border: "border-rose-200"    },
-  amber:   { soft: "bg-amber-50",    ring: "ring-amber-300",   text: "text-amber-700",   iconBg: "bg-amber-100",   border: "border-amber-200"   },
-  pink:    { soft: "bg-pink-50",     ring: "ring-pink-300",    text: "text-pink-700",    iconBg: "bg-pink-100",    border: "border-pink-200"    },
-  yellow:  { soft: "bg-yellow-50",   ring: "ring-yellow-300",  text: "text-yellow-800",  iconBg: "bg-yellow-100",  border: "border-yellow-200"  },
-  indigo:  { soft: "bg-indigo-50",   ring: "ring-indigo-300",  text: "text-indigo-700",  iconBg: "bg-indigo-100",  border: "border-indigo-200"  },
-  stone:   { soft: "bg-stone-50",    ring: "ring-stone-300",   text: "text-stone-700",   iconBg: "bg-stone-100",   border: "border-stone-200"   },
-  violet:  { soft: "bg-violet-50",   ring: "ring-violet-300",  text: "text-violet-700",  iconBg: "bg-violet-100",  border: "border-violet-200"  },
-  lime:    { soft: "bg-lime-50",     ring: "ring-lime-300",    text: "text-lime-700",    iconBg: "bg-lime-100",    border: "border-lime-200"    },
-  emerald: { soft: "bg-emerald-50",  ring: "ring-emerald-300", text: "text-emerald-700", iconBg: "bg-emerald-100", border: "border-emerald-200" },
+// ─── Semantic tone palette ───────────────────────────────────────────────────
+// Replaces the 16-hue rainbow with 5 brand-voltage tones, one per event
+// category. Same color = same meaning everywhere on the dashboard.
+//
+//  weather  → mint     (atmospheric / cool)
+//  atc      → coral    (stop / urgent)
+//  ops      → mustard  (mechanical / warning)
+//  crew     → peach    (personnel)
+//  security → forest-on-cream (gravity but not panic)
+//
+// Selected tile inverts to dark ink on canvas (Airtable editorial pattern).
+
+type Tone = {
+  bg: string         // soft surface for the un-selected tile
+  ink: string        // text color
+  border: string     // hairline border tint
+  ringHex: string    // selection ring
+  iconBg: string     // small icon chip background
+  selectedBg: string // surface for selected/active tile
+  selectedInk: string
+}
+
+const EVENT_TONES = {
+  weather: {
+    bg: "#F1F7F4",                  // mint tint
+    ink: c.statusOnTime.ink,        // forest
+    border: c.signatureMint,
+    ringHex: c.statusOnTime.dot,
+    iconBg: c.signatureMint,
+    selectedBg: c.statusOnTime.bg,
+    selectedInk: c.statusOnTime.ink,
+  },
+  atc: {
+    bg: c.statusCancelled.bg,
+    ink: c.statusCancelled.ink,
+    border: c.statusCancelled.dot,
+    ringHex: c.statusCancelled.dot,
+    iconBg: "#F0CDC0",              // coral chip
+    selectedBg: c.statusCancelled.bg,
+    selectedInk: c.statusCancelled.ink,
+  },
+  ops: {
+    bg: c.statusDelayed.bg,         // peach
+    ink: "#5C3D0F",                 // mustard ink
+    border: c.signatureMustard,
+    ringHex: c.signatureMustard,
+    iconBg: "#F5D58A",
+    selectedBg: c.statusDelayed.bg,
+    selectedInk: "#5C3D0F",
+  },
+  crew: {
+    bg: "#FCEAD9",                  // peach soft
+    ink: c.statusDelayed.ink,
+    border: c.signaturePeach,
+    ringHex: c.signaturePeach,
+    iconBg: "#F8D2B4",
+    selectedBg: "#FCEAD9",
+    selectedInk: c.statusDelayed.ink,
+  },
+  security: {
+    bg: c.signatureCream,
+    ink: c.statusOnTime.ink,        // forest
+    border: c.statusOnTime.dot,
+    ringHex: c.statusOnTime.dot,
+    iconBg: "#E5D9C0",
+    selectedBg: c.signatureCream,
+    selectedInk: c.statusOnTime.ink,
+  },
+} as const satisfies Record<string, Tone>
+
+type ToneKey = keyof typeof EVENT_TONES
+
+const EVENT_TONE_BY_KIND: Record<EventKind, ToneKey> = {
+  weather_closure: "weather", thunderstorm: "weather", blizzard: "weather",
+  sandstorm: "weather", dense_fog: "weather", wind_shear: "weather",
+  hurricane: "weather", volcanic_ash: "weather",
+  ground_stop: "atc", airspace_closure: "atc", atc_staffing: "atc",
+  mechanical_aog: "ops", bird_strike: "ops", deicing_shortage: "ops",
+  runway_closure: "ops", fuel_contamination: "ops",
+  crew_sickout: "crew", labor_action: "crew",
+  security_event: "security", airport_emergency: "security", cyber_incident: "security",
+}
+
+function toneFor(kind: EventKind): Tone {
+  return EVENT_TONES[EVENT_TONE_BY_KIND[kind]]
 }
 
 // ─── Live data types ──────────────────────────────────────────────────────────
@@ -411,7 +521,7 @@ function renderAlertRow(
             disabled={isLoadingEvent}
             onClick={() => onLoadToSim(alert.sim_event!.kind, alert.sim_event!.params)}
             className="shrink-0 flex items-center gap-1 text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition-all disabled:opacity-40"
-            style={{ background: "#0D9488", color: "white" }}
+            style={{ background: c.ink, color: c.onPrimary }}
           >
             <Zap className="w-3 h-3" /> Sim
           </button>
@@ -574,16 +684,16 @@ function LiveFeed({
 
       {/* ── Status strip ── */}
       <div
-        className="rounded-2xl border p-3.5"
-        style={{ borderColor: "#DDDDDD", background: "#F7F7F7" }}
+        className="border p-3.5"
+        style={{ borderRadius: r.md, borderColor: c.hairline, background: c.surfaceSoft }}
       >
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <div
-              className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-              style={{ background: "rgba(13,148,136,0.10)", border: "1px solid rgba(13,148,136,0.15)" }}
+              className="w-7 h-7 flex items-center justify-center shrink-0"
+              style={{ borderRadius: r.sm, background: c.canvas, border: `1px solid ${c.hairline}` }}
             >
-              <Globe className="w-3.5 h-3.5" style={{ color: "#0D9488" }} />
+              <Globe className="w-3.5 h-3.5" style={{ color: c.ink }} />
             </div>
             <div>
               <div className="text-xs font-bold text-foreground">US National Airspace</div>
@@ -599,7 +709,7 @@ function LiveFeed({
             onClick={fetchAll}
             disabled={fetching}
             className="flex items-center gap-1.5 text-[10px] font-semibold transition-colors disabled:opacity-40"
-            style={{ color: "#0D9488" }}
+            style={{ color: c.ink, background: "transparent", border: "none", cursor: "pointer" }}
           >
             <RefreshCw className={`w-3 h-3 ${fetching ? "animate-spin" : ""}`} />
             Refresh
@@ -623,7 +733,7 @@ function LiveFeed({
       {/* ── Loading state ── */}
       {fetching && !faaData && !alertsData && (
         <div className="py-8 text-center text-xs text-muted-foreground">
-          <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" style={{ color: "#0D9488" }} />
+          <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" style={{ color: c.ink }} />
           Fetching live national airspace data…
         </div>
       )}
@@ -680,7 +790,7 @@ function LiveFeed({
                       {d.typeLabel}
                     </span>
                     {d.isNimbus && (
-                      <span className="text-[9px] font-bold shrink-0" style={{ color: "#0D9488" }}>Nimbus</span>
+                      <span className="text-[9px] font-bold shrink-0" style={{ color: c.statusOnTime.ink }}>Nimbus</span>
                     )}
                   </div>
                   {d.detail && (
@@ -700,8 +810,8 @@ function LiveFeed({
                   <button
                     disabled={isLoadingEvent}
                     onClick={() => onLoadToSim(d.simEvent!.kind, d.simEvent!.params)}
-                    className="shrink-0 flex items-center gap-1 text-[10px] font-bold px-2 py-1.5 rounded-lg transition-all disabled:opacity-40"
-                    style={{ background: "#0D9488", color: "white" }}
+                    className="shrink-0 flex items-center gap-1 text-[10px] font-bold px-2 py-1.5 transition-all disabled:opacity-40"
+                    style={{ borderRadius: r.sm, background: c.ink, color: c.onPrimary, border: "none", cursor: "pointer" }}
                   >
                     <Zap className="w-3 h-3" /> Sim
                   </button>
@@ -747,7 +857,7 @@ function LiveFeed({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="font-mono font-bold text-sm text-foreground">{prog.airport_iata}</span>
-                        {prog.in_nimbus_network && <span className="text-[9px] font-bold" style={{ color: "#0D9488" }}>Nimbus</span>}
+                        {prog.in_nimbus_network && <span className="text-[9px] font-bold" style={{ color: c.statusOnTime.ink }}>Nimbus</span>}
                       </div>
                       <div className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">
                         {prog.reason}{prog.avg_delay_minutes ? ` · avg ${prog.avg_delay_minutes}m` : ""}
@@ -756,8 +866,8 @@ function LiveFeed({
                     </div>
                     {prog.in_nimbus_network && (
                       <button disabled={isLoadingEvent} onClick={() => onLoadToSim(prog.sim_event.kind, prog.sim_event.params)}
-                        className="shrink-0 flex items-center gap-1 text-[10px] font-bold px-2 py-1.5 rounded-lg disabled:opacity-40"
-                        style={{ background: "#0D9488", color: "white" }}>
+                        className="shrink-0 flex items-center gap-1 text-[10px] font-bold px-2 py-1.5 disabled:opacity-40"
+                        style={{ borderRadius: r.sm, background: c.ink, color: c.onPrimary, border: "none", cursor: "pointer" }}>
                         <Zap className="w-3 h-3" /> Sim
                       </button>
                     )}
@@ -783,7 +893,7 @@ function LiveFeed({
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="font-mono font-bold text-sm">{prog.airport_iata}</span>
                         {prog.avg_delay_minutes && <span className="text-[9px] font-bold text-orange-700 bg-orange-100 px-1.5 py-0.5 rounded-full border border-orange-200">avg {prog.avg_delay_minutes}m</span>}
-                        {prog.in_nimbus_network && <span className="text-[9px] font-bold" style={{ color: "#0D9488" }}>Nimbus</span>}
+                        {prog.in_nimbus_network && <span className="text-[9px] font-bold" style={{ color: c.statusOnTime.ink }}>Nimbus</span>}
                       </div>
                       <div className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">{prog.reason}</div>
                       {(prog.start || prog.recheck) && (
@@ -794,8 +904,8 @@ function LiveFeed({
                     </div>
                     {prog.in_nimbus_network && (
                       <button disabled={isLoadingEvent} onClick={() => onLoadToSim(prog.sim_event.kind, prog.sim_event.params)}
-                        className="shrink-0 flex items-center gap-1 text-[10px] font-bold px-2 py-1.5 rounded-lg disabled:opacity-40"
-                        style={{ background: "#0D9488", color: "white" }}>
+                        className="shrink-0 flex items-center gap-1 text-[10px] font-bold px-2 py-1.5 disabled:opacity-40"
+                        style={{ borderRadius: r.sm, background: c.ink, color: c.onPrimary, border: "none", cursor: "pointer" }}>
                         <Zap className="w-3 h-3" /> Sim
                       </button>
                     )}
@@ -822,8 +932,8 @@ function LiveFeed({
                     <span className="text-[10px] text-muted-foreground flex-1 truncate">{prog.reason}</span>
                     {prog.in_nimbus_network && (
                       <button disabled={isLoadingEvent} onClick={() => onLoadToSim(prog.sim_event.kind, prog.sim_event.params)}
-                        className="shrink-0 flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg disabled:opacity-40"
-                        style={{ background: "#0D9488", color: "white" }}>
+                        className="shrink-0 flex items-center gap-1 text-[10px] font-bold px-2 py-1 disabled:opacity-40"
+                        style={{ borderRadius: r.sm, background: c.ink, color: c.onPrimary, border: "none", cursor: "pointer" }}>
                         <Zap className="w-3 h-3" /> Sim
                       </button>
                     )}
@@ -943,7 +1053,7 @@ export function EventPanel() {
   }
 
   const selectedInfo = EVENT_TYPES.find((e) => e.value === selectedKind)!
-  const palette      = COLOR_CLASSES[selectedInfo.color] ?? COLOR_CLASSES.orange
+  const tone         = toneFor(selectedKind)
   const schema       = FORM_SCHEMA[selectedKind]
 
   return (
@@ -952,9 +1062,9 @@ export function EventPanel() {
       <div className="panel-header shrink-0" style={{ paddingLeft: 12, paddingRight: 12 }}>
         <div
           className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-          style={{ background: "rgba(13,148,136,0.10)", border: "1px solid rgba(13,148,136,0.18)" }}
+          style={{ background: c.surfaceSoft, border: `1px solid ${c.hairline}` }}
         >
-          <Zap className="w-3.5 h-3.5" style={{ color: "#0D9488" }} />
+          <Zap className="w-3.5 h-3.5" style={{ color: c.ink }} />
         </div>
         <div>
           <div className="section-title">Event Control</div>
@@ -990,8 +1100,8 @@ export function EventPanel() {
               Active
               {activeEvents.length > 0 && (
                 <span
-                  className="ml-1.5 text-[9px] font-bold rounded-full w-4 h-4 inline-flex items-center justify-center text-white shrink-0"
-                  style={{ background: "#0D9488" }}
+                  className="ml-1.5 text-[9px] font-bold rounded-full w-4 h-4 inline-flex items-center justify-center shrink-0"
+                  style={{ background: c.ink, color: c.onPrimary }}
                 >
                   {activeEvents.length}
                 </span>
@@ -1003,31 +1113,48 @@ export function EventPanel() {
         {/* ── Trigger tab ── */}
         <TabsContent value="trigger" className="flex-1 overflow-y-auto px-3 py-3 space-y-4 mt-0">
 
-          {/* Categorized event grid */}
+          {/* Categorized event grid — every category gets one brand voltage tone
+              (mint / coral / mustard / peach / forest-on-cream) so the panel
+              reads as 5 grouped clusters instead of a 21-color rainbow.
+              Selected tile inverts to dark ink (Airtable editorial pattern). */}
           <div className="space-y-3.5">
             {EVENT_CATEGORIES.map((cat) => {
               const catEvents = cat.events.map((v) => EVENT_TYPES.find((e) => e.value === v)!).filter(Boolean)
               return (
                 <div key={cat.label}>
-                  <div className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50 mb-2 px-0.5">
-                    {cat.label}
-                  </div>
-                  <div className="grid grid-cols-2 gap-1.5">
+                  <Eyebrow>{cat.label}</Eyebrow>
+                  <div className="grid grid-cols-2 gap-1.5 mt-2">
                     {catEvents.map((et) => {
                       const isSel = selectedKind === et.value
-                      const c = COLOR_CLASSES[et.color]
+                      const t     = toneFor(et.value)
                       return (
                         <button
                           key={et.value}
                           onClick={() => selectKind(et.value)}
-                          className={`flex items-center gap-2 px-2.5 py-2.5 rounded-xl border text-left transition-all ${
-                            isSel
-                              ? `${c.soft} ${c.text} border-transparent ring-2 ${c.ring} shadow-sm`
-                              : "bg-white text-foreground/75 border-border/60 hover:bg-secondary/60 hover:border-border"
-                          }`}
+                          className="flex items-center gap-2 px-2.5 py-2.5 text-left transition-all"
+                          style={{
+                            borderRadius: r.md,
+                            border: `1px solid ${isSel ? c.ink : c.hairline}`,
+                            background: isSel ? c.ink : c.canvas,
+                            color: isSel ? c.onPrimary : c.body,
+                            boxShadow: isSel ? "0 1px 2px rgba(24,29,38,0.08)" : "none",
+                            fontFamily: ff.body,
+                          }}
                         >
-                          <span className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${isSel ? c.iconBg : "bg-muted"}`}>
-                            <et.Icon className={`w-3.5 h-3.5 ${isSel ? c.text : "text-muted-foreground"}`} />
+                          <span
+                            style={{
+                              width: 28,
+                              height: 28,
+                              borderRadius: r.sm,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              flexShrink: 0,
+                              background: isSel ? t.iconBg : t.bg,
+                              color: t.ink,
+                            }}
+                          >
+                            <et.Icon className="w-3.5 h-3.5" />
                           </span>
                           <span className="text-[11px] font-semibold leading-tight">{et.label}</span>
                         </button>
@@ -1047,19 +1174,34 @@ export function EventPanel() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
               transition={{ duration: 0.15 }}
-              className={`rounded-2xl border ${palette.border} ${palette.soft} overflow-hidden`}
+              style={{
+                borderRadius: r.lg,
+                border: `1px solid ${tone.border}`,
+                background: tone.bg,
+                overflow: "hidden",
+                fontFamily: ff.body,
+              }}
             >
               {/* Event header */}
-              <div className={`flex items-center justify-between gap-2 px-4 py-3 border-b ${palette.border}`}>
+              <div
+                className="flex items-center justify-between gap-2 px-4 py-3"
+                style={{ borderBottom: `1px solid ${tone.border}` }}
+              >
                 <div className="flex items-center gap-2.5">
-                  <span className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${palette.iconBg}`}>
-                    <selectedInfo.Icon className={`w-4 h-4 ${palette.text}`} />
+                  <span
+                    className="w-8 h-8 flex items-center justify-center shrink-0"
+                    style={{ borderRadius: r.sm, background: tone.iconBg, color: tone.ink }}
+                  >
+                    <selectedInfo.Icon className="w-4 h-4" />
                   </span>
-                  <div className={`text-sm font-bold leading-tight ${palette.text}`}>{selectedInfo.label}</div>
+                  <div className="text-sm font-bold leading-tight" style={{ color: tone.ink }}>
+                    {selectedInfo.label}
+                  </div>
                 </div>
                 <button
                   onClick={() => setShowDescription((d) => !d)}
-                  className={`flex items-center gap-1 text-[10px] font-semibold shrink-0 opacity-60 hover:opacity-100 transition-opacity ${palette.text}`}
+                  className="flex items-center gap-1 text-[10px] font-semibold shrink-0 opacity-60 hover:opacity-100 transition-opacity"
+                  style={{ color: tone.ink, background: "transparent", border: "none", cursor: "pointer" }}
                 >
                   {showDescription ? "Less" : "Info"}
                   <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${showDescription ? "rotate-180" : ""}`} />
@@ -1077,7 +1219,10 @@ export function EventPanel() {
                       transition={{ duration: 0.2 }}
                       className="overflow-hidden"
                     >
-                      <p className={`text-[11px] leading-relaxed pb-3 border-b mb-0.5 ${palette.border} ${palette.text} opacity-80`}>
+                      <p
+                        className="text-[11px] leading-relaxed pb-3 mb-0.5 opacity-80"
+                        style={{ color: tone.ink, borderBottom: `1px solid ${tone.border}` }}
+                      >
                         {EVENT_DESCRIPTIONS[selectedKind]}
                       </p>
                     </motion.div>
@@ -1095,13 +1240,13 @@ export function EventPanel() {
                         <select
                           value={values[f.key] ?? ""}
                           onChange={(e) => setField(f.key, e.target.value)}
-                          className="w-full h-9 text-xs bg-white border border-border rounded-lg px-3 outline-none transition-shadow"
-                          style={{ boxShadow: "none" }}
-                          onFocus={(e) => e.currentTarget.style.boxShadow = "0 0 0 3px rgba(13,148,136,0.18)"}
+                          className="w-full h-9 text-xs px-3 outline-none transition-shadow"
+                          style={{ background: c.canvas, border: `1px solid ${c.hairline}`, borderRadius: r.sm, color: c.ink, fontFamily: ff.body }}
+                          onFocus={(e) => e.currentTarget.style.boxShadow = "0 0 0 3px rgba(27,97,201,0.35)"}
                           onBlur={(e) => e.currentTarget.style.boxShadow = "none"}
                         >
                           {f.options?.map((opt) => (
-                            <option key={opt} value={opt}>{opt}</option>
+                            <option key={opt} value={opt}>{selectOptionLabel(f.key, opt)}</option>
                           ))}
                         </select>
                       ) : (
@@ -1110,9 +1255,9 @@ export function EventPanel() {
                           value={values[f.key] ?? ""}
                           onChange={(e) => setField(f.key, e.target.value)}
                           min={f.min} max={f.max} step={f.step}
-                          className="w-full h-9 text-xs bg-white border border-border rounded-lg px-3 outline-none transition-shadow"
-                          style={{ boxShadow: "none" }}
-                          onFocus={(e) => e.currentTarget.style.boxShadow = "0 0 0 3px rgba(13,148,136,0.18)"}
+                          className="w-full h-9 text-xs px-3 outline-none transition-shadow"
+                          style={{ background: c.canvas, border: `1px solid ${c.hairline}`, borderRadius: r.sm, color: c.ink, fontFamily: ff.mono }}
+                          onFocus={(e) => e.currentTarget.style.boxShadow = "0 0 0 3px rgba(27,97,201,0.35)"}
                           onBlur={(e) => e.currentTarget.style.boxShadow = "none"}
                         />
                       )}
@@ -1120,18 +1265,17 @@ export function EventPanel() {
                   ))}
                 </div>
 
-                {/* Trigger button */}
-                <button
+                {/* Trigger button — design-system primary CTA */}
+                <ButtonPrimary
                   onClick={handleTrigger}
                   disabled={isLoading}
-                  className="btn-primary w-full h-10 text-[13px] mt-1"
+                  className="w-full mt-1"
+                  leadingIcon={isLoading
+                    ? <Loader2 className="w-4 h-4 animate-spin" />
+                    : <Zap className="w-4 h-4" />}
                 >
-                  {isLoading ? (
-                    <><Loader2 className="w-4 h-4 animate-spin" /> Solving…</>
-                  ) : (
-                    <><Zap className="w-4 h-4" /> Trigger {selectedInfo.label}</>
-                  )}
-                </button>
+                  {isLoading ? "Solving…" : `Trigger ${selectedInfo.label}`}
+                </ButtonPrimary>
               </div>
             </motion.div>
           </AnimatePresence>
@@ -1147,41 +1291,79 @@ export function EventPanel() {
           {activeEvents.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-36 text-center">
               <div
-                className="w-12 h-12 rounded-2xl flex items-center justify-center mb-3"
-                style={{ background: "rgba(13,148,136,0.08)", border: "1px solid rgba(13,148,136,0.12)" }}
+                className="w-12 h-12 flex items-center justify-center mb-3"
+                style={{ borderRadius: r.lg, background: c.surfaceSoft, border: `1px solid ${c.hairline}` }}
               >
-                <Activity className="w-6 h-6" style={{ color: "#0D9488", opacity: 0.5 }} />
+                <Activity className="w-6 h-6" style={{ color: c.muted }} />
               </div>
-              <p className="text-sm font-semibold text-foreground/80">No active events</p>
-              <p className="text-xs text-muted-foreground mt-1">Trigger an event to see cascade effects.</p>
+              <p className="text-sm font-semibold" style={{ color: c.ink }}>No active events</p>
+              <p className="text-xs mt-1" style={{ color: c.muted }}>Trigger an event to see cascade effects.</p>
             </div>
           ) : (
             <div className="space-y-2.5">
               {activeEvents.map((ev) => {
                 const info = EVENT_TYPES.find((e) => e.value === ev.kind)
-                const c = info ? COLOR_CLASSES[info.color] : COLOR_CLASSES.orange
+                const t    = toneFor(ev.kind as EventKind)
                 return (
                   <motion.div
                     key={ev.id}
                     initial={{ opacity: 0, x: 8 }}
                     animate={{ opacity: 1, x: 0 }}
-                    className={`rounded-xl border ${c.border} ${c.soft} p-3.5`}
+                    className="p-3.5"
+                    style={{ borderRadius: r.md, border: `1px solid ${t.border}`, background: t.bg, fontFamily: ff.body }}
                   >
                     <div className="flex items-center gap-2.5 mb-1.5">
                       {info && (
-                        <span className={`w-7 h-7 rounded-lg flex items-center justify-center ${c.iconBg}`}>
-                          <info.Icon className={`w-3.5 h-3.5 ${c.text}`} />
+                        <span
+                          className="w-7 h-7 flex items-center justify-center"
+                          style={{ borderRadius: r.sm, background: t.iconBg, color: t.ink }}
+                        >
+                          <info.Icon className="w-3.5 h-3.5" />
                         </span>
                       )}
-                      <span className={`text-xs font-bold ${c.text}`}>{info?.label ?? ev.kind}</span>
+                      <span className="text-xs font-bold" style={{ color: t.ink }}>{info?.label ?? ev.kind}</span>
                     </div>
                     <div className="text-[11px] text-muted-foreground space-y-0.5">
-                      {ev.params?.airport             && <div>Airport: <span className="font-mono">{ev.params.airport}</span></div>}
-                      {ev.params?.destination_airport && <div>Dest: <span className="font-mono">{ev.params.destination_airport}</span></div>}
-                      {ev.params?.aircraft_tail       && <div>Tail: <span className="font-mono">{ev.params.aircraft_tail}</span></div>}
-                      {ev.params?.base                && <div>Base: <span className="font-mono">{ev.params.base}</span></div>}
-                      {ev.params?.facility_id         && <div>ARTCC: <span className="font-mono">{ev.params.facility_id}</span></div>}
-                      {ev.params?.duration_hours      && <div>Duration: <span className="font-mono">{ev.params.duration_hours}h</span></div>}
+                      {ev.params?.airport && (
+                        <div>
+                          Airport: <AirportCode code={ev.params.airport} />
+                          {airportLabel(ev.params.airport).city && (
+                            <span className="ml-1 text-muted-foreground/80">
+                              · {airportLabel(ev.params.airport).city}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      {ev.params?.destination_airport && (
+                        <div>
+                          Dest: <AirportCode code={ev.params.destination_airport} />
+                          {airportLabel(ev.params.destination_airport).city && (
+                            <span className="ml-1 text-muted-foreground/80">
+                              · {airportLabel(ev.params.destination_airport).city}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      {ev.params?.aircraft_tail && <div>Tail: <span className="font-mono">{ev.params.aircraft_tail}</span></div>}
+                      {ev.params?.base && (
+                        <div>
+                          Base: <AirportCode code={ev.params.base} />
+                          {airportLabel(ev.params.base).city && (
+                            <span className="ml-1 text-muted-foreground/80">
+                              · {airportLabel(ev.params.base).city}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      {ev.params?.facility_id && (
+                        <div>
+                          ARTCC: <span className="font-mono">{ev.params.facility_id}</span>
+                          {ARTCC_NAMES[ev.params.facility_id] && (
+                            <span className="ml-1 text-muted-foreground/80">· {ARTCC_NAMES[ev.params.facility_id]}</span>
+                          )}
+                        </div>
+                      )}
+                      {ev.params?.duration_hours && <div>Duration: <span className="font-mono">{ev.params.duration_hours}h</span></div>}
                     </div>
                   </motion.div>
                 )

@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 from src.optimizer.crew_overbooking import CrewOverbookingOptimizer
+from src.optimizer.explain import explain_plan
 
 router = APIRouter()
 
@@ -18,6 +19,11 @@ _crew_ob_optimizer = CrewOverbookingOptimizer()
 class SolveRequest(BaseModel):
     event_ids: list[str] = []
     disrupted_flight_ids: list[str] = []
+
+
+class ExplainRequest(BaseModel):
+    plan_id: str
+    top_n: int = 6
 
 
 def _load_network():
@@ -91,6 +97,9 @@ async def solve_recovery(payload: SolveRequest, request: Request):
                 "crew_violations":              p.crew_violations,
                 "aircraft_out_of_position":     p.aircraft_out_of_position,
                 "cost_breakdown":               p.cost_breakdown,
+                "total_co2_kg":                 p.total_co2_kg,
+                "eu_ets_cost_usd":              p.eu_ets_cost_usd,
+                "carbon_breakdown":             p.carbon_breakdown,
                 "summary":                      p.summary,
             }
             for p in plans
@@ -105,6 +114,48 @@ async def get_current_plans(request: Request):
     if engine:
         return {"plans": engine.state.recovery_plans}
     return {"plans": []}
+
+
+@router.post("/recovery/explain")
+async def explain_recovery_plan(payload: ExplainRequest, request: Request):
+    """
+    Counterfactual explainer — Slice 5.
+
+    Given a plan_id from the most recent solve, re-evaluate each high-impact
+    decision with a single flip ("what if we had kept NB123 alive?") and
+    return per-flight deltas in cost, pax-minutes, and CO₂. Powers the
+    "Why this plan?" panel on the plan-detail page.
+    """
+    engine = request.app.state.engine
+    predictor = request.app.state.predictor
+    weather = request.app.state.weather
+
+    plans: list[dict] = []
+    if engine:
+        plans = engine.state.recovery_plans or []
+    plan = next((p for p in plans if p.get("plan_id") == payload.plan_id), None)
+    if not plan:
+        raise HTTPException(status_code=404, detail=f"Plan {payload.plan_id} not found — solve first.")
+
+    flights, aircraft, _, _ = _load_network()
+    active_events = engine.state.active_events if engine else []
+    event_kind = active_events[0].get("kind", "") if active_events else ""
+
+    metar_data = weather.get_all_cached() if weather else {}
+    active_ev = active_events[0] if active_events else {}
+    predictions = (
+        predictor.predict(flights, active_ev, metar_data, datetime.datetime.now(datetime.timezone.utc))
+        if predictor else {}
+    )
+
+    return explain_plan(
+        plan=plan,
+        flights=flights,
+        aircraft=aircraft,
+        predictions=predictions,
+        event_kind=event_kind,
+        top_n=payload.top_n,
+    )
 
 
 @router.post("/recovery/crew-overbooking")
