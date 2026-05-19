@@ -199,7 +199,7 @@ function CascadeRow({ flight, index }: { flight: any; index: number }) {
         {" \u2192 "}
         <span style={{ fontFamily: ff.mono }}>{d.iata || flight.destination}</span>
         {o.city && d.city && (
-          <span style={{ marginLeft: 8, fontSize: 11, color: c.muted }}>{o.city} \u2192 {d.city}</span>
+          <span style={{ marginLeft: 8, fontSize: 11, color: c.muted }}>{o.city}{" \u2192 "}{d.city}</span>
         )}
       </span>
       <span

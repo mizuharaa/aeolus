@@ -38,20 +38,22 @@ def optimizer():
 
 
 class TestOptimizerOutputs:
-    def test_returns_three_plans(self, optimizer):
+    def test_returns_four_plans(self, optimizer):
+        # Slice 4 added Plan D — Green Recovery. The optimizer now produces
+        # four differentiated strategies instead of the original three.
         plans = optimizer.solve(
             schedule=FLIGHTS, aircraft=AIRCRAFT, crews=CREWS,
             events=[], disrupted_flights=["NB101"], cascade_predictions=PREDICTIONS,
         )
-        assert len(plans) == 3
+        assert len(plans) == 4
 
-    def test_plan_ids_are_abc(self, optimizer):
+    def test_plan_ids_are_abcd(self, optimizer):
         plans = optimizer.solve(
             schedule=FLIGHTS, aircraft=AIRCRAFT, crews=CREWS,
             events=[], disrupted_flights=["NB101"], cascade_predictions=PREDICTIONS,
         )
         ids = {p.plan_id for p in plans}
-        assert ids == {"A", "B", "C"}
+        assert ids == {"A", "B", "C", "D"}
 
     def test_plans_have_objective_labels(self, optimizer):
         plans = optimizer.solve(

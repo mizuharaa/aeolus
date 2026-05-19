@@ -24,10 +24,16 @@ import { c as tc } from "@/lib/design-tokens"
 //    `tc.*` is aliased so it doesn't collide with the local `c` variable
 //    used in this file as a [number, number] tuple shorthand.
 const MAP_COLORS = {
-  // Plan-applied actions
-  planCancelled: tc.statusCancelled.dot,   // coral
-  planSwap:      "#6366F1",                // indigo — no semantic token, kept
-  planDelayed:   tc.statusDelayed.dot,     // peach
+  // ── Plan-applied actions ────────────────────────────────────────────────
+  // Operator vocabulary: GREY = "this flight is no longer operating",
+  // GREEN = "this flight has been re-routed / re-assigned", PEACH = "this
+  // flight is now operating late". Cancelled lines stay clickable (low
+  // opacity + dashed) so users can still inspect why a flight was cut.
+  planCancelled: "#9CA3AF",                // neutral grey — Tailwind gray-400
+  planCancelledInk: "#6B7280",             // darker grey for cancelled aircraft icons
+  planSwap:      "#15803D",                // green-700 — "new reroute" semantic
+  planSwapFlow:  "#22C55E",                // green-500 — bright flow tint for the animated dash
+  planDelayed:   tc.statusDelayed.dot,     // peach — unchanged
 
   // Cascade severity (warmth = severity)
   cascadeDirect: tc.cascadeDirect,         // coral
@@ -114,26 +120,77 @@ function liveIcon(heading: number | null, sel: boolean, velKt: number | null): L
   })
 }
 
-function simIcon(color: string, rot: number, sel: boolean, cascOrder: number): L.DivIcon {
-  const r   = Math.round(rot / 10) * 10
-  // Larger base sizes — colored circle is the primary visual so everything needs to be readable
-  const sz  = sel ? 34 : cascOrder === 0 ? 28 : cascOrder >= 1 ? 22 : 18
-  const key = `sim3|${r}|${color}|${sel}|${cascOrder}`
+/**
+ * Aircraft marker icon. Visual treatment varies by applied-plan action:
+ *
+ *   isCancelled = true → grey 18px disc + small white ✕ badge, low opacity.
+ *                        Stays clickable so the operator can inspect why a
+ *                        leg was cut, but recedes visually so live re-routes
+ *                        dominate the canvas.
+ *   isSwap      = true → green disc with a subtle ring, communicating "this
+ *                        aircraft has been re-assigned by the plan".
+ *   else                → standard cascade-coloured disc, sized by severity.
+ */
+function simIcon(
+  color: string,
+  rot: number,
+  sel: boolean,
+  cascOrder: number,
+  isCancelled: boolean = false,
+  isSwap:      boolean = false,
+): L.DivIcon {
+  const r = Math.round(rot / 10) * 10
+
+  // Cancelled markers are intentionally small + faded so the live-operating
+  // network dominates. We still draw them — clickable, tooltipped — but they
+  // should never out-shout an active reroute.
+  const sz = isCancelled
+    ? (sel ? 24 : 18)
+    : (sel ? 34 : cascOrder === 0 ? 28 : cascOrder >= 1 ? 22 : 18)
+
+  const key = `sim4|${r}|${color}|${sel}|${cascOrder}|${isCancelled ? "x" : isSwap ? "s" : "_"}`
   return icon(key, () => {
     const planeSz = Math.round(sz * 0.52)
-    // Outer ring: white halo + colored outer ring for selection / direct-hit emphasis
-    const ring = sel
-      ? `box-shadow:0 0 0 2.5px #fff,0 0 0 5px ${color},0 4px 12px ${color}80;`
-      : cascOrder === 0
+
+    // Outer ring vocabulary:
+    //   cancelled → no ring, dashed white border, 55% opacity
+    //   swap      → green ring confirming new assignment
+    //   selected  → bright halo
+    //   direct    → matched-colour halo
+    //   default   → flat soft drop shadow
+    const ring =
+      isCancelled
+        ? `box-shadow:0 1px 3px rgba(0,0,0,0.25);opacity:0.55;`
+        : isSwap
+        ? `box-shadow:0 0 0 2px #fff,0 0 0 4px ${color}CC,0 4px 10px ${color}55;`
+        : sel
+        ? `box-shadow:0 0 0 2.5px #fff,0 0 0 5px ${color},0 4px 12px ${color}80;`
+        : cascOrder === 0
         ? `box-shadow:0 0 0 2px #fff,0 0 0 4px ${color}CC;`
         : `box-shadow:0 1px 4px rgba(0,0,0,0.35);`
+
+    const borderStyle = isCancelled
+      ? "border:1.5px dashed rgba(255,255,255,0.9);"
+      : "border:2px solid rgba(255,255,255,0.95);"
+
+    // Cancelled marker overlays a small white ✕ on the disc so the
+    // semantic is unmistakable at a glance, even before reading the tooltip.
+    const cancelBadge = isCancelled
+      ? `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;font:700 ${Math.round(sz * 0.55)}px/1 ui-monospace,monospace;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.45);">✕</div>`
+      : ""
+
     return L.divIcon({
       className: "",
       iconSize:  [sz, sz],
       iconAnchor:[sz / 2, sz / 2],
       // Colored circle background with white plane silhouette on top.
       // Rotation is applied to the inner plane only so the circle stays round.
-      html: `<div style="width:${sz}px;height:${sz}px;border-radius:50%;background:${color};border:2px solid rgba(255,255,255,0.95);display:flex;align-items:center;justify-content:center;${ring}"><div style="transform:rotate(${r}deg);line-height:0;display:flex;align-items:center;justify-content:center;"><svg viewBox="0 0 24 24" width="${planeSz}" height="${planeSz}" style="display:block;"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="white" stroke="rgba(255,255,255,0.15)" stroke-width="0.4"/></svg></div></div>`,
+      // The cancel badge sits on top of the silhouette.
+      html: `<div style="position:relative;width:${sz}px;height:${sz}px;border-radius:50%;background:${color};${borderStyle}display:flex;align-items:center;justify-content:center;${ring}">${
+        isCancelled
+          ? cancelBadge
+          : `<div style="transform:rotate(${r}deg);line-height:0;display:flex;align-items:center;justify-content:center;"><svg viewBox="0 0 24 24" width="${planeSz}" height="${planeSz}" style="display:block;"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="white" stroke="rgba(255,255,255,0.15)" stroke-width="0.4"/></svg></div>`
+      }</div>`,
     })
   })
 }
@@ -465,12 +522,14 @@ function FlightDetailCard({
   const dAp = NIMBUS_AIRPORTS[flight.destination]
 
   let actionLabel = "", actionColor = "#0D9488", actionIcon = ""
-  if (isPlanCancelled)     { actionLabel = "Cancelled by recovery plan"; actionColor = "#EF4444"; actionIcon = "✕" }
-  else if (isCascadeCancelled){ actionLabel = "Grounded by disruption"; actionColor = "#EF4444"; actionIcon = "✕" }
-  else if (isSwapped)      { actionLabel = "Aircraft swapped by plan";   actionColor = "#6366F1"; actionIcon = "↕" }
-  else if (planDelay)      { actionLabel = `Delayed +${planDelay} min by plan`; actionColor = "#F59E0B"; actionIcon = "⏱" }
-  else if (cascOrder === 0){ actionLabel = "Direct impact — epicenter"; actionColor = "#F97316"; actionIcon = "⚡" }
-  else if (cascOrder > 0)  { actionLabel = `Cascade order ${cascOrder}`; actionColor = "#FBBF24"; actionIcon = "↗" }
+  // Colours mirror the map's MAP_COLORS palette so the inspector card and the
+  // line/marker on the map read as the same semantic state at a glance.
+  if (isPlanCancelled)     { actionLabel = "Cancelled by recovery plan"; actionColor = MAP_COLORS.planCancelledInk; actionIcon = "✕" }
+  else if (isCascadeCancelled){ actionLabel = "Grounded by disruption"; actionColor = MAP_COLORS.cascadeDirect; actionIcon = "✕" }
+  else if (isSwapped)      { actionLabel = "Re-routed · new aircraft assigned"; actionColor = MAP_COLORS.planSwap; actionIcon = "↕" }
+  else if (planDelay)      { actionLabel = `Delayed +${planDelay} min by plan`; actionColor = MAP_COLORS.planDelayed; actionIcon = "⏱" }
+  else if (cascOrder === 0){ actionLabel = "Direct impact — epicenter"; actionColor = MAP_COLORS.cascadeDirect; actionIcon = "⚡" }
+  else if (cascOrder > 0)  { actionLabel = `Cascade order ${cascOrder}`; actionColor = MAP_COLORS.cascadeOrder1; actionIcon = "↗" }
 
   return (
     <div
@@ -850,7 +909,9 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
     [activeEvents]
   )
 
-  // Applied recovery plan sets
+  // Applied recovery plan sets — strictly derived from the plan dict so the
+  // inspector card can keep its distinction between "cancelled by plan" and
+  // "grounded by cascade".
   const applied = useMemo(() => {
     const plan = appliedPlanId ? recoveryPlans.find((p) => p.plan_id === appliedPlanId) : null
     const delayed = new Map<string, number>()
@@ -861,6 +922,42 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
       delayed,
     }
   }, [appliedPlanId, recoveryPlans])
+
+  // Visual cancellation set — union of:
+  //
+  //   (a) `applied.cancelled` — the currently-selected plan's own list (fast
+  //        optimistic update when the operator switches plans);
+  //
+  //   (b) every flight backend-marked status="cancelled" THAT IS NOT STAMPED
+  //        WITH A DIFFERENT PLAN'S applied_plan_id.
+  //
+  // Clause (b) is the critical filter. After applying Plan A, flight_states
+  // entries for A's cancelled flights carry `status="cancelled"` AND
+  // `applied_plan_id="A"`. When the operator clicks Plan B, the FRONTEND
+  // optimistically flips appliedPlanId to "B" before the WS broadcast
+  // arrives. Without the filter, those Plan-A-stamped flights stay in the
+  // visuallyCancelled set during the gap — the map shows Plan A's grey
+  // lines PLUS Plan B's grey lines, so the switch reads as "nothing
+  // changed". With the filter, anything stamped by Plan A is excluded the
+  // instant appliedPlanId moves to "B" (it'll be restored by the snapshot
+  // revert on the backend anyway, so we're just front-running that revert).
+  //
+  // Cascade-cancelled flights (no `applied_plan_id` at all) are always
+  // included — they're genuinely not operating regardless of plan choice.
+  const visuallyCancelled = useMemo(() => {
+    const set = new Set<string>(applied.cancelled)
+    for (const fid in flightStates) {
+      const s = flightStates[fid]
+      if (s?.status !== "cancelled") continue
+      const stampedBy = s.applied_plan_id ?? null
+      // Include if: cascade-cancelled (no stamp) OR stamped by the plan we
+      // currently have selected. Exclude if stamped by a stale plan.
+      if (stampedBy == null || stampedBy === appliedPlanId) {
+        set.add(fid)
+      }
+    }
+    return set
+  }, [applied.cancelled, flightStates, appliedPlanId])
 
   const activePlan = appliedPlanId ? recoveryPlans.find((p: RecoveryPlan) => p.plan_id === appliedPlanId) ?? null : null
 
@@ -884,13 +981,15 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
   }, [hasActiveEvents, setShowSimulation])
 
   // Color by cascade/plan state.
-  // Plan colors (cancelled/indigo/peach) ONLY appear after a plan is explicitly applied.
-  // Cascade colors (coral/mustard/yellow) appear as soon as an event fires.
-  // Same semantic palette as cascade-timeline + my-flights + plan-compare.
+  //
+  // Cancellation is checked FIRST against the visual union set — any flight
+  // marked status="cancelled" by the backend (whether from the cascade
+  // predictor or from an applied plan) reads grey. Swap and delayed only
+  // fire after the operator explicitly applies a plan.
   function cascColor(fid: string, state: any): string {
-    if (applied.cancelled.has(fid)) return MAP_COLORS.planCancelled
-    if (applied.swap.has(fid))      return MAP_COLORS.planSwap
-    if (applied.delayed.has(fid))   return MAP_COLORS.planDelayed
+    if (visuallyCancelled.has(fid))        return MAP_COLORS.planCancelled
+    if (applied.swap.has(fid))             return MAP_COLORS.planSwap
+    if (applied.delayed.has(fid))          return MAP_COLORS.planDelayed
     if (!state || state.cascade_order < 0) return MAP_COLORS.unaffected
     if (state.cascade_order === 0)         return MAP_COLORS.cascadeDirect
     if (state.cascade_order === 1)         return MAP_COLORS.cascadeOrder1
@@ -899,31 +998,96 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
   }
 
   // Impact routes
+  //
+  // `kind` drives both the visual treatment AND the click affordance:
+  //   "cancelled" → grey + dashed + low opacity, still clickable so users can
+  //                 inspect why the flight was cut.
+  //   "swap"      → green + animated flowing-dash CSS class (.ae-route-flow)
+  //                 to signal "active reroute / new assignment".
+  //   "delayed"   → peach, solid.
+  //   "cascade"   → coral/mustard/yellow per cascade order — no plan applied yet.
+  type RouteKind = "cancelled" | "swap" | "delayed" | "cascade"
+  type ImpactRoute = {
+    id: string
+    from: [number, number]
+    to:   [number, number]
+    color: string
+    weight: number
+    opacity: number
+    dashed: boolean
+    kind:  RouteKind
+  }
   const { impactRoutes, impactIds } = useMemo(() => {
-    const routes: Array<{ id: string; from: [number, number]; to: [number, number]; color: string; weight: number; opacity: number; dashed: boolean }> = []
+    const routes: ImpactRoute[] = []
     const ids = new Set<string>()
     for (const f of schedule) {
       const state = flightStates[f.id]
-      const isCancelled = applied.cancelled.has(f.id)
-      const isAffected = state && (state.cascade_order >= 0 || isCancelled || applied.delayed.has(f.id) || applied.swap.has(f.id))
+      // Use the visual union set (plan-cancellations + status="cancelled"
+      // from the backend) so cascade-cancelled flights also render grey.
+      const isCancelled = visuallyCancelled.has(f.id)
+      const isSwap      = applied.swap.has(f.id)
+      const isDelayed   = applied.delayed.has(f.id)
+      const isAffected  = state && (state.cascade_order >= 0 || isCancelled || isDelayed || isSwap)
       if (!isAffected) continue
       const o = NIMBUS_AIRPORTS[f.origin], d = NIMBUS_AIRPORTS[f.destination]
       if (!o || !d) continue
+
       const sel = selectedFlight === f.id
-      const color = cascColor(f.id, state)
+
+      // Pick the kind in priority order: cancelled > swap > delayed > cascade.
+      const kind: RouteKind =
+        isCancelled ? "cancelled" :
+        isSwap      ? "swap"      :
+        isDelayed   ? "delayed"   :
+                      "cascade"
+
+      const color =
+        kind === "cancelled" ? MAP_COLORS.planCancelled :
+        kind === "swap"      ? MAP_COLORS.planSwap :
+        kind === "delayed"   ? MAP_COLORS.planDelayed :
+                                cascColor(f.id, state)
+
+      // Cancelled flights deliberately read as MUTED — same line geometry so
+      // they remain clickable, but lower weight + opacity so live re-routes
+      // visually dominate.
+      const weight =
+        kind === "cancelled" ? (sel ? 3 : 1.6) :
+        kind === "swap"      ? (sel ? 4 : 3.2) :   // a touch heavier so the new route reads as primary
+        sel                  ? 4 :
+        state?.cascade_order === 0 ? 2.5 : 2
+
+      const opacity =
+        kind === "cancelled" ? (sel ? 0.65 : 0.35) :
+        kind === "swap"      ? (sel ? 1.0  : 0.92) :
+        sel                  ? 1 :
+        state?.cascade_order === 0 ? 0.85 : 0.60
+
       routes.push({
         id: f.id,
         from: [o.lat, o.lon],
-        to: [d.lat, d.lon],
+        to:   [d.lat, d.lon],
         color,
-        weight: sel ? 4 : state?.cascade_order === 0 ? 2.5 : 2,
-        opacity: sel ? 1 : state?.cascade_order === 0 ? 0.85 : 0.60,
-        dashed: isCancelled,
+        weight,
+        opacity,
+        // Swap routes get a dash too, but a SHORT one — combined with the
+        // CSS animation that walks `stroke-dashoffset` it reads as a
+        // flowing beam, not a static dashed line.
+        dashed: kind === "cancelled" || kind === "swap",
+        kind,
       })
       ids.add(f.id)
     }
     return { impactRoutes: routes, impactIds: ids }
   }, [flightStates, schedule, selectedFlight, applied]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // `applyEpoch` increments every time the applied-action sets change OR
+  // the visual cancellation set grows (cascade-cancelled flights arriving
+  // from the backend). Used as a React key on the Polyline layer below so
+  // changes force a remount, triggering the fade-in / draw-on animation.
+  const applyEpoch = useMemo(
+    () => `${appliedPlanId ?? "none"}:${visuallyCancelled.size}:${applied.delayed.size}:${applied.swap.size}`,
+    [appliedPlanId, applied, visuallyCancelled],
+  )
 
   // Dead-reckoned live positions — viewport culled for performance
   const livePlanes = useMemo(() => {
@@ -983,7 +1147,7 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
 
   const selState = selectedSched ? flightStates[selectedSched.id] : undefined
   const selArcColor = selectedSched
-    ? applied.cancelled.has(selectedSched.id) ? MAP_COLORS.planCancelled
+    ? visuallyCancelled.has(selectedSched.id) ? MAP_COLORS.planCancelled
     : applied.swap.has(selectedSched.id)      ? MAP_COLORS.planSwap
     : applied.delayed.has(selectedSched.id)   ? MAP_COLORS.planDelayed
     : selState?.cascade_order === 0 ? MAP_COLORS.cascadeDirect
@@ -1054,14 +1218,48 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
           )
         })}
 
-        {/* Impact routes */}
-        {impactRoutes.map((r) => (
-          <Polyline key={`imp-${r.id}`}
-            positions={[r.from, r.to]}
-            pathOptions={{ color: r.color, weight: r.weight, opacity: r.opacity, dashArray: r.dashed ? "10 6" : undefined }}
-            eventHandlers={{ click: () => onFlightSelect(selectedFlight === r.id ? null : r.id) }}
-          />
-        ))}
+        {/*
+          Impact routes — one Polyline per affected flight.
+
+          The `applyEpoch` is folded into the key so applying or unapplying a
+          plan remounts the entire layer, triggering a CSS fade-in (declared
+          in globals.css). Without this every Leaflet redraw is in-place and
+          users perceive the apply as "nothing happened".
+
+          Swap routes are tagged with the `ae-route-flow` class so the SVG
+          path animates its stroke-dashoffset — reads as a flowing beam,
+          communicating "active reroute" rather than a static dashed line.
+
+          Cancelled routes stay on the layer (low opacity + dashed) and
+          remain CLICKABLE so the user can still drill into a cancelled
+          flight. The cursor stays pointer per Leaflet defaults.
+        */}
+        {impactRoutes.map((r) => {
+          const className =
+            r.kind === "swap"      ? "ae-route ae-route-flow" :
+            r.kind === "cancelled" ? "ae-route ae-route-cancelled" :
+                                     "ae-route"
+          // Swap routes get a tighter dash so the animation reads like a
+          // moving beam, not a long-segment crawl.
+          const dashArray =
+            r.kind === "swap"      ? "8 6" :
+            r.kind === "cancelled" ? "10 6" :
+                                     undefined
+          return (
+            <Polyline
+              key={`imp-${applyEpoch}-${r.id}`}
+              positions={[r.from, r.to]}
+              pathOptions={{
+                color:     r.color,
+                weight:    r.weight,
+                opacity:   r.opacity,
+                dashArray,
+                className,
+              }}
+              eventHandlers={{ click: () => onFlightSelect(selectedFlight === r.id ? null : r.id) }}
+            />
+          )
+        })}
 
         {/* Selected flight — bezier arc overlay */}
         {selectedArc && (
@@ -1071,12 +1269,13 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
               positions={selectedArc}
               pathOptions={{ color: selArcColor, weight: 10, opacity: 0.12 }}
             />
-            {/* Main arc */}
+            {/* Main arc — dashed if the selected flight is cancelled (by
+                plan or by cascade), preserving the "non-operating" semantic. */}
             <Polyline
               positions={selectedArc}
               pathOptions={{
                 color: selArcColor, weight: 3.5, opacity: 0.95,
-                dashArray: applied.cancelled.has(selectedSched!.id) ? "12 7" : undefined,
+                dashArray: visuallyCancelled.has(selectedSched!.id) ? "12 7" : undefined,
               }}
             />
           </>
@@ -1113,15 +1312,34 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
           </Marker>
         ))}
 
-        {/* Simulated Nimbus aircraft */}
+        {/* Simulated Nimbus aircraft — the markers along the route lines.
+            Cancelled aircraft are drawn muted (grey, ✕ badge, low z-index)
+            but stay clickable so users can inspect why a leg was cut.
+            Swapped aircraft are drawn in the green reroute palette so the
+            "new assignment" reads at a glance. */}
         {simPlanes.map(({ id, f, lat, lon, brg }) => {
           const state = flightStates[id]
           const sel = selectedFlight === id
-          const cascOrder = applied.cancelled.has(id) ? 0 : state?.cascade_order ?? -1
+          // Use the visual union: any flight with status="cancelled" reads
+          // grey + ✕ on the marker too, not just plan-cancelled ones.
+          const isCancelled = visuallyCancelled.has(id)
+          const isSwap      = applied.swap.has(id)
+          const cascOrder = state?.cascade_order ?? -1
           return (
-            <Marker key={`sim-${id}`} position={[lat, lon]}
-              icon={simIcon(cascColor(id, state), brg, sel, cascOrder)}
-              zIndexOffset={sel ? 2000 : cascOrder === 0 ? 800 : cascOrder >= 1 ? 500 : 200}
+            <Marker
+              key={`sim-${applyEpoch}-${id}`}
+              position={[lat, lon]}
+              icon={simIcon(cascColor(id, state), brg, sel, cascOrder, isCancelled, isSwap)}
+              // Cancelled markers sink to the bottom of the z-stack so live
+              // operating planes always render on top.
+              zIndexOffset={
+                isCancelled ? 50 :
+                sel         ? 2000 :
+                isSwap      ? 900 :
+                cascOrder === 0 ? 800 :
+                cascOrder >= 1  ? 500 :
+                                  200
+              }
               eventHandlers={{ click: () => onFlightSelect(sel ? null : id) }}
             >
               <Tooltip direction="top" offset={[0, -10]} opacity={1}>
@@ -1129,9 +1347,17 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
                   <div className="font-mono font-bold text-xs">{id} <span className="text-[9px] text-orange-500 font-bold">[SIM]</span></div>
                   <div className="text-[10px] text-muted-foreground">{f.aircraft_id} · {f.origin} → {f.destination}</div>
                   {state?.delay_minutes > 0 && <div className="text-[10px] text-orange-600 font-semibold">+{state.delay_minutes} min delay</div>}
-                  {state?.cascade_order === 0 && <div className="text-[10px] text-red-600 font-semibold">⚡ Direct impact</div>}
-                  {applied.cancelled.has(id) && <div className="text-[10px] text-red-600 font-black">✕ Cancelled by plan</div>}
-                  {applied.swap.has(id) && <div className="text-[10px] font-bold" style={{ color: "#6366F1" }}>↕ Aircraft swapped</div>}
+                  {state?.cascade_order === 0 && !isCancelled && <div className="text-[10px] text-red-600 font-semibold">⚡ Direct impact</div>}
+                  {isCancelled && (
+                    <div className="text-[10px] font-bold" style={{ color: MAP_COLORS.planCancelledInk }}>
+                      ✕ Cancelled by plan — click to inspect
+                    </div>
+                  )}
+                  {isSwap && (
+                    <div className="text-[10px] font-bold" style={{ color: MAP_COLORS.planSwap }}>
+                      ↕ Re-routed · new aircraft assigned
+                    </div>
+                  )}
                 </div>
               </Tooltip>
             </Marker>
@@ -1280,36 +1506,42 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
             <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-orange-500" /><span className="text-muted-foreground">GDP</span></div>
             <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-violet-600" /><span className="text-muted-foreground">WX</span></div>
           </div>
-          {/* Disruption/plan legend — shown when events active */}
+          {/* Disruption/plan legend — keyed off the canonical MAP_COLORS so
+              the legend swatches always match the actual lines/markers on
+              the canvas. Previously the swatches were inlined hex values
+              (orange-400, #6366F1) that had drifted from the live palette. */}
           {(hasActiveEvents || appliedPlanId) && (
             <>
               <div className="border-t border-border/40 pt-1.5 mt-0.5">
                 <div className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Nimbus fleet status</div>
                 <div className="flex items-center gap-2.5 flex-wrap">
                   <div className="flex items-center gap-1.5">
-                    <span className="w-3 h-3 rounded-full shrink-0" style={{ background: "#22C55E" }} />
+                    <span className="w-3 h-3 rounded-full shrink-0" style={{ background: MAP_COLORS.unaffected }} />
                     <span className="text-muted-foreground">On-time</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <span className="w-4 h-4 rounded-full shrink-0 ring-2 ring-orange-400/50" style={{ background: "#F97316" }} />
-                    <span className="font-semibold text-orange-600">Direct hit</span>
+                    <span className="w-4 h-4 rounded-full shrink-0" style={{ background: MAP_COLORS.cascadeDirect, boxShadow: `0 0 0 2px ${MAP_COLORS.cascadeDirect}40` }} />
+                    <span className="font-semibold" style={{ color: MAP_COLORS.cascadeDirect }}>Direct hit</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <span className="w-3.5 h-3.5 rounded-full shrink-0" style={{ background: "#FBBF24" }} />
+                    <span className="w-3.5 h-3.5 rounded-full shrink-0" style={{ background: MAP_COLORS.cascadeOrder1 }} />
                     <span className="text-muted-foreground">Cascade</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-3.5 h-3.5 rounded-full shrink-0" style={{ background: "#EF4444" }} />
-                    <span className="text-muted-foreground">Cancelled</span>
                   </div>
                   {appliedPlanId && (
                     <>
                       <div className="flex items-center gap-1.5">
-                        <span className="w-3.5 h-3.5 rounded-full shrink-0" style={{ background: "#6366F1" }} />
-                        <span className="text-muted-foreground">Swapped</span>
+                        <span
+                          className="w-3.5 h-3.5 rounded-full shrink-0 flex items-center justify-center text-[8px] text-white font-bold"
+                          style={{ background: MAP_COLORS.planCancelled, border: "1px dashed rgba(255,255,255,0.9)" }}
+                        >✕</span>
+                        <span className="text-muted-foreground">Cancelled</span>
                       </div>
                       <div className="flex items-center gap-1.5">
-                        <span className="w-3.5 h-3.5 rounded-full shrink-0" style={{ background: "#F59E0B" }} />
+                        <span className="w-3.5 h-3.5 rounded-full shrink-0" style={{ background: MAP_COLORS.planSwap, boxShadow: `0 0 0 2px ${MAP_COLORS.planSwap}40` }} />
+                        <span className="text-muted-foreground">Re-routed</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-3.5 h-3.5 rounded-full shrink-0" style={{ background: MAP_COLORS.planDelayed }} />
                         <span className="text-muted-foreground">Delayed</span>
                       </div>
                     </>

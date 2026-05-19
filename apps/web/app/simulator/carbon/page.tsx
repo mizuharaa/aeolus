@@ -8,12 +8,10 @@ import { c, ff, r, sp, type as typeStyle } from "@/lib/design-tokens"
 import { ContentCard, Eyebrow, Type, ButtonSecondary } from "@/components/ds/primitives"
 import { SimulatorPageShell, NoActiveDisruptionState } from "@/components/simulator/page-shell"
 
-const PLAN_META: Record<string, { label: string; accent: string; surface: string; ink: string }> = {
-  A: { label: "Min. Cost",         accent: c.signatureMustard, surface: c.signatureCream,    ink: "#5C3D0F" },
-  B: { label: "Min. Pax Impact",   accent: c.signatureMint,    surface: c.statusRecovered.bg, ink: c.signatureForest },
-  C: { label: "Protect Tomorrow",  accent: c.signaturePeach,   surface: c.statusDelayed.bg,  ink: c.statusDelayed.ink },
-  D: { label: "Green Recovery",    accent: c.signatureForest,  surface: c.statusOnTime.bg,    ink: c.signatureForest },
-}
+// Plan presentation now reads from the canonical shared module so the
+// carbon page, plans page, recovery-plans rail, and plan-compare all stay
+// in lockstep on label/accent/surface decisions.
+import { planMeta } from "@/lib/plan-meta"
 
 function fmtTonnes(co2_kg: number) {
   const t = co2_kg / 1000
@@ -78,7 +76,7 @@ export default function CarbonPage() {
         <ContentCard padding={sp.xl} style={{ textAlign: "center" }}>
           <Eyebrow color={c.signatureForest}>Solving</Eyebrow>
           <Type as="p" role="bodyMd" color={c.body} style={{ marginTop: 8 }}>
-            Computing CO\u2082 ledger for the active disruption&hellip;
+            Computing CO{"\u2082"} ledger for the active disruption&hellip;
           </Type>
         </ContentCard>
       ) : (
@@ -149,7 +147,7 @@ export default function CarbonPage() {
           <ContentCard padding={sp.lg}>
             <Eyebrow color={c.signatureForest}>Methodology</Eyebrow>
             <Type as="p" role="bodyMd" color={c.body} style={{ marginTop: 8, fontSize: 13, lineHeight: 1.6 }}>
-              Carbon emissions are computed as Jet-A burn × 3.16 kg CO\u2082/kg (ICAO ECCM v13).
+              Carbon emissions are computed as Jet-A burn × 3.16 kg CO{"\u2082"}/kg (ICAO ECCM v13).
               Cancellations save the full block-hour burn for the segment (~2.0h average stage).
               Delays burn 65% airborne / 35% APU at gate. Aircraft ferries are pure overhead at
               ~1.6h block. Net positive emissions are billed at the current EU-ETS spot price
@@ -205,20 +203,29 @@ function CarbonPlanCard({
   isGreenest: boolean
   maxAbs: number
 }) {
-  const meta = PLAN_META[plan.plan_id] || PLAN_META.A
+  const meta = planMeta(plan.plan_id)
   const co2 = plan.total_co2_kg ?? 0
-  const fillPct = Math.min(100, Math.round((Math.abs(co2) / maxAbs) * 100))
+  const fillPct = Math.min(100, Math.round((Math.abs(co2) / Math.max(1, maxAbs)) * 100))
   const isNegative = co2 < 0
   const burnedKg = plan.carbon_breakdown?.burned_co2_kg ?? 0
-  const savedKg = plan.carbon_breakdown?.saved_co2_kg ?? 0
+  const savedKg  = plan.carbon_breakdown?.saved_co2_kg ?? 0
+  // True "no carbon data" state — plan was scored before Slice 4 wired in,
+  // or this plan literally had no cancellations/delays/ferries. We render
+  // a "within budget" badge instead of a blank card.
+  const noCarbonData = !plan.carbon_breakdown
+  const isZeroDelta  = !noCarbonData && burnedKg === 0 && savedKg === 0 && co2 === 0
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
       <ContentCard
         padding={0}
         style={{
-          background: isApplied || isGreenest ? meta.surface : c.canvas,
+          // Chromatic restraint: only the GREENEST plan gets the signature
+          // surface as voltage. Applied (but not greenest) plans get a
+          // muted accent ring; the rest stay on white canvas.
+          background: isGreenest ? meta.surface : c.canvas,
           border: `1px solid ${isGreenest ? c.signatureForest : isApplied ? meta.accent : c.hairline}`,
+          boxShadow: isApplied && !isGreenest ? `0 0 0 1px ${meta.accent}` : undefined,
           overflow: "hidden",
         }}
       >
@@ -251,60 +258,85 @@ function CarbonPlanCard({
               )}
             </div>
 
-            {/* Net CO2 — large numeric */}
+            {/* Net CO2 — large numeric. If the ledger is empty or a true
+                zero-delta plan, fall back to "within budget" instead of an
+                ambiguous 0.00 number that reads as missing data. */}
             <div style={{ marginTop: sp.md, display: "flex", alignItems: "baseline", gap: 8 }}>
-              {isNegative ? (
-                <TrendingDown style={{ width: 20, height: 20, color: c.statusOnTime.ink }} />
+              {noCarbonData ? (
+                <span style={{ fontFamily: ff.body, fontSize: 13, color: c.muted }}>
+                  Carbon ledger not available for this plan.
+                </span>
+              ) : isZeroDelta ? (
+                <>
+                  <Leaf style={{ width: 18, height: 18, color: c.statusOnTime.ink }} />
+                  <span style={{ fontFamily: ff.display, fontSize: 22, fontWeight: 400, color: c.statusOnTime.ink }}>
+                    Within budget
+                  </span>
+                  <span style={{ fontSize: 11, color: c.muted, fontFamily: ff.mono }}>
+                    no net delta vs baseline
+                  </span>
+                </>
               ) : (
-                <TrendingUp style={{ width: 20, height: 20, color: c.statusCancelled.ink }} />
+                <>
+                  {isNegative ? (
+                    <TrendingDown style={{ width: 20, height: 20, color: c.statusOnTime.ink }} />
+                  ) : (
+                    <TrendingUp style={{ width: 20, height: 20, color: c.statusCancelled.ink }} />
+                  )}
+                  <span style={{ fontFamily: ff.display, fontSize: 32, fontWeight: 400, color: isNegative ? c.statusOnTime.ink : c.statusCancelled.ink, fontVariantNumeric: "tabular-nums" }}>
+                    {fmtTonnes(co2)}
+                  </span>
+                  <span style={{ fontSize: 12, color: c.muted }}>net</span>
+                </>
               )}
-              <span style={{ fontFamily: ff.display, fontSize: 32, fontWeight: 400, color: isNegative ? c.statusOnTime.ink : c.statusCancelled.ink, fontVariantNumeric: "tabular-nums" }}>
-                {fmtTonnes(co2)}
-              </span>
-              <span style={{ fontSize: 12, color: c.muted }}>net</span>
             </div>
 
-            {/* Burn vs saved bar */}
-            <div style={{ marginTop: sp.sm }}>
-              <div
-                style={{
-                  position: "relative",
-                  height: 10,
-                  borderRadius: r.pill,
-                  background: c.surfaceStrong,
-                  overflow: "hidden",
-                }}
-              >
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${fillPct}%` }}
-                  transition={{ duration: 0.5, ease: "easeOut" }}
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    width: `${fillPct}%`,
-                    background: isNegative ? c.signatureMint : c.signatureCoral,
-                    borderRadius: r.pill,
-                  }}
-                />
-              </div>
-            </div>
+            {/* Burn vs saved bar — only rendered when the ledger actually
+                has data. Hiding these for plans without carbon stats keeps
+                the card from showing four "0.00 t" cells side by side. */}
+            {!noCarbonData && !isZeroDelta && (
+              <>
+                <div style={{ marginTop: sp.sm }}>
+                  <div
+                    style={{
+                      position: "relative",
+                      height: 10,
+                      borderRadius: r.pill,
+                      background: c.surfaceStrong,
+                      overflow: "hidden",
+                    }}
+                  >
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${fillPct}%` }}
+                      transition={{ duration: 0.5, ease: "easeOut" }}
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        width: `${fillPct}%`,
+                        background: isNegative ? c.signatureMint : c.signatureCoral,
+                        borderRadius: r.pill,
+                      }}
+                    />
+                  </div>
+                </div>
 
-            {/* Burn / saved details */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: sp.xs, marginTop: sp.sm }}>
-              <div style={{ background: c.canvas, border: `1px solid ${c.hairline}`, borderRadius: r.sm, padding: "8px 10px" }}>
-                <div style={{ fontSize: 11, color: c.muted, marginBottom: 2 }}>Burned</div>
-                <div style={{ fontFamily: ff.mono, fontWeight: 600, fontSize: 13, color: c.statusCancelled.ink, fontVariantNumeric: "tabular-nums" }}>
-                  +{(burnedKg / 1000).toFixed(2)} t
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: sp.xs, marginTop: sp.sm }}>
+                  <div style={{ background: c.canvas, border: `1px solid ${c.hairline}`, borderRadius: r.sm, padding: "8px 10px" }}>
+                    <div style={{ fontSize: 11, color: c.muted, marginBottom: 2 }}>Burned</div>
+                    <div style={{ fontFamily: ff.mono, fontWeight: 600, fontSize: 13, color: c.statusCancelled.ink, fontVariantNumeric: "tabular-nums" }}>
+                      +{(burnedKg / 1000).toFixed(2)} t
+                    </div>
+                  </div>
+                  <div style={{ background: c.canvas, border: `1px solid ${c.hairline}`, borderRadius: r.sm, padding: "8px 10px" }}>
+                    <div style={{ fontSize: 11, color: c.muted, marginBottom: 2 }}>Saved</div>
+                    <div style={{ fontFamily: ff.mono, fontWeight: 600, fontSize: 13, color: c.statusOnTime.ink, fontVariantNumeric: "tabular-nums" }}>
+                      -{(savedKg / 1000).toFixed(2)} t
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div style={{ background: c.canvas, border: `1px solid ${c.hairline}`, borderRadius: r.sm, padding: "8px 10px" }}>
-                <div style={{ fontSize: 11, color: c.muted, marginBottom: 2 }}>Saved</div>
-                <div style={{ fontFamily: ff.mono, fontWeight: 600, fontSize: 13, color: c.statusOnTime.ink, fontVariantNumeric: "tabular-nums" }}>
-                  -{(savedKg / 1000).toFixed(2)} t
-                </div>
-              </div>
-            </div>
+              </>
+            )}
 
             {/* ETS cost + drilldown link */}
             <div

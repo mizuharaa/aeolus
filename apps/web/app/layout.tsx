@@ -16,6 +16,48 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <head>
+        {/*
+          Browser-extension noise filter — runs before ANY other JavaScript.
+          MetaMask injects `chrome-extension://nkbihfbeogaeaoehlefnkodbefgpgknn/scripts/inpage.js`
+          into every page and throws `Failed to connect to MetaMask` when its
+          service worker is asleep. We don't import any Web3 / wallet code
+          anywhere in Aeolus, so we silently swallow those errors before
+          Next's dev overlay can pop them up as if they were our bug.
+          MUST be inline + `<head>` so it registers before extension scripts.
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){
+              function isExt(s){
+                if(!s) return false;
+                var t = typeof s === 'string' ? s : (s && s.stack ? s.message + ' ' + s.stack : (s && s.message ? s.message : ''));
+                return t && (
+                  t.indexOf('chrome-extension://') !== -1 ||
+                  t.indexOf('moz-extension://') !== -1 ||
+                  t.indexOf('safari-extension://') !== -1 ||
+                  t.indexOf('Failed to connect to MetaMask') !== -1 ||
+                  t.indexOf('MetaMask') !== -1
+                );
+              }
+              window.addEventListener('error', function(e){
+                if (isExt(e.error) || isExt(e.message) || (e.filename && e.filename.indexOf('-extension://') !== -1)){
+                  e.preventDefault(); e.stopImmediatePropagation();
+                }
+              }, true);
+              window.addEventListener('unhandledrejection', function(e){
+                if (isExt(e.reason)){
+                  e.preventDefault(); e.stopImmediatePropagation();
+                }
+              }, true);
+              // Next.js dev overlay also pipes console.error → overlay; filter that too.
+              var origErr = console.error;
+              console.error = function(){
+                for (var i=0;i<arguments.length;i++){ if (isExt(arguments[i])) return; }
+                return origErr.apply(this, arguments);
+              };
+            })();`,
+          }}
+        />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         {/*

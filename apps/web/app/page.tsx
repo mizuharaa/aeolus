@@ -10,6 +10,7 @@ import {
   ButtonPrimary, ButtonSecondary, SignatureCard, CreamCallout,
   ContentCard, Container, Section, Type, Eyebrow, Hairline, Stat,
 } from "@/components/ds/primitives"
+import { SystemCapabilities } from "@/components/landing/capabilities"
 
 // ─── Hero map — repainted on the editorial palette ───────────────────────
 //
@@ -236,9 +237,9 @@ const stats = [
   { value: "<10ms",  label: "Recovery plan solve time",    color: c.statusOnTime.ink },
 ]
 
-// Features re-grouped into the five system pillars. Each gets one of the
-// five Airtable signature tones — same palette as event-panel categories.
-const features = [
+// (System Capabilities now lives in components/landing/capabilities.tsx —
+// bespoke product fragments instead of the old uniform Lucide grid.)
+const _features_legacy_removed = [
   {
     Icon: CloudLightning,
     title: "21 disruption event types",
@@ -453,76 +454,14 @@ export default function LandingPage() {
 
       <Hairline />
 
-      {/* ── Features — six pillars on canvas content cards ── */}
+      {/* ── System Capabilities — bespoke product fragments, no Lucide grid ──
+          See components/landing/capabilities.tsx. Each card carries an actual
+          SVG fragment of the system (rotation graph, optimizer objective,
+          duty timeline, cost stack, carbon ledger, MC heatmap) — per the
+          Airtable demo-grid "uneven heights + photography-as-depth" rule. */}
       <Section background={c.canvas} style={{ paddingTop: 96, paddingBottom: 96 }}>
         <Container>
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-60px" }}
-            transition={{ duration: 0.55 }}
-            style={{ textAlign: "center", marginBottom: 64 }}
-          >
-            <Eyebrow color={c.muted}>System Capabilities</Eyebrow>
-            <h2
-              style={{
-                ...typeStyle("displayMd", c.ink),
-                marginTop: 12,
-                marginBottom: 16,
-              }}
-            >
-              Built like a real OCC.
-            </h2>
-            <p style={{ ...typeStyle("titleMd", c.muted), maxWidth: 620, margin: "0 auto", fontSize: 16 }}>
-              Every component reflects how carriers approach disruption recovery — transparent, inspectable logic from first principles. No black-box AI advice.
-            </p>
-          </motion.div>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-              gap: sp.md,
-            }}
-          >
-            {features.map((f, i) => (
-              <motion.div
-                key={f.title}
-                initial={{ opacity: 0, y: 24 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-60px" }}
-                transition={{ duration: 0.55, delay: (i % 3) * 0.06 }}
-              >
-                <ContentCard
-                  padding={sp.lg}
-                  style={{
-                    height: "100%",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: sp.sm,
-                    borderLeft: `4px solid ${f.tone.accent}`,
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 44,
-                      height: 44,
-                      borderRadius: r.md,
-                      background: f.tone.surface,
-                      color: f.tone.ink,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <f.Icon style={{ width: 20, height: 20 }} />
-                  </div>
-                  <h3 style={{ ...typeStyle("titleSm", c.ink), marginTop: 4 }}>{f.title}</h3>
-                  <p style={{ ...typeStyle("bodyMd", c.muted), lineHeight: 1.55 }}>{f.desc}</p>
-                </ContentCard>
-              </motion.div>
-            ))}
-          </div>
+          <SystemCapabilities />
         </Container>
       </Section>
 
@@ -621,8 +560,8 @@ export default function LandingPage() {
                   lineHeight: 1.55,
                 }}
               >
-                Three new capabilities that legacy recovery systems don't have: carbon-aware
-                Plan&nbsp;D under EU ETS pricing, a glass-box "Why this plan?" explainer that
+                Three new capabilities that legacy recovery systems don&apos;t have: carbon-aware
+                Plan&nbsp;D under EU ETS pricing, a glass-box &ldquo;Why this plan?&rdquo; explainer that
                 re-runs the optimizer with one decision flipped, and a Monte Carlo network
                 vulnerability stress test that surfaces your most fragile rotations before
                 weather finds them.

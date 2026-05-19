@@ -38,6 +38,12 @@ class SimulationState:
     # rebuild the cascade panel without re-triggering the event. Previously
     # only sent inline on broadcast and lost on reconnect.
     cascade_summary: dict = field(default_factory=dict)
+    # Which plan letter (A/B/C/D) the operator has committed to, plus a
+    # snapshot of `flight_states` taken right before apply so we can roll
+    # back cleanly on unapply. Without this the dashboard's "apply" button
+    # was a no-op outside the right rail — secondary tabs never refreshed.
+    applied_plan_id: str | None = None
+    flight_states_pre_apply: dict[str, dict] = field(default_factory=dict)
     ws_subscribers: set = field(default_factory=set)
     is_running: bool = False
     event_history: list[dict] = field(default_factory=list)
@@ -283,8 +289,145 @@ class SimulationEngine:
         self.state.active_events.clear()
         self.state.recovery_plans.clear()
         self.state.cascade_summary = {}
+        self.state.applied_plan_id = None
+        self.state.flight_states_pre_apply = {}
         # Keep event_history for audit log
         logger.info("Simulation state reset")
+
+    # ── Apply / unapply a recovery plan ───────────────────────────────────────
+    #
+    # The right-rail Apply button only flipped a client-side flag before this
+    # was wired in. Now applying a plan mutates the canonical flight_states
+    # and broadcasts an `apply_plan` update so every connected tab (cascade,
+    # carbon, crew, passengers, plans) sees the committed action set without
+    # having to refresh.
+    #
+    # We snapshot the prior flight_states into `flight_states_pre_apply` so
+    # the operator can unapply and revert exactly — no re-running the
+    # cascade predictor required.
+
+    async def apply_plan(self, plan_id: str) -> dict:
+        """Commit the chosen plan's cancellations + delays + swaps onto the
+        live simulation state and broadcast."""
+        plan = next(
+            (p for p in self.state.recovery_plans if p.get("plan_id") == plan_id),
+            None,
+        )
+        if plan is None:
+            raise ValueError(f"Plan {plan_id} not found — solve first.")
+
+        # If a different plan is already applied, restore from snapshot first
+        # so we don't compound two plans' decisions on top of each other.
+        if self.state.applied_plan_id and self.state.flight_states_pre_apply:
+            for fid, snap in self.state.flight_states_pre_apply.items():
+                self.state.flight_states[fid] = dict(snap)
+
+        # Snapshot whatever we are about to overwrite, but only on the FIRST
+        # apply of this disruption cycle. Subsequent applies still revert to
+        # the *original* cascade state, not the previously-applied state.
+        if not self.state.applied_plan_id:
+            self.state.flight_states_pre_apply = {
+                fid: dict(s) for fid, s in self.state.flight_states.items()
+            }
+
+        # 1. Cancelled flights → status: cancelled, delay reset to 0.
+        for fid in plan.get("cancelled_flights", []) or []:
+            if fid in self.state.flight_states:
+                self.state.flight_states[fid].update(
+                    {
+                        "status":           "cancelled",
+                        "delay_minutes":    0,
+                        "applied_action":   "cancelled",
+                        "applied_plan_id":  plan_id,
+                    }
+                )
+
+        # 2. Delayed flights → set the new delay_minutes.
+        for d in plan.get("delayed_flights", []) or []:
+            fid = d.get("flight_id")
+            if fid and fid in self.state.flight_states:
+                self.state.flight_states[fid].update(
+                    {
+                        "status":          "delayed",
+                        "delay_minutes":   int(d.get("delay_minutes", 0) or 0),
+                        "new_departure":   d.get("new_departure"),
+                        "applied_action":  "delayed",
+                        "applied_plan_id": plan_id,
+                    }
+                )
+
+        # 3. Aircraft swaps → update the tail on the affected flight.
+        for s in plan.get("aircraft_swaps", []) or []:
+            fid = s.get("flight_id")
+            if fid and fid in self.state.flight_states:
+                self.state.flight_states[fid].update(
+                    {
+                        "tail":            s.get("new_aircraft", "") or self.state.flight_states[fid].get("tail"),
+                        "applied_action":  "swapped",
+                        "applied_plan_id": plan_id,
+                    }
+                )
+
+        self.state.applied_plan_id = plan_id
+        # Refresh the cascade summary so secondary pages reading
+        # cascadeSummary.total_affected get the post-apply view.
+        self.state.cascade_summary = self._cascade_summary_from_states()
+
+        update = {
+            "type":            "plan_applied",
+            "plan_id":         plan_id,
+            "applied_plan_id": plan_id,
+            "flight_states":   self.state.flight_states,
+            "cascade_summary": self.state.cascade_summary,
+            "recovery_plans":  self.state.recovery_plans,
+            "timestamp":       datetime.now(timezone.utc).isoformat(),
+        }
+        await self._broadcast(update)
+        logger.info("Plan %s applied — %d cancelled, %d delayed, %d swapped",
+                    plan_id,
+                    len(plan.get("cancelled_flights") or []),
+                    len(plan.get("delayed_flights") or []),
+                    len(plan.get("aircraft_swaps") or []))
+        return update
+
+    async def unapply_plan(self) -> dict:
+        """Restore flight_states from the pre-apply snapshot and broadcast."""
+        if not self.state.flight_states_pre_apply:
+            # Nothing to revert — just clear the marker and announce.
+            self.state.applied_plan_id = None
+        else:
+            for fid, snap in self.state.flight_states_pre_apply.items():
+                self.state.flight_states[fid] = dict(snap)
+            self.state.flight_states_pre_apply = {}
+            self.state.applied_plan_id = None
+            self.state.cascade_summary = self._cascade_summary_from_states()
+
+        update = {
+            "type":            "plan_unapplied",
+            "applied_plan_id": None,
+            "flight_states":   self.state.flight_states,
+            "cascade_summary": self.state.cascade_summary,
+            "recovery_plans":  self.state.recovery_plans,
+            "timestamp":       datetime.now(timezone.utc).isoformat(),
+        }
+        await self._broadcast(update)
+        logger.info("Plan unapplied — reverted to pre-apply snapshot")
+        return update
+
+    def _cascade_summary_from_states(self) -> dict:
+        """Recompute the cascade summary from current flight_states. Used
+        after apply/unapply so the dashboard's cascade strip stays in sync
+        with the committed plan."""
+        orders = [s.get("cascade_order", -1) for s in self.state.flight_states.values()]
+        delays = [s.get("delay_minutes", 0) for s in self.state.flight_states.values()]
+        return {
+            "directly_affected":   orders.count(0),
+            "cascade_1":           orders.count(1),
+            "cascade_2":           orders.count(2),
+            "total_affected":      sum(1 for o in orders if o >= 0),
+            "unaffected":          orders.count(-1),
+            "total_delay_minutes": sum(delays),
+        }
 
     def add_subscriber(self, ws: "WebSocket") -> None:
         self.state.ws_subscribers.add(ws)

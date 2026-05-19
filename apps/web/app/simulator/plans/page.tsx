@@ -8,6 +8,7 @@ import {
 import { useSimulationStore, useHasActiveDisruption, type RecoveryPlan } from "@/stores/simulation"
 import { c, ff, r, sp, sh, type as typeStyle } from "@/lib/design-tokens"
 import { Eyebrow, ButtonSecondary, ButtonPrimary, ContentCard } from "@/components/ds/primitives"
+import { LiveCostDisplay } from "@/components/ds/live-cost"
 import { SimulatorPageShell, NoActiveDisruptionState } from "@/components/simulator/page-shell"
 
 // Plan signature colors — same palette used in recovery-plans.tsx so a card on
@@ -165,25 +166,30 @@ function PlanCard({
               </span>
             </div>
 
-            {/* Total cost — signature surface */}
+            {/* Total cost — chromatic restraint: canvas + 3px accent stripe,
+                not a full pastel surface. The applied-plan card body already
+                carries the signature surface; making the inline strip ALSO
+                tinted was making the dashboard read as "pastel mood board". */}
             <div
               style={{
                 marginTop: sp.md,
-                borderRadius: r.md,
+                borderRadius: r.sm,
                 padding: "12px 14px",
-                background: meta.surface,
-                color: meta.ink,
+                background: c.canvas,
+                color: c.ink,
+                border: `1px solid ${c.hairline}`,
+                borderLeft: `3px solid ${meta.accent}`,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
               }}
             >
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, opacity: 0.8 }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: c.muted }}>
                 <DollarSign style={{ width: 14, height: 14 }} /> Estimated impact
               </span>
-              <span style={{ fontFamily: ff.mono, fontWeight: 600, fontSize: 18, fontVariantNumeric: "tabular-nums" }}>
-                {fmt$(totalCost)}
-              </span>
+              {/* Live ticker — interpolates the dollar total + per-min burn
+                  rate while the user looks at the card. See lib/use-live-cost.ts. */}
+              <LiveCostDisplay plan={plan} size="md" />
             </div>
 
             {/* Metrics row */}

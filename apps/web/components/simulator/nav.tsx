@@ -27,6 +27,7 @@ interface SimulatorNavProps {
 
 const NAV_LINKS = [
   { href: "/simulator",              label: "Simulator" },
+  { href: "/simulator/playtest",     label: "Playtest" },
   { href: "/simulator/plans",        label: "Plans" },
   { href: "/simulator/cascade",      label: "Cascade" },
   { href: "/simulator/crew",         label: "Crew" },
@@ -71,7 +72,7 @@ export function SimulatorNav({ isConnected }: SimulatorNavProps) {
         height: 64,
         display: "flex",
         alignItems: "center",
-        justifyContent: "space-between",
+        gap: sp.md,
         paddingLeft: sp.lg,
         paddingRight: sp.lg,
         background: c.canvas,
@@ -79,112 +80,179 @@ export function SimulatorNav({ isConnected }: SimulatorNavProps) {
         flexShrink: 0,
         zIndex: 50,
         fontFamily: ff.body,
+        // Overall horizontal containment: prevent the bar itself from causing
+        // page-level overflow. The route menu is the one element allowed to
+        // scroll horizontally.
+        minWidth: 0,
       }}
     >
-      {/* ── Wordmark ── */}
-      <div style={{ display: "flex", alignItems: "center", gap: 32, minWidth: 0 }}>
-        <Link
-          href="/"
-          style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", flexShrink: 0 }}
+      {/* ── Wordmark (never compresses) ── */}
+      <Link
+        href="/"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          textDecoration: "none",
+          flexShrink: 0,
+        }}
+      >
+        <div
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: r.sm,
+            background: c.primary,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
         >
-          <div
-            style={{
-              width: 28,
-              height: 28,
-              borderRadius: r.sm,
-              background: c.primary,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Plane style={{ width: 14, height: 14, color: c.onPrimary }} />
-          </div>
-          <span
-            style={{
-              fontFamily: ff.display,
-              fontWeight: 500,
-              fontSize: 18,
-              lineHeight: 1,
-              color: c.ink,
-              letterSpacing: "-0.01em",
-            }}
-          >
-            Aeolus
-          </span>
-          <span
-            style={{
-              fontFamily: ff.body,
-              fontSize: 13,
-              fontWeight: 400,
-              color: c.muted,
-              borderLeft: `1px solid ${c.hairline}`,
-              paddingLeft: 10,
-              marginLeft: 2,
-            }}
-          >
-            Nimbus Air OCC
-          </span>
-        </Link>
-
-        {/* ── Center route menu ── */}
-        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          {NAV_LINKS.map((link) => {
-            const active = isActiveLink(link.href)
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                style={{
-                  fontFamily: ff.body,
-                  fontSize: 14,
-                  fontWeight: active ? 500 : 400,
-                  color: active ? c.ink : c.body,
-                  textDecoration: "none",
-                  padding: "8px 12px",
-                  borderRadius: r.sm,
-                  background: active ? c.surfaceSoft : "transparent",
-                  transition: "background 150ms ease, color 150ms ease",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {link.label}
-              </Link>
-            )
-          })}
+          <Plane style={{ width: 14, height: 14, color: c.onPrimary }} />
         </div>
+        <span
+          style={{
+            fontFamily: ff.display,
+            fontWeight: 500,
+            fontSize: 18,
+            lineHeight: 1,
+            color: c.ink,
+            letterSpacing: "-0.01em",
+          }}
+        >
+          Aeolus
+        </span>
+        {/* The "Nimbus Air OCC" subtitle hides below 1100px so it doesn't
+            collide with the route menu on standard laptop widths. */}
+        <span
+          className="ae-nav-subtitle"
+          style={{
+            fontFamily: ff.body,
+            fontSize: 13,
+            fontWeight: 400,
+            color: c.muted,
+            borderLeft: `1px solid ${c.hairline}`,
+            paddingLeft: 10,
+            marginLeft: 2,
+            whiteSpace: "nowrap",
+          }}
+        >
+          Nimbus Air OCC
+        </span>
+      </Link>
+
+      {/* ── Center route menu — own its overflow lane ──
+          The wordmark + right cluster are pinned (flexShrink: 0). The menu
+          itself is `flex: 1, overflow-x: auto` so when the 8 route labels
+          are wider than the available canvas, the menu scrolls horizontally
+          INSIDE the bar rather than pushing the right cluster off-screen. */}
+      <div
+        className="ae-nav-routes"
+        style={{
+          flex: 1,
+          minWidth: 0,
+          display: "flex",
+          alignItems: "center",
+          gap: 4,
+          overflowX: "auto",
+          overflowY: "hidden",
+          // Hide the scrollbar on Firefox / WebKit; the underlying scroll
+          // gesture still works (trackpad swipe, shift+wheel).
+          scrollbarWidth: "none",
+          // ms-overflow-style:none for legacy Edge.
+          msOverflowStyle: "none",
+        }}
+      >
+        {NAV_LINKS.map((link) => {
+          const active = isActiveLink(link.href)
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              style={{
+                fontFamily: ff.body,
+                fontSize: 14,
+                fontWeight: active ? 500 : 400,
+                color: active ? c.ink : c.body,
+                textDecoration: "none",
+                padding: "8px 12px",
+                borderRadius: r.sm,
+                background: active ? c.surfaceSoft : "transparent",
+                transition: "background 150ms ease, color 150ms ease",
+                whiteSpace: "nowrap",
+                flexShrink: 0,
+              }}
+            >
+              {link.label}
+            </Link>
+          )
+        })}
       </div>
 
-      {/* ── Right cluster ── */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        {/* Compact status pills — only render counts that exist */}
+      {/* ── Right cluster (pinned, never compresses) ── */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
+        {/* Status pills — hidden below 1400px so they don't crowd the
+            route menu's scroll lane on standard laptops. */}
         {stats.total > 0 && (
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <div className="ae-nav-stats" style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <StatusBadge kind="on-time"   count={stats.onTime}    compact />
             {stats.delayed   > 0 && <StatusBadge kind="delayed"   count={stats.delayed}   compact />}
             {stats.cancelled > 0 && <StatusBadge kind="cancelled" count={stats.cancelled} compact />}
           </div>
         )}
 
-        <div style={{ width: 1, height: 20, background: c.hairline }} />
+        <div className="ae-nav-stats" style={{ width: 1, height: 20, background: c.hairline }} />
 
         <ConnectionPill connected={isConnected} />
 
+        {/* Reset collapses to icon-only on narrow widths. */}
         <ButtonSecondary
           size="sm"
           onClick={handleReset}
+          aria-label="Reset simulation"
           leadingIcon={<RotateCcw style={{ width: 13, height: 13 }} />}
         >
-          Reset
+          <span className="ae-nav-reset-label">Reset</span>
         </ButtonSecondary>
 
-        {/* Primary CTA — one per viewport. On the simulator surface this is
-            the "Run stress test" call-to-action that drives users to the
-            new vulnerability dashboard. */}
+        {/* Primary CTA — one per viewport. */}
         <Link href="/simulator/stress-test" style={{ textDecoration: "none" }}>
-          <ButtonPrimary size="sm">Run stress test</ButtonPrimary>
+          <ButtonPrimary size="sm">
+            <span className="ae-nav-cta-label">Run stress test</span>
+            <span className="ae-nav-cta-short">Stress</span>
+          </ButtonPrimary>
         </Link>
       </div>
+
+      {/* Scoped responsive rules — applied without polluting Tailwind config.
+          The styled-jsx tag is parsed once at module load. */}
+      <style jsx>{`
+        /* Hide the scrollbar inside the route lane on WebKit. */
+        .ae-nav-routes::-webkit-scrollbar { display: none; }
+
+        /* Subtitle collapses below 1100px to give the route menu room. */
+        @media (max-width: 1100px) {
+          .ae-nav-subtitle { display: none; }
+        }
+
+        /* Status pills + divider hide below 1400px so the right cluster
+           doesn't crowd the route menu at standard 1280/1366 widths. */
+        @media (max-width: 1400px) {
+          .ae-nav-stats { display: none !important; }
+        }
+
+        /* Reset button collapses to icon-only below 900px (mobile/iPad). */
+        @media (max-width: 900px) {
+          .ae-nav-reset-label { display: none; }
+        }
+
+        /* Primary CTA shrinks to "Stress" below 1200px. */
+        .ae-nav-cta-short { display: none; }
+        @media (max-width: 1200px) {
+          .ae-nav-cta-label { display: none; }
+          .ae-nav-cta-short { display: inline; }
+        }
+      `}</style>
     </nav>
   )
 }

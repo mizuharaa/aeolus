@@ -11,6 +11,14 @@ export interface FlightState {
   origin?: string
   destination?: string
   new_departure?: string
+  // Stamped by engine.apply_plan with the plan letter that mutated this
+  // flight (e.g. "A" / "B" / "C" / "D"). Used by the map to tell apart
+  // cancellations from THE CURRENTLY-APPLIED PLAN vs lingering mutations
+  // from a previously-applied plan that the backend will revert on the
+  // next broadcast. Without this, switching plans showed a transient
+  // "all of A's + B's grey lines" state for ~100ms.
+  applied_plan_id?: string | null
+  applied_action?:  "cancelled" | "delayed" | "swapped" | null
 }
 
 export interface CascadeSummary {
@@ -186,12 +194,13 @@ interface SimulationStore {
 //   • `appliedPlanId` only resets when a brand-new `event` arrives.
 // ────────────────────────────────────────────────────────────────────
 
-type UpdateKind = "snapshot" | "event" | "single-flight" | "unknown"
+type UpdateKind = "snapshot" | "event" | "applied" | "single-flight" | "unknown"
 
 function classify(update: any): UpdateKind {
   const t = update?.type
   if (t === "connected" || t === "state_snapshot") return "snapshot"
   if (t === "simulation_update" || update?.event)  return "event"
+  if (t === "plan_applied" || t === "plan_unapplied") return "applied"
   if (t === "flight_state")                        return "single-flight"
   // Some legacy paths broadcast without a `type`. If they carry plans or
   // an `event` payload, treat as event; otherwise let the merge keep state.
@@ -273,15 +282,32 @@ export const useSimulationStore = create<SimulationStore>((set) => ({
         ? (update.schedule || update.flights) as ScheduledFlight[]
         : state.schedule
 
+      // ── appliedPlanId merge ─────────────────────────────────────────
+      //   • brand-new event arrives  → reset to null (operator should pick
+      //     fresh, prior plan is no longer relevant);
+      //   • `plan_applied` / `plan_unapplied` message → take the server's
+      //     authoritative `applied_plan_id` directly (the apply endpoint
+      //     mutated engine state, we mirror it);
+      //   • `connected` / `state_snapshot` → adopt the server value if it
+      //     differs from null AND we have no local guess. Snapshot guard:
+      //     don't let a stale snapshot wipe a recently-applied plan.
+      //   • otherwise keep the existing client value.
+      let nextApplied: string | null = state.appliedPlanId
+      if (kind === "event" && update?.event) {
+        nextApplied = null
+      } else if (kind === "applied") {
+        nextApplied = (update?.applied_plan_id ?? update?.plan_id ?? null) as string | null
+      } else if (kind === "snapshot" && update?.applied_plan_id != null) {
+        nextApplied = String(update.applied_plan_id)
+      }
+
       return {
         flightStates:   pickRecord(update?.flight_states as Record<string, FlightState> | undefined, state.flightStates, kind),
         activeEvents:   nextActive,
         recoveryPlans:  pickArray<RecoveryPlan>(update?.recovery_plans, state.recoveryPlans, kind),
         cascadeSummary: pickObj<CascadeSummary>(update?.cascade_summary, state.cascadeSummary, kind),
         schedule:       nextSchedule,
-        // Only reset the operator's applied plan when a genuinely NEW event
-        // arrived — not on every snapshot or ping.
-        appliedPlanId:  kind === "event" && update?.event ? null : state.appliedPlanId,
+        appliedPlanId:  nextApplied,
         lastEventAt:    kind === "event" && update?.event ? Date.now() : state.lastEventAt,
       }
     }),
@@ -302,7 +328,33 @@ export const useSimulationStore = create<SimulationStore>((set) => ({
 
   setLoading: (isLoading) => set({ isLoading }),
 
-  applyPlan: (planId) => set({ appliedPlanId: planId }),
+  // Apply (or unapply) a recovery plan. Optimistically flips the local
+  // appliedPlanId immediately so the button feels responsive, then POSTs
+  // to /recovery/apply. The backend mutates engine.state.flight_states
+  // and broadcasts a `plan_applied` message that every connected tab
+  // (cascade / carbon / crew / passengers / plans) picks up via setUpdate,
+  // so secondary surfaces finally "catch up" when the operator commits.
+  applyPlan: (planId) => {
+    set({ appliedPlanId: planId })
+    // Fire-and-forget. If the backend rejects (e.g. unknown plan_id), we
+    // still keep the optimistic state — the next WS broadcast or snapshot
+    // will correct it. We deliberately don't await this so the UI stays
+    // snappy even if the API roundtrip takes a moment.
+    try {
+      // Late import avoids a circular dep with the api client during HMR.
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { apiClient } = require("@/lib/api")
+      apiClient
+        .post("/recovery/apply", { plan_id: planId })
+        .catch((e: unknown) => {
+          if (typeof console !== "undefined") {
+            console.warn("[applyPlan] backend apply failed:", e)
+          }
+        })
+    } catch {
+      // No api client available in this environment — local-only apply.
+    }
+  },
 
   setLiveFlights: (flights, ts) =>
     set({ liveFlights: flights, liveFlightsTs: ts ?? Date.now() }),

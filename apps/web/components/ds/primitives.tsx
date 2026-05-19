@@ -317,10 +317,16 @@ export function StatusBadge({
   kind,
   count,
   compact = false,
+  /** When true, keeps the tinted background. Defaults to false — restraint
+   *  is the new default per REVAMP_PLAN_v2.md "chromatic restraint". Pass
+   *  `tinted` only where the badge is meant to be a brand voltage moment
+   *  (e.g. the applied-plan card hero). */
+  tinted = false,
 }: {
   kind: StatusKind
   count?: number
   compact?: boolean
+  tinted?: boolean
 }) {
   const s = STATUS_MAP[kind]
   return (
@@ -329,8 +335,9 @@ export function StatusBadge({
         display: "inline-flex",
         alignItems: "center",
         gap: 8,
-        background: s.bg,
+        background: tinted ? s.bg : c.canvas,
         color: s.ink,
+        border: tinted ? "none" : `1px solid ${c.hairline}`,
         fontFamily: ff.body,
         fontSize: compact ? 12 : 13,
         fontWeight: 500,

@@ -32,6 +32,11 @@ def _snapshot_payload(engine, msg_type: str) -> dict:
         "active_events":   engine.state.active_events,
         "recovery_plans":  engine.state.recovery_plans,
         "cascade_summary": engine.state.cascade_summary,
+        # Included so a fresh tab landing on /simulator/plans (or any
+        # secondary surface) knows which plan letter the operator already
+        # committed — the dashboard renders the Apply/Unapply button
+        # accordingly without a round-trip.
+        "applied_plan_id": engine.state.applied_plan_id,
     }
     if msg_type == "connected":
         # Schedule only needs to ship once on initial connect — it's static

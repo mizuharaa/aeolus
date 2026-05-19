@@ -443,3 +443,55 @@
   background-size: 200% 100%;
   animation: shimmer 2s linear infinite;
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   Leaflet route animations — applied-plan visual semantics
+
+   Routes on the map use these classes (set via `pathOptions.className`
+   in flight-map.tsx). The React key on each Polyline is folded with
+   `applyEpoch`, so applying a plan remounts the layer and re-runs the
+   `ae-route-fade-in` keyframe — the operator perceives the apply as
+   an actual visual event, not an in-place color swap.
+
+   `.ae-route-flow` is the GREEN swap/reroute treatment: a moving dash
+   pattern that reads as "the system is actively rerouting this leg".
+   `.ae-route-cancelled` keeps the line clickable (Leaflet's default
+   cursor: pointer) but visually mutes it — a faint slow pulse signals
+   "you can still inspect this; it's just no longer operating".
+   ══════════════════════════════════════════════════════════════════ */
+
+@keyframes ae-route-fade-in {
+  from { opacity: 0; }
+  to   { opacity: var(--ae-route-target-opacity, 1); }
+}
+
+@keyframes ae-route-dash-flow {
+  /* dash period = 8 + 6 = 14; offset that distance over the cycle so the
+     dashes appear to flow along the line at a constant cadence. */
+  from { stroke-dashoffset: 0;   }
+  to   { stroke-dashoffset: -28; }
+}
+
+@keyframes ae-route-cancel-pulse {
+  0%, 100% { opacity: 0.30; }
+  50%      { opacity: 0.45; }
+}
+
+/* All applied-plan routes fade in on remount. */
+.ae-route {
+  animation: ae-route-fade-in 350ms ease-out;
+}
+
+/* Swap/reroute = flowing green beam. The keyframe drives stroke-dashoffset
+   so the dash pattern visually walks along the line. We also slightly
+   thicken on hover so the operator can tell they're clickable. */
+.ae-route-flow {
+  animation: ae-route-fade-in 350ms ease-out, ae-route-dash-flow 1.6s linear infinite;
+}
+
+/* Cancelled = grey + faint slow pulse so the line still reads as
+   interactive but visually recedes behind the live routes. */
+.ae-route-cancelled {
+  animation: ae-route-fade-in 350ms ease-out, ae-route-cancel-pulse 3s ease-in-out infinite;
+  cursor: pointer;
+}

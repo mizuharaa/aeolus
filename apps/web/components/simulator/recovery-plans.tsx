@@ -12,6 +12,7 @@ import { useSimulationStore, useHasActiveDisruption } from "@/stores/simulation"
 import { airportLabel, aircraftLabel } from "@/lib/labels"
 import { c, ff, r, sp, sh, type } from "@/lib/design-tokens"
 import { ButtonSecondary, CreamCallout, Eyebrow, Type } from "@/components/ds/primitives"
+import { LiveCostDisplay } from "@/components/ds/live-cost"
 
 // ─── Plan signature colors ────────────────────────────────────────────────
 // Each plan gets one of the Airtable signature pastels. Same hue rules as
@@ -237,25 +238,31 @@ function PlanCard({
           {/* Key metrics grid */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: sp.xs, marginBottom: sp.sm }}>
             {/* Total cost — prominent signature surface */}
+            {/* Inline cost strip — chromatic restraint: plain canvas + 3px
+                accent stripe on the left, NOT a full pastel tint. Reads as
+                an OCC ledger row, not a marketing chip. */}
             <div
               style={{
                 gridColumn: "1 / -1",
-                borderRadius: r.md,
+                borderRadius: r.sm,
                 padding: "10px 12px",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                background: meta.surface,
-                color: meta.ink,
+                background: c.canvas,
+                color: c.ink,
+                border: `1px solid ${c.hairline}`,
+                borderLeft: `3px solid ${meta.accent}`,
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: meta.ink, opacity: 0.8 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: c.muted }}>
                 <DollarSign style={{ width: 14, height: 14 }} />
                 <span>Est. total cost</span>
               </div>
-              <span style={{ fontFamily: ff.mono, fontWeight: 600, fontSize: 16, color: meta.ink, fontVariantNumeric: "tabular-nums" }}>
-                {fmtTotal}
-              </span>
+              {/* Live ticker — see lib/use-live-cost.ts. Replaces the static
+                  fmtTotal with an integrator that interpolates forward from
+                  the solve anchor at ~$230/min per delayed flight. */}
+              <LiveCostDisplay plan={plan} size="md" />
             </div>
 
             {/* Pax delay */}

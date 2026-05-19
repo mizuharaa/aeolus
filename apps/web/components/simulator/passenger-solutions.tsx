@@ -861,7 +861,7 @@ export function PassengerSolutions() {
               Trigger an event to generate passenger solutions.
             </Type>
             <Type as="p" role="bodyMd" color={c.muted}>
-              We'll surface delay estimates with confidence intervals, nearby hotels with shuttle data,
+              We&apos;ll surface delay estimates with confidence intervals, nearby hotels with shuttle data,
               and Nimbus rebooking alternatives — plus the DOT 14 CFR §250 obligations on the table.
             </Type>
           </CreamCallout>

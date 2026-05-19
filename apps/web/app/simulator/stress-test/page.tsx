@@ -140,7 +140,7 @@ export default function StressTestPage() {
           <Eyebrow color={c.signatureForest}>Chaos Engineering</Eyebrow>
           <Type as="h2" role="titleLg" color={c.ink}>Run a stress test against your network.</Type>
           <Type as="p" role="bodyMd" color={c.body} style={{ maxWidth: 560, lineHeight: 1.55 }}>
-            We perturb each of Nimbus Air's twelve hubs with a randomised disruption (weather, ground stop, ATC staffing, thunderstorm) and measure how badly the cascade fragments the schedule. The result is a vulnerability heatmap: airports in the top-left are your highest-risk failure points.
+            We perturb each of Nimbus Air&apos;s twelve hubs with a randomised disruption (weather, ground stop, ATC staffing, thunderstorm) and measure how badly the cascade fragments the schedule. The result is a vulnerability heatmap: airports in the top-left are your highest-risk failure points.
           </Type>
         </ContentCard>
       )}

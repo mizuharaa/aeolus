@@ -26,6 +26,12 @@ class ExplainRequest(BaseModel):
     top_n: int = 6
 
 
+class ApplyRequest(BaseModel):
+    """Commit a plan onto the simulation state. Empty plan_id (or `null`) is
+    treated as an unapply / revert."""
+    plan_id: str | None = None
+
+
 def _load_network():
     try:
         with open(DATA_DIR / "flights.yaml") as f:
@@ -156,6 +162,29 @@ async def explain_recovery_plan(payload: ExplainRequest, request: Request):
         event_kind=event_kind,
         top_n=payload.top_n,
     )
+
+
+@router.post("/recovery/apply")
+async def apply_recovery_plan(payload: ApplyRequest, request: Request):
+    """
+    Commit a recovery plan onto the live simulation state.
+
+    Mutates `engine.state.flight_states` to materialise the plan's
+    cancellations / delays / swaps, recomputes the cascade summary, and
+    broadcasts a `plan_applied` update so every connected client (cascade,
+    carbon, crew, passengers, plans) reflects the committed action set.
+
+    Pass `plan_id=null` (or omit it) to revert to the pre-apply snapshot.
+    """
+    engine = getattr(request.app.state, "engine", None)
+    if engine is None:
+        raise HTTPException(status_code=503, detail="Simulation engine not running.")
+    if not payload.plan_id:
+        return await engine.unapply_plan()
+    try:
+        return await engine.apply_plan(payload.plan_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 
 @router.post("/recovery/crew-overbooking")
