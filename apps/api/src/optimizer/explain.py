@@ -11,6 +11,7 @@ single-decision flips evaluated through the same cost + carbon engines that
 score the original plan, so they're cheap (<1 ms) and always consistent with
 what the dashboard already reports.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -24,8 +25,9 @@ _calc = AirlineDelayCalculator()
 @dataclass
 class Counterfactual:
     """One single-flip what-if applied to a plan."""
+
     flight_id: str
-    flip: str                     # "cancel→keep" | "keep→cancel" | "delay→ontime" | "ontime→delay"
+    flip: str  # "cancel→keep" | "keep→cancel" | "delay→ontime" | "ontime→delay"
     delta_cost_usd: float
     delta_pax_delay_min: int
     delta_co2_kg: float
@@ -34,13 +36,13 @@ class Counterfactual:
 
     def to_dict(self) -> dict:
         return {
-            "flight_id":           self.flight_id,
-            "flip":                self.flip,
-            "delta_cost_usd":      round(self.delta_cost_usd, 2),
+            "flight_id": self.flight_id,
+            "flip": self.flip,
+            "delta_cost_usd": round(self.delta_cost_usd, 2),
             "delta_pax_delay_min": self.delta_pax_delay_min,
-            "delta_co2_kg":        round(self.delta_co2_kg, 1),
-            "delta_eu_ets_usd":    round(self.delta_eu_ets_usd, 2),
-            "summary":             self.summary,
+            "delta_co2_kg": round(self.delta_co2_kg, 1),
+            "delta_eu_ets_usd": round(self.delta_eu_ets_usd, 2),
+            "summary": self.summary,
         }
 
 
@@ -57,8 +59,8 @@ def _plan_ledgers(
 ) -> tuple[float, int, float, float]:
     """Return (cost_usd, pax_delay_min, co2_kg, ets_usd) for a plan dict."""
     cancelled = list(plan.get("cancelled_flights") or [])
-    delayed   = list(plan.get("delayed_flights") or [])
-    swaps     = list(plan.get("aircraft_swaps") or [])
+    delayed = list(plan.get("delayed_flights") or [])
+    swaps = list(plan.get("aircraft_swaps") or [])
 
     cost_data = _calc.portfolio_cost(
         flights=flights_map,
@@ -67,8 +69,8 @@ def _plan_ledgers(
         event_kind=event_kind,
         aircraft_type_map=ac_type_map,
     )
-    swap_cost = len(swaps) * 8_000   # mirrors AIRCRAFT_REPOSITION_COST in milp.py
-    cost_usd  = cost_data["grand_total_usd"] + swap_cost
+    swap_cost = len(swaps) * 8_000  # mirrors AIRCRAFT_REPOSITION_COST in milp.py
+    cost_usd = cost_data["grand_total_usd"] + swap_cost
 
     carbon = portfolio_carbon(
         flights=flights_map,
@@ -105,12 +107,15 @@ def explain_plan(
     ac_type_map = _ac_type_map(flights, aircraft)
 
     base_cost, base_pax, base_co2, base_ets = _plan_ledgers(
-        plan, flights_map, ac_type_map, event_kind,
+        plan,
+        flights_map,
+        ac_type_map,
+        event_kind,
     )
 
     # Identify the highest-impact decisions to flip.
     cancelled_ids = list(plan.get("cancelled_flights") or [])[:top_n]
-    delayed_ids   = [d["flight_id"] for d in (plan.get("delayed_flights") or [])][:top_n]
+    delayed_ids = [d["flight_id"] for d in (plan.get("delayed_flights") or [])][:top_n]
 
     counterfactuals: list[Counterfactual] = []
 
@@ -121,44 +126,60 @@ def explain_plan(
             "delayed_flights": [
                 *(plan.get("delayed_flights") or []),
                 {
-                    "flight_id":     fid,
+                    "flight_id": fid,
                     "delay_minutes": int(predictions.get(fid, {}).get("expected_delay_min", 90)),
                 },
             ],
-            "aircraft_swaps":  list(plan.get("aircraft_swaps") or []),
+            "aircraft_swaps": list(plan.get("aircraft_swaps") or []),
         }
         cf_cost, cf_pax, cf_co2, cf_ets = _plan_ledgers(
-            cf_plan, flights_map, ac_type_map, event_kind,
+            cf_plan,
+            flights_map,
+            ac_type_map,
+            event_kind,
         )
-        counterfactuals.append(Counterfactual(
-            flight_id=fid,
-            flip="cancel→keep",
-            delta_cost_usd=cf_cost - base_cost,
-            delta_pax_delay_min=cf_pax - base_pax,
-            delta_co2_kg=cf_co2 - base_co2,
-            delta_eu_ets_usd=cf_ets - base_ets,
-            summary=_summarise(fid, "cancel→keep", cf_cost - base_cost, cf_pax - base_pax, cf_co2 - base_co2),
-        ))
+        counterfactuals.append(
+            Counterfactual(
+                flight_id=fid,
+                flip="cancel→keep",
+                delta_cost_usd=cf_cost - base_cost,
+                delta_pax_delay_min=cf_pax - base_pax,
+                delta_co2_kg=cf_co2 - base_co2,
+                delta_eu_ets_usd=cf_ets - base_ets,
+                summary=_summarise(
+                    fid, "cancel→keep", cf_cost - base_cost, cf_pax - base_pax, cf_co2 - base_co2
+                ),
+            )
+        )
 
     # ── Delay flips ("what if we cancelled this one?") ─────────────────────
     for fid in delayed_ids:
         cf_plan = {
             "cancelled_flights": [*(plan.get("cancelled_flights") or []), fid],
-            "delayed_flights":   [d for d in (plan.get("delayed_flights") or []) if d.get("flight_id") != fid],
-            "aircraft_swaps":    list(plan.get("aircraft_swaps") or []),
+            "delayed_flights": [
+                d for d in (plan.get("delayed_flights") or []) if d.get("flight_id") != fid
+            ],
+            "aircraft_swaps": list(plan.get("aircraft_swaps") or []),
         }
         cf_cost, cf_pax, cf_co2, cf_ets = _plan_ledgers(
-            cf_plan, flights_map, ac_type_map, event_kind,
+            cf_plan,
+            flights_map,
+            ac_type_map,
+            event_kind,
         )
-        counterfactuals.append(Counterfactual(
-            flight_id=fid,
-            flip="keep→cancel",
-            delta_cost_usd=cf_cost - base_cost,
-            delta_pax_delay_min=cf_pax - base_pax,
-            delta_co2_kg=cf_co2 - base_co2,
-            delta_eu_ets_usd=cf_ets - base_ets,
-            summary=_summarise(fid, "keep→cancel", cf_cost - base_cost, cf_pax - base_pax, cf_co2 - base_co2),
-        ))
+        counterfactuals.append(
+            Counterfactual(
+                flight_id=fid,
+                flip="keep→cancel",
+                delta_cost_usd=cf_cost - base_cost,
+                delta_pax_delay_min=cf_pax - base_pax,
+                delta_co2_kg=cf_co2 - base_co2,
+                delta_eu_ets_usd=cf_ets - base_ets,
+                summary=_summarise(
+                    fid, "keep→cancel", cf_cost - base_cost, cf_pax - base_pax, cf_co2 - base_co2
+                ),
+            )
+        )
 
     # Sort by absolute cost-delta — biggest swing first. The UI shows
     # ~6 of these so the user immediately sees the most consequential
@@ -166,19 +187,19 @@ def explain_plan(
     counterfactuals.sort(key=lambda c: abs(c.delta_cost_usd), reverse=True)
 
     return {
-        "plan_id":                plan.get("plan_id"),
-        "base_cost_usd":          round(base_cost, 2),
-        "base_pax_delay_min":     base_pax,
-        "base_co2_kg":            round(base_co2, 1),
-        "base_eu_ets_usd":        round(base_ets, 2),
-        "counterfactuals":        [cf.to_dict() for cf in counterfactuals[:top_n * 2]],
-        "rationale":              _build_rationale(plan, counterfactuals, base_cost, base_co2),
+        "plan_id": plan.get("plan_id"),
+        "base_cost_usd": round(base_cost, 2),
+        "base_pax_delay_min": base_pax,
+        "base_co2_kg": round(base_co2, 1),
+        "base_eu_ets_usd": round(base_ets, 2),
+        "counterfactuals": [cf.to_dict() for cf in counterfactuals[: top_n * 2]],
+        "rationale": _build_rationale(plan, counterfactuals, base_cost, base_co2),
     }
 
 
 def _summarise(fid: str, flip: str, dcost: float, dpax: int, dco2: float) -> str:
     cost_word = "saves" if dcost < 0 else "costs"
-    co2_word  = "saves" if dco2 < 0 else "burns"
+    co2_word = "saves" if dco2 < 0 else "burns"
     if flip == "cancel→keep":
         return (
             f"Keeping {fid} alive would cost ${abs(dcost):,.0f} more, "
@@ -201,7 +222,7 @@ def _build_rationale(
     """A one-paragraph plain-English explanation of *why* this plan is shaped the way it is."""
     plan_id = plan.get("plan_id", "?")
     n_cancel = len(plan.get("cancelled_flights") or [])
-    n_delay  = len(plan.get("delayed_flights") or [])
+    n_delay = len(plan.get("delayed_flights") or [])
 
     if not counterfactuals:
         return (

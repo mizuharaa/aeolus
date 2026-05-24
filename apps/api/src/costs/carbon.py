@@ -17,6 +17,7 @@ The numbers below are deliberately conservative. The point of Plan D is to
 expose the *trade-off shape* between cost-minimal and carbon-minimal recovery
 decisions, not to publish a defensible Tier-2 emissions inventory.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -31,19 +32,19 @@ KG_CO2_PER_KG_JETA = 3.16
 # Block-hour fuel burn in kg/hr by ICAO category. Sourced from EUROCONTROL
 # CO2/Atmosfair averages for typical flight profiles.
 BLOCK_HOUR_FUEL_KG_PER_HR: dict[str, float] = {
-    "regional":   1_700,   # CRJ/E-jet — short stage, high burn-rate per pax
-    "narrowbody": 2_650,   # 737/A320 family
-    "widebody":   6_900,   # 767/787/A330
-    "cargo":      6_400,
+    "regional": 1_700,  # CRJ/E-jet — short stage, high burn-rate per pax
+    "narrowbody": 2_650,  # 737/A320 family
+    "widebody": 6_900,  # 767/787/A330
+    "cargo": 6_400,
 }
 
 # APU burn while the aircraft is parked at gate or held on taxiway during a
 # delay. Roughly 110 kg/hr for narrowbody, 180 for widebody (FAA AEDT 3 default).
 APU_FUEL_KG_PER_HR: dict[str, float] = {
-    "regional":    70,
+    "regional": 70,
     "narrowbody": 110,
-    "widebody":   180,
-    "cargo":      180,
+    "widebody": 180,
+    "cargo": 180,
 }
 
 # When we cancel a flight we *save* the entire block-hour burn for that
@@ -79,30 +80,31 @@ class CarbonInfo:
 @dataclass
 class PortfolioCarbon:
     """Carbon ledger for one full recovery plan."""
+
     total_co2_kg: float
     total_fuel_kg: float
     eu_ets_cost_usd: float
-    saved_co2_kg: float           # cancellations / avoided ferries
-    burned_co2_kg: float          # delays, ferries, swap repositioning
+    saved_co2_kg: float  # cancellations / avoided ferries
+    burned_co2_kg: float  # delays, ferries, swap repositioning
     per_flight: list[CarbonInfo]
 
     def to_dict(self) -> dict:
         return {
-            "total_co2_kg":     round(self.total_co2_kg, 1),
+            "total_co2_kg": round(self.total_co2_kg, 1),
             "total_co2_tonnes": round(self.total_co2_kg / 1000, 3),
-            "total_fuel_kg":    round(self.total_fuel_kg, 1),
-            "eu_ets_cost_usd":  round(self.eu_ets_cost_usd, 2),
-            "saved_co2_kg":     round(self.saved_co2_kg, 1),
-            "burned_co2_kg":    round(self.burned_co2_kg, 1),
+            "total_fuel_kg": round(self.total_fuel_kg, 1),
+            "eu_ets_cost_usd": round(self.eu_ets_cost_usd, 2),
+            "saved_co2_kg": round(self.saved_co2_kg, 1),
+            "burned_co2_kg": round(self.burned_co2_kg, 1),
             "per_flight": [
                 {
-                    "flight_id":  ci.flight_id,
-                    "co2_kg":     round(ci.co2_kg, 1),
-                    "fuel_kg":    round(ci.fuel_kg, 1),
-                    "breakdown":  ci.breakdown,
-                    "note":       ci.note,
+                    "flight_id": ci.flight_id,
+                    "co2_kg": round(ci.co2_kg, 1),
+                    "fuel_kg": round(ci.fuel_kg, 1),
+                    "breakdown": ci.breakdown,
+                    "note": ci.note,
                 }
-                for ci in self.per_flight[:25]   # truncate for API
+                for ci in self.per_flight[:25]  # truncate for API
             ],
             "ets_price_usd_per_tonne": EU_ETS_USD_PER_TONNE,
         }
@@ -132,6 +134,7 @@ def fuel_to_co2(fuel_kg: float) -> float:
 
 # ── Per-decision carbon math ──────────────────────────────────────────────────
 
+
 def carbon_for_delay(
     flight: dict,
     delay_minutes: int,
@@ -149,9 +152,9 @@ def carbon_for_delay(
         co2_kg=total_co2,
         fuel_kg=total_fuel,
         breakdown={
-            "air_burn_kg":  round(air_kg, 1),
-            "apu_burn_kg":  round(apu_kg, 1),
-            "delay_min":    delay_minutes,
+            "air_burn_kg": round(air_kg, 1),
+            "apu_burn_kg": round(apu_kg, 1),
+            "delay_min": delay_minutes,
         },
         note=f"+{delay_minutes}m delay",
     )
@@ -164,13 +167,13 @@ def carbon_for_cancellation(
     """Cancelling a revenue leg removes the full block-hour burn (negative ledger)."""
     ac_type = aircraft_type or flight.get("aircraft_type", "") or "UNKN"
     fuel = block_burn_kg_for(ac_type, AVG_STAGE_HOURS)
-    co2  = fuel_to_co2(fuel)
+    co2 = fuel_to_co2(fuel)
     return CarbonInfo(
         flight_id=flight.get("id", ""),
         co2_kg=-co2,
         fuel_kg=-fuel,
         breakdown={
-            "stage_hr":      AVG_STAGE_HOURS,
+            "stage_hr": AVG_STAGE_HOURS,
             "block_burn_kg": round(fuel, 1),
         },
         note="cancelled — burn avoided",
@@ -189,8 +192,8 @@ def carbon_for_ferry(
         co2_kg=co2,
         fuel_kg=fuel,
         breakdown={
-            "stage_hr":   hours,
-            "burn_kg":    round(fuel, 1),
+            "stage_hr": hours,
+            "burn_kg": round(fuel, 1),
             "passengers": 0,
         },
         note="ferry / aircraft swap",
@@ -199,11 +202,12 @@ def carbon_for_ferry(
 
 # ── Plan-level rollup ────────────────────────────────────────────────────────
 
+
 def portfolio_carbon(
     flights: dict[str, dict],
     cancelled: list[str],
-    delayed:   list[dict],
-    swaps:     list[dict],
+    delayed: list[dict],
+    swaps: list[dict],
     aircraft_type_map: dict[str, str] | None = None,
 ) -> PortfolioCarbon:
     """
@@ -244,7 +248,7 @@ def portfolio_carbon(
         total_fuel += info.fuel_kg
 
     net_co2 = burned_co2 - saved_co2
-    eu_ets_cost = (net_co2 / 1000.0) * EU_ETS_USD_PER_TONNE   # net tonnes × $/t
+    eu_ets_cost = (net_co2 / 1000.0) * EU_ETS_USD_PER_TONNE  # net tonnes × $/t
 
     return PortfolioCarbon(
         total_co2_kg=net_co2,

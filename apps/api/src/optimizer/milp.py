@@ -12,6 +12,7 @@ deterministic heuristic if the solver cannot find a feasible solution in time.
 Every plan, regardless of objective, is scored against the carbon ledger so
 the UI can surface CO₂ alongside dollars on every card.
 """
+
 from __future__ import annotations
 
 import logging
@@ -26,6 +27,8 @@ from src.costs.carbon import (
     EU_ETS_USD_PER_TONNE,
     FERRY_STAGE_HOURS,
     block_burn_kg_for,
+    carbon_for_cancellation,
+    carbon_for_delay,
     portfolio_carbon,
 )
 from src.crew.far117 import CrewLegalityEngine
@@ -36,20 +39,42 @@ def block_burn_kg_for_default() -> float:
     objective term that prices ferries in dollars before solve."""
     return block_burn_kg_for("UNKN", FERRY_STAGE_HOURS)
 
+
 logger = logging.getLogger(__name__)
 
-AIRCRAFT_REPOSITION_COST = 8_000   # ferry flight, USD
-MAX_DELAY_MINUTES        = 480     # solver upper bound for delay variable
-CPSAT_TIMEOUT_SECS       = 8       # per-plan solver budget
-SPARE_POOL_CAP           = 20      # cap spare aircraft considered (solver speed)
+AIRCRAFT_REPOSITION_COST = 8_000  # ferry flight, USD
+MAX_DELAY_MINUTES = 480  # solver upper bound for delay variable
+CPSAT_TIMEOUT_SECS = 8  # per-plan solver budget
+SPARE_POOL_CAP = 20  # cap spare aircraft considered (solver speed)
+
+# Plan D (Green) only. The per-seat carbon+service price of stranding the
+# passengers on a cancelled leg. Cancelling defers demand rather than erasing
+# it (those pax rebook and the block burn is re-incurred later), so a cancel
+# earns NO block-burn credit — it only avoids the delay-hold burn, paid for by
+# this stranding penalty. Tuned so Green cancels a leg only once its hold-burn
+# clearly exceeds the cost of re-accommodating its passengers (≈ delays beyond
+# ~2.5–3 h on a full narrowbody), instead of degenerating into "cancel all".
+GREEN_CANCEL_USD_PER_PAX = 11
 
 PLAN_WEIGHTS = {
-    "A": {"label": "Minimize Cost",              "alpha": 10.0, "beta": 1.0,  "gamma": 5.0,  "delta": 2.0},
-    "B": {"label": "Minimize Passenger Impact",  "alpha": 1.0,  "beta": 10.0, "gamma": 2.0,  "delta": 1.0},
-    "C": {"label": "Protect Tomorrow's Schedule","alpha": 2.0,  "beta": 3.0,  "gamma": 2.0,  "delta": 10.0},
+    "A": {"label": "Minimize Cost", "alpha": 10.0, "beta": 1.0, "gamma": 5.0, "delta": 2.0},
+    "B": {
+        "label": "Minimize Passenger Impact",
+        "alpha": 1.0,
+        "beta": 10.0,
+        "gamma": 2.0,
+        "delta": 1.0,
+    },
+    "C": {
+        "label": "Protect Tomorrow's Schedule",
+        "alpha": 2.0,
+        "beta": 3.0,
+        "gamma": 2.0,
+        "delta": 10.0,
+    },
     # Plan D — Green Recovery (Slice 4). Optimises the EU-ETS-priced CO₂
     # ledger: cancellations earn a credit, delays and ferries are billed.
-    "D": {"label": "Green Recovery",             "alpha": 1.0,  "beta": 2.0,  "gamma": 4.0,  "delta": 1.0},
+    "D": {"label": "Green Recovery", "alpha": 1.0, "beta": 2.0, "gamma": 4.0, "delta": 1.0},
 }
 
 
@@ -57,29 +82,30 @@ PLAN_WEIGHTS = {
 class RecoveryPlan:
     plan_id: str
     objective_label: str
-    status: str           # "optimal" | "feasible" | "heuristic" | "infeasible"
+    status: str  # "optimal" | "feasible" | "heuristic" | "infeasible"
     solve_time_ms: int
 
-    cancelled_flights:   list[str]  = field(default_factory=list)
-    delayed_flights:     list[dict] = field(default_factory=list)
-    aircraft_swaps:      list[dict] = field(default_factory=list)
-    crew_reassignments:  list[dict] = field(default_factory=list)
+    cancelled_flights: list[str] = field(default_factory=list)
+    delayed_flights: list[dict] = field(default_factory=list)
+    aircraft_swaps: list[dict] = field(default_factory=list)
+    crew_reassignments: list[dict] = field(default_factory=list)
 
-    total_cost_usd:               float = 0.0
-    total_passenger_delay_minutes: int  = 0
-    crew_violations:               int  = 0
-    aircraft_out_of_position:      int  = 0
-    cost_breakdown:               dict = field(default_factory=dict)
+    total_cost_usd: float = 0.0
+    total_passenger_delay_minutes: int = 0
+    crew_violations: int = 0
+    aircraft_out_of_position: int = 0
+    cost_breakdown: dict = field(default_factory=dict)
     # Carbon ledger (Slice 4 — Plan D). Populated for every plan so the
     # frontend can show CO₂ alongside dollars on every card, regardless of
     # which objective the plan was optimised against.
-    total_co2_kg:        float = 0.0
-    eu_ets_cost_usd:     float = 0.0
-    carbon_breakdown:    dict  = field(default_factory=dict)
-    summary:                       str  = ""
+    total_co2_kg: float = 0.0
+    eu_ets_cost_usd: float = 0.0
+    carbon_breakdown: dict = field(default_factory=dict)
+    summary: str = ""
 
     def to_dict(self) -> dict:
         from dataclasses import asdict
+
         return asdict(self)
 
 
@@ -99,30 +125,29 @@ class RecoveryOptimizer:
     PLAN_WEIGHTS = PLAN_WEIGHTS
 
     def __init__(self, timeout_secs: int = 30, use_fallback: bool = True):
-        self.timeout_secs  = timeout_secs
-        self.use_fallback  = use_fallback
+        self.timeout_secs = timeout_secs
+        self.use_fallback = use_fallback
         self.legality_engine = CrewLegalityEngine()
-        self.calc            = AirlineDelayCalculator()
+        self.calc = AirlineDelayCalculator()
 
     # ── Public API ────────────────────────────────────────────────────────────
 
     def solve(
         self,
-        schedule:             list[dict],
-        aircraft:             list[dict],
-        crews:                list[dict],
-        events:               list[dict],
-        disrupted_flights:    list[str],
-        cascade_predictions:  dict[str, dict],
+        schedule: list[dict],
+        aircraft: list[dict],
+        crews: list[dict],
+        events: list[dict],
+        disrupted_flights: list[str],
+        cascade_predictions: dict[str, dict],
     ) -> list[RecoveryPlan]:
-        flights_map  = {f["id"]: f for f in schedule}
+        flights_map = {f["id"]: f for f in schedule}
         aircraft_map = {a["id"]: a for a in aircraft}
 
         direct_disrupted_ac: set[str] = {
             flights_map[fid]["aircraft_id"]
             for fid in disrupted_flights
-            if fid in flights_map
-            and cascade_predictions.get(fid, {}).get("cascade_order", -1) == 0
+            if fid in flights_map and cascade_predictions.get(fid, {}).get("cascade_order", -1) == 0
         }
         spare_pool = [ac_id for ac_id in aircraft_map if ac_id not in direct_disrupted_ac]
 
@@ -144,9 +169,13 @@ class RecoveryOptimizer:
             plans.append(plan)
             logger.info(
                 "Plan %s (%s) [%s]: %d cancelled, %d delayed, $%.0f — %dms",
-                plan_id, weights["label"], plan.status,
-                len(plan.cancelled_flights), len(plan.delayed_flights),
-                plan.total_cost_usd, plan.solve_time_ms,
+                plan_id,
+                weights["label"],
+                plan.status,
+                len(plan.cancelled_flights),
+                len(plan.delayed_flights),
+                plan.total_cost_usd,
+                plan.solve_time_ms,
             )
         return plans
 
@@ -154,73 +183,69 @@ class RecoveryOptimizer:
 
     def _solve_plan(
         self,
-        plan_id:     str,
-        weights:     dict,
-        flights_map:  dict[str, dict],
+        plan_id: str,
+        weights: dict,
+        flights_map: dict[str, dict],
         aircraft_map: dict[str, dict],
-        spare_pool:   list[str],
-        disrupted:    list[str],
-        predictions:  dict[str, dict],
-        crews:        list[dict],
-        events:       list[dict],
+        spare_pool: list[str],
+        disrupted: list[str],
+        predictions: dict[str, dict],
+        crews: list[dict],
+        events: list[dict],
     ) -> RecoveryPlan:
-
         grounded_tails = self._extract_grounded_tails(events)
-        event_kind     = self._extract_event_kind(events)
+        event_kind = self._extract_event_kind(events)
 
         # Filter to flights we can reason about
-        active = [fid for fid in disrupted if fid in flights_map
-                  and predictions.get(fid, {}).get("cascade_order", -1) >= 0]
+        active = [
+            fid
+            for fid in disrupted
+            if fid in flights_map and predictions.get(fid, {}).get("cascade_order", -1) >= 0
+        ]
         if not active:
             return self._empty_plan(plan_id, weights)
 
         # Identify flights whose original aircraft is grounded (AOG)
         aog_flights = [
-            fid for fid in active
-            if flights_map[fid].get("aircraft_id", "") in grounded_tails
+            fid for fid in active if flights_map[fid].get("aircraft_id", "") in grounded_tails
         ]
 
         # Pre-compute cost coefficients (integers — CP-SAT requires integer objective)
-        cancel_cost_int:       dict[str, int] = {}
-        delay_cost_total_int:  dict[str, int] = {}
-        pax:                   dict[str, int] = {}
+        cancel_cost_int: dict[str, int] = {}
+        delay_cost_total_int: dict[str, int] = {}
+        pax: dict[str, int] = {}
 
         for fid in active:
             flight = flights_map[fid]
-            pred   = predictions.get(fid, {})
+            pred = predictions.get(fid, {})
             ac_type = aircraft_map.get(flight.get("aircraft_id", ""), {}).get("type", "")
             expected_delay = max(0, int(pred.get("expected_delay_min", 60)))
 
             try:
                 c_info = self.calc.cancellation_cost(flight, event_kind, ac_type)
                 d_info = self.calc.delay_cost(flight, expected_delay, event_kind, ac_type)
-                cancel_cost_int[fid]      = max(1, int(c_info.total))
+                cancel_cost_int[fid] = max(1, int(c_info.total))
                 delay_cost_total_int[fid] = max(0, int(d_info.total))
             except Exception:
-                cancel_cost_int[fid]      = 50_000
+                cancel_cost_int[fid] = 50_000
                 delay_cost_total_int[fid] = max(0, expected_delay) * 100
 
             pax[fid] = max(1, flight.get("passengers", 150))
 
         # ── Build CP-SAT model ────────────────────────────────────────────────
-        model  = cp_model.CpModel()
+        model = cp_model.CpModel()
         solver = cp_model.CpSolver()
         solver.parameters.max_time_in_seconds = CPSAT_TIMEOUT_SECS
-        solver.parameters.num_search_workers  = 4
+        solver.parameters.num_search_workers = 4
         solver.parameters.log_search_progress = False
 
         # Decision vars
-        cancel: dict[str, cp_model.IntVar] = {
-            fid: model.new_bool_var(f"x_{fid}") for fid in active
-        }
+        cancel: dict[str, cp_model.IntVar] = {fid: model.new_bool_var(f"x_{fid}") for fid in active}
 
         # Aircraft swap vars: only for AOG flights that have a grounded original
         swap: dict[str, dict[str, cp_model.IntVar]] = {}
         for fid in aog_flights:
-            swap[fid] = {
-                spare: model.new_bool_var(f"s_{fid}_{spare}")
-                for spare in spare_pool
-            }
+            swap[fid] = {spare: model.new_bool_var(f"s_{fid}_{spare}") for spare in spare_pool}
             spare_vars = list(swap[fid].values())
             if spare_vars:
                 # At most one spare per flight
@@ -249,7 +274,7 @@ class RecoveryOptimizer:
                 # = delay_cost + (cancel_cost - delay_cost) * cancel
                 delta = cancel_cost_int[fid] - delay_cost_total_int[fid]
                 obj.append(delta * cancel[fid])
-                obj.append(delay_cost_total_int[fid])   # constant term; added for clarity
+                obj.append(delay_cost_total_int[fid])  # constant term; added for clarity
             for fid, spares in swap.items():
                 for sv in spares.values():
                     obj.append(AIRCRAFT_REPOSITION_COST * sv)
@@ -258,7 +283,7 @@ class RecoveryOptimizer:
             # Minimize passenger-minutes; penalize cancellations heavily
             BIG = max(pax.values()) * MAX_DELAY_MINUTES * 5
             for fid in active:
-                pred          = predictions.get(fid, {})
+                pred = predictions.get(fid, {})
                 expected_delay = max(0, int(pred.get("expected_delay_min", 60)))
                 obj.append(BIG * cancel[fid])
                 obj.append(pax[fid] * expected_delay * (1 - cancel[fid]))  # pax·delay if kept
@@ -267,7 +292,7 @@ class RecoveryOptimizer:
             # Protect tomorrow: reward early cancellations on direct-impact flights,
             # penalize delays on cascade flights
             for fid in active:
-                pred          = predictions.get(fid, {})
+                pred = predictions.get(fid, {})
                 cascade_order = pred.get("cascade_order", -1)
                 expected_delay = max(0, int(pred.get("expected_delay_min", 60)))
 
@@ -283,49 +308,41 @@ class RecoveryOptimizer:
                     obj.append(AIRCRAFT_REPOSITION_COST * sv)
 
         elif plan_id == "D":
-            # Plan D — Green Recovery. Minimise net CO₂ priced via EU ETS.
-            # Cancellations *save* burn → encourage them when delay is long
-            # enough that the ground hold + rerouting exceeds saved block fuel.
-            # Ferries and aircraft repositioning are pure overhead carbon and
-            # are penalised heavily.
+            # Plan D — Green Recovery. Minimise the *wasted* carbon of the
+            # recovery (delay-hold burn + ferry overhead) while still flying
+            # the passengers. A cancellation does NOT erase demand — those pax
+            # rebook and the block burn is re-incurred on a later leg — so it
+            # earns no carbon credit here (that was the old "cancel everything"
+            # degeneracy). It only avoids the ground-hold burn, paid for with a
+            # per-seat stranding penalty. Net effect: Green cancels a leg only
+            # when holding it late clearly out-burns re-accommodating its pax.
             for fid in active:
-                pred           = predictions.get(fid, {})
+                pred = predictions.get(fid, {})
                 expected_delay = max(0, int(pred.get("expected_delay_min", 60)))
-                ac_type        = aircraft_map.get(
-                    flights_map[fid].get("aircraft_id", ""), {},
+                ac_type = aircraft_map.get(
+                    flights_map[fid].get("aircraft_id", ""),
+                    {},
                 ).get("type", "")
-                # Cost (in ETS-equivalent dollars) of running the flight late
-                # vs. cancelling it. Use the carbon module so the math here
-                # stays consistent with the post-solve ledger we report.
-                from src.costs.carbon import (
-                    carbon_for_delay,
-                    carbon_for_cancellation,
-                )
+                # Hold-burn (ETS-priced dollars) of running this flight late.
+                # Use the carbon module so the objective stays consistent with
+                # the post-solve ledger we report on every card.
                 delay_co2 = carbon_for_delay(
-                    flights_map[fid], expected_delay, ac_type,
+                    flights_map[fid],
+                    expected_delay,
+                    ac_type,
                 ).co2_kg
-                save_co2 = abs(carbon_for_cancellation(
-                    flights_map[fid], ac_type,
-                ).co2_kg)
+                # Scale to dollars at the ETS price (CP-SAT needs int coeffs).
+                delay_usd_int = int((delay_co2 / 1000.0) * EU_ETS_USD_PER_TONNE)
+                # Stranding penalty: per-seat cost of cancelling this leg.
+                service_penalty = pax[fid] * GREEN_CANCEL_USD_PER_PAX
 
-                # Convert to dollars at ETS price; scale up so it dominates
-                # the integer objective (CP-SAT requires int coefficients).
-                delay_usd_int  = int((delay_co2 / 1000.0) * EU_ETS_USD_PER_TONNE)
-                save_usd_int   = int((save_co2  / 1000.0) * EU_ETS_USD_PER_TONNE)
-
-                # Add a soft passenger-impact term so Plan D doesn't degenerate
-                # into "cancel everything" on long delays.
-                pax_term = pax[fid] * expected_delay // 100
-
-                obj.append(delay_usd_int * cancel[fid].negated())
-                obj.append(-save_usd_int * cancel[fid])      # credit for cancel
-                obj.append(pax_term * cancel[fid])           # soft pax penalty
+                obj.append(delay_usd_int * cancel[fid].negated())  # hold-burn if flown late
+                obj.append(service_penalty * cancel[fid])  # stranded pax if cancelled
             for fid, spares in swap.items():
                 for sv in spares.values():
-                    # Ferry burn priced at EU ETS — typically ~$300/ferry.
+                    # Ferry burn priced at EU ETS — pure overhead carbon.
                     ferry_usd_int = int(
-                        (block_burn_kg_for_default() * 3.16 / 1000.0)
-                        * EU_ETS_USD_PER_TONNE
+                        (block_burn_kg_for_default() * 3.16 / 1000.0) * EU_ETS_USD_PER_TONNE
                     )
                     obj.append(ferry_usd_int * sv)
 
@@ -336,41 +353,55 @@ class RecoveryOptimizer:
         solved = status_code in (cp_model.OPTIMAL, cp_model.FEASIBLE)
 
         if not solved:
-            logger.warning("Plan %s CP-SAT failed (%s) — using heuristic fallback", plan_id, solver.status_name())
+            logger.warning(
+                "Plan %s CP-SAT failed (%s) — using heuristic fallback",
+                plan_id,
+                solver.status_name(),
+            )
             return self._heuristic_fallback(
-                plan_id, weights, flights_map, aircraft_map,
-                spare_pool, active, predictions, crews, events,
-                grounded_tails, event_kind,
+                plan_id,
+                weights,
+                flights_map,
+                aircraft_map,
+                spare_pool,
+                active,
+                predictions,
+                crews,
+                events,
+                grounded_tails,
+                event_kind,
             )
 
         cp_status = "optimal" if status_code == cp_model.OPTIMAL else "feasible"
 
         # ── Extract solution ───────────────────────────────────────────────────
-        cancelled: list[str]  = []
-        delayed:   list[dict] = []
-        swaps:     list[dict] = []
+        cancelled: list[str] = []
+        delayed: list[dict] = []
+        swaps: list[dict] = []
 
         for fid in active:
             if solver.value(cancel[fid]) == 1:
                 cancelled.append(fid)
             else:
-                pred          = predictions.get(fid, {})
+                pred = predictions.get(fid, {})
                 expected_delay = max(0, int(pred.get("expected_delay_min", 0)))
                 if expected_delay > 0:
-                    flight  = flights_map[fid]
+                    flight = flights_map[fid]
                     dep_str = flight.get("scheduled_departure", "")
                     try:
                         orig_dep = datetime.fromisoformat(dep_str.replace("Z", "+00:00"))
-                        new_dep  = orig_dep + timedelta(minutes=expected_delay)
+                        new_dep = orig_dep + timedelta(minutes=expected_delay)
                         new_dep_str = new_dep.isoformat()
                     except (ValueError, AttributeError):
                         new_dep_str = dep_str
-                    delayed.append({
-                        "flight_id":          fid,
-                        "delay_minutes":      expected_delay,
-                        "new_departure":      new_dep_str,
-                        "original_departure": dep_str,
-                    })
+                    delayed.append(
+                        {
+                            "flight_id": fid,
+                            "delay_minutes": expected_delay,
+                            "new_departure": new_dep_str,
+                            "original_departure": dep_str,
+                        }
+                    )
 
         for fid, spares in swap.items():
             if fid in cancelled:
@@ -378,40 +409,51 @@ class RecoveryOptimizer:
             for spare, sv in spares.items():
                 if solver.value(sv) == 1:
                     flight = flights_map[fid]
-                    swaps.append({
-                        "flight_id":    fid,
-                        "old_aircraft": flight.get("aircraft_id", ""),
-                        "new_aircraft": spare,
-                        "aircraft_type": aircraft_map.get(spare, {}).get("type", ""),
-                    })
+                    swaps.append(
+                        {
+                            "flight_id": fid,
+                            "old_aircraft": flight.get("aircraft_id", ""),
+                            "new_aircraft": spare,
+                            "aircraft_type": aircraft_map.get(spare, {}).get("type", ""),
+                        }
+                    )
 
         return self._build_plan(
-            plan_id, weights, cp_status,
-            cancelled, delayed, swaps,
-            flights_map, aircraft_map, crews, event_kind,
-            {fid: aircraft_map.get(flights_map[fid].get("aircraft_id", ""), {}).get("type", "")
-             for fid in flights_map},
+            plan_id,
+            weights,
+            cp_status,
+            cancelled,
+            delayed,
+            swaps,
+            flights_map,
+            aircraft_map,
+            crews,
+            event_kind,
+            {
+                fid: aircraft_map.get(flights_map[fid].get("aircraft_id", ""), {}).get("type", "")
+                for fid in flights_map
+            },
         )
 
     # ── Heuristic fallback (deterministic, always succeeds) ───────────────────
 
     def _heuristic_fallback(
         self,
-        plan_id:       str,
-        weights:       dict,
-        flights_map:   dict,
-        aircraft_map:  dict,
-        spare_pool:    list,
-        active:        list,
-        predictions:   dict,
-        crews:         list,
-        events:        list,
+        plan_id: str,
+        weights: dict,
+        flights_map: dict,
+        aircraft_map: dict,
+        spare_pool: list,
+        active: list,
+        predictions: dict,
+        crews: list,
+        events: list,
         grounded_tails: set,
-        event_kind:    str,
+        event_kind: str,
     ) -> RecoveryPlan:
-        cancelled: list[str]  = []
-        delayed:   list[dict] = []
-        swaps:     list[dict] = []
+        cancelled: list[str] = []
+        delayed: list[dict] = []
+        swaps: list[dict] = []
         spare_q = list(spare_pool)
 
         ac_type_map = {
@@ -420,13 +462,13 @@ class RecoveryOptimizer:
         }
 
         for fid in active:
-            flight        = flights_map[fid]
-            pred          = predictions.get(fid, {})
+            flight = flights_map[fid]
+            pred = predictions.get(fid, {})
             expected_delay = max(0, int(pred.get("expected_delay_min", 60)))
-            p_delayed      = pred.get("p_delayed", 0.5)
-            cascade_order  = pred.get("cascade_order", -1)
-            ac_type        = ac_type_map.get(fid, "")
-            original_ac    = flight.get("aircraft_id", "")
+            p_delayed = pred.get("p_delayed", 0.5)
+            cascade_order = pred.get("cascade_order", -1)
+            ac_type = ac_type_map.get(fid, "")
+            original_ac = flight.get("aircraft_id", "")
 
             should_cancel = self._decide_cancel(
                 plan_id, flight, expected_delay, p_delayed, cascade_order, event_kind, ac_type
@@ -438,44 +480,60 @@ class RecoveryOptimizer:
                 if expected_delay > 0:
                     dep_str = flight.get("scheduled_departure", "")
                     try:
-                        orig_dep    = datetime.fromisoformat(dep_str.replace("Z", "+00:00"))
+                        orig_dep = datetime.fromisoformat(dep_str.replace("Z", "+00:00"))
                         new_dep_str = (orig_dep + timedelta(minutes=expected_delay)).isoformat()
                     except (ValueError, AttributeError):
                         new_dep_str = dep_str
-                    delayed.append({
-                        "flight_id":          fid,
-                        "delay_minutes":      expected_delay,
-                        "new_departure":      new_dep_str,
-                        "original_departure": dep_str,
-                    })
+                    delayed.append(
+                        {
+                            "flight_id": fid,
+                            "delay_minutes": expected_delay,
+                            "new_departure": new_dep_str,
+                            "original_departure": dep_str,
+                        }
+                    )
                 if original_ac in grounded_tails and spare_q:
                     spare = spare_q.pop(0)
-                    swaps.append({
-                        "flight_id":     fid,
-                        "old_aircraft":  original_ac,
-                        "new_aircraft":  spare,
-                        "aircraft_type": aircraft_map.get(spare, {}).get("type", ""),
-                    })
+                    swaps.append(
+                        {
+                            "flight_id": fid,
+                            "old_aircraft": original_ac,
+                            "new_aircraft": spare,
+                            "aircraft_type": aircraft_map.get(spare, {}).get("type", ""),
+                        }
+                    )
 
         if plan_id == "C":
-            cancelled_ac = {flights_map[fid]["aircraft_id"] for fid in cancelled if fid in flights_map}
+            cancelled_ac = {
+                flights_map[fid]["aircraft_id"] for fid in cancelled if fid in flights_map
+            }
             for info in delayed:
                 fid = info["flight_id"]
                 orig_ac = flights_map.get(fid, {}).get("aircraft_id", "")
                 if orig_ac in cancelled_ac and spare_q:
                     spare = spare_q.pop(0)
-                    swaps.append({
-                        "flight_id":     fid,
-                        "old_aircraft":  orig_ac,
-                        "new_aircraft":  spare,
-                        "aircraft_type": aircraft_map.get(spare, {}).get("type", ""),
-                    })
+                    swaps.append(
+                        {
+                            "flight_id": fid,
+                            "old_aircraft": orig_ac,
+                            "new_aircraft": spare,
+                            "aircraft_type": aircraft_map.get(spare, {}).get("type", ""),
+                        }
+                    )
                     cancelled_ac.discard(orig_ac)
 
         return self._build_plan(
-            plan_id, weights, "heuristic",
-            cancelled, delayed, swaps,
-            flights_map, aircraft_map, crews, event_kind, ac_type_map,
+            plan_id,
+            weights,
+            "heuristic",
+            cancelled,
+            delayed,
+            swaps,
+            flights_map,
+            aircraft_map,
+            crews,
+            event_kind,
+            ac_type_map,
         )
 
     def _decide_cancel(
@@ -505,9 +563,6 @@ class RecoveryOptimizer:
         elif plan_id == "D":
             # Plan D heuristic — cancel when avoided block-burn outweighs
             # the burn we'd incur by holding the flight late.
-            from src.costs.carbon import (
-                carbon_for_delay, carbon_for_cancellation,
-            )
             if expected_delay < 90:
                 return False
             delay_co2 = carbon_for_delay(flight, expected_delay, aircraft_type).co2_kg
@@ -519,32 +574,32 @@ class RecoveryOptimizer:
 
     def _build_plan(
         self,
-        plan_id:      str,
-        weights:      dict,
-        status:       str,
-        cancelled:    list[str],
-        delayed:      list[dict],
-        swaps:        list[dict],
-        flights_map:  dict,
+        plan_id: str,
+        weights: dict,
+        status: str,
+        cancelled: list[str],
+        delayed: list[dict],
+        swaps: list[dict],
+        flights_map: dict,
         aircraft_map: dict,
-        crews:        list,
-        event_kind:   str,
-        ac_type_map:  dict,
+        crews: list,
+        event_kind: str,
+        ac_type_map: dict,
     ) -> RecoveryPlan:
-        cost_data  = self.calc.portfolio_cost(
+        cost_data = self.calc.portfolio_cost(
             flights=flights_map,
             cancelled=cancelled,
             delayed=delayed,
             event_kind=event_kind,
             aircraft_type_map=ac_type_map,
         )
-        swap_cost  = len(swaps) * AIRCRAFT_REPOSITION_COST
+        swap_cost = len(swaps) * AIRCRAFT_REPOSITION_COST
         total_cost = cost_data["grand_total_usd"] + swap_cost
 
         cost_breakdown = {
             **cost_data,
             "reposition_cost_usd": swap_cost,
-            "grand_total_usd":     round(total_cost),
+            "grand_total_usd": round(total_cost),
         }
 
         # Carbon ledger — EU-ETS-priced CO₂ for every plan (Slice 4).
@@ -557,8 +612,8 @@ class RecoveryOptimizer:
         )
         carbon_breakdown = carbon.to_dict()
 
-        n_can   = len(cancelled)
-        n_del   = len(delayed)
+        n_can = len(cancelled)
+        n_del = len(delayed)
         avg_del = (sum(d["delay_minutes"] for d in delayed) // n_del) if n_del else 0
         summary = (
             f"{n_can} cancelled, {n_del} delayed (avg {avg_del} min), "
@@ -616,7 +671,7 @@ class RecoveryOptimizer:
             return 0
 
         pairing_by_flight = {p["flight_id"]: p for p in crews if p.get("flight_id")}
-        delays_by_flight  = {d["flight_id"]: d["delay_minutes"] for d in delayed}
+        delays_by_flight = {d["flight_id"]: d["delay_minutes"] for d in delayed}
         violations = 0
 
         for fid, flight in flights.items():
@@ -640,25 +695,26 @@ class RecoveryOptimizer:
             try:
                 duty_start_dt = (
                     datetime.fromisoformat(str(duty_start).replace("Z", "+00:00"))
-                    if duty_start else dep
+                    if duty_start
+                    else dep
                 )
             except (ValueError, AttributeError):
                 duty_start_dt = dep
 
             crew_snapshot = {
-                "id":                         pairing.get("captain_id", "?"),
-                "role":                       "captain",
-                "current_fdp_start":          duty_start_dt,
+                "id": pairing.get("captain_id", "?"),
+                "role": "captain",
+                "current_fdp_start": duty_start_dt,
                 "current_fdp_flight_minutes": 0,
-                "last_rest_end":              duty_start_dt - timedelta(hours=11),
-                "flight_time_7d_minutes":     0,
-                "flight_time_28d_minutes":    0,
-                "flight_time_365d_minutes":   0,
+                "last_rest_end": duty_start_dt - timedelta(hours=11),
+                "flight_time_7d_minutes": 0,
+                "flight_time_28d_minutes": 0,
+                "flight_time_365d_minutes": 0,
                 "home_timezone_offset_hours": 0,
             }
             proposed = {
-                "departure":           dep,
-                "arrival":             arr,
+                "departure": dep,
+                "arrival": arr,
                 "flight_time_minutes": int((arr - dep).total_seconds() / 60),
             }
             try:

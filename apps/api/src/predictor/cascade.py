@@ -87,6 +87,12 @@ ARTCC_AIRPORTS: dict[str, list[str]] = {
 # Default min turn-time when aircraft type is not in DB
 DEFAULT_MIN_TURN_MIN = 45
 
+# Nimbus airports beneath a closed sector when an airspace_closure event does
+# not name its own airports. Models a Northeast-corridor / Great-Lakes block —
+# kept here (like the volcanic_ash west-coast set) so the event always bites
+# even when only a viz polygon is supplied.
+AIRSPACE_DEFAULT_REGION = ["KJFK", "KBOS", "KDTW"]
+
 # ── Cascade predictor ──────────────────────────────────────────────────────────
 
 
@@ -175,9 +181,11 @@ class CascadePredictor:
         destination_airport: str = ""
         _crew_callout_frac: float = 0.0  # set by crew_sickout / labor_action branch
 
-        # Airport-based events (origin or destination at the affected airport)
+        # Airport-based events (origin or destination at the affected airport).
+        # Accept a single `airport` and/or an `airports` list so scenarios can
+        # name a metroplex rather than one field.
         _airport_event_kinds = (
-            "weather_closure", "security_event", "runway_closure", "airspace_closure",
+            "weather_closure", "security_event", "runway_closure",
             # Extended weather types
             "thunderstorm", "blizzard", "sandstorm", "dense_fog", "wind_shear",
             "hurricane", "deicing_shortage", "fuel_contamination", "airport_emergency",
@@ -186,6 +194,23 @@ class CascadePredictor:
             ap = params.get("airport", "")
             if ap:
                 affected_airports.add(ap)
+            for extra in params.get("airports", []) or []:
+                if extra:
+                    affected_airports.add(extra)
+
+        elif kind == "airspace_closure":
+            # A blocked sector — resolve to the Nimbus airports beneath it.
+            # Honour an explicit airport list (UI / scenario YAML); otherwise
+            # fall back to the default corridor so the closure always affects
+            # real flights even when only a map polygon is provided.
+            region = (
+                params.get("airports")
+                or params.get("affected_airports")
+                or AIRSPACE_DEFAULT_REGION
+            )
+            for ap in region:
+                if ap:
+                    affected_airports.add(ap)
 
         elif kind == "ground_stop":
             dst = params.get("destination_airport", params.get("airport", ""))

@@ -22,7 +22,6 @@ import logging
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
-from typing import Any
 
 from ortools.sat.python import cp_model
 

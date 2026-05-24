@@ -16,6 +16,7 @@ Implementation choices
 - We score each scenario by total_pax_delay_min + 4h × cancellations,
   so cancellations dominate (one cancelled flight = 4h delay equiv).
 """
+
 from __future__ import annotations
 
 import datetime
@@ -29,8 +30,18 @@ logger = logging.getLogger(__name__)
 # Default sweep airports — Nimbus Air's published hubs. Trimmed to twelve so
 # the dashboard heatmap fits comfortably without scrolling.
 DEFAULT_AIRPORTS = [
-    "KORD", "KATL", "KDFW", "KDEN", "KLAX", "KJFK",
-    "KSEA", "KSFO", "KPHX", "KMIA", "KBOS", "KIAH",
+    "KORD",
+    "KATL",
+    "KDFW",
+    "KDEN",
+    "KLAX",
+    "KJFK",
+    "KSEA",
+    "KSFO",
+    "KPHX",
+    "KMIA",
+    "KBOS",
+    "KIAH",
 ]
 
 DEFAULT_EVENT_KINDS = [
@@ -44,6 +55,7 @@ DEFAULT_EVENT_KINDS = [
 @dataclass
 class ScenarioResult:
     """One Monte-Carlo iteration outcome."""
+
     airport: str
     event_kind: str
     severity: str
@@ -55,28 +67,29 @@ class ScenarioResult:
     cancelled_estimate: int
     total_delay_min: int
     pax_delay_min: int
-    score: float                      # composite vulnerability score
+    score: float  # composite vulnerability score
 
     def to_dict(self) -> dict:
         return {
-            "airport":            self.airport,
-            "event_kind":         self.event_kind,
-            "severity":           self.severity,
-            "duration_min":       self.duration_min,
-            "affected":           self.affected,
-            "direct_hits":        self.direct_hits,
-            "cascade_1":          self.cascade_1,
-            "cascade_2":          self.cascade_2,
+            "airport": self.airport,
+            "event_kind": self.event_kind,
+            "severity": self.severity,
+            "duration_min": self.duration_min,
+            "affected": self.affected,
+            "direct_hits": self.direct_hits,
+            "cascade_1": self.cascade_1,
+            "cascade_2": self.cascade_2,
             "cancelled_estimate": self.cancelled_estimate,
-            "total_delay_min":    self.total_delay_min,
-            "pax_delay_min":      self.pax_delay_min,
-            "score":              round(self.score, 1),
+            "total_delay_min": self.total_delay_min,
+            "pax_delay_min": self.pax_delay_min,
+            "score": round(self.score, 1),
         }
 
 
 @dataclass
 class AirportSummary:
     """Roll-up over all iterations for a single airport."""
+
     airport: str
     iterations: int = 0
     avg_affected: float = 0.0
@@ -90,16 +103,16 @@ class AirportSummary:
 
     def to_dict(self) -> dict:
         return {
-            "airport":            self.airport,
-            "iterations":         self.iterations,
-            "avg_affected":       round(self.avg_affected, 1),
-            "p95_affected":       self.p95_affected,
-            "avg_pax_delay_min":  round(self.avg_pax_delay_min, 1),
-            "p95_pax_delay_min":  self.p95_pax_delay_min,
-            "avg_score":          round(self.avg_score, 1),
-            "p95_score":          round(self.p95_score, 1),
-            "worst_kind":         self.worst_kind,
-            "samples":            [s.to_dict() for s in self.samples[-3:]],
+            "airport": self.airport,
+            "iterations": self.iterations,
+            "avg_affected": round(self.avg_affected, 1),
+            "p95_affected": self.p95_affected,
+            "avg_pax_delay_min": round(self.avg_pax_delay_min, 1),
+            "p95_pax_delay_min": self.p95_pax_delay_min,
+            "avg_score": round(self.avg_score, 1),
+            "p95_score": round(self.p95_score, 1),
+            "worst_kind": self.worst_kind,
+            "samples": [s.to_dict() for s in self.samples[-3:]],
         }
 
 
@@ -146,10 +159,10 @@ def run_stress_test(
     if seed is not None:
         random.seed(seed)
 
-    airports     = list(airports or DEFAULT_AIRPORTS)
-    event_kinds  = list(event_kinds or DEFAULT_EVENT_KINDS)
-    severities   = ["mild", "moderate", "severe", "extreme"]
-    sev_weights  = [0.30, 0.40, 0.20, 0.10]
+    airports = list(airports or DEFAULT_AIRPORTS)
+    event_kinds = list(event_kinds or DEFAULT_EVENT_KINDS)
+    severities = ["mild", "moderate", "severe", "extreme"]
+    sev_weights = [0.30, 0.40, 0.20, 0.10]
 
     summaries: dict[str, AirportSummary] = {a: AirportSummary(airport=a) for a in airports}
     all_scenarios: list[ScenarioResult] = []
@@ -157,9 +170,9 @@ def run_stress_test(
     now = datetime.datetime.now(datetime.timezone.utc)
 
     for airport in airports:
-        affected_samples: list[int]   = []
-        pax_delay_samples: list[int]  = []
-        score_samples: list[float]    = []
+        affected_samples: list[int] = []
+        pax_delay_samples: list[int] = []
+        score_samples: list[float] = []
         kind_scores: dict[str, float] = {}
 
         for _ in range(iterations_per_airport):
@@ -167,11 +180,11 @@ def run_stress_test(
             severity = random.choices(severities, weights=sev_weights, k=1)[0]
             duration_min = random.randint(45, 240)
             event = {
-                "kind":     kind,
-                "type":     kind,
+                "kind": kind,
+                "type": kind,
                 "params": {
-                    "airport":      airport,
-                    "severity":     severity,
+                    "airport": airport,
+                    "severity": severity,
                     "duration_min": duration_min,
                 },
             }
@@ -183,18 +196,22 @@ def run_stress_test(
                 preds = {}
 
             direct = sum(1 for p in preds.values() if p.get("cascade_order") == 0)
-            casc1  = sum(1 for p in preds.values() if p.get("cascade_order") == 1)
-            casc2  = sum(1 for p in preds.values() if p.get("cascade_order") == 2)
+            casc1 = sum(1 for p in preds.values() if p.get("cascade_order") == 1)
+            casc2 = sum(1 for p in preds.values() if p.get("cascade_order") == 2)
             affected = direct + casc1 + casc2
-            total_delay = sum(p.get("expected_delay_min", 0) for p in preds.values() if p.get("cascade_order", -1) >= 0)
+            total_delay = sum(
+                p.get("expected_delay_min", 0)
+                for p in preds.values()
+                if p.get("cascade_order", -1) >= 0
+            )
 
             # Cancellation estimate: any flight with expected delay >= 4h
             # would likely be cancelled outright (same threshold the cost
             # calculator uses for plan A's break-even).
             cancelled = sum(
-                1 for p in preds.values()
-                if p.get("cascade_order", -1) >= 0
-                and p.get("expected_delay_min", 0) >= 240
+                1
+                for p in preds.values()
+                if p.get("cascade_order", -1) >= 0 and p.get("expected_delay_min", 0) >= 240
             )
 
             # Passenger-delay-minutes: assume avg pax = 150 for stress sim
@@ -227,13 +244,13 @@ def run_stress_test(
         s = summaries[airport]
         s.iterations = iterations_per_airport
         if affected_samples:
-            s.avg_affected      = sum(affected_samples) / len(affected_samples)
-            s.p95_affected      = int(_percentile([float(x) for x in affected_samples], 95))
+            s.avg_affected = sum(affected_samples) / len(affected_samples)
+            s.p95_affected = int(_percentile([float(x) for x in affected_samples], 95))
             s.avg_pax_delay_min = sum(pax_delay_samples) / len(pax_delay_samples)
             s.p95_pax_delay_min = int(_percentile([float(x) for x in pax_delay_samples], 95))
-            s.avg_score         = sum(score_samples) / len(score_samples)
-            s.p95_score         = _percentile(score_samples, 95)
-            s.worst_kind        = max(kind_scores.items(), key=lambda kv: kv[1])[0] if kind_scores else ""
+            s.avg_score = sum(score_samples) / len(score_samples)
+            s.p95_score = _percentile(score_samples, 95)
+            s.worst_kind = max(kind_scores.items(), key=lambda kv: kv[1])[0] if kind_scores else ""
 
     # Rank airports
     ranked = sorted(summaries.values(), key=lambda x: x.avg_score, reverse=True)
@@ -246,11 +263,11 @@ def run_stress_test(
 
     return {
         "iterations_per_airport": iterations_per_airport,
-        "total_scenarios":        len(all_scenarios),
-        "airports":               airports,
-        "event_kinds":            event_kinds,
-        "ranked":                 [s.to_dict() for s in ranked],
-        "heatmap":                heatmap,
-        "fleet_size":             len(aircraft),
-        "schedule_size":          len(flights),
+        "total_scenarios": len(all_scenarios),
+        "airports": airports,
+        "event_kinds": event_kinds,
+        "ranked": [s.to_dict() for s in ranked],
+        "heatmap": heatmap,
+        "fleet_size": len(aircraft),
+        "schedule_size": len(flights),
     }

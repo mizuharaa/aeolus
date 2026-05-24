@@ -14,8 +14,10 @@ DEFAULT_PARAMS = {
     "weather_closure": {"airport": "KORD", "severity": "severe", "duration_hours": 4},
     "ground_stop": {"airport": "KORD", "duration_hours": 3},
     "airspace_closure": {
-        "polygon": {"type": "Polygon", "coordinates": [[[44.0, 25.0], [63.0, 25.0], [63.0, 40.0], [44.0, 40.0], [44.0, 25.0]]]},
+        "polygon": {"type": "Polygon", "coordinates": [[[-85.0, 39.0], [-69.0, 39.0], [-69.0, 44.0], [-85.0, 44.0], [-85.0, 39.0]]]},
+        "airports": ["KJFK", "KBOS", "KDTW"],
         "duration_hours": 24,
+        "severity": "severe",
     },
     "security_event": {"airport": "KATL", "severity": "severe", "duration_hours": 3},
     "mechanical_aog": {"aircraft_tail": "N001NB", "airport": "KATL", "duration_hours": 8},

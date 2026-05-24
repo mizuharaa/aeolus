@@ -171,6 +171,80 @@ class OpenSkyClient:
         target = icao24.lower().strip()
         return next((f for f in flights if f["icao24"] == target), None)
 
+    async def get_route(self, icao24: str, hours_back: int = 36) -> Optional[dict]:
+        """
+        Resolve the most recent flight leg for an aircraft — including its
+        ICAO departure / arrival airports — via OpenSky's `/flights/aircraft`
+        endpoint.
+
+        The basic `/states/all` feed (used by `get_us_flights`) carries only
+        live position vectors, NOT route info. Operators looking up "AA123"
+        want to see WHERE the plane is going, not just its altitude. This
+        endpoint backs that drill-down by returning the most recent flight
+        leg (or `None` if the aircraft hasn't flown in `hours_back` hours).
+
+        Note: OpenSky's flights endpoint is a separate rate-limit budget
+        from states/all and can be slow (~1–3 s). Results are cached on
+        the client by callers (see routes/flights.py).
+
+        Response shape:
+            {
+              "icao24":           "abc123",
+              "callsign":         "AAL123  ",
+              "departure_icao":   "KLAX",
+              "arrival_icao":     "KJFK",
+              "departure_time":   1715632245,
+              "arrival_time":     1715648100,
+            }
+        """
+        target = icao24.lower().strip()
+        if not target:
+            return None
+        now = int(time.time())
+        begin = now - hours_back * 3600
+        params = {"icao24": target, "begin": begin, "end": now}
+        headers: dict = {}
+        token = await self._get_token()
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        try:
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                resp = await client.get(
+                    f"{OPENSKY_BASE}/flights/aircraft",
+                    params=params,
+                    headers=headers,
+                )
+                if resp.status_code == 404:
+                    # OpenSky returns 404 when there are no flights in the window
+                    return None
+                if resp.status_code in (401, 429):
+                    self._token = None
+                    self._token_expires = 0.0
+                    self._last_error = "flights_endpoint_rate_or_auth"
+                    return None
+                resp.raise_for_status()
+                rows = resp.json() or []
+        except httpx.TimeoutException:
+            self._last_error = "flights_route_timeout"
+            return None
+        except Exception as exc:
+            self._last_error = f"flights_route_error: {exc}"
+            logger.debug("OpenSky get_route(%s) failed: %s", icao24, exc)
+            return None
+
+        if not rows:
+            return None
+        # Pick the most recent leg (highest lastSeen).
+        leg = max(rows, key=lambda r: r.get("lastSeen", 0))
+        return {
+            "icao24":         (leg.get("icao24") or target).lower(),
+            "callsign":       (leg.get("callsign") or "").strip(),
+            "departure_icao": leg.get("estDepartureAirport"),
+            "arrival_icao":   leg.get("estArrivalAirport"),
+            "departure_time": leg.get("firstSeen"),
+            "arrival_time":   leg.get("lastSeen"),
+        }
+
     def status(self) -> dict:
         return {
             "cached_flights":  len(self._cache),

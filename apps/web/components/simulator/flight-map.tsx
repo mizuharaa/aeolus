@@ -207,7 +207,7 @@ function airportIcon(isHub: boolean, faa: FAAStatus | undefined, hasWx: boolean,
   const key = `ap|${isHub}|${fk}|${hasWx}|${isEvt}|${isSel}`
   return icon(key, () => {
     const r = isHub ? 9 : 6
-    let fill = isHub ? MAP_COLORS.airportHub : MAP_COLORS.airportNormal
+    let fill: string = isHub ? MAP_COLORS.airportHub : MAP_COLORS.airportNormal
     let ring = "", top = "", bot = ""
     if (faa?.type === "ground_stop") {
       fill = MAP_COLORS.groundStop

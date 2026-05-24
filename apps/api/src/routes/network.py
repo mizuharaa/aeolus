@@ -1,4 +1,5 @@
 """Network data endpoints."""
+
 from pathlib import Path
 
 import yaml
@@ -58,6 +59,7 @@ async def get_airport(airport_id: str):
         if ap["id"] == airport_id.upper():
             return ap
     from fastapi import HTTPException
+
     raise HTTPException(status_code=404, detail=f"Airport {airport_id} not found")
 
 
@@ -74,11 +76,14 @@ async def get_single_aircraft(tail: str):
         if ac["id"] == tail.upper():
             return ac
     from fastapi import HTTPException
+
     raise HTTPException(status_code=404, detail=f"Aircraft {tail} not found")
 
 
 @router.get("/flights")
-async def get_flights(status: str | None = None, origin: str | None = None, destination: str | None = None):
+async def get_flights(
+    status: str | None = None, origin: str | None = None, destination: str | None = None
+):
     data = _load_yaml("flights.yaml")
     flights = data.get("flights", [])
     if status:
@@ -97,6 +102,7 @@ async def get_flight(flight_id: str):
         if f["id"] == flight_id.upper():
             return f
     from fastapi import HTTPException
+
     raise HTTPException(status_code=404, detail=f"Flight {flight_id} not found")
 
 
@@ -138,6 +144,7 @@ async def post_stress_test(payload: StressTestRequest, request: Request):
     predictor = getattr(request.app.state, "predictor", None)
     if predictor is None:
         from fastapi import HTTPException
+
         raise HTTPException(status_code=503, detail="Cascade predictor not initialised")
 
     flights = _load_yaml("flights.yaml").get("flights", [])

@@ -1,71 +1,18 @@
 # =============================================================================
 # Aeolus — Airline Disruption Simulation & Recovery Engine
 # Docker Compose — Full Stack
+#
+# Aeolus is a deterministic in-memory simulator: the API loads the Nimbus Air
+# network from YAML on startup and holds all state in process. There is no
+# database, cache, queue, or auth tier to provision — just the API and the web
+# frontend. (Live data is pulled over HTTPS from OpenSky / NWS / FAA at runtime.)
 # =============================================================================
 
 networks:
   aeolus-net:
     driver: bridge
 
-volumes:
-  postgres_data:
-    driver: local
-  redis_data:
-    driver: local
-
 services:
-
-  # ---------------------------------------------------------------------------
-  # PostgreSQL 16 with TimescaleDB (High-Availability image)
-  # ---------------------------------------------------------------------------
-  postgres:
-    image: timescale/timescaledb:latest-pg16
-    container_name: aeolus-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: aeolus
-      POSTGRES_PASSWORD: aeolus
-      POSTGRES_DB: aeolus
-      PGDATA: /var/lib/postgresql/data/pgdata
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./infra/db/init.sql:/docker-entrypoint-initdb.d/00_init.sql:ro
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U aeolus -d aeolus"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-    networks:
-      - aeolus-net
-
-  # ---------------------------------------------------------------------------
-  # Redis 7 (Alpine) — cache, pub/sub, and stream backend
-  # ---------------------------------------------------------------------------
-  redis:
-    image: redis:7-alpine
-    container_name: aeolus-redis
-    restart: unless-stopped
-    command: >
-      redis-server
-      --appendonly yes
-      --appendfsync everysec
-      --maxmemory 512mb
-      --maxmemory-policy allkeys-lru
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
-      start_period: 10s
-    networks:
-      - aeolus-net
 
   # ---------------------------------------------------------------------------
   # Aeolus API — FastAPI / Python backend
@@ -78,43 +25,23 @@ services:
     container_name: aeolus-api
     restart: unless-stopped
     environment:
-      # Database
-      DATABASE_URL: postgresql+asyncpg://aeolus:aeolus@postgres:5432/aeolus
-      DATABASE_URL_SYNC: postgresql://aeolus:aeolus@postgres:5432/aeolus
-      # Redis / Streaming
-      REDIS_URL: redis://redis:6379/0
-      STREAM_BACKEND: redis_streams
-      KAFKA_BOOTSTRAP_SERVERS: ""
-      # Auth
-      JWT_SECRET: ${JWT_SECRET:-change-me-in-production-please}
-      COGNITO_USER_POOL_ID: ${COGNITO_USER_POOL_ID:-}
-      COGNITO_CLIENT_ID: ${COGNITO_CLIENT_ID:-}
-      # AWS
-      AWS_REGION: ${AWS_REGION:-us-east-1}
-      S3_BUCKET: ${S3_BUCKET:-aeolus-artifacts}
-      S3_MODEL_PREFIX: ${S3_MODEL_PREFIX:-models/}
-      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
-      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
-      # OpenSky Network (optional — anonymous if blank)
-      OPENSKY_USERNAME: ${OPENSKY_USERNAME:-}
-      OPENSKY_PASSWORD: ${OPENSKY_PASSWORD:-}
-      # Weather
-      WEATHER_FETCH_INTERVAL_SECS: ${WEATHER_FETCH_INTERVAL_SECS:-300}
-      # Optimizer
-      SOLVER_TIMEOUT_SECS: ${SOLVER_TIMEOUT_SECS:-30}
-      USE_HEURISTIC_FALLBACK: ${USE_HEURISTIC_FALLBACK:-true}
       # App
       APP_ENV: ${APP_ENV:-development}
       DEBUG: ${DEBUG:-false}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      # Optimizer
+      SOLVER_TIMEOUT_SECS: ${SOLVER_TIMEOUT_SECS:-30}
+      USE_HEURISTIC_FALLBACK: ${USE_HEURISTIC_FALLBACK:-true}
+      # Weather
+      WEATHER_FETCH_INTERVAL_SECS: ${WEATHER_FETCH_INTERVAL_SECS:-300}
+      # OpenSky Network (optional — anonymous if blank)
+      OPENSKY_CLIENT_ID: ${OPENSKY_CLIENT_ID:-}
+      OPENSKY_CLIENT_SECRET: ${OPENSKY_CLIENT_SECRET:-}
+      OPENSKY_USERNAME: ${OPENSKY_USERNAME:-}
+      OPENSKY_PASSWORD: ${OPENSKY_PASSWORD:-}
     ports:
       - "8000:8000"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
       interval: 15s
