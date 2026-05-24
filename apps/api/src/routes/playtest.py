@@ -11,6 +11,7 @@ Nothing is persisted server-side. Each request is self-contained — the
 browser owns the truth. This makes playtest demos repeatable and means we
 can scale the route to a stateless edge worker later without rework.
 """
+
 from __future__ import annotations
 
 import datetime
@@ -31,45 +32,49 @@ _calc = AirlineDelayCalculator()
 
 # ── Wire shapes ──────────────────────────────────────────────────────────────
 
+
 class PlaytestFlight(BaseModel):
     """A single user-built flight. Mirrors the canonical ScheduledFlight
     shape but every field is required so the predictor has clean inputs."""
-    id:                  str
-    aircraft_id:         str
-    origin:              str   # ICAO, e.g. "KORD"
-    destination:         str
-    scheduled_departure: str   # ISO-8601
-    scheduled_arrival:   str   # ISO-8601
-    passengers:          int = 150
-    status:              str = "scheduled"
+
+    id: str
+    aircraft_id: str
+    origin: str  # ICAO, e.g. "KORD"
+    destination: str
+    scheduled_departure: str  # ISO-8601
+    scheduled_arrival: str  # ISO-8601
+    passengers: int = 150
+    status: str = "scheduled"
 
     # The predictor reads `delay_minutes` to seed propagation from upstream
     # legs. Defaulting to 0 keeps the sandbox clean unless the user is
     # explicitly modelling a delayed inbound.
-    delay_minutes:       int = 0
+    delay_minutes: int = 0
 
 
 class PlaytestAircraft(BaseModel):
-    id:                str
-    type:              str = "B737-800"
-    seats:             int = 162
-    base_airport_id:   str = "KORD"
-    min_turn_minutes:  int = 45
+    id: str
+    type: str = "B737-800"
+    seats: int = 162
+    base_airport_id: str = "KORD"
+    min_turn_minutes: int = 45
 
 
 class PlaytestEvent(BaseModel):
     """Optional disruption event injected over the user's flight set."""
-    kind:     str
-    params:   dict = Field(default_factory=dict)
+
+    kind: str
+    params: dict = Field(default_factory=dict)
 
 
 class PlaytestRequest(BaseModel):
-    flights:   list[PlaytestFlight]
-    aircraft:  list[PlaytestAircraft] = Field(default_factory=list)
-    event:     Optional[PlaytestEvent] = None
+    flights: list[PlaytestFlight]
+    aircraft: list[PlaytestAircraft] = Field(default_factory=list)
+    event: Optional[PlaytestEvent] = None
 
 
 # ── Endpoint ─────────────────────────────────────────────────────────────────
+
 
 @router.post("/playtest/cascade")
 async def post_playtest_cascade(payload: PlaytestRequest, request: Request):
@@ -83,16 +88,18 @@ async def post_playtest_cascade(payload: PlaytestRequest, request: Request):
     The browser owns the truth.
     """
     predictor = getattr(request.app.state, "predictor", None)
-    weather   = getattr(request.app.state, "weather", None)
+    weather = getattr(request.app.state, "weather", None)
     if predictor is None:
         raise HTTPException(status_code=503, detail="Cascade predictor not initialised")
 
     if not payload.flights:
         raise HTTPException(status_code=400, detail="Need at least one flight in the playtest set.")
 
-    flights  = [f.model_dump() for f in payload.flights]
-    aircraft = [a.model_dump() for a in payload.aircraft] if payload.aircraft else _infer_aircraft(flights)
-    event    = payload.event.model_dump() if payload.event else {}
+    flights = [f.model_dump() for f in payload.flights]
+    aircraft = (
+        [a.model_dump() for a in payload.aircraft] if payload.aircraft else _infer_aircraft(flights)
+    )
+    event = payload.event.model_dump() if payload.event else {}
 
     metar_data = weather.get_all_cached() if weather else {}
     now = datetime.datetime.now(datetime.timezone.utc)
@@ -109,15 +116,15 @@ async def post_playtest_cascade(payload: PlaytestRequest, request: Request):
     # calculator and carbon ledger can score the playtest set the same way
     # they score a real solve.
     cancelled = [fid for fid, p in predictions.items() if p.get("cancelled")]
-    delayed   = [
+    delayed = [
         {"flight_id": fid, "delay_minutes": int(p.get("delay_minutes", 0) or 0)}
         for fid, p in predictions.items()
         if not p.get("cancelled") and int(p.get("delay_minutes", 0) or 0) > 0
     ]
 
-    flights_map     = {f["id"]: f for f in flights}
-    ac_by_id        = {a["id"]: a.get("type", "") for a in aircraft}
-    ac_type_map     = {f["id"]: ac_by_id.get(f.get("aircraft_id", ""), "") for f in flights}
+    flights_map = {f["id"]: f for f in flights}
+    ac_by_id = {a["id"]: a.get("type", "") for a in aircraft}
+    ac_type_map = {f["id"]: ac_by_id.get(f.get("aircraft_id", ""), "") for f in flights}
 
     event_kind = (payload.event.kind if payload.event else "") or ""
     cost = _calc.portfolio_cost(
@@ -136,17 +143,18 @@ async def post_playtest_cascade(payload: PlaytestRequest, request: Request):
     )
 
     return {
-        "flight_states":   _flight_states(flights, predictions),
+        "flight_states": _flight_states(flights, predictions),
         "cascade_summary": summary,
-        "predictions":     predictions,
-        "cost":            cost,
-        "carbon":          carbon,
-        "event":           event or None,
-        "flight_count":    len(flights),
+        "predictions": predictions,
+        "cost": cost,
+        "carbon": carbon,
+        "event": event or None,
+        "flight_count": len(flights),
     }
 
 
 # ── Internals ────────────────────────────────────────────────────────────────
+
 
 def _infer_aircraft(flights: list[dict]) -> list[dict]:
     """If the client didn't supply an aircraft roster, fabricate one from
@@ -158,10 +166,10 @@ def _infer_aircraft(flights: list[dict]) -> list[dict]:
         if not aid or aid in seen:
             continue
         seen[aid] = {
-            "id":               aid,
-            "type":             "B737-800",
-            "seats":            162,
-            "base_airport_id":  f.get("origin", "KORD"),
+            "id": aid,
+            "type": "B737-800",
+            "seats": 162,
+            "base_airport_id": f.get("origin", "KORD"),
             "min_turn_minutes": 45,
         }
     return list(seen.values())
@@ -170,16 +178,16 @@ def _infer_aircraft(flights: list[dict]) -> list[dict]:
 def _summary(predictions: dict[str, dict]) -> dict:
     """Bucket predictions by cascade order — mirrors engine._compute_cascade_summary."""
     direct = sum(1 for p in predictions.values() if p.get("cascade_order") == 0)
-    o1     = sum(1 for p in predictions.values() if p.get("cascade_order") == 1)
-    o2     = sum(1 for p in predictions.values() if p.get("cascade_order") == 2)
-    total  = sum(1 for p in predictions.values() if (p.get("cascade_order") or -1) >= 0)
+    o1 = sum(1 for p in predictions.values() if p.get("cascade_order") == 1)
+    o2 = sum(1 for p in predictions.values() if p.get("cascade_order") == 2)
+    total = sum(1 for p in predictions.values() if (p.get("cascade_order") or -1) >= 0)
     total_delay = sum(int(p.get("delay_minutes", 0) or 0) for p in predictions.values())
     return {
-        "directly_affected":     direct,
-        "cascade_1":             o1,
-        "cascade_2":             o2,
-        "total_affected":        total,
-        "total_delay_minutes":   total_delay,
+        "directly_affected": direct,
+        "cascade_1": o1,
+        "cascade_2": o2,
+        "total_affected": total,
+        "total_delay_minutes": total_delay,
     }
 
 
@@ -190,18 +198,18 @@ def _flight_states(flights: list[dict], predictions: dict[str, dict]) -> dict[st
     out: dict[str, dict] = {}
     for f in flights:
         fid = f["id"]
-        p   = predictions.get(fid, {})
+        p = predictions.get(fid, {})
         cascade = p.get("cascade_order", -1)
-        delay   = int(p.get("delay_minutes", 0) or 0)
+        delay = int(p.get("delay_minutes", 0) or 0)
         cancelled = bool(p.get("cancelled"))
         out[fid] = {
-            "flight_id":     fid,
-            "status":        "cancelled" if cancelled else "delayed" if delay > 0 else "scheduled",
+            "flight_id": fid,
+            "status": "cancelled" if cancelled else "delayed" if delay > 0 else "scheduled",
             "delay_minutes": delay,
             "cascade_order": cascade if cascade is not None else -1,
-            "p_delayed":     float(p.get("p_delayed", 0.0) or 0.0),
-            "tail":          f.get("aircraft_id", ""),
-            "origin":        f.get("origin", ""),
-            "destination":   f.get("destination", ""),
+            "p_delayed": float(p.get("p_delayed", 0.0) or 0.0),
+            "tail": f.get("aircraft_id", ""),
+            "origin": f.get("origin", ""),
+            "destination": f.get("destination", ""),
         }
     return out

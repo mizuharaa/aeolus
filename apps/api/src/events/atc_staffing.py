@@ -2,6 +2,7 @@
 ATC (Air Traffic Control) staffing shortage disruption event.
 Models TRACON/ARTCC understaffing that reduces sector throughput.
 """
+
 from datetime import timedelta
 
 from src.events.base import DisruptionEvent, EventKind
@@ -31,16 +32,16 @@ FACILITY_TYPES = {
 
 # Major US ARTCC facilities and their primary airports
 ARTCC_AIRPORTS = {
-    "ZAU": ["KORD", "KMKE", "KRFD"],        # Chicago
-    "ZTL": ["KATL", "KBNA", "KCLT"],        # Atlanta
-    "ZFW": ["KDFW", "KAUS", "KSAT"],        # Fort Worth
-    "ZLA": ["KLAX", "KLAS", "KSAN"],        # Los Angeles
-    "ZDV": ["KDEN", "KCOS"],                 # Denver
-    "ZNY": ["KJFK", "KEWR", "KLGA"],        # New York
-    "ZSE": ["KSEA", "KPDX"],                # Seattle
-    "ZMA": ["KMIA", "KFLL", "KTPA"],        # Miami
-    "ZAB": ["KPHX", "KTUS", "KALB"],        # Albuquerque
-    "ZMP": ["KMSP", "KDTW", "KDSM"],        # Minneapolis
+    "ZAU": ["KORD", "KMKE", "KRFD"],  # Chicago
+    "ZTL": ["KATL", "KBNA", "KCLT"],  # Atlanta
+    "ZFW": ["KDFW", "KAUS", "KSAT"],  # Fort Worth
+    "ZLA": ["KLAX", "KLAS", "KSAN"],  # Los Angeles
+    "ZDV": ["KDEN", "KCOS"],  # Denver
+    "ZNY": ["KJFK", "KEWR", "KLGA"],  # New York
+    "ZSE": ["KSEA", "KPDX"],  # Seattle
+    "ZMA": ["KMIA", "KFLL", "KTPA"],  # Miami
+    "ZAB": ["KPHX", "KTUS", "KALB"],  # Albuquerque
+    "ZMP": ["KMSP", "KDTW", "KDSM"],  # Minneapolis
 }
 
 
@@ -130,8 +131,7 @@ class ATCStaffingEvent(DisruptionEvent):
         """
         facility_id = self.params.get("facility_id", "")
         affected_airports = set(
-            self.params.get("affected_airports", [])
-            or ARTCC_AIRPORTS.get(facility_id, [])
+            self.params.get("affected_airports", []) or ARTCC_AIRPORTS.get(facility_id, [])
         )
         start, end = self.event_window()
         affected = []
@@ -149,9 +149,8 @@ class ATCStaffingEvent(DisruptionEvent):
     def constraints(self) -> list[dict]:
         facility_id = self.params.get("facility_id", "")
         facility_type = self.params.get("facility_type", "artcc")
-        affected_airports = (
-            self.params.get("affected_airports", [])
-            or ARTCC_AIRPORTS.get(facility_id, [])
+        affected_airports = self.params.get("affected_airports", []) or ARTCC_AIRPORTS.get(
+            facility_id, []
         )
         avg_delay = self.params.get("average_delay_minutes", 30)
         staffing_pct = self.params.get("staffing_pct", 60)

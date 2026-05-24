@@ -1,6 +1,7 @@
 """
 Base classes for all Aeolus disruption events.
 """
+
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
@@ -143,7 +144,5 @@ class DisruptionEvent(BaseModel):
         if airport is None:
             return overlaps_time
 
-        touches_airport = (
-            flight.get("origin") == airport or flight.get("destination") == airport
-        )
+        touches_airport = flight.get("origin") == airport or flight.get("destination") == airport
         return overlaps_time and touches_airport

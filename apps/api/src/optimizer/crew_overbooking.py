@@ -16,6 +16,7 @@ Returns a CrewOverbookingResult with:
   - compensation_obligations: per-flight DOT 261 / goodwill obligations
   - coverage_pct, pax_covered, pax_uncovered
 """
+
 from __future__ import annotations
 
 import logging
@@ -29,7 +30,7 @@ from src.crew.far117 import CrewLegalityEngine
 
 logger = logging.getLogger(__name__)
 
-CPSAT_TIMEOUT = 10   # seconds
+CPSAT_TIMEOUT = 10  # seconds
 MIN_CERT_MATCH = True  # enforce aircraft type certification
 
 # Events where the airline is legally at fault → full DOT 261 obligations
@@ -37,58 +38,62 @@ AIRLINE_FAULT_EVENTS = {"crew_sickout", "mechanical_aog", "cyber_incident"}
 
 # Events treated as force majeure → goodwill-only
 FORCE_MAJEURE_EVENTS = {
-    "weather_closure", "ground_stop", "airspace_closure",
-    "security_event", "volcanic_ash", "atc_staffing",
+    "weather_closure",
+    "ground_stop",
+    "airspace_closure",
+    "security_event",
+    "volcanic_ash",
+    "atc_staffing",
     "runway_closure",
 }
 
 
 @dataclass
 class CrewAssignment:
-    flight_id:   str
-    captain_id:  str
+    flight_id: str
+    captain_id: str
     captain_name: str
-    fo_id:       str
-    fo_name:     str
-    is_reassigned: bool   # True if different crew from original pairing
-    far117_legal:  bool
-    violations:    list[str] = field(default_factory=list)
+    fo_id: str
+    fo_name: str
+    is_reassigned: bool  # True if different crew from original pairing
+    far117_legal: bool
+    violations: list[str] = field(default_factory=list)
 
 
 @dataclass
 class CompensationObligation:
-    flight_id:      str
-    event_kind:     str
+    flight_id: str
+    event_kind: str
     is_airline_fault: bool
-    delay_minutes:  int
-    is_cancelled:   bool
-    pax:            int
+    delay_minutes: int
+    is_cancelled: bool
+    pax: int
 
-    meal_voucher_usd: float        = 0.0
-    hotel_required:   bool         = False
-    travel_credit_usd: float       = 0.0
-    dot261_cash_usd:   float       = 0.0
-    rebooking:        str          = "none"   # "required" | "goodwill_no_fee" | "none"
-    legal_basis:      str          = ""
-    notes:            list[str]    = field(default_factory=list)
+    meal_voucher_usd: float = 0.0
+    hotel_required: bool = False
+    travel_credit_usd: float = 0.0
+    dot261_cash_usd: float = 0.0
+    rebooking: str = "none"  # "required" | "goodwill_no_fee" | "none"
+    legal_basis: str = ""
+    notes: list[str] = field(default_factory=list)
 
 
 @dataclass
 class CrewOverbookingResult:
-    solved:             bool
-    solve_time_ms:      int
-    solver_status:      str     # "optimal" | "feasible" | "heuristic" | "infeasible"
+    solved: bool
+    solve_time_ms: int
+    solver_status: str  # "optimal" | "feasible" | "heuristic" | "infeasible"
 
     total_open_flights: int
-    total_covered:      int
-    total_uncovered:    int
-    coverage_pct:       float
+    total_covered: int
+    total_uncovered: int
+    coverage_pct: float
 
-    pax_covered:        int
-    pax_uncovered:      int
+    pax_covered: int
+    pax_uncovered: int
 
-    covered_assignments:   list[CrewAssignment]
-    uncovered_flights:     list[str]
+    covered_assignments: list[CrewAssignment]
+    uncovered_flights: list[str]
     cancelled_recommended: list[str]
 
     compensation_obligations: list[CompensationObligation]
@@ -96,6 +101,7 @@ class CrewOverbookingResult:
 
     def to_dict(self) -> dict:
         from dataclasses import asdict
+
         return asdict(self)
 
 
@@ -109,13 +115,13 @@ class CrewOverbookingOptimizer:
 
     def solve(
         self,
-        open_flights:        list[dict],   # flights missing crew
-        crew_members:        list[dict],   # all crew_members from YAML
-        existing_pairings:   list[dict],   # all crew_pairings from YAML
-        available_crew_ids:  set[str],     # crew IDs that are NOT on sickout/unavailable
-        event_kind:          str,
-        disrupted_flight_ids: list[str],   # flights impacted by the disruption
-        predictions:         dict[str, dict],
+        open_flights: list[dict],  # flights missing crew
+        crew_members: list[dict],  # all crew_members from YAML
+        existing_pairings: list[dict],  # all crew_pairings from YAML
+        available_crew_ids: set[str],  # crew IDs that are NOT on sickout/unavailable
+        event_kind: str,
+        disrupted_flight_ids: list[str],  # flights impacted by the disruption
+        predictions: dict[str, dict],
     ) -> CrewOverbookingResult:
         t0 = time.monotonic()
 
@@ -127,21 +133,21 @@ class CrewOverbookingOptimizer:
 
         # Captains available for reassignment
         available_captains = [
-            c for c in crew_members
-            if c["id"] in available_crew_ids and c.get("role") == "captain"
+            c for c in crew_members if c["id"] in available_crew_ids and c.get("role") == "captain"
         ]
         available_fos = [
-            c for c in crew_members
+            c
+            for c in crew_members
             if c["id"] in available_crew_ids and c.get("role") == "first_officer"
         ]
 
         # Pre-compute legal (flight, captain) pairs
         legal_pairs: dict[tuple[str, str], bool] = {}
         for flight in open_flights:
-            fid       = flight["id"]
-            ac_type   = flight.get("aircraft_type", "B737-800")
-            dep_str   = flight.get("scheduled_departure", "")
-            arr_str   = flight.get("scheduled_arrival", "")
+            fid = flight["id"]
+            ac_type = flight.get("aircraft_type", "B737-800")
+            dep_str = flight.get("scheduled_departure", "")
+            arr_str = flight.get("scheduled_arrival", "")
 
             try:
                 dep = datetime.fromisoformat(dep_str.replace("Z", "+00:00"))
@@ -170,14 +176,14 @@ class CrewOverbookingOptimizer:
                     legal_pairs[(fid, cap["id"])] = False
 
         # ── CP-SAT model ──────────────────────────────────────────────────────
-        model  = cp_model.CpModel()
+        model = cp_model.CpModel()
         solver = cp_model.CpSolver()
         solver.parameters.max_time_in_seconds = CPSAT_TIMEOUT
-        solver.parameters.num_search_workers  = 4
+        solver.parameters.num_search_workers = 4
         solver.parameters.log_search_progress = False
 
         flight_ids = [f["id"] for f in open_flights]
-        cap_ids    = [c["id"] for c in available_captains]
+        cap_ids = [c["id"] for c in available_captains]
 
         # assign[fid][cid] = 1 → captain cid covers flight fid
         assign: dict[str, dict[str, cp_model.IntVar]] = {}
@@ -214,47 +220,54 @@ class CrewOverbookingOptimizer:
         status_code = solver.solve(model)
         solved = status_code in (cp_model.OPTIMAL, cp_model.FEASIBLE)
         solver_status = (
-            "optimal"   if status_code == cp_model.OPTIMAL   else
-            "feasible"  if status_code == cp_model.FEASIBLE  else
-            "infeasible"
+            "optimal"
+            if status_code == cp_model.OPTIMAL
+            else "feasible"
+            if status_code == cp_model.FEASIBLE
+            else "infeasible"
         )
 
         # ── Extract assignments ────────────────────────────────────────────────
         covered_assignments: list[CrewAssignment] = []
-        uncovered_flights:   list[str]            = []
+        uncovered_flights: list[str] = []
 
         if solved:
             for fid in flight_ids:
                 if solver.value(covered[fid]) == 1:
                     # Find which captain was assigned
                     assigned_cap_id = next(
-                        (cid for cid in cap_ids
-                         if cid in assign.get(fid, {}) and solver.value(assign[fid][cid]) == 1),
+                        (
+                            cid
+                            for cid in cap_ids
+                            if cid in assign.get(fid, {}) and solver.value(assign[fid][cid]) == 1
+                        ),
                         None,
                     )
                     if assigned_cap_id:
                         cap_info = crew_by_id.get(assigned_cap_id, {})
                         # Pick any available FO (simplified)
-                        fo_info  = available_fos[0] if available_fos else {}
+                        fo_info = available_fos[0] if available_fos else {}
 
                         # Determine if this is a reassignment
                         original_pairing = next(
                             (p for p in existing_pairings if p.get("flight_id") == fid), None
                         )
                         is_reassigned = (
-                            original_pairing is None or
-                            original_pairing.get("captain_id") != assigned_cap_id
+                            original_pairing is None
+                            or original_pairing.get("captain_id") != assigned_cap_id
                         )
 
-                        covered_assignments.append(CrewAssignment(
-                            flight_id=fid,
-                            captain_id=assigned_cap_id,
-                            captain_name=cap_info.get("name", assigned_cap_id),
-                            fo_id=fo_info.get("id", ""),
-                            fo_name=fo_info.get("name", ""),
-                            is_reassigned=is_reassigned,
-                            far117_legal=True,
-                        ))
+                        covered_assignments.append(
+                            CrewAssignment(
+                                flight_id=fid,
+                                captain_id=assigned_cap_id,
+                                captain_name=cap_info.get("name", assigned_cap_id),
+                                fo_id=fo_info.get("id", ""),
+                                fo_name=fo_info.get("name", ""),
+                                is_reassigned=is_reassigned,
+                                far117_legal=True,
+                            )
+                        )
                 else:
                     uncovered_flights.append(fid)
         else:
@@ -262,7 +275,8 @@ class CrewOverbookingOptimizer:
 
         # Flights with no legal captain at all → recommended cancellation
         cancelled_recommended = [
-            fid for fid in uncovered_flights
+            fid
+            for fid in uncovered_flights
             if not any(legal_pairs.get((fid, cid), False) for cid in cap_ids)
         ]
 
@@ -271,14 +285,11 @@ class CrewOverbookingOptimizer:
             open_flights, uncovered_flights, predictions, event_kind
         )
 
-        pax_covered   = sum(pax_map[a.flight_id] for a in covered_assignments)
+        pax_covered = sum(pax_map[a.flight_id] for a in covered_assignments)
         pax_uncovered = sum(pax_map[fid] for fid in uncovered_flights)
-        coverage_pct  = (
-            100.0 * len(covered_assignments) / len(flight_ids)
-            if flight_ids else 100.0
-        )
+        coverage_pct = 100.0 * len(covered_assignments) / len(flight_ids) if flight_ids else 100.0
 
-        n_cov   = len(covered_assignments)
+        n_cov = len(covered_assignments)
         n_uncov = len(uncovered_flights)
         summary = (
             f"{n_cov}/{len(flight_ids)} flights staffed "
@@ -308,19 +319,19 @@ class CrewOverbookingOptimizer:
 
     def _compute_compensation(
         self,
-        open_flights:     list[dict],
-        uncovered_ids:    list[str],
-        predictions:      dict[str, dict],
-        event_kind:       str,
+        open_flights: list[dict],
+        uncovered_ids: list[str],
+        predictions: dict[str, dict],
+        event_kind: str,
     ) -> list[CompensationObligation]:
         is_airline_fault = event_kind in AIRLINE_FAULT_EVENTS
         obligations: list[CompensationObligation] = []
 
         for flight in open_flights:
-            fid  = flight["id"]
-            pax  = max(1, flight.get("passengers", 150))
+            fid = flight["id"]
+            pax = max(1, flight.get("passengers", 150))
             pred = predictions.get(fid, {})
-            delay_min   = max(0, int(pred.get("expected_delay_min", 60)))
+            delay_min = max(0, int(pred.get("expected_delay_min", 60)))
             is_cancelled = fid in uncovered_ids
 
             ob = CompensationObligation(
@@ -334,7 +345,7 @@ class CrewOverbookingOptimizer:
 
             if is_airline_fault:
                 ob.legal_basis = "14 CFR §250 / DOT Enforcement Policy"
-                ob.rebooking   = "required"
+                ob.rebooking = "required"
 
                 if delay_min >= 120:
                     ob.meal_voucher_usd = 15.0
@@ -356,7 +367,7 @@ class CrewOverbookingOptimizer:
 
             else:
                 ob.legal_basis = "Force majeure — no DOT-mandated compensation"
-                ob.rebooking   = "goodwill_no_fee"
+                ob.rebooking = "goodwill_no_fee"
 
                 if delay_min >= 180:
                     ob.meal_voucher_usd = 10.0
@@ -376,22 +387,31 @@ class CrewOverbookingOptimizer:
 
     def _build_crew_snapshot(self, cap: dict, report_time: datetime) -> dict:
         return {
-            "id":                         cap["id"],
-            "role":                       "captain",
-            "current_fdp_start":          report_time,
+            "id": cap["id"],
+            "role": "captain",
+            "current_fdp_start": report_time,
             "current_fdp_flight_minutes": 0,
-            "last_rest_end":              report_time - timedelta(hours=11),
-            "flight_time_7d_minutes":     int(cap.get("flight_hours_7d", 0) * 60),
-            "flight_time_28d_minutes":    int(cap.get("flight_hours_28d", 0) * 60),
-            "flight_time_365d_minutes":   int(cap.get("flight_hours_365d", 0) * 60),
+            "last_rest_end": report_time - timedelta(hours=11),
+            "flight_time_7d_minutes": int(cap.get("flight_hours_7d", 0) * 60),
+            "flight_time_28d_minutes": int(cap.get("flight_hours_28d", 0) * 60),
+            "flight_time_365d_minutes": int(cap.get("flight_hours_365d", 0) * 60),
             "home_timezone_offset_hours": 0,
         }
 
     def _empty_result(self, ms: int) -> CrewOverbookingResult:
         return CrewOverbookingResult(
-            solved=True, solve_time_ms=ms, solver_status="optimal",
-            total_open_flights=0, total_covered=0, total_uncovered=0,
-            coverage_pct=100.0, pax_covered=0, pax_uncovered=0,
-            covered_assignments=[], uncovered_flights=[], cancelled_recommended=[],
-            compensation_obligations=[], summary="No open flights requiring crew reassignment",
+            solved=True,
+            solve_time_ms=ms,
+            solver_status="optimal",
+            total_open_flights=0,
+            total_covered=0,
+            total_uncovered=0,
+            coverage_pct=100.0,
+            pax_covered=0,
+            pax_uncovered=0,
+            covered_assignments=[],
+            uncovered_flights=[],
+            cancelled_recommended=[],
+            compensation_obligations=[],
+            summary="No open flights requiring crew reassignment",
         )

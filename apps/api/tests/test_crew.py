@@ -1,4 +1,5 @@
 """Tests for FAR Part 117 crew legality engine."""
+
 from datetime import datetime, timedelta
 
 import pytest
@@ -150,7 +151,11 @@ class TestWOCL:
         crew = _crew(duty_start_hour=8)
         pairing = _pairing(dep_hour=10, duration_min=120)
         result = engine.validate(crew, pairing)
-        wocl_warnings = [w for w in result.warnings if "wocl" in w.lower() or "0200" in w or "window" in w.lower()]
+        wocl_warnings = [
+            w
+            for w in result.warnings
+            if "wocl" in w.lower() or "0200" in w or "window" in w.lower()
+        ]
         assert len(wocl_warnings) == 0
 
 

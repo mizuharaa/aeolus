@@ -2,6 +2,7 @@
 Volcanic ash cloud disruption event.
 Models eruption-driven airspace closures affecting large regions.
 """
+
 import math
 from datetime import timedelta
 

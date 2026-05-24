@@ -2,6 +2,7 @@
 Aircraft-on-Ground (AOG) mechanical disruption event.
 A specific tail number is grounded for maintenance.
 """
+
 from datetime import timedelta
 
 from src.events.base import DisruptionEvent, EventKind
@@ -131,9 +132,7 @@ class MechanicalAOGEvent(DisruptionEvent):
         aog_end_time = self.triggered_at + aog_duration
 
         affected = []
-        aog_end_naive = (
-            aog_end_time.replace(tzinfo=None) if aog_end_time.tzinfo else aog_end_time
-        )
+        aog_end_naive = aog_end_time.replace(tzinfo=None) if aog_end_time.tzinfo else aog_end_time
         for flight in schedule:
             if flight.get("aircraft_id") == tail:
                 # Check if flight is scheduled during or after AOG period

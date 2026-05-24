@@ -1,4 +1,5 @@
 """WebSocket handler for real-time simulation updates."""
+
 import json
 import logging
 
@@ -27,10 +28,10 @@ def _snapshot_payload(engine, msg_type: str) -> dict:
     even after a real event had been triggered.
     """
     payload: dict = {
-        "type":            msg_type,
-        "flight_states":   engine.state.flight_states,
-        "active_events":   engine.state.active_events,
-        "recovery_plans":  engine.state.recovery_plans,
+        "type": msg_type,
+        "flight_states": engine.state.flight_states,
+        "active_events": engine.state.active_events,
+        "recovery_plans": engine.state.recovery_plans,
         "cascade_summary": engine.state.cascade_summary,
         # Included so a fresh tab landing on /simulator/plans (or any
         # secondary surface) knows which plan letter the operator already
@@ -75,11 +76,15 @@ async def simulation_ws_handler(websocket: WebSocket, engine) -> None:
             elif msg_type == "subscribe_flight":
                 flight_id = msg.get("flight_id")
                 state = engine.state.flight_states.get(flight_id, {})
-                await websocket.send_text(json.dumps({
-                    "type": "flight_state",
-                    "flight_id": flight_id,
-                    "state": state,
-                }))
+                await websocket.send_text(
+                    json.dumps(
+                        {
+                            "type": "flight_state",
+                            "flight_id": flight_id,
+                            "state": state,
+                        }
+                    )
+                )
 
             elif msg_type == "get_state":
                 # Re-uses the same canonical snapshot builder. Clients that

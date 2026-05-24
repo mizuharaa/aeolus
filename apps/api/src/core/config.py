@@ -25,6 +25,7 @@ class Settings(BaseSettings):
         raw = self.cors_origins_raw.strip()
         if raw.startswith("["):
             import json
+
             try:
                 value = json.loads(raw)
                 if isinstance(value, list):
@@ -69,7 +70,7 @@ class Settings(BaseSettings):
     # OpenSky Network — OAuth2 client credentials (preferred)
     # Create API client at https://opensky-network.org/my-opensky
     # Gives 5-second ADS-B resolution vs 10-second anonymous
-    opensky_client_id:     str = ""
+    opensky_client_id: str = ""
     opensky_client_secret: str = ""
     # Legacy basic-auth (kept for fallback, OAuth2 takes priority)
     opensky_username: str = ""

@@ -2,6 +2,7 @@
 Weather closure disruption event.
 Covers thunderstorms, blizzards, fog banks, and other meteorological closures.
 """
+
 from datetime import timedelta
 
 from src.events.base import DisruptionEvent, EventKind

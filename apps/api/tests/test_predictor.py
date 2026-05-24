@@ -9,6 +9,7 @@ Tests cover:
 - Output schema validation
 - Summarize helper
 """
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -68,15 +69,18 @@ def call_predict(predictor, event: dict, flights: list[dict]) -> dict[str, dict]
 
 # ── Fixture ───────────────────────────────────────────────────────────────────
 
+
 @pytest.fixture
 def predictor():
     from src.predictor.cascade import CascadePredictor
+
     p = CascadePredictor()
     assert not p.is_trained, "Should start in rule-based mode with no model"
     return p
 
 
 # ── Rule-based prediction tests ───────────────────────────────────────────────
+
 
 class TestRuleBasedPrediction:
     def test_returns_dict(self, predictor):
@@ -103,8 +107,9 @@ class TestRuleBasedPrediction:
         event = make_event("weather_closure", "severe")
         direct = make_flight("NB101", origin="KORD")
         result = call_predict(predictor, event, [direct])
-        assert result["NB101"]["expected_delay_min"] >= 60, \
-            "Severe weather direct disruption should predict ≥60 min delay"
+        assert (
+            result["NB101"]["expected_delay_min"] >= 60
+        ), "Severe weather direct disruption should predict ≥60 min delay"
         assert result["NB101"]["cascade_order"] == 0
 
     def test_cascade_order_attenuates_delay(self, predictor):
@@ -121,10 +126,10 @@ class TestRuleBasedPrediction:
         order1_delay = result["NB102"]["expected_delay_min"]
         order2_delay = result["NB103"]["expected_delay_min"]
 
-        assert order0_delay >= order1_delay, \
-            "Direct disruption should have ≥ delay than first-hop cascade"
-        assert order1_delay >= order2_delay, \
-            "First-hop cascade should have ≥ delay than second-hop"
+        assert (
+            order0_delay >= order1_delay
+        ), "Direct disruption should have ≥ delay than first-hop cascade"
+        assert order1_delay >= order2_delay, "First-hop cascade should have ≥ delay than second-hop"
 
     def test_mild_event_lower_delay_than_severe(self, predictor):
         mild_event = make_event("weather_closure", "mild")
@@ -134,8 +139,10 @@ class TestRuleBasedPrediction:
         mild_result = call_predict(predictor, mild_event, [flight])
         severe_result = call_predict(predictor, severe_event, [flight])
 
-        assert severe_result["NB101"]["expected_delay_min"] > mild_result["NB101"]["expected_delay_min"], \
-            "Severe event should predict longer delay than mild event"
+        assert (
+            severe_result["NB101"]["expected_delay_min"]
+            > mild_result["NB101"]["expected_delay_min"]
+        ), "Severe event should predict longer delay than mild event"
 
     def test_p_delayed_bounded(self, predictor):
         event = make_event("weather_closure", "severe")
@@ -149,8 +156,9 @@ class TestRuleBasedPrediction:
         direct = make_flight("NB101", origin="KORD", aircraft_id="N001NB")
         unrelated = make_flight("NB199", origin="KMIA", aircraft_id="N039NB")
         result = call_predict(predictor, event, [direct, unrelated])
-        assert result["NB101"]["p_delayed"] > result["NB199"]["p_delayed"], \
-            "Directly disrupted flight should have higher p_delayed than unrelated flight"
+        assert (
+            result["NB101"]["p_delayed"] > result["NB199"]["p_delayed"]
+        ), "Directly disrupted flight should have higher p_delayed than unrelated flight"
 
     def test_cyber_incident_moderate_delay(self, predictor):
         """Cyber incidents add turnaround delays but should not catastrophically cancel."""
@@ -190,15 +198,31 @@ class TestRuleBasedPrediction:
 
 # ── Cascade summary tests ─────────────────────────────────────────────────────
 
+
 class TestCascadeSummary:
     def _build_preds(self, direct: int, cascade1: int, cascade2: int) -> dict[str, dict]:
         preds: dict[str, dict] = {}
         for i in range(direct):
-            preds[f"NB1{i:02d}"] = {"cascade_order": 0, "expected_delay_min": 120, "p_delayed": 0.9, "reason": "direct"}
+            preds[f"NB1{i:02d}"] = {
+                "cascade_order": 0,
+                "expected_delay_min": 120,
+                "p_delayed": 0.9,
+                "reason": "direct",
+            }
         for i in range(cascade1):
-            preds[f"NB2{i:02d}"] = {"cascade_order": 1, "expected_delay_min": 60, "p_delayed": 0.6, "reason": "cascade1"}
+            preds[f"NB2{i:02d}"] = {
+                "cascade_order": 1,
+                "expected_delay_min": 60,
+                "p_delayed": 0.6,
+                "reason": "cascade1",
+            }
         for i in range(cascade2):
-            preds[f"NB3{i:02d}"] = {"cascade_order": 2, "expected_delay_min": 30, "p_delayed": 0.3, "reason": "cascade2"}
+            preds[f"NB3{i:02d}"] = {
+                "cascade_order": 2,
+                "expected_delay_min": 30,
+                "p_delayed": 0.3,
+                "reason": "cascade2",
+            }
         return preds
 
     def test_summary_counts(self, predictor):

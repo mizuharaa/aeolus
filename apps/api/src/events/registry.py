@@ -1,4 +1,5 @@
 """Event registry and factory for Aeolus disruption events."""
+
 from __future__ import annotations
 
 import uuid

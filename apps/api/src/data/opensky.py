@@ -10,6 +10,7 @@ Anonymous rate: 10-second resolution, very limited.
 Token is fetched once and cached for 25 minutes (tokens expire in 30 min).
 US + approaches bounding box: CONUS + Alaska + Hawaii.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -27,10 +28,9 @@ from src.data.airlines import (
 
 logger = logging.getLogger(__name__)
 
-OPENSKY_BASE   = "https://opensky-network.org/api"
+OPENSKY_BASE = "https://opensky-network.org/api"
 OPENSKY_TOKEN_URL = (
-    "https://auth.opensky-network.org/auth/realms/opensky-network"
-    "/protocol/openid-connect/token"
+    "https://auth.opensky-network.org/auth/realms/opensky-network" "/protocol/openid-connect/token"
 )
 
 # Bounding box: CONUS + Alaska + Hawaii
@@ -38,7 +38,7 @@ US_BBOX = {"lamin": 15.0, "lamax": 72.0, "lomin": -180.0, "lomax": -50.0}
 
 # Cache TTL: 15s authenticated (5s ADS-B resolution + headroom), 30s anonymous
 CACHE_TTL_AUTHENTICATED = 15
-CACHE_TTL_ANONYMOUS     = 30
+CACHE_TTL_ANONYMOUS = 30
 
 # Token refresh 5 min before expiry (tokens last 30 min)
 TOKEN_REFRESH_BUFFER_SEC = 300
@@ -55,25 +55,25 @@ class OpenSkyClient:
 
     def __init__(
         self,
-        client_id:     Optional[str] = None,
+        client_id: Optional[str] = None,
         client_secret: Optional[str] = None,
         # Legacy basic-auth params (kept for backwards compat — ignored now)
         username: Optional[str] = None,
         password: Optional[str] = None,
     ):
-        self._client_id     = client_id or ""
+        self._client_id = client_id or ""
         self._client_secret = client_secret or ""
-        self._has_oauth     = bool(client_id and client_secret)
+        self._has_oauth = bool(client_id and client_secret)
 
         # OAuth2 token cache
-        self._token:         Optional[str] = None
-        self._token_expires: float         = 0.0
+        self._token: Optional[str] = None
+        self._token_expires: float = 0.0
         self._token_lock = asyncio.Lock()
 
         # Flight state cache
-        self._cache:    list[dict] = []
-        self._cache_ts: float      = 0.0
-        self._lock      = asyncio.Lock()
+        self._cache: list[dict] = []
+        self._cache_ts: float = 0.0
+        self._lock = asyncio.Lock()
         self._last_error: Optional[str] = None
 
         if self._has_oauth:
@@ -97,8 +97,8 @@ class OpenSkyClient:
                     resp = await client.post(
                         OPENSKY_TOKEN_URL,
                         data={
-                            "grant_type":    "client_credentials",
-                            "client_id":     self._client_id,
+                            "grant_type": "client_credentials",
+                            "client_id": self._client_id,
                             "client_secret": self._client_secret,
                         },
                         headers={"Content-Type": "application/x-www-form-urlencoded"},
@@ -106,7 +106,7 @@ class OpenSkyClient:
                     resp.raise_for_status()
                     data = resp.json()
                     self._token = data["access_token"]
-                    expires_in  = data.get("expires_in", 1800)
+                    expires_in = data.get("expires_in", 1800)
                     self._token_expires = time.monotonic() + expires_in - TOKEN_REFRESH_BUFFER_SEC
                     logger.info("OpenSky: OAuth2 token obtained (expires in %ds)", expires_in)
                     return self._token
@@ -131,10 +131,12 @@ class OpenSkyClient:
 
             raw = await self._fetch_states(**US_BBOX)
             if raw is not None:
-                self._cache    = self._parse_states(raw)
+                self._cache = self._parse_states(raw)
                 self._cache_ts = time.monotonic()
                 self._last_error = None
-                logger.debug("OpenSky: cached %d US flights (auth=%s)", len(self._cache), self._has_oauth)
+                logger.debug(
+                    "OpenSky: cached %d US flights (auth=%s)", len(self._cache), self._has_oauth
+                )
             elif self._cache:
                 logger.debug("OpenSky fetch failed — returning stale cache (%d)", len(self._cache))
             else:
@@ -153,11 +155,11 @@ class OpenSkyClient:
         results: list[dict] = []
 
         if icao_prefix:
-            target  = icao_prefix + num
+            target = icao_prefix + num
             results = [f for f in flights if f["callsign"].startswith(target)]
 
         if not results and iata_code:
-            target  = iata_code + num
+            target = iata_code + num
             results = [f for f in flights if (f.get("flight_iata") or "").startswith(target)]
 
         if not results:
@@ -237,29 +239,33 @@ class OpenSkyClient:
         # Pick the most recent leg (highest lastSeen).
         leg = max(rows, key=lambda r: r.get("lastSeen", 0))
         return {
-            "icao24":         (leg.get("icao24") or target).lower(),
-            "callsign":       (leg.get("callsign") or "").strip(),
+            "icao24": (leg.get("icao24") or target).lower(),
+            "callsign": (leg.get("callsign") or "").strip(),
             "departure_icao": leg.get("estDepartureAirport"),
-            "arrival_icao":   leg.get("estArrivalAirport"),
+            "arrival_icao": leg.get("estArrivalAirport"),
             "departure_time": leg.get("firstSeen"),
-            "arrival_time":   leg.get("lastSeen"),
+            "arrival_time": leg.get("lastSeen"),
         }
 
     def status(self) -> dict:
         return {
-            "cached_flights":  len(self._cache),
-            "cache_age_sec":   round(time.monotonic() - self._cache_ts, 1),
-            "authenticated":   self._has_oauth,
-            "token_valid":     bool(self._token and time.monotonic() < self._token_expires),
-            "last_error":      self._last_error,
+            "cached_flights": len(self._cache),
+            "cache_age_sec": round(time.monotonic() - self._cache_ts, 1),
+            "authenticated": self._has_oauth,
+            "token_valid": bool(self._token and time.monotonic() < self._token_expires),
+            "last_error": self._last_error,
         }
 
     # ── Private ───────────────────────────────────────────────────────────────
 
-    async def _fetch_states(self, lamin: float, lamax: float, lomin: float, lomax: float) -> Optional[dict]:
+    async def _fetch_states(
+        self, lamin: float, lamax: float, lomin: float, lomax: float
+    ) -> Optional[dict]:
         params: dict = {
-            "lamin": lamin, "lamax": lamax,
-            "lomin": lomin, "lomax": lomax,
+            "lamin": lamin,
+            "lamax": lamax,
+            "lomin": lomin,
+            "lomax": lomax,
             "extended": 1,
         }
         headers: dict = {}
@@ -337,7 +343,7 @@ class OpenSkyClient:
             if lat is None or lon is None:
                 continue
 
-            icao24    = (sv[0] or "").lower()
+            icao24 = (sv[0] or "").lower()
             on_ground = bool(sv[8])
 
             # Use time_position (sv[3]) for dead-reckoning — it's when the
@@ -350,62 +356,68 @@ class OpenSkyClient:
             vel_kt = round(vel_ms * 1.944) if vel_ms is not None else None
 
             # altitude: metres → feet (1 m = 3.281 ft)
-            alt_m  = sv[7] if sv[7] is not None else sv[13]
+            alt_m = sv[7] if sv[7] is not None else sv[13]
             alt_ft = round(alt_m * 3.281) if alt_m is not None else None
 
             # vertical rate: m/s → ft/min (1 m/s = 196.85 fpm)
-            vert_ms  = sv[11]
+            vert_ms = sv[11]
             vert_fpm = round(vert_ms * 196.85) if vert_ms is not None else None
 
             heading = sv[10]
-            squawk  = sv[14]
+            squawk = sv[14]
             pos_src = sv[16] if len(sv) > 16 else 0
             category = sv[17] if len(sv) > 17 else None
 
             # Derive IATA airline code and flight number from ICAO callsign
             iata_airline, flight_num = callsign_to_iata_flight(callsign_raw)
-            flight_iata  = (iata_airline + flight_num) if iata_airline and flight_num else None
-            airline_name = AIRLINE_NAMES.get(iata_airline, sv[2] or "Unknown") if iata_airline else "Unknown"
+            flight_iata = (iata_airline + flight_num) if iata_airline and flight_num else None
+            airline_name = (
+                AIRLINE_NAMES.get(iata_airline, sv[2] or "Unknown") if iata_airline else "Unknown"
+            )
 
             # Tracking URLs — use IATA flight number for FR24/FA when available
             tracking = {
                 "flightaware": (
                     f"https://www.flightaware.com/live/flight/{callsign_raw}"
-                    if callsign_raw else None
+                    if callsign_raw
+                    else None
                 ),
                 "flightradar24": (
                     f"https://www.flightradar24.com/{flight_iata}"
-                    if flight_iata else f"https://www.flightradar24.com/{callsign_raw}"
+                    if flight_iata
+                    else f"https://www.flightradar24.com/{callsign_raw}"
                 ),
                 "adsbexchange": f"https://globe.adsbexchange.com/?icao={icao24}",
-                "opensky":      f"https://opensky-network.org/aircraft-profile?icao24={icao24}",
+                "opensky": f"https://opensky-network.org/aircraft-profile?icao24={icao24}",
             }
 
             # position_source label for debugging
             src_label = {0: "ADS-B", 1: "ASTERIX", 2: "MLAT", 3: "FLARM"}.get(pos_src, "unknown")
 
-            flights.append({
-                "icao24":          icao24,
-                "callsign":        callsign_raw,
-                "flight_iata":     flight_iata,
-                "flight_icao":     callsign_raw,
-                "airline_iata":    iata_airline or None,
-                "airline_name":    airline_name,
-                "origin_country":  sv[2] or "",
-                "lat":             lat,
-                "lon":             lon,
-                "altitude_ft":     alt_ft,
-                "on_ground":       on_ground,
-                "velocity_kt":     vel_kt,
-                "heading":         heading,
-                "vertical_fpm":    vert_fpm,
-                "squawk":          squawk,
-                # time_position is what dead reckoning should use
-                "time_position":   time_position,
-                "last_contact":    time_position,  # frontend uses last_contact for DR
-                "position_source": src_label,
-                "category":        category,
-                "tracking":        tracking,
-            })
+            flights.append(
+                {
+                    "icao24": icao24,
+                    "callsign": callsign_raw,
+                    "flight_iata": flight_iata,
+                    "flight_icao": callsign_raw,
+                    "airline_iata": iata_airline or None,
+                    "airline_name": airline_name,
+                    "origin_country": sv[2] or "",
+                    "lat": lat,
+                    "lon": lon,
+                    "altitude_ft": alt_ft,
+                    "on_ground": on_ground,
+                    "velocity_kt": vel_kt,
+                    "heading": heading,
+                    "vertical_fpm": vert_fpm,
+                    "squawk": squawk,
+                    # time_position is what dead reckoning should use
+                    "time_position": time_position,
+                    "last_contact": time_position,  # frontend uses last_contact for DR
+                    "position_source": src_label,
+                    "category": category,
+                    "tracking": tracking,
+                }
+            )
 
         return flights

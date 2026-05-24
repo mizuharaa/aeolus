@@ -2,6 +2,7 @@
 Structured logging configuration using structlog.
 JSON format in production, pretty-printed in development.
 """
+
 import logging
 import sys
 from typing import Any

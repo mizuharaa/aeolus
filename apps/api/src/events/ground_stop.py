@@ -3,6 +3,7 @@ Ground Stop (GS) disruption event.
 FAA issues ground stops to manage destination airport capacity.
 Aircraft are held at origin until GS is lifted.
 """
+
 from datetime import timedelta
 
 from src.events.base import DisruptionEvent, EventKind
@@ -96,9 +97,7 @@ class GroundStopEvent(DisruptionEvent):
             if not dest_match:
                 continue
 
-            origin_match = (
-                not affected_origins or flight.get("origin") in affected_origins
-            )
+            origin_match = not affected_origins or flight.get("origin") in affected_origins
             if not origin_match:
                 continue
 

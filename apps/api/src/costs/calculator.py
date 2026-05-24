@@ -12,6 +12,7 @@ All rates sourced from publicly available data:
 Passenger VOT (value of time): $44.40/hr per DOT 2023 guidance,
 applied as delay cost. Airlines typically absorb 55-65% of downstream costs.
 """
+
 from __future__ import annotations
 
 from src.data.airlines import get_aircraft_info
@@ -40,14 +41,14 @@ DOT_261_INTL_4H_USD = 675
 DOT_261_INTL_8H_USD = 1_350
 
 # Cancellation economics
-AVG_ONE_WAY_FARE_USD = 210          # A4A 2023 average domestic one-way
-REBOOK_FRACTION = 0.38              # fraction of passengers who can't self-rebook immediately
-REBOOK_COST_PER_PAX_USD = 275      # airline cost: rebooking labour + accommodation vouchers
+AVG_ONE_WAY_FARE_USD = 210  # A4A 2023 average domestic one-way
+REBOOK_FRACTION = 0.38  # fraction of passengers who can't self-rebook immediately
+REBOOK_COST_PER_PAX_USD = 275  # airline cost: rebooking labour + accommodation vouchers
 VOLUNTARY_COMP_CANCEL_USD = 15_000  # typical airline voucher/miles pool per cancelled flight
 
 # Crew economics
-CREW_OVERTIME_PER_HOUR_USD = 480    # pilot collective bargaining avg (2023 contracts)
-CREW_REPOSITION_COST_USD = 2_500    # one-way DH ticket + hotel for repositioned crew pair
+CREW_OVERTIME_PER_HOUR_USD = 480  # pilot collective bargaining avg (2023 contracts)
+CREW_REPOSITION_COST_USD = 2_500  # one-way DH ticket + hotel for repositioned crew pair
 
 
 class DelayInfo:
@@ -60,22 +61,29 @@ class DelayInfo:
         compensation: float,
         crew_extra: float,
     ):
-        self.ops_cost    = ops_cost
-        self.pax_cost    = pax_cost
+        self.ops_cost = ops_cost
+        self.pax_cost = pax_cost
         self.compensation = compensation
-        self.crew_extra  = crew_extra
-        self.total       = ops_cost + pax_cost + compensation + crew_extra
-        self.breakdown   = {
-            "ops_cost_usd":         round(ops_cost),
-            "pax_delay_cost_usd":   round(pax_cost),
-            "compensation_usd":     round(compensation),
-            "crew_extra_usd":       round(crew_extra),
-            "total_usd":            round(self.total),
+        self.crew_extra = crew_extra
+        self.total = ops_cost + pax_cost + compensation + crew_extra
+        self.breakdown = {
+            "ops_cost_usd": round(ops_cost),
+            "pax_delay_cost_usd": round(pax_cost),
+            "compensation_usd": round(compensation),
+            "crew_extra_usd": round(crew_extra),
+            "total_usd": round(self.total),
         }
 
 
 class CancellationInfo:
-    __slots__ = ("revenue_loss", "rebook_cost", "compensation", "voluntary_comp", "total", "breakdown")
+    __slots__ = (
+        "revenue_loss",
+        "rebook_cost",
+        "compensation",
+        "voluntary_comp",
+        "total",
+        "breakdown",
+    )
 
     def __init__(
         self,
@@ -84,17 +92,17 @@ class CancellationInfo:
         compensation: float,
         voluntary_comp: float,
     ):
-        self.revenue_loss  = revenue_loss
-        self.rebook_cost   = rebook_cost
-        self.compensation  = compensation
+        self.revenue_loss = revenue_loss
+        self.rebook_cost = rebook_cost
+        self.compensation = compensation
         self.voluntary_comp = voluntary_comp
-        self.total         = revenue_loss + rebook_cost + compensation + voluntary_comp
-        self.breakdown     = {
-            "revenue_loss_usd":     round(revenue_loss),
-            "rebook_cost_usd":      round(rebook_cost),
+        self.total = revenue_loss + rebook_cost + compensation + voluntary_comp
+        self.breakdown = {
+            "revenue_loss_usd": round(revenue_loss),
+            "rebook_cost_usd": round(rebook_cost),
             "dot261_compensation_usd": round(compensation),
-            "voluntary_comp_usd":   round(voluntary_comp),
-            "total_usd":            round(self.total),
+            "voluntary_comp_usd": round(voluntary_comp),
+            "total_usd": round(self.total),
         }
 
 
@@ -125,11 +133,7 @@ class AirlineDelayCalculator:
             aircraft_type:  ICAO aircraft type code (e.g. 'B738'). Falls back to
                             flight['aircraft_type'] then default.
         """
-        ac_type = (
-            aircraft_type
-            or flight.get("aircraft_type", "")
-            or "UNKN"
-        )
+        ac_type = aircraft_type or flight.get("aircraft_type", "") or "UNKN"
         ac_info = get_aircraft_info(ac_type)
         block_hr = ac_info["block_hr_usd"]
 
@@ -214,9 +218,9 @@ class AirlineDelayCalculator:
 
     def portfolio_cost(
         self,
-        flights: dict[str, dict],        # flight_id → flight dict
+        flights: dict[str, dict],  # flight_id → flight dict
         cancelled: list[str],
-        delayed: list[dict],              # [{flight_id, delay_minutes}, ...]
+        delayed: list[dict],  # [{flight_id, delay_minutes}, ...]
         event_kind: str = "",
         aircraft_type_map: dict[str, str] | None = None,
     ) -> dict:
@@ -236,7 +240,9 @@ class AirlineDelayCalculator:
         for fid in cancelled:
             flight = flights.get(fid, {})
             ac_type = ac_map.get(fid, "")
-            cancel_info = self.cancellation_cost(flight, event_kind=event_kind, aircraft_type=ac_type)
+            cancel_info = self.cancellation_cost(
+                flight, event_kind=event_kind, aircraft_type=ac_type
+            )
             total_cancel_usd += cancel_info.total
             cancel_details.append({"flight_id": fid, **cancel_info.breakdown})
 
@@ -246,7 +252,9 @@ class AirlineDelayCalculator:
             flight = flights.get(fid, {})
             pax = max(1, flight.get("passengers", 150))
             ac_type = ac_map.get(fid, "")
-            delay_info = self.delay_cost(flight, delay_min, event_kind=event_kind, aircraft_type=ac_type)
+            delay_info = self.delay_cost(
+                flight, delay_min, event_kind=event_kind, aircraft_type=ac_type
+            )
             total_delay_usd += delay_info.total
             total_pax_delay_min += pax * delay_min
             delay_details.append({"flight_id": fid, "delay_min": delay_min, **delay_info.breakdown})
@@ -254,12 +262,12 @@ class AirlineDelayCalculator:
         grand_total = total_cancel_usd + total_delay_usd
 
         return {
-            "grand_total_usd":         round(grand_total),
-            "cancellation_total_usd":  round(total_cancel_usd),
-            "delay_total_usd":         round(total_delay_usd),
+            "grand_total_usd": round(grand_total),
+            "cancellation_total_usd": round(total_cancel_usd),
+            "delay_total_usd": round(total_delay_usd),
             "total_pax_delay_minutes": total_pax_delay_min,
-            "cancelled_count":         len(cancelled),
-            "delayed_count":           len(delayed),
-            "per_cancelled":           cancel_details[:20],  # truncate for API
-            "per_delayed":             delay_details[:20],
+            "cancelled_count": len(cancelled),
+            "delayed_count": len(delayed),
+            "per_cancelled": cancel_details[:20],  # truncate for API
+            "per_delayed": delay_details[:20],
         }

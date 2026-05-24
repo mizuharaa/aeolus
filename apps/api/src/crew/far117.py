@@ -12,6 +12,7 @@ Key limits enforced:
   - WOCL (Window of Circadian Low) restrictions
   - Minimum turn time between flights
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -22,40 +23,65 @@ from typing import Optional
 # Constants
 # ──────────────────────────────────────────────────────────────────────────────
 
-WOCL_START_HOUR = 2   # 0200 local
-WOCL_END_HOUR = 5     # 0559 local
+WOCL_START_HOUR = 2  # 0200 local
+WOCL_END_HOUR = 5  # 0559 local
 
 # FAR 117 Table B — Maximum FDP (hours) by scheduled report time (local)
 # Applies to 2-pilot crews; unaugmented operations.
 FDP_TABLE: dict[int, float] = {
-    0: 9.0,  1: 9.0,  2: 9.0,  3: 9.0,  4: 9.0,  5: 9.0,
-    6: 13.0, 7: 13.0, 8: 14.0, 9: 14.0, 10: 14.0,
-    11: 13.0, 12: 13.0, 13: 13.0, 14: 13.0, 15: 13.0,
-    16: 11.0, 17: 11.0, 18: 11.0, 19: 11.0, 20: 11.0,
-    21: 10.0, 22: 9.0, 23: 9.0,
+    0: 9.0,
+    1: 9.0,
+    2: 9.0,
+    3: 9.0,
+    4: 9.0,
+    5: 9.0,
+    6: 13.0,
+    7: 13.0,
+    8: 14.0,
+    9: 14.0,
+    10: 14.0,
+    11: 13.0,
+    12: 13.0,
+    13: 13.0,
+    14: 13.0,
+    15: 13.0,
+    16: 11.0,
+    17: 11.0,
+    18: 11.0,
+    19: 11.0,
+    20: 11.0,
+    21: 10.0,
+    22: 9.0,
+    23: 9.0,
 }
 
 # Extensions permitted under §117.19 (with augmented crew / rest facility)
 # Not applicable for 2-pilot short-haul — kept for completeness.
 FDP_EXTENSION_AUGMENTED: dict[int, float] = {
-    0: 13.0, 6: 17.0, 8: 18.0, 12: 17.0, 16: 15.0, 22: 13.0,
+    0: 13.0,
+    6: 17.0,
+    8: 18.0,
+    12: 17.0,
+    16: 15.0,
+    22: 13.0,
 }
 
 # WOCL adjustment: if FDP starts or ends in WOCL, reduce max FDP by 30 min.
 WOCL_FDP_REDUCTION_HOURS = 0.5
 
-MIN_REST_HOURS = 10.0                    # §117.25(a) — minimum rest period
-MIN_REST_RECOVERY_HOURS = 56.0           # §117.25(e) — monthly recovery rest
-MAX_FT_PER_FDP_HOURS = 9.0              # §117.11
-MAX_FT_7_DAYS_HOURS = 60.0              # §117.23(b)
-MAX_FT_28_DAYS_HOURS = 100.0            # §117.23(b)
-MAX_FT_365_DAYS_HOURS = 1000.0          # §117.23(b)
-MIN_TURN_MINUTES = 30                    # min ground time between flights
+MIN_REST_HOURS = 10.0  # §117.25(a) — minimum rest period
+MIN_REST_RECOVERY_HOURS = 56.0  # §117.25(e) — monthly recovery rest
+MAX_FT_PER_FDP_HOURS = 9.0  # §117.11
+MAX_FT_7_DAYS_HOURS = 60.0  # §117.23(b)
+MAX_FT_28_DAYS_HOURS = 100.0  # §117.23(b)
+MAX_FT_365_DAYS_HOURS = 1000.0  # §117.23(b)
+MIN_TURN_MINUTES = 30  # min ground time between flights
 
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Data classes
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 @dataclass
 class LegalityResult:
@@ -90,12 +116,12 @@ class CrewState:
     role: str  # captain | first_officer | flight_attendant
 
     # Rest
-    last_rest_end: Optional[datetime] = None   # When last qualifying rest period ended
-    last_rest_duration_hours: float = 10.0     # Duration of last rest period
+    last_rest_end: Optional[datetime] = None  # When last qualifying rest period ended
+    last_rest_duration_hours: float = 10.0  # Duration of last rest period
 
     # Current FDP tracking
     current_fdp_start: Optional[datetime] = None
-    current_fdp_flight_minutes: int = 0        # Accumulated flight time in current FDP
+    current_fdp_flight_minutes: int = 0  # Accumulated flight time in current FDP
 
     # Cumulative flight times
     flight_time_7d_minutes: int = 0
@@ -103,7 +129,7 @@ class CrewState:
     flight_time_365d_minutes: int = 0
 
     # Home base timezone (for WOCL determination)
-    home_timezone_offset_hours: float = 0.0   # UTC offset
+    home_timezone_offset_hours: float = 0.0  # UTC offset
 
     def fdp_elapsed_minutes(self, at_time: datetime) -> int:
         """Minutes elapsed since FDP start."""
@@ -127,6 +153,7 @@ class CrewState:
 # ──────────────────────────────────────────────────────────────────────────────
 # Engine
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 class CrewLegalityEngine:
     """
@@ -311,9 +338,11 @@ class CrewLegalityEngine:
 
         # ── Compute remaining allowances ──────────────────────────────────
         ft_remaining_in_fdp = max_ft_per_fdp_min - new_fdp_ft
-        fdp_remaining = int(
-            (max_fdp - (arrival - fdp_start)).total_seconds() / 60
-        ) if (arrival - fdp_start) < max_fdp else 0
+        fdp_remaining = (
+            int((max_fdp - (arrival - fdp_start)).total_seconds() / 60)
+            if (arrival - fdp_start) < max_fdp
+            else 0
+        )
 
         rest_required = 0
         if violations:
@@ -371,9 +400,7 @@ class CrewLegalityEngine:
                     )
         return legal_pairs
 
-    def compute_required_rest(
-        self, crew: dict, last_fdp_end: datetime
-    ) -> datetime:
+    def compute_required_rest(self, crew: dict, last_fdp_end: datetime) -> datetime:
         """
         Given when the FDP ended, return the earliest time crew can start next FDP.
         §117.25(a): minimum 10-hour rest.

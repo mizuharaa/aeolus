@@ -2,6 +2,7 @@
 Live aviation data endpoints.
 Proxies FAA NAS Status and NWS Weather Alerts — no API keys required.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -21,20 +22,58 @@ NWS_ALERTS_URL = "https://api.weather.gov/alerts/active"
 
 # Nimbus Air ICAO codes
 NIMBUS_ICAO: set[str] = {
-    "KORD", "KATL", "KDFW", "KLAX", "KDEN",
-    "KJFK", "KSEA", "KMIA", "KPHX", "KLAS",
-    "KBOS", "KSFO", "KIAH", "KDTW", "KMSP",
+    "KORD",
+    "KATL",
+    "KDFW",
+    "KLAX",
+    "KDEN",
+    "KJFK",
+    "KSEA",
+    "KMIA",
+    "KPHX",
+    "KLAS",
+    "KBOS",
+    "KSFO",
+    "KIAH",
+    "KDTW",
+    "KMSP",
 }
 
 IATA_TO_ICAO: dict[str, str] = {
-    "ORD": "KORD", "ATL": "KATL", "DFW": "KDFW", "LAX": "KLAX", "DEN": "KDEN",
-    "JFK": "KJFK", "SEA": "KSEA", "MIA": "KMIA", "PHX": "KPHX", "LAS": "KLAS",
-    "BOS": "KBOS", "SFO": "KSFO", "IAH": "KIAH", "DTW": "KDTW", "MSP": "KMSP",
+    "ORD": "KORD",
+    "ATL": "KATL",
+    "DFW": "KDFW",
+    "LAX": "KLAX",
+    "DEN": "KDEN",
+    "JFK": "KJFK",
+    "SEA": "KSEA",
+    "MIA": "KMIA",
+    "PHX": "KPHX",
+    "LAS": "KLAS",
+    "BOS": "KBOS",
+    "SFO": "KSFO",
+    "IAH": "KIAH",
+    "DTW": "KDTW",
+    "MSP": "KMSP",
     # bonus coverage for FAA output
-    "EWR": "KEWR", "LGA": "KLGA", "CLT": "KCLT", "SLC": "KSLC", "PDX": "KPDX",
-    "MDW": "KMDW", "BWI": "KBWI", "DCA": "KDCA", "PHL": "KPHL", "MCO": "KMCO",
-    "FLL": "KFLL", "TPA": "KTPA", "AUS": "KAUS", "HOU": "KHOU", "OAK": "KOAK",
-    "SJC": "KSJC", "SAN": "KSAN", "DAL": "KDAL",
+    "EWR": "KEWR",
+    "LGA": "KLGA",
+    "CLT": "KCLT",
+    "SLC": "KSLC",
+    "PDX": "KPDX",
+    "MDW": "KMDW",
+    "BWI": "KBWI",
+    "DCA": "KDCA",
+    "PHL": "KPHL",
+    "MCO": "KMCO",
+    "FLL": "KFLL",
+    "TPA": "KTPA",
+    "AUS": "KAUS",
+    "HOU": "KHOU",
+    "OAK": "KOAK",
+    "SJC": "KSJC",
+    "SAN": "KSAN",
+    "DAL": "KDAL",
 }
 
 # Airport bounding boxes for NWS alert geo-matching (lat_min, lat_max, lon_min, lon_max)
@@ -76,14 +115,26 @@ AIRPORT_KEYWORDS: dict[str, list[str]] = {
 }
 
 AVIATION_ALERT_EVENTS = {
-    "Winter Storm Warning", "Winter Storm Watch", "Winter Weather Advisory",
-    "Blizzard Warning", "Ice Storm Warning", "Freezing Rain Advisory",
-    "Wind Advisory", "High Wind Warning", "High Wind Watch",
-    "Dense Fog Advisory", "Dense Smoke Advisory",
-    "Excessive Heat Warning", "Heat Advisory",
-    "Severe Thunderstorm Warning", "Tornado Warning",
-    "Special Weather Statement", "Flood Warning", "Flash Flood Warning",
-    "Lake Effect Snow Warning", "Lake Effect Snow Advisory",
+    "Winter Storm Warning",
+    "Winter Storm Watch",
+    "Winter Weather Advisory",
+    "Blizzard Warning",
+    "Ice Storm Warning",
+    "Freezing Rain Advisory",
+    "Wind Advisory",
+    "High Wind Warning",
+    "High Wind Watch",
+    "Dense Fog Advisory",
+    "Dense Smoke Advisory",
+    "Excessive Heat Warning",
+    "Heat Advisory",
+    "Severe Thunderstorm Warning",
+    "Tornado Warning",
+    "Special Weather Statement",
+    "Flood Warning",
+    "Flash Flood Warning",
+    "Lake Effect Snow Warning",
+    "Lake Effect Snow Advisory",
 }
 
 
@@ -222,10 +273,7 @@ def _parse_faa_programs(raw: dict) -> tuple[list, list, list]:
 
         elif "Departure Delay" in name or "General Delay" in name:
             items = _as_list(
-                dtype.get("ARPT_DEL")
-                or dtype.get("Airport")
-                or dtype.get("Airports")
-                or []
+                dtype.get("ARPT_DEL") or dtype.get("Airport") or dtype.get("Airports") or []
             )
             # Some API versions wrap airports inside an "Airport" key
             unwrapped: list[dict] = []
@@ -332,7 +380,9 @@ async def get_weather_alerts():
             resp = await client.get(
                 NWS_ALERTS_URL,
                 params={"status": "actual", "message_type": "alert", "limit": 250},
-                headers={"User-Agent": "AeolusOCC/1.0 (aviation-education; contact=aeolus@example.com)"},
+                headers={
+                    "User-Agent": "AeolusOCC/1.0 (aviation-education; contact=aeolus@example.com)"
+                },
             )
             resp.raise_for_status()
             data = resp.json()
@@ -370,7 +420,13 @@ async def get_weather_alerts():
             sim_kind = "runway_closure"
         elif "wind" in event_lower and "thunder" not in event_lower:
             sim_kind = "ground_stop"
-        elif "snow" in event_lower or "blizzard" in event_lower or "ice" in event_lower or "winter" in event_lower or "freeze" in event_lower:
+        elif (
+            "snow" in event_lower
+            or "blizzard" in event_lower
+            or "ice" in event_lower
+            or "winter" in event_lower
+            or "freeze" in event_lower
+        ):
             sim_kind = "weather_closure"
         else:
             sim_kind = "weather_closure"

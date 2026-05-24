@@ -1,4 +1,5 @@
 """Disruption event endpoints."""
+
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -14,7 +15,12 @@ DEFAULT_PARAMS = {
     "weather_closure": {"airport": "KORD", "severity": "severe", "duration_hours": 4},
     "ground_stop": {"airport": "KORD", "duration_hours": 3},
     "airspace_closure": {
-        "polygon": {"type": "Polygon", "coordinates": [[[-85.0, 39.0], [-69.0, 39.0], [-69.0, 44.0], [-85.0, 44.0], [-85.0, 39.0]]]},
+        "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+                [[-85.0, 39.0], [-69.0, 39.0], [-69.0, 44.0], [-85.0, 44.0], [-85.0, 39.0]]
+            ],
+        },
         "airports": ["KJFK", "KBOS", "KDTW"],
         "duration_hours": 24,
         "severity": "severe",
@@ -22,10 +28,20 @@ DEFAULT_PARAMS = {
     "security_event": {"airport": "KATL", "severity": "severe", "duration_hours": 3},
     "mechanical_aog": {"aircraft_tail": "N001NB", "airport": "KATL", "duration_hours": 8},
     "crew_sickout": {"base": "KORD", "percent_affected": 30, "duration_hours": 8},
-    "runway_closure": {"airport": "KDFW", "runway_id": "17L", "capacity_cut_pct": 45, "duration_hours": 6},
+    "runway_closure": {
+        "airport": "KDFW",
+        "runway_id": "17L",
+        "capacity_cut_pct": 45,
+        "duration_hours": 6,
+    },
     "atc_staffing": {"sector_or_airport": "KLAS", "capacity_pct": 40, "duration_hours": 5},
     "volcanic_ash": {
-        "polygon": {"type": "Polygon", "coordinates": [[[-125.0, 44.0], [-117.0, 44.0], [-117.0, 50.0], [-125.0, 50.0], [-125.0, 44.0]]]},
+        "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+                [[-125.0, 44.0], [-117.0, 44.0], [-117.0, 50.0], [-125.0, 50.0], [-125.0, 44.0]]
+            ],
+        },
         "duration_hours": 18,
         "severity": "severe",
     },
@@ -104,7 +120,9 @@ async def trigger_event(payload: TriggerEventRequest, request: Request):
 async def cancel_event(event_id: str, request: Request):
     engine = request.app.state.engine
     if engine:
-        engine.state.active_events = [e for e in engine.state.active_events if e.get("id") != event_id]
+        engine.state.active_events = [
+            e for e in engine.state.active_events if e.get("id") != event_id
+        ]
         return {"status": "cancelled", "event_id": event_id}
     raise HTTPException(status_code=404, detail="Event not found")
 
@@ -115,6 +133,7 @@ _SCENARIOS_DIR = Path(__file__).parent.parent.parent.parent.parent / "data" / "s
 @router.get("/events/scenarios")
 async def get_scenarios():
     import yaml
+
     scenarios = []
     try:
         for f in _SCENARIOS_DIR.glob("*.yaml"):

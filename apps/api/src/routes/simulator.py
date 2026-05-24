@@ -1,4 +1,5 @@
 """Simulator control endpoints."""
+
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -36,13 +37,23 @@ async def trigger_disruption(payload: TriggerRequest, request: Request):
         "security_event": {"airport": "KATL", "severity": "severe", "duration_hours": 3},
         "mechanical_aog": {"aircraft_tail": "N001NB", "airport": "KATL", "duration_hours": 8},
         "crew_sickout": {"base": "KORD", "percent_affected": 30, "duration_hours": 8},
-        "runway_closure": {"airport": "KDFW", "runway_id": "17L", "capacity_cut_pct": 45, "duration_hours": 6},
+        "runway_closure": {
+            "airport": "KDFW",
+            "runway_id": "17L",
+            "capacity_cut_pct": 45,
+            "duration_hours": 6,
+        },
         "atc_staffing": {"sector_or_airport": "KLAS", "capacity_pct": 40, "duration_hours": 5},
         "volcanic_ash": {"duration_hours": 18, "severity": "severe"},
         "cyber_incident": {"airline": "NimbusAir", "degradation_pct": 60, "duration_hours": 12},
     }
     merged = {**DEFAULT_PARAMS.get(payload.kind, {}), **payload.params}
-    event = {"id": str(uuid.uuid4()), "kind": payload.kind, "triggered_at": datetime.now(timezone.utc).isoformat(), "params": merged}
+    event = {
+        "id": str(uuid.uuid4()),
+        "kind": payload.kind,
+        "triggered_at": datetime.now(timezone.utc).isoformat(),
+        "params": merged,
+    }
     result = await engine.trigger_event(event, predictor, optimizer, weather)
     return result
 
@@ -63,7 +74,9 @@ async def get_simulator_state(request: Request):
     if not engine:
         return {"status": "not_initialized"}
     return {
-        "sim_time": engine.state.sim_time.isoformat() if hasattr(engine.state, "sim_time") else None,
+        "sim_time": engine.state.sim_time.isoformat()
+        if hasattr(engine.state, "sim_time")
+        else None,
         "active_events": engine.state.active_events,
         "flight_states": engine.state.flight_states,
         "recovery_plans": engine.state.recovery_plans,

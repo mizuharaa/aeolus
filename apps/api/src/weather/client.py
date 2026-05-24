@@ -3,6 +3,7 @@ Async METAR client for aviationweather.gov.
 No API key required. Fetches real-time observations for Nimbus Air airports.
 Refreshes every 5 minutes (configurable) via background task.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -17,9 +18,21 @@ logger = logging.getLogger(__name__)
 
 # Airports in the Nimbus Air network (ICAO codes)
 NIMBUS_AIRPORTS: list[str] = [
-    "KORD", "KATL", "KDFW", "KLAX", "KDEN",
-    "KJFK", "KSEA", "KMIA", "KPHX", "KLAS",
-    "KBOS", "KSFO", "KIAH", "KDTW", "KMSP",
+    "KORD",
+    "KATL",
+    "KDFW",
+    "KLAX",
+    "KDEN",
+    "KJFK",
+    "KSEA",
+    "KMIA",
+    "KPHX",
+    "KLAS",
+    "KBOS",
+    "KSFO",
+    "KIAH",
+    "KDTW",
+    "KMSP",
 ]
 
 BASE_URL = "https://aviationweather.gov/api/data/metar"
@@ -63,9 +76,7 @@ class MetarData:
         self.wind_speed_kt: int = _safe_int(raw.get("wind_speed_kt"), 5)
         gust = raw.get("wind_gust_kt")
         self.wind_gust_kt: Optional[int] = _safe_int(gust, 0) if gust else None
-        self.visibility_statute_mi: float = _safe_float(
-            raw.get("visibility_statute_mi"), 10.0
-        )
+        self.visibility_statute_mi: float = _safe_float(raw.get("visibility_statute_mi"), 10.0)
         sky = raw.get("sky_condition", [])
         if sky and isinstance(sky, list) and len(sky) > 0:
             first = sky[0]
@@ -133,9 +144,7 @@ class WeatherClient:
             self._client = httpx.AsyncClient(timeout=self.timeout)
         return self._client
 
-    async def fetch_metars(
-        self, airport_ids: list[str] | None = None
-    ) -> dict[str, MetarData]:
+    async def fetch_metars(self, airport_ids: list[str] | None = None) -> dict[str, MetarData]:
         """Fetch METAR observations for the given airports (or all Nimbus airports)."""
         ids = airport_ids or self.airports
         ids_str = ",".join(ids)
@@ -157,11 +166,7 @@ class WeatherClient:
             result: dict[str, MetarData] = {}
             for item in data:
                 # API returns different field name variants across versions
-                station = (
-                    item.get("icaoId")
-                    or item.get("stationId")
-                    or item.get("station_id", "")
-                )
+                station = item.get("icaoId") or item.get("stationId") or item.get("station_id", "")
                 if station:
                     metar = self._parse_metar_response(item)
                     result[station] = metar
@@ -188,9 +193,15 @@ class WeatherClient:
             "station_id": raw.get("icaoId") or raw.get("stationId") or raw.get("station_id", ""),
             "observation_time": raw.get("reportTime") or raw.get("observation_time", ""),
             "temp_c": raw.get("temp") if raw.get("temp") is not None else raw.get("temp_c", 15.0),
-            "dewpoint_c": raw.get("dewp") if raw.get("dewp") is not None else raw.get("dewpoint_c", 10.0),
-            "wind_dir_degrees": raw.get("wdir") if raw.get("wdir") is not None else raw.get("wind_dir_degrees", 0),
-            "wind_speed_kt": raw.get("wspd") if raw.get("wspd") is not None else raw.get("wind_speed_kt", 5),
+            "dewpoint_c": raw.get("dewp")
+            if raw.get("dewp") is not None
+            else raw.get("dewpoint_c", 10.0),
+            "wind_dir_degrees": raw.get("wdir")
+            if raw.get("wdir") is not None
+            else raw.get("wind_dir_degrees", 0),
+            "wind_speed_kt": raw.get("wspd")
+            if raw.get("wspd") is not None
+            else raw.get("wind_speed_kt", 5),
             "wind_gust_kt": raw.get("wgst") or raw.get("wind_gust_kt"),
             "visibility_statute_mi": (
                 raw.get("visib")
@@ -199,7 +210,9 @@ class WeatherClient:
             ),
             "flight_category": raw.get("fltcat") or raw.get("flight_category", "VFR"),
             "wx_string": raw.get("wxString") or raw.get("wx_string"),
-            "altim_in_hg": raw.get("altim") if raw.get("altim") is not None else raw.get("altim_in_hg", 29.92),
+            "altim_in_hg": raw.get("altim")
+            if raw.get("altim") is not None
+            else raw.get("altim_in_hg", 29.92),
             "raw_text": raw.get("rawOb") or raw.get("raw_text", ""),
         }
 

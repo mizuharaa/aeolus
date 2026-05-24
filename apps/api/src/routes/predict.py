@@ -1,4 +1,5 @@
 """Cascade prediction endpoints."""
+
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -34,7 +35,11 @@ async def predict_cascade(payload: PredictRequest, request: Request):
         flights = []
 
     metar_data = weather.get_all_cached() if weather else {}
-    current_time = datetime.fromisoformat(payload.current_time) if payload.current_time else datetime.now(timezone.utc)
+    current_time = (
+        datetime.fromisoformat(payload.current_time)
+        if payload.current_time
+        else datetime.now(timezone.utc)
+    )
 
     predictions = predictor.predict(flights, payload.event, metar_data, current_time)
 
@@ -50,7 +55,9 @@ async def predict_cascade(payload: PredictRequest, request: Request):
             "total_affected": len(affected),
             "avg_expected_delay_min": round(
                 sum(v["expected_delay_min"] for v in affected.values()) / len(affected), 1
-            ) if affected else 0,
+            )
+            if affected
+            else 0,
             "model_type": "ml" if predictor.is_trained else "rule_based",
         },
     }

@@ -2,6 +2,7 @@
 Crew sickout / mass callout disruption event.
 Models mass crew unavailability due to illness, labor action, or crew rest violations.
 """
+
 import hashlib
 import random
 from datetime import timedelta
@@ -57,7 +58,10 @@ class CrewSickoutEvent(DisruptionEvent):
             },
             "affected_roles": {
                 "type": "array",
-                "items": {"type": "string", "enum": ["captain", "first_officer", "flight_attendant"]},
+                "items": {
+                    "type": "string",
+                    "enum": ["captain", "first_officer", "flight_attendant"],
+                },
                 "description": "Affected crew roles",
                 "default": ["captain", "first_officer"],
             },
@@ -126,9 +130,7 @@ class CrewSickoutEvent(DisruptionEvent):
         for flight in schedule:
             dep_str = flight.get("scheduled_departure", "")
             try:
-                dep = __import__("datetime").datetime.fromisoformat(
-                    dep_str.replace("Z", "+00:00")
-                )
+                dep = __import__("datetime").datetime.fromisoformat(dep_str.replace("Z", "+00:00"))
                 dep = dep.replace(tzinfo=None) if dep.tzinfo else dep
             except (ValueError, AttributeError):
                 continue

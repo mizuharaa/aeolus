@@ -5,6 +5,7 @@ Manages the simulation clock, applies disruption events, tracks schedule
 state changes, coordinates between the cascade predictor and recovery
 optimizer, and broadcasts real-time updates to WebSocket subscribers.
 """
+
 from __future__ import annotations
 
 import json
@@ -29,7 +30,9 @@ class SimulationState:
     """Mutable simulation state — mutated in place as events are triggered."""
 
     sim_time: datetime = field(
-        default_factory=lambda: datetime.now(timezone.utc).replace(hour=6, minute=0, second=0, microsecond=0)
+        default_factory=lambda: datetime.now(timezone.utc).replace(
+            hour=6, minute=0, second=0, microsecond=0
+        )
     )
     active_events: list[dict] = field(default_factory=list)
     flight_states: dict[str, dict] = field(default_factory=dict)
@@ -184,9 +187,7 @@ class SimulationEngine:
         self.state.active_events.append(event)
         self.state.event_history.append(event)
 
-        logger.info(
-            "Triggering event kind=%s id=%s", event.get("kind"), event["id"]
-        )
+        logger.info("Triggering event kind=%s id=%s", event.get("kind"), event["id"])
 
         # Gather weather context
         metar_data = weather_client.get_all_cached()
@@ -195,13 +196,17 @@ class SimulationEngine:
         flights_list = list(self.schedule.values())
         logger.info(
             "CASCADE DEBUG — schedule_size=%d, event_kind=%s, params=%s",
-            len(flights_list), event.get("kind"), event.get("params"),
+            len(flights_list),
+            event.get("kind"),
+            event.get("params"),
         )
         if flights_list:
             sample = flights_list[0]
             logger.info(
                 "CASCADE DEBUG — sample flight keys=%s, origin=%s, dest=%s",
-                list(sample.keys()), sample.get("origin"), sample.get("destination"),
+                list(sample.keys()),
+                sample.get("origin"),
+                sample.get("destination"),
             )
 
         predictions = predictor.predict(
@@ -239,9 +244,7 @@ class SimulationEngine:
                 )
 
         # Build disrupted flight list for optimizer
-        disrupted = [
-            fid for fid, pred in predictions.items() if pred.get("cascade_order", -1) >= 0
-        ]
+        disrupted = [fid for fid, pred in predictions.items() if pred.get("cascade_order", -1) >= 0]
         logger.info("CASCADE DEBUG — disrupted_flights=%d, running optimizer", len(disrupted))
 
         # Build optimizer constraints from event
@@ -258,8 +261,7 @@ class SimulationEngine:
         )
 
         self.state.recovery_plans = [
-            p.to_dict() if hasattr(p, "to_dict") else self._plan_to_dict(p)
-            for p in plans
+            p.to_dict() if hasattr(p, "to_dict") else self._plan_to_dict(p) for p in plans
         ]
 
         # Compute cascade summary and persist it on state so that secondary
@@ -335,10 +337,10 @@ class SimulationEngine:
             if fid in self.state.flight_states:
                 self.state.flight_states[fid].update(
                     {
-                        "status":           "cancelled",
-                        "delay_minutes":    0,
-                        "applied_action":   "cancelled",
-                        "applied_plan_id":  plan_id,
+                        "status": "cancelled",
+                        "delay_minutes": 0,
+                        "applied_action": "cancelled",
+                        "applied_plan_id": plan_id,
                     }
                 )
 
@@ -348,10 +350,10 @@ class SimulationEngine:
             if fid and fid in self.state.flight_states:
                 self.state.flight_states[fid].update(
                     {
-                        "status":          "delayed",
-                        "delay_minutes":   int(d.get("delay_minutes", 0) or 0),
-                        "new_departure":   d.get("new_departure"),
-                        "applied_action":  "delayed",
+                        "status": "delayed",
+                        "delay_minutes": int(d.get("delay_minutes", 0) or 0),
+                        "new_departure": d.get("new_departure"),
+                        "applied_action": "delayed",
                         "applied_plan_id": plan_id,
                     }
                 )
@@ -362,8 +364,9 @@ class SimulationEngine:
             if fid and fid in self.state.flight_states:
                 self.state.flight_states[fid].update(
                     {
-                        "tail":            s.get("new_aircraft", "") or self.state.flight_states[fid].get("tail"),
-                        "applied_action":  "swapped",
+                        "tail": s.get("new_aircraft", "")
+                        or self.state.flight_states[fid].get("tail"),
+                        "applied_action": "swapped",
                         "applied_plan_id": plan_id,
                     }
                 )
@@ -374,20 +377,22 @@ class SimulationEngine:
         self.state.cascade_summary = self._cascade_summary_from_states()
 
         update = {
-            "type":            "plan_applied",
-            "plan_id":         plan_id,
+            "type": "plan_applied",
+            "plan_id": plan_id,
             "applied_plan_id": plan_id,
-            "flight_states":   self.state.flight_states,
+            "flight_states": self.state.flight_states,
             "cascade_summary": self.state.cascade_summary,
-            "recovery_plans":  self.state.recovery_plans,
-            "timestamp":       datetime.now(timezone.utc).isoformat(),
+            "recovery_plans": self.state.recovery_plans,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
         await self._broadcast(update)
-        logger.info("Plan %s applied — %d cancelled, %d delayed, %d swapped",
-                    plan_id,
-                    len(plan.get("cancelled_flights") or []),
-                    len(plan.get("delayed_flights") or []),
-                    len(plan.get("aircraft_swaps") or []))
+        logger.info(
+            "Plan %s applied — %d cancelled, %d delayed, %d swapped",
+            plan_id,
+            len(plan.get("cancelled_flights") or []),
+            len(plan.get("delayed_flights") or []),
+            len(plan.get("aircraft_swaps") or []),
+        )
         return update
 
     async def unapply_plan(self) -> dict:
@@ -403,12 +408,12 @@ class SimulationEngine:
             self.state.cascade_summary = self._cascade_summary_from_states()
 
         update = {
-            "type":            "plan_unapplied",
+            "type": "plan_unapplied",
             "applied_plan_id": None,
-            "flight_states":   self.state.flight_states,
+            "flight_states": self.state.flight_states,
             "cascade_summary": self.state.cascade_summary,
-            "recovery_plans":  self.state.recovery_plans,
-            "timestamp":       datetime.now(timezone.utc).isoformat(),
+            "recovery_plans": self.state.recovery_plans,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
         await self._broadcast(update)
         logger.info("Plan unapplied — reverted to pre-apply snapshot")
@@ -421,11 +426,11 @@ class SimulationEngine:
         orders = [s.get("cascade_order", -1) for s in self.state.flight_states.values()]
         delays = [s.get("delay_minutes", 0) for s in self.state.flight_states.values()]
         return {
-            "directly_affected":   orders.count(0),
-            "cascade_1":           orders.count(1),
-            "cascade_2":           orders.count(2),
-            "total_affected":      sum(1 for o in orders if o >= 0),
-            "unaffected":          orders.count(-1),
+            "directly_affected": orders.count(0),
+            "cascade_1": orders.count(1),
+            "cascade_2": orders.count(2),
+            "total_affected": sum(1 for o in orders if o >= 0),
+            "unaffected": orders.count(-1),
             "total_delay_minutes": sum(delays),
         }
 
@@ -587,7 +592,11 @@ class SimulationEngine:
 
     def _compute_cascade_summary(self, predictions: dict[str, dict]) -> dict:
         orders = [p.get("cascade_order", -1) for p in predictions.values()]
-        delays = [p.get("expected_delay_min", 0) for p in predictions.values() if p.get("cascade_order", -1) >= 0]
+        delays = [
+            p.get("expected_delay_min", 0)
+            for p in predictions.values()
+            if p.get("cascade_order", -1) >= 0
+        ]
         return {
             "directly_affected": orders.count(0),
             "cascade_1": orders.count(1),
@@ -601,14 +610,23 @@ class SimulationEngine:
         """Convert a RecoveryPlan to a plain dict (handles both dataclass and object)."""
         try:
             from dataclasses import asdict
+
             return asdict(plan)
         except Exception:
             attrs = [
-                "plan_id", "objective_label", "status", "solve_time_ms",
-                "cancelled_flights", "delayed_flights", "aircraft_swaps",
-                "crew_reassignments", "total_cost_usd",
-                "total_passenger_delay_minutes", "crew_violations",
-                "aircraft_out_of_position", "summary",
+                "plan_id",
+                "objective_label",
+                "status",
+                "solve_time_ms",
+                "cancelled_flights",
+                "delayed_flights",
+                "aircraft_swaps",
+                "crew_reassignments",
+                "total_cost_usd",
+                "total_passenger_delay_minutes",
+                "crew_violations",
+                "aircraft_out_of_position",
+                "summary",
             ]
             return {attr: getattr(plan, attr, None) for attr in attrs}
 

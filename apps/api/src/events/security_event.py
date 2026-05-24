@@ -2,6 +2,7 @@
 Security event disruption.
 Covers bomb threats, suspicious packages, terminal evacuations, and breaches.
 """
+
 from datetime import timedelta
 
 from src.events.base import DisruptionEvent, EventKind

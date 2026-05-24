@@ -1,6 +1,7 @@
 """
 Aeolus FastAPI application — entry point.
 """
+
 import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -43,53 +44,139 @@ def _load_network() -> tuple[list, list, list]:
 def _minimal_network():
     """Minimal fallback when YAML files are absent."""
     aircraft_bases = [
-        ("N001NB", "KORD"), ("N002NB", "KORD"), ("N003NB", "KORD"),
-        ("N004NB", "KATL"), ("N005NB", "KATL"), ("N006NB", "KDFW"),
-        ("N007NB", "KLAX"), ("N008NB", "KDEN"), ("N009NB", "KJFK"),
+        ("N001NB", "KORD"),
+        ("N002NB", "KORD"),
+        ("N003NB", "KORD"),
+        ("N004NB", "KATL"),
+        ("N005NB", "KATL"),
+        ("N006NB", "KDFW"),
+        ("N007NB", "KLAX"),
+        ("N008NB", "KDEN"),
+        ("N009NB", "KJFK"),
         ("N010NB", "KSEA"),
     ]
     routes = [
-        ("KORD", "KATL"), ("KATL", "KMIA"), ("KMIA", "KATL"), ("KATL", "KORD"),
-        ("KORD", "KDFW"), ("KDFW", "KLAX"), ("KLAX", "KDFW"), ("KDFW", "KORD"),
-        ("KORD", "KDEN"), ("KDEN", "KPHX"), ("KPHX", "KDEN"), ("KDEN", "KORD"),
-        ("KATL", "KJFK"), ("KJFK", "KBOS"), ("KBOS", "KJFK"), ("KJFK", "KATL"),
-        ("KATL", "KIAH"), ("KIAH", "KATL"), ("KATL", "KORD"), ("KORD", "KATL"),
-        ("KDFW", "KPHX"), ("KPHX", "KLAS"), ("KLAS", "KPHX"), ("KPHX", "KDFW"),
-        ("KLAX", "KSFO"), ("KSFO", "KDEN"), ("KDEN", "KSFO"), ("KSFO", "KLAX"),
-        ("KDEN", "KLAS"), ("KLAS", "KDEN"), ("KDEN", "KMSP"), ("KMSP", "KDEN"),
-        ("KJFK", "KMIA"), ("KMIA", "KJFK"), ("KJFK", "KBOS"), ("KBOS", "KJFK"),
-        ("KSEA", "KLAX"), ("KLAX", "KSEA"), ("KSEA", "KSFO"), ("KSFO", "KSEA"),
+        ("KORD", "KATL"),
+        ("KATL", "KMIA"),
+        ("KMIA", "KATL"),
+        ("KATL", "KORD"),
+        ("KORD", "KDFW"),
+        ("KDFW", "KLAX"),
+        ("KLAX", "KDFW"),
+        ("KDFW", "KORD"),
+        ("KORD", "KDEN"),
+        ("KDEN", "KPHX"),
+        ("KPHX", "KDEN"),
+        ("KDEN", "KORD"),
+        ("KATL", "KJFK"),
+        ("KJFK", "KBOS"),
+        ("KBOS", "KJFK"),
+        ("KJFK", "KATL"),
+        ("KATL", "KIAH"),
+        ("KIAH", "KATL"),
+        ("KATL", "KORD"),
+        ("KORD", "KATL"),
+        ("KDFW", "KPHX"),
+        ("KPHX", "KLAS"),
+        ("KLAS", "KPHX"),
+        ("KPHX", "KDFW"),
+        ("KLAX", "KSFO"),
+        ("KSFO", "KDEN"),
+        ("KDEN", "KSFO"),
+        ("KSFO", "KLAX"),
+        ("KDEN", "KLAS"),
+        ("KLAS", "KDEN"),
+        ("KDEN", "KMSP"),
+        ("KMSP", "KDEN"),
+        ("KJFK", "KMIA"),
+        ("KMIA", "KJFK"),
+        ("KJFK", "KBOS"),
+        ("KBOS", "KJFK"),
+        ("KSEA", "KLAX"),
+        ("KLAX", "KSEA"),
+        ("KSEA", "KSFO"),
+        ("KSFO", "KSEA"),
     ]
-    dep_hours = [11, 13, 16, 18, 11, 13, 16, 18, 11, 14, 17, 19,
-                 11, 13, 16, 18, 11, 14, 17, 19, 11, 13, 16, 18,
-                 11, 14, 17, 20, 11, 13, 16, 18, 11, 14, 17, 20,
-                 11, 14, 17, 20]
+    dep_hours = [
+        11,
+        13,
+        16,
+        18,
+        11,
+        13,
+        16,
+        18,
+        11,
+        14,
+        17,
+        19,
+        11,
+        13,
+        16,
+        18,
+        11,
+        14,
+        17,
+        19,
+        11,
+        13,
+        16,
+        18,
+        11,
+        14,
+        17,
+        20,
+        11,
+        13,
+        16,
+        18,
+        11,
+        14,
+        17,
+        20,
+        11,
+        14,
+        17,
+        20,
+    ]
     flights = []
     for i, (orig, dest) in enumerate(routes):
         ac_id = aircraft_bases[i % len(aircraft_bases)][0]
         dep_h = dep_hours[i % len(dep_hours)]
-        flights.append({
-            "id": f"NB{101 + i}",
-            "aircraft_id": ac_id,
-            "origin": orig,
-            "destination": dest,
-            "scheduled_departure": f"2024-01-15T{dep_h:02d}:00:00Z",
-            "scheduled_arrival": f"2024-01-15T{dep_h + 2:02d}:30:00Z",
-            "passengers": 130 + i * 3,
-            "status": "scheduled",
-            "delay_minutes": 0,
-        })
+        flights.append(
+            {
+                "id": f"NB{101 + i}",
+                "aircraft_id": ac_id,
+                "origin": orig,
+                "destination": dest,
+                "scheduled_departure": f"2024-01-15T{dep_h:02d}:00:00Z",
+                "scheduled_arrival": f"2024-01-15T{dep_h + 2:02d}:30:00Z",
+                "passengers": 130 + i * 3,
+                "status": "scheduled",
+                "delay_minutes": 0,
+            }
+        )
     aircraft = [
-        {"id": aid, "type": "B737-800", "base_airport_id": base, "seats": 162, "min_turn_minutes": 45}
+        {
+            "id": aid,
+            "type": "B737-800",
+            "base_airport_id": base,
+            "seats": 162,
+            "min_turn_minutes": 45,
+        }
         for aid, base in aircraft_bases
     ]
     crews = [
         {
-            "id": f"CP{i:03d}", "flight_id": f"NB{101 + i}",
-            "captain_id": f"CAP{i:03d}", "first_officer_id": f"FO{i:03d}",
+            "id": f"CP{i:03d}",
+            "flight_id": f"NB{101 + i}",
+            "captain_id": f"CAP{i:03d}",
+            "first_officer_id": f"FO{i:03d}",
             "fa_ids": [f"FA{i * 2:03d}", f"FA{i * 2 + 1:03d}"],
-            "duty_start": "2024-01-15T10:00:00Z", "duty_end": "2024-01-15T22:00:00Z",
-            "flight_time_minutes": 150, "status": "assigned",
+            "duty_start": "2024-01-15T10:00:00Z",
+            "duty_end": "2024-01-15T22:00:00Z",
+            "flight_time_minutes": 150,
+            "status": "assigned",
         }
         for i in range(len(flights))
     ]
@@ -111,16 +198,19 @@ async def lifespan(app: FastAPI):
     weather_client = WeatherClient()
 
     # OpenSky Network — load OAuth2 credentials (JSON file or env vars)
-    _client_id     = settings.opensky_client_id
+    _client_id = settings.opensky_client_id
     _client_secret = settings.opensky_client_secret
     if not (_client_id and _client_secret):
         # Try loading from credentials/credentials.json (repo-local, git-ignored)
         try:
             import json as _json
-            _cred_path = Path(__file__).parent.parent.parent.parent / "credentials" / "credentials.json"
+
+            _cred_path = (
+                Path(__file__).parent.parent.parent.parent / "credentials" / "credentials.json"
+            )
             if _cred_path.exists():
-                _creds     = _json.loads(_cred_path.read_text())
-                _client_id     = _creds.get("clientId", "")
+                _creds = _json.loads(_cred_path.read_text())
+                _client_id = _creds.get("clientId", "")
                 _client_secret = _creds.get("clientSecret", "")
                 logger.info("OpenSky: loaded OAuth2 credentials from credentials.json")
         except Exception as _e:
@@ -151,7 +241,9 @@ async def lifespan(app: FastAPI):
 
     logger.info(
         "Aeolus ready — %d flights, %d aircraft, %d crew pairings | OpenSky: %s",
-        len(flights), len(aircraft), len(crews),
+        len(flights),
+        len(aircraft),
+        len(crews),
         "authenticated" if (settings.opensky_username) else "anonymous",
     )
 
@@ -190,16 +282,16 @@ app.add_middleware(
 # Include routers — flights_router must come before network.router because
 # network.router registers GET /flights/{flight_id} which would otherwise
 # shadow the explicit /flights/live and /flights/search routes.
-app.include_router(flights_router,    prefix="/api/v1", tags=["flights"])
-app.include_router(network.router,    prefix="/api/v1", tags=["network"])
-app.include_router(events.router,     prefix="/api/v1", tags=["events"])
-app.include_router(recovery.router,   prefix="/api/v1", tags=["recovery"])
-app.include_router(predict.router,    prefix="/api/v1", tags=["predict"])
-app.include_router(weather.router,    prefix="/api/v1", tags=["weather"])
-app.include_router(simulator.router,  prefix="/api/v1", tags=["simulator"])
-app.include_router(live.router,       prefix="/api/v1", tags=["live"])
+app.include_router(flights_router, prefix="/api/v1", tags=["flights"])
+app.include_router(network.router, prefix="/api/v1", tags=["network"])
+app.include_router(events.router, prefix="/api/v1", tags=["events"])
+app.include_router(recovery.router, prefix="/api/v1", tags=["recovery"])
+app.include_router(predict.router, prefix="/api/v1", tags=["predict"])
+app.include_router(weather.router, prefix="/api/v1", tags=["weather"])
+app.include_router(simulator.router, prefix="/api/v1", tags=["simulator"])
+app.include_router(live.router, prefix="/api/v1", tags=["live"])
 app.include_router(passengers_router, prefix="/api/v1", tags=["passengers"])
-app.include_router(playtest.router,   prefix="/api/v1", tags=["playtest"])
+app.include_router(playtest.router, prefix="/api/v1", tags=["playtest"])
 
 
 @app.get("/health", tags=["health"])
@@ -207,7 +299,7 @@ async def health(request: Request):
     opensky = getattr(request.app.state, "opensky", None)
     opensky_status = opensky.status() if opensky else {"available": False}
     return {
-        "status":  "ok",
+        "status": "ok",
         "service": "aeolus-api",
         "version": "0.2.0",
         "opensky": opensky_status,

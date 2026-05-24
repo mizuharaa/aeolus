@@ -2,6 +2,7 @@
 Runway closure disruption event.
 Models planned/unplanned runway closures that reduce airport capacity.
 """
+
 from datetime import timedelta
 
 from src.events.base import DisruptionEvent, EventKind
@@ -125,6 +126,7 @@ class RunwayClosureEvent(DisruptionEvent):
         # Return the portion of flights that will experience delays
         # based on capacity cut (simplified linear model)
         import random
+
         random.seed(len(airport))
         cutoff = len(candidates) * capacity_cut
         return candidates[: int(cutoff)]

@@ -7,6 +7,7 @@ Provides live US flight positions, flight search, and tracking URL generation.
 Rate limiting note: OpenSky anonymous = 100 req/10 min.
 The client caches responses for 30 s to keep well within the limit.
 """
+
 from __future__ import annotations
 
 import logging
@@ -23,7 +24,9 @@ async def get_live_flights(
     request: Request,
     limit: int = Query(default=500, ge=1, le=2000),
     on_ground: Optional[bool] = Query(default=False),
-    airline: Optional[str] = Query(default=None, description="Filter by IATA airline code (e.g. 'AA')"),
+    airline: Optional[str] = Query(
+        default=None, description="Filter by IATA airline code (e.g. 'AA')"
+    ),
 ):
     """
     Return live US flight positions from OpenSky Network.
@@ -34,7 +37,12 @@ async def get_live_flights(
     """
     opensky = getattr(request.app.state, "opensky", None)
     if opensky is None:
-        return {"flights": [], "total": 0, "source": "unavailable", "error": "OpenSky client not initialised"}
+        return {
+            "flights": [],
+            "total": 0,
+            "source": "unavailable",
+            "error": "OpenSky client not initialised",
+        }
 
     flights = await opensky.get_us_flights()
 
@@ -46,20 +54,17 @@ async def get_live_flights(
 
     if airline:
         airline_upper = airline.upper()
-        flights = [
-            f for f in flights
-            if f.get("airline_iata", "") == airline_upper
-        ]
+        flights = [f for f in flights if f.get("airline_iata", "") == airline_upper]
 
     status = opensky.status()
 
     return {
         "flights": flights[:limit],
-        "total":   len(flights),
-        "limit":   limit,
+        "total": len(flights),
+        "limit": limit,
         "cache_age_sec": status["cache_age_sec"],
         "authenticated": status["authenticated"],
-        "source":  "opensky-network.org",
+        "source": "opensky-network.org",
     }
 
 
@@ -82,10 +87,10 @@ async def search_flights(
 
     results = await opensky.search(q)
     return {
-        "query":   q,
+        "query": q,
         "results": results,
-        "count":   len(results),
-        "source":  "opensky-network.org",
+        "count": len(results),
+        "source": "opensky-network.org",
     }
 
 

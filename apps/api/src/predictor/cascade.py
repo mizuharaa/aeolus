@@ -18,6 +18,7 @@ No ML model is required — this is deterministic physics, not statistics.
 If an XGBoost model bundle is loaded it overrides step 5 with probability
 estimates; the rotation propagation still drives delay_minutes.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -38,36 +39,36 @@ logger = logging.getLogger(__name__)
 
 # Base delay multiplier (fraction of event duration) applied to DIRECTLY affected flights
 DIRECT_DELAY_FRACTION: dict[str, float] = {
-    "weather_closure":  1.00,
-    "ground_stop":      0.85,
-    "security_event":   0.90,
-    "runway_closure":   0.45,
-    "atc_staffing":     0.55,
-    "mechanical_aog":   1.00,
-    "crew_sickout":     0.70,
+    "weather_closure": 1.00,
+    "ground_stop": 0.85,
+    "security_event": 0.90,
+    "runway_closure": 0.45,
+    "atc_staffing": 0.55,
+    "mechanical_aog": 1.00,
+    "crew_sickout": 0.70,
     "airspace_closure": 0.80,
-    "volcanic_ash":     0.75,
-    "cyber_incident":   0.60,
+    "volcanic_ash": 0.75,
+    "cyber_incident": 0.60,
     # Extended event types
-    "thunderstorm":     0.90,
-    "blizzard":         0.95,
-    "sandstorm":        0.85,
-    "dense_fog":        0.80,
-    "wind_shear":       0.70,
-    "hurricane":        1.00,
-    "bird_strike":      1.00,
+    "thunderstorm": 0.90,
+    "blizzard": 0.95,
+    "sandstorm": 0.85,
+    "dense_fog": 0.80,
+    "wind_shear": 0.70,
+    "hurricane": 1.00,
+    "bird_strike": 1.00,
     "deicing_shortage": 0.60,
     "fuel_contamination": 0.90,
-    "labor_action":     0.50,
-    "airport_emergency":0.95,
+    "labor_action": 0.50,
+    "airport_emergency": 0.95,
 }
 
 # Severity multipliers (on top of base)
 SEVERITY_MULT: dict[str, float] = {
-    "mild":     0.35,
+    "mild": 0.35,
     "moderate": 0.62,
-    "severe":   0.88,
-    "extreme":  1.00,
+    "severe": 0.88,
+    "extreme": 1.00,
 }
 
 # ARTCC facility → Nimbus Air airports (for atc_staffing event)
@@ -148,12 +149,12 @@ class CascadePredictor:
             if p.get("cascade_order", -1) >= 0
         ]
         return {
-            "total_affected":     sum(1 for o in orders if o >= 0),
-            "directly_affected":  orders.count(0),
-            "cascade_1":          orders.count(1),
-            "cascade_2":          orders.count(2),
-            "unaffected":         orders.count(-1),
-            "total_delay_minutes":sum(delays),
+            "total_affected": sum(1 for o in orders if o >= 0),
+            "directly_affected": orders.count(0),
+            "cascade_1": orders.count(1),
+            "cascade_2": orders.count(2),
+            "unaffected": orders.count(-1),
+            "total_delay_minutes": sum(delays),
         }
 
     # ── Core rotation propagation ──────────────────────────────────────────────
@@ -165,8 +166,8 @@ class CascadePredictor:
         metar_data: dict[str, dict],
         current_time: datetime,
     ) -> dict[str, dict]:
-        kind    = event.get("kind", "")
-        params  = event.get("params", {})
+        kind = event.get("kind", "")
+        params = event.get("params", {})
         severity = params.get("severity", "moderate")
         sev_mult = SEVERITY_MULT.get(severity, 0.62)
         base_frac = DIRECT_DELAY_FRACTION.get(kind, 0.75)
@@ -185,10 +186,19 @@ class CascadePredictor:
         # Accept a single `airport` and/or an `airports` list so scenarios can
         # name a metroplex rather than one field.
         _airport_event_kinds = (
-            "weather_closure", "security_event", "runway_closure",
+            "weather_closure",
+            "security_event",
+            "runway_closure",
             # Extended weather types
-            "thunderstorm", "blizzard", "sandstorm", "dense_fog", "wind_shear",
-            "hurricane", "deicing_shortage", "fuel_contamination", "airport_emergency",
+            "thunderstorm",
+            "blizzard",
+            "sandstorm",
+            "dense_fog",
+            "wind_shear",
+            "hurricane",
+            "deicing_shortage",
+            "fuel_contamination",
+            "airport_emergency",
         )
         if kind in _airport_event_kinds:
             ap = params.get("airport", "")
@@ -204,9 +214,7 @@ class CascadePredictor:
             # fall back to the default corridor so the closure always affects
             # real flights even when only a map polygon is provided.
             region = (
-                params.get("airports")
-                or params.get("affected_airports")
-                or AIRSPACE_DEFAULT_REGION
+                params.get("airports") or params.get("affected_airports") or AIRSPACE_DEFAULT_REGION
             )
             for ap in region:
                 if ap:
@@ -241,9 +249,9 @@ class CascadePredictor:
                 affected_airports.add(base)
             # callout_pct drives both which flights lose crew and how long delays are
             # UI sends "percent_affected"; YAML scenarios may use "callout_pct"
-            _crew_callout_frac = float(
-                params.get("callout_pct", params.get("percent_affected", 15))
-            ) / 100.0
+            _crew_callout_frac = (
+                float(params.get("callout_pct", params.get("percent_affected", 15))) / 100.0
+            )
 
         elif kind == "atc_staffing":
             facility = params.get("facility_id", params.get("sector_or_airport", ""))
@@ -292,8 +300,8 @@ class CascadePredictor:
         for fl in flights:
             fid = fl["id"]
             origin = fl.get("origin", "")
-            dest   = fl.get("destination", "")
-            ac_id  = fl.get("aircraft_id") or fl.get("tail_number", "")
+            dest = fl.get("destination", "")
+            ac_id = fl.get("aircraft_id") or fl.get("tail_number", "")
 
             is_direct = False
 
@@ -368,12 +376,14 @@ class CascadePredictor:
                 continue
             p_del = _p_delayed_for_order(0, sev_mult)
             # Per-flight jitter so every direct hit isn't identical (±4%)
-            fid_jitter = ((int(hashlib.sha256(fid.encode()).hexdigest()[:8], 16) % 80) - 40) / 1000.0
+            fid_jitter = (
+                (int(hashlib.sha256(fid.encode()).hexdigest()[:8], 16) % 80) - 40
+            ) / 1000.0
             results[fid] = {
-                "p_delayed":          round(min(0.99, max(0.50, p_del + fid_jitter)), 4),
+                "p_delayed": round(min(0.99, max(0.50, p_del + fid_jitter)), 4),
                 "expected_delay_min": delay,
-                "cascade_order":      0,
-                "reason":             _reason(kind, 0, params),
+                "cascade_order": 0,
+                "reason": _reason(kind, 0, params),
             }
 
         # Propagate within each rotation
@@ -420,12 +430,14 @@ class CascadePredictor:
                 if propagated > 0:
                     cascade_order = min(2, carry_order + 1)
                     p_del = _p_delayed_for_order(cascade_order, sev_mult)
-                    fid_jitter = ((int(hashlib.sha256(fid.encode()).hexdigest()[:8], 16) % 80) - 40) / 1000.0
+                    fid_jitter = (
+                        (int(hashlib.sha256(fid.encode()).hexdigest()[:8], 16) % 80) - 40
+                    ) / 1000.0
                     results[fid] = {
-                        "p_delayed":          round(min(0.85, max(0.05, p_del + fid_jitter)), 4),
+                        "p_delayed": round(min(0.85, max(0.05, p_del + fid_jitter)), 4),
                         "expected_delay_min": int(propagated),
-                        "cascade_order":      cascade_order,
-                        "reason":             _reason(kind, cascade_order, params),
+                        "cascade_order": cascade_order,
+                        "reason": _reason(kind, cascade_order, params),
                     }
                     carry_delay = propagated
                     carry_order = cascade_order
@@ -439,10 +451,10 @@ class CascadePredictor:
             fid = fl["id"]
             if fid not in results:
                 results[fid] = {
-                    "p_delayed":          0.05,
+                    "p_delayed": 0.05,
                     "expected_delay_min": 0,
-                    "cascade_order":      -1,
-                    "reason":             "Not affected by current event",
+                    "cascade_order": -1,
+                    "reason": "Not affected by current event",
                 }
 
         return results
@@ -452,10 +464,11 @@ class CascadePredictor:
     def _load_model(self, path: Path) -> None:
         try:
             import joblib
+
             bundle = joblib.load(path)
             self.delay_classifier = bundle.get("classifier")
-            self.delay_regressor  = bundle.get("regressor")
-            self.airport_encoder  = bundle.get("airport_encoder", {})
+            self.delay_regressor = bundle.get("regressor")
+            self.airport_encoder = bundle.get("airport_encoder", {})
             self.aircraft_encoder = bundle.get("aircraft_encoder", {})
             self.is_trained = True
             logger.info("Cascade predictor: loaded XGBoost model from %s", path)
@@ -471,18 +484,29 @@ class CascadePredictor:
         from sklearn.model_selection import train_test_split
 
         X_tr, X_val, yc_tr, yc_val, yr_tr, yr_val = train_test_split(
-            X_train, y_delay_binary, y_delay_minutes,
-            test_size=0.2, random_state=42,
+            X_train,
+            y_delay_binary,
+            y_delay_minutes,
+            test_size=0.2,
+            random_state=42,
         )
         self.delay_classifier = xgb.XGBClassifier(
-            n_estimators=300, max_depth=6, learning_rate=0.05,
-            subsample=0.8, colsample_bytree=0.8, random_state=42,
+            n_estimators=300,
+            max_depth=6,
+            learning_rate=0.05,
+            subsample=0.8,
+            colsample_bytree=0.8,
+            random_state=42,
         )
         self.delay_classifier.fit(X_tr, yc_tr, eval_set=[(X_val, yc_val)], verbose=False)
 
         self.delay_regressor = xgb.XGBRegressor(
-            n_estimators=300, max_depth=6, learning_rate=0.05,
-            subsample=0.8, colsample_bytree=0.8, random_state=42,
+            n_estimators=300,
+            max_depth=6,
+            learning_rate=0.05,
+            subsample=0.8,
+            colsample_bytree=0.8,
+            random_state=42,
         )
         self.delay_regressor.fit(X_tr, yr_tr, eval_set=[(X_val, yr_val)], verbose=False)
         self.is_trained = True
@@ -494,17 +518,19 @@ class CascadePredictor:
 
     def save(self, path: Path) -> None:
         import joblib
+
         bundle = {
-            "classifier":      self.delay_classifier,
-            "regressor":       self.delay_regressor,
+            "classifier": self.delay_classifier,
+            "regressor": self.delay_regressor,
             "airport_encoder": self.airport_encoder,
-            "aircraft_encoder":self.aircraft_encoder,
+            "aircraft_encoder": self.aircraft_encoder,
         }
         joblib.dump(bundle, path)
         logger.info("Cascade predictor saved to %s", path)
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
+
 
 def _parse_dt(iso: str) -> datetime:
     """Parse ISO timestamp with or without timezone."""
@@ -517,15 +543,15 @@ def _parse_dt(iso: str) -> datetime:
 def _default_duration(kind: str) -> float:
     return {
         "weather_closure": 4.0,
-        "ground_stop":     2.0,
-        "security_event":  3.0,
-        "runway_closure":  2.0,
-        "atc_staffing":    6.0,
-        "mechanical_aog":  6.0,
-        "crew_sickout":    8.0,
-        "airspace_closure":3.0,
-        "volcanic_ash":   12.0,
-        "cyber_incident":  4.0,
+        "ground_stop": 2.0,
+        "security_event": 3.0,
+        "runway_closure": 2.0,
+        "atc_staffing": 6.0,
+        "mechanical_aog": 6.0,
+        "crew_sickout": 8.0,
+        "airspace_closure": 3.0,
+        "volcanic_ash": 12.0,
+        "cyber_incident": 4.0,
     }.get(kind, 3.0)
 
 
@@ -550,15 +576,15 @@ def _p_delayed_for_order(order: int, sev_mult: float) -> float:
 def _reason(kind: str, order: int, params: dict) -> str:
     labels = {
         "weather_closure": f"Weather closure — {params.get('airport', '')}",
-        "ground_stop":     f"Ground stop — {params.get('destination_airport', params.get('airport', ''))}",
-        "security_event":  f"Security event — {params.get('airport', '')}",
-        "runway_closure":  f"Runway closure — {params.get('airport', '')} ({params.get('capacity_cut_pct', '')}% capacity)",
-        "atc_staffing":    f"ATC staffing — {params.get('facility_id', '')}",
-        "mechanical_aog":  f"Mechanical AOG — tail {params.get('aircraft_tail', '')}",
-        "crew_sickout":    f"Crew sick-out — base {params.get('base', '')}",
-        "airspace_closure":f"Airspace closure — {params.get('airport', '')}",
-        "volcanic_ash":    "Volcanic ash cloud — west-coast route diverted",
-        "cyber_incident":  f"Cyber incident — {params.get('degradation_pct', '')}% IT degradation",
+        "ground_stop": f"Ground stop — {params.get('destination_airport', params.get('airport', ''))}",
+        "security_event": f"Security event — {params.get('airport', '')}",
+        "runway_closure": f"Runway closure — {params.get('airport', '')} ({params.get('capacity_cut_pct', '')}% capacity)",
+        "atc_staffing": f"ATC staffing — {params.get('facility_id', '')}",
+        "mechanical_aog": f"Mechanical AOG — tail {params.get('aircraft_tail', '')}",
+        "crew_sickout": f"Crew sick-out — base {params.get('base', '')}",
+        "airspace_closure": f"Airspace closure — {params.get('airport', '')}",
+        "volcanic_ash": "Volcanic ash cloud — west-coast route diverted",
+        "cyber_incident": f"Cyber incident — {params.get('degradation_pct', '')}% IT degradation",
     }
     base = labels.get(kind, f"Event: {kind}")
     if order == 0:

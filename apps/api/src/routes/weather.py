@@ -1,4 +1,5 @@
 """Weather data endpoints (aviationweather.gov METAR)."""
+
 from fastapi import APIRouter, HTTPException, Request
 
 router = APIRouter()

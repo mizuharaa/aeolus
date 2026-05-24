@@ -2,6 +2,7 @@
 Cyber incident disruption event.
 Models IT/cybersecurity incidents affecting airline systems.
 """
+
 from datetime import timedelta
 
 from src.events.base import DisruptionEvent, EventKind
@@ -121,7 +122,11 @@ class CyberIncidentEvent(DisruptionEvent):
     def severity_label(self) -> str:
         incident_type = self.params.get("incident_type", "check_in_outage")
         desc = INCIDENT_TYPES.get(incident_type, {}).get("description", incident_type)
-        workaround = "manual workaround available" if self.params.get("manual_workaround") else "no workaround"
+        workaround = (
+            "manual workaround available"
+            if self.params.get("manual_workaround")
+            else "no workaround"
+        )
         return f"Cyber Incident: {desc} ({workaround})"
 
     def affected_flights(self, schedule: list[dict]) -> list[dict]:
@@ -148,6 +153,7 @@ class CyberIncidentEvent(DisruptionEvent):
             dep_str = flight.get("scheduled_departure", "")
             try:
                 from datetime import datetime
+
                 dep = datetime.fromisoformat(dep_str.replace("Z", "+00:00"))
                 dep = dep.replace(tzinfo=None) if dep.tzinfo else dep
             except (ValueError, AttributeError):
@@ -160,7 +166,12 @@ class CyberIncidentEvent(DisruptionEvent):
             if affects_system == "all":
                 # Full outage: all flights affected
                 affected.append(flight)
-            elif affects_system in ("departure_control", "weight_balance", "dispatch", "airport_it"):
+            elif affects_system in (
+                "departure_control",
+                "weight_balance",
+                "dispatch",
+                "airport_it",
+            ):
                 # Departing flights at affected hubs (or all hubs if no hub filter)
                 departing = flight.get("origin") in affected_hubs if affected_hubs else True
                 if departing:
