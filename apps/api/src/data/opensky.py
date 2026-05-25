@@ -204,7 +204,7 @@ class OpenSkyClient:
             return None
         now = int(time.time())
         begin = now - hours_back * 3600
-        params = {"icao24": target, "begin": begin, "end": now}
+        params: dict = {"icao24": target, "begin": begin, "end": now}
         headers: dict = {}
         token = await self._get_token()
         if token:

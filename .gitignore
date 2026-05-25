@@ -161,7 +161,7 @@ lerna-debug.log*
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
-package-lock.json
+# package-lock.json is committed — CI runs `npm ci` and setup-node caches on it
 yarn.lock
 pnpm-lock.yaml
 

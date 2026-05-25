@@ -1,8 +1,11 @@
 name: Deploy
 
+# Deploy targets AWS ECS + Vercel and needs secrets (AWS_DEPLOY_ROLE_ARN,
+# VERCEL_TOKEN, …). It does NOT run on ordinary pushes to main — that would
+# fail at the credentials step when no infra is configured. Cut a v*.*.* tag
+# or trigger it manually once those secrets exist.
 on:
   push:
-    branches: [main]
     tags: ["v*.*.*"]
 
   workflow_dispatch:
