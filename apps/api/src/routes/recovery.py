@@ -1,18 +1,15 @@
 """Recovery optimizer endpoints."""
 
 import datetime
-from pathlib import Path
 
-import yaml
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
+from src.network import cache
 from src.optimizer.crew_overbooking import CrewOverbookingOptimizer
 from src.optimizer.explain import explain_plan
 
 router = APIRouter()
-
-DATA_DIR = Path(__file__).parent.parent.parent.parent.parent / "data" / "network"
 
 _crew_ob_optimizer = CrewOverbookingOptimizer()
 
@@ -35,18 +32,14 @@ class ApplyRequest(BaseModel):
 
 
 def _load_network():
-    try:
-        with open(DATA_DIR / "flights.yaml") as f:
-            flights = yaml.safe_load(f).get("flights", [])
-        with open(DATA_DIR / "aircraft.yaml") as f:
-            aircraft = yaml.safe_load(f).get("aircraft", [])
-        with open(DATA_DIR / "crews.yaml") as f:
-            raw = yaml.safe_load(f)
-            crews = raw.get("crew_pairings", [])
-            members = raw.get("crew_members", [])
-        return flights, aircraft, crews, members
-    except Exception:
-        return [], [], [], []
+    """Network tuple from the shared in-memory cache (read-only; the optimizer
+    does not mutate the schedule)."""
+    return (
+        cache.get_flights(),
+        cache.get_aircraft(),
+        cache.get_crew_pairings(),
+        cache.get_crew_members(),
+    )
 
 
 @router.post("/recovery/solve")

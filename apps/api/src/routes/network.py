@@ -1,11 +1,14 @@
-"""Network data endpoints."""
+"""Network data endpoints.
 
-from pathlib import Path
+All static network reads are served from the in-memory cache in
+``src.network.cache`` (parsed once at startup) rather than re-reading YAML on
+every request — this is what keeps read-load p95 low under concurrency.
+"""
 
-import yaml
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel
 
+from src.network import cache
 from src.network.stress_test import (
     DEFAULT_AIRPORTS,
     DEFAULT_EVENT_KINDS,
@@ -14,69 +17,55 @@ from src.network.stress_test import (
 
 router = APIRouter()
 
-DATA_DIR = Path(__file__).parent.parent.parent.parent.parent / "data" / "network"
-
-
-def _load_yaml(filename: str) -> dict:
-    try:
-        with open(DATA_DIR / filename) as f:
-            return yaml.safe_load(f)
-    except FileNotFoundError:
-        return {}
+# Static network data is immutable for the process lifetime, so clients may
+# cache it briefly and revalidate cheaply with the ETag.
+_NETWORK_CACHE_CONTROL = "public, max-age=60"
 
 
 @router.get("/network")
-async def get_network():
-    airports = _load_yaml("airports.yaml").get("airports", [])
-    aircraft = _load_yaml("aircraft.yaml").get("aircraft", [])
-    flights = _load_yaml("flights.yaml").get("flights", [])
-    crews = _load_yaml("crews.yaml").get("crew_pairings", [])
-    return {
-        "airline": "Nimbus Air",
-        "airports": airports,
-        "aircraft": aircraft,
-        "flights": flights,
-        "crew_pairings": crews,
-        "stats": {
-            "airport_count": len(airports),
-            "aircraft_count": len(aircraft),
-            "flight_count": len(flights),
-            "crew_pairing_count": len(crews),
-        },
-    }
+async def get_network(request: Request):
+    """Return the full Nimbus Air network.
+
+    Served from pre-serialized JSON bytes with a strong ETag; an
+    ``If-None-Match`` that matches is answered with a 304 so dashboard polls
+    don't re-transfer the ~95 KB payload.
+    """
+    body, etag = cache.get_network_json()
+    if request.headers.get("if-none-match") == etag:
+        return Response(
+            status_code=304,
+            headers={"ETag": etag, "Cache-Control": _NETWORK_CACHE_CONTROL},
+        )
+    return Response(
+        content=body,
+        media_type="application/json",
+        headers={"ETag": etag, "Cache-Control": _NETWORK_CACHE_CONTROL},
+    )
 
 
 @router.get("/airports")
 async def get_airports():
-    data = _load_yaml("airports.yaml")
-    return {"airports": data.get("airports", [])}
+    return {"airports": cache.get_airports()}
 
 
 @router.get("/airports/{airport_id}")
 async def get_airport(airport_id: str):
-    data = _load_yaml("airports.yaml")
-    for ap in data.get("airports", []):
+    for ap in cache.get_airports():
         if ap["id"] == airport_id.upper():
             return ap
-    from fastapi import HTTPException
-
     raise HTTPException(status_code=404, detail=f"Airport {airport_id} not found")
 
 
 @router.get("/aircraft")
 async def get_aircraft():
-    data = _load_yaml("aircraft.yaml")
-    return {"aircraft": data.get("aircraft", [])}
+    return {"aircraft": cache.get_aircraft()}
 
 
 @router.get("/aircraft/{tail}")
 async def get_single_aircraft(tail: str):
-    data = _load_yaml("aircraft.yaml")
-    for ac in data.get("aircraft", []):
+    for ac in cache.get_aircraft():
         if ac["id"] == tail.upper():
             return ac
-    from fastapi import HTTPException
-
     raise HTTPException(status_code=404, detail=f"Aircraft {tail} not found")
 
 
@@ -84,8 +73,7 @@ async def get_single_aircraft(tail: str):
 async def get_flights(
     status: str | None = None, origin: str | None = None, destination: str | None = None
 ):
-    data = _load_yaml("flights.yaml")
-    flights = data.get("flights", [])
+    flights = cache.get_flights()
     if status:
         flights = [f for f in flights if f.get("status") == status]
     if origin:
@@ -97,21 +85,17 @@ async def get_flights(
 
 @router.get("/flights/{flight_id}")
 async def get_flight(flight_id: str):
-    data = _load_yaml("flights.yaml")
-    for f in data.get("flights", []):
+    for f in cache.get_flights():
         if f["id"] == flight_id.upper():
             return f
-    from fastapi import HTTPException
-
     raise HTTPException(status_code=404, detail=f"Flight {flight_id} not found")
 
 
 @router.get("/crews")
 async def get_crews():
-    data = _load_yaml("crews.yaml")
     return {
-        "crew_members": data.get("crew_members", []),
-        "crew_pairings": data.get("crew_pairings", []),
+        "crew_members": cache.get_crew_members(),
+        "crew_pairings": cache.get_crew_pairings(),
     }
 
 
@@ -121,7 +105,7 @@ async def get_schedule(request: Request):
     engine = request.app.state.engine
     if engine:
         return {"flights": engine.get_schedule_snapshot()}
-    return {"flights": _load_yaml("flights.yaml").get("flights", [])}
+    return {"flights": cache.get_flights()}
 
 
 class StressTestRequest(BaseModel):
@@ -143,12 +127,10 @@ async def post_stress_test(payload: StressTestRequest, request: Request):
     """
     predictor = getattr(request.app.state, "predictor", None)
     if predictor is None:
-        from fastapi import HTTPException
-
         raise HTTPException(status_code=503, detail="Cascade predictor not initialised")
 
-    flights = _load_yaml("flights.yaml").get("flights", [])
-    aircraft = _load_yaml("aircraft.yaml").get("aircraft", [])
+    flights = cache.get_flights()
+    aircraft = cache.get_aircraft()
 
     return run_stress_test(
         flights=flights,

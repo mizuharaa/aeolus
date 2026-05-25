@@ -1,0 +1,21 @@
+# Root compose context for aeolus-api — keep the build context small.
+
+.git
+.gitignore
+**/.git
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/__pycache__
+**/*.pyc
+**/.venv
+**/node_modules
+**/.next
+**/out
+**/.env
+**/.env.*
+!**/.env.example
+**/coverage
+**/*.md
+!apps/api/README.md
+benchmarks

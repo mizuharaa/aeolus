@@ -6,12 +6,13 @@ import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-import yaml
 from fastapi import FastAPI, Request, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 
 from src.core.config import settings
 from src.data.opensky import OpenSkyClient
+from src.network import cache
 from src.optimizer.milp import RecoveryOptimizer
 from src.predictor.cascade import CascadePredictor
 from src.routes import events, live, network, playtest, predict, recovery, simulator, weather
@@ -23,22 +24,22 @@ from src.ws.handlers import simulation_ws_handler
 
 logger = logging.getLogger(__name__)
 
-DATA_DIR = Path(__file__).parent.parent.parent.parent / "data" / "network"
-
 
 def _load_network() -> tuple[list, list, list]:
-    """Load Nimbus Air network from YAML files."""
-    try:
-        with open(DATA_DIR / "flights.yaml") as f:
-            flights = yaml.safe_load(f).get("flights", [])
-        with open(DATA_DIR / "aircraft.yaml") as f:
-            aircraft = yaml.safe_load(f).get("aircraft", [])
-        with open(DATA_DIR / "crews.yaml") as f:
-            crews = yaml.safe_load(f).get("crew_pairings", [])
-        return flights, aircraft, crews
-    except FileNotFoundError:
+    """Load Nimbus Air network from the shared in-memory cache.
+
+    ``cache.warm()`` parses every network YAML once and pre-serializes the
+    ``/network`` payload, so this is also what primes the read-path cache for
+    the whole process. Falls back to synthetic data when the YAML is absent.
+    """
+    cache.warm()
+    flights = cache.get_flights()
+    aircraft = cache.get_aircraft()
+    crews = cache.get_crew_pairings()
+    if not (flights and aircraft and crews):
         logger.warning("Network YAML files not found — using minimal synthetic data")
         return _minimal_network()
+    return flights, aircraft, crews
 
 
 def _minimal_network():
@@ -270,6 +271,10 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
 )
+
+# Compress large JSON (notably /network and /simulator/state) when the client
+# advertises gzip support. minimum_size avoids the overhead on tiny responses.
+app.add_middleware(GZipMiddleware, minimum_size=1024)
 
 app.add_middleware(
     CORSMiddleware,

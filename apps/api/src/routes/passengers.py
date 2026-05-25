@@ -10,14 +10,12 @@ GET /passengers/compensation-policy — airline fault classification rules
 from __future__ import annotations
 
 from datetime import datetime
-from pathlib import Path
 
-import yaml
 from fastapi import APIRouter, Request
 
-router = APIRouter()
+from src.network import cache
 
-DATA_DIR = Path(__file__).parent.parent.parent.parent.parent / "data" / "network"
+router = APIRouter()
 
 # Events where the airline bears full operational responsibility
 AIRLINE_FAULT_EVENTS = {"crew_sickout", "mechanical_aog", "cyber_incident"}
@@ -420,11 +418,7 @@ AVG_DOMESTIC_FARE_USD = 350.0  # Nimbus Air average one-way fare
 
 
 def _load_flights() -> list[dict]:
-    try:
-        with open(DATA_DIR / "flights.yaml") as f:
-            return yaml.safe_load(f).get("flights", [])
-    except Exception:
-        return []
+    return cache.get_flights()
 
 
 def _is_airline_fault(event_kind: str) -> bool:
