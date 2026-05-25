@@ -176,6 +176,9 @@ next-env.d.ts
 # Gatsby
 .cache/
 public/
+# ...but Next.js public/ is source (served by the standalone image) — keep it
+!apps/web/public/
+!apps/web/public/**
 
 # Remix
 .cache/
