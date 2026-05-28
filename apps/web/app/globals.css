@@ -495,3 +495,11 @@
   animation: ae-route-fade-in 350ms ease-out, ae-route-cancel-pulse 3s ease-in-out infinite;
   cursor: pointer;
 }
+
+/* Landing hero — stack on narrow viewports */
+@media (max-width: 960px) {
+  .hero-grid {
+    grid-template-columns: 1fr !important;
+    gap: 40px !important;
+  }
+}
