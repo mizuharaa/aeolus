@@ -1,8 +1,9 @@
 "use client"
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { Plane, BarChart3, Shield, Zap, Database, Cloud } from "lucide-react"
+import { BarChart3, Shield, Zap, Database, Cloud } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
+import { AeolusLogo } from "@/components/ds/logo"
 
 function Section({ id, title, icon: Icon, children }: { id: string; title: string; icon: any; children: React.ReactNode }) {
   return (
@@ -50,9 +51,7 @@ export default function DocsPage() {
       <div className="sticky top-0 z-50 flex justify-center pt-3 px-4">
         <nav className="w-full max-w-6xl nav-pill-surface h-12 flex items-center justify-between px-4 md:px-6">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-2xl bg-ink flex items-center justify-center">
-              <Plane className="w-3.5 h-3.5 text-[#F3F0EE]" />
-            </div>
+            <AeolusLogo size={28} />
             <span className="font-display font-medium">Aeolus</span>
           </Link>
           <div className="flex gap-6 text-sm text-muted-foreground">

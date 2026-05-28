@@ -3,9 +3,10 @@ import { useState } from "react"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import {
-  ArrowLeft, Plane, ArrowRight, Cloud, OctagonAlert, Ban, ShieldAlert,
+  ArrowLeft, ArrowRight, Cloud, OctagonAlert, Ban, ShieldAlert,
   Wrench, HeartPulse, AlertTriangle, Radio, Mountain, ServerCrash, Loader2,
 } from "lucide-react"
+import { AeolusLogo } from "@/components/ds/logo"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import { apiClient } from "@/lib/api"
@@ -46,9 +47,7 @@ export default function ScenariosPage() {
       <div className="flex justify-center pt-4 px-4">
         <nav className="w-full max-w-6xl nav-pill-surface h-14 flex items-center justify-between pl-4 pr-3">
           <Link href="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
-            <div className="w-9 h-9 rounded-2xl bg-ink flex items-center justify-center shadow-nav">
-              <Plane className="w-4 h-4 text-[#F3F0EE]" />
-            </div>
+            <AeolusLogo size={36} />
             <span className="font-display font-medium text-lg">Aeolus</span>
           </Link>
           <Link href="/" className="text-sm text-muted-foreground hover:text-ink font-medium transition-colors flex items-center gap-1.5">

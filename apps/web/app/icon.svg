@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0D9488"/>
+      <stop offset="55%" stop-color="#064E45"/>
+      <stop offset="100%" stop-color="#042F2E"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="38%" cy="32%" r="70%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.28"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="32" height="32" rx="9" fill="url(#tile)"/>
+  <rect width="32" height="32" rx="9" fill="url(#glow)"/>
+  <!-- particles -->
+  <circle cx="16" cy="3.6" r="1.3" fill="#F59E0B"/>
+  <circle cx="28.4" cy="16" r="1.1" fill="#ffffff" opacity="0.85"/>
+  <circle cx="4" cy="16" r="1" fill="#5EEAD4" opacity="0.85"/>
+  <!-- wind streaks -->
+  <g stroke-linecap="round" fill="none" stroke-width="1.3">
+    <path d="M3 20 q4 -1.4 8 -0.4" stroke="#5EEAD4" stroke-opacity="0.75"/>
+    <path d="M2 16.5 q3 -1 6 -0.4" stroke="#F59E0B" stroke-opacity="0.7"/>
+  </g>
+  <!-- origami jet (white + gold), centered -->
+  <g transform="translate(16 16) scale(0.82) translate(-12 -12)">
+    <path d="M2 9.6 L22 2 L11 13 Z" fill="#ffffff"/>
+    <path d="M11 13 L22 2 L14.5 22 Z" fill="#F59E0B"/>
+    <circle cx="21" cy="2.6" r="1.1" fill="#FFE7B3"/>
+  </g>
+</svg>

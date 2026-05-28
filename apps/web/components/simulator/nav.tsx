@@ -1,7 +1,8 @@
 "use client"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Plane, Wifi, WifiOff, RotateCcw } from "lucide-react"
+import { Wifi, WifiOff, RotateCcw } from "lucide-react"
+import { AeolusLogo } from "@/components/ds/logo"
 import { useSimulationStore } from "@/stores/simulation"
 import { apiClient } from "@/lib/api"
 import { toast } from "sonner"
@@ -97,19 +98,7 @@ export function SimulatorNav({ isConnected }: SimulatorNavProps) {
           flexShrink: 0,
         }}
       >
-        <div
-          style={{
-            width: 28,
-            height: 28,
-            borderRadius: r.sm,
-            background: c.primary,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Plane style={{ width: 14, height: 14, color: c.onPrimary }} />
-        </div>
+        <AeolusLogo size={28} />
         <span
           style={{
             fontFamily: ff.display,

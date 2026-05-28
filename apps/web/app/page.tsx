@@ -2,9 +2,10 @@
 import { motion } from "framer-motion"
 import Link from "next/link"
 import {
-  Plane, Zap, BarChart3, Shield, ArrowRight, Leaf,
+  Zap, BarChart3, Shield, ArrowRight, Leaf,
   CloudLightning, Sparkles, Network,
 } from "lucide-react"
+import { AeolusLogo } from "@/components/ds/logo"
 import { c, ff, r, sp, sh, type as typeStyle } from "@/lib/design-tokens"
 import {
   ButtonPrimary, ButtonSecondary, SignatureCard, CreamCallout,
@@ -435,19 +436,7 @@ function LandingNav() {
       }}
     >
       <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
-        <div
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: r.sm,
-            background: c.ink,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Plane style={{ width: 15, height: 15, color: c.onPrimary }} />
-        </div>
+        <AeolusLogo size={32} />
         <span
           style={{
             fontFamily: ff.display,
@@ -517,19 +506,7 @@ function LandingFooter() {
         >
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-              <div
-                style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: r.sm,
-                  background: "#0D9488",   // teal as secondary brand voltage
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Plane style={{ width: 14, height: 14, color: c.onPrimary }} />
-              </div>
+              <AeolusLogo size={32} />
               <div>
                 <div style={{ fontFamily: ff.display, fontWeight: 500, fontSize: 16, color: c.onPrimary, letterSpacing: "-0.01em" }}>
                   Aeolus
