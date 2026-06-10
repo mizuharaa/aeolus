@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import time
 from typing import Optional
 
@@ -65,6 +66,14 @@ class OpenSkyClient:
         self._client_secret = client_secret or ""
         self._has_oauth = bool(client_id and client_secret)
 
+        # Relay mode: when OpenSky blocks this host's IP (e.g. Railway), route
+        # requests through a relay (a Vercel route) that OpenSky *does* allow.
+        # The relay holds the OAuth credentials and returns raw OpenSky JSON,
+        # so in relay mode we skip token handling entirely on this side.
+        self._proxy_base = (os.environ.get("OPENSKY_PROXY_BASE") or "").rstrip("/") or None
+        self._relay_key = os.environ.get("OSKY_RELAY_KEY") or None
+        self._use_proxy = bool(self._proxy_base)
+
         # OAuth2 token cache
         self._token: Optional[str] = None
         self._token_expires: float = 0.0
@@ -76,10 +85,15 @@ class OpenSkyClient:
         self._lock = asyncio.Lock()
         self._last_error: Optional[str] = None
 
-        if self._has_oauth:
+        if self._use_proxy:
+            logger.info("OpenSky: relay mode via %s", self._proxy_base)
+        elif self._has_oauth:
             logger.info("OpenSky: OAuth2 client_credentials mode (client_id=%s)", client_id)
         else:
             logger.info("OpenSky: anonymous mode (set OPENSKY_CLIENT_ID/SECRET for better limits)")
+
+    def _relay_headers(self) -> dict:
+        return {"x-relay-key": self._relay_key} if self._relay_key else {}
 
     # ── Token management ──────────────────────────────────────────────────────
 
@@ -122,7 +136,7 @@ class OpenSkyClient:
         Return all tracked flights over US airspace.
         Cached for CACHE_TTL seconds. Returns normalised flight dicts.
         """
-        ttl = CACHE_TTL_AUTHENTICATED if self._has_oauth else CACHE_TTL_ANONYMOUS
+        ttl = CACHE_TTL_AUTHENTICATED if (self._has_oauth or self._use_proxy) else CACHE_TTL_ANONYMOUS
 
         async with self._lock:
             age = time.monotonic() - self._cache_ts
@@ -205,14 +219,20 @@ class OpenSkyClient:
         now = int(time.time())
         begin = now - hours_back * 3600
         params: dict = {"icao24": target, "begin": begin, "end": now}
-        headers: dict = {}
-        token = await self._get_token()
-        if token:
-            headers["Authorization"] = f"Bearer {token}"
+
+        if self._use_proxy:
+            url = f"{self._proxy_base}/aircraft"
+            headers = self._relay_headers()
+        else:
+            url = f"{OPENSKY_BASE}/flights/aircraft"
+            headers = {}
+            token = await self._get_token()
+            if token:
+                headers["Authorization"] = f"Bearer {token}"
         try:
             async with httpx.AsyncClient(timeout=15.0) as client:
                 resp = await client.get(
-                    f"{OPENSKY_BASE}/flights/aircraft",
+                    url,
                     params=params,
                     headers=headers,
                 )
@@ -251,7 +271,8 @@ class OpenSkyClient:
         return {
             "cached_flights": len(self._cache),
             "cache_age_sec": round(time.monotonic() - self._cache_ts, 1),
-            "authenticated": self._has_oauth,
+            "authenticated": self._has_oauth or self._use_proxy,
+            "relay": self._proxy_base,
             "token_valid": bool(self._token and time.monotonic() < self._token_expires),
             "last_error": self._last_error,
         }
@@ -268,16 +289,22 @@ class OpenSkyClient:
             "lomax": lomax,
             "extended": 1,
         }
-        headers: dict = {}
 
-        token = await self._get_token()
-        if token:
-            headers["Authorization"] = f"Bearer {token}"
+        if self._use_proxy:
+            # Relay holds the credentials and does the OAuth; we just ask it.
+            url = f"{self._proxy_base}/states"
+            headers = self._relay_headers()
+        else:
+            url = f"{OPENSKY_BASE}/states/all"
+            headers = {}
+            token = await self._get_token()
+            if token:
+                headers["Authorization"] = f"Bearer {token}"
 
         try:
             async with httpx.AsyncClient(timeout=20.0) as client:
                 resp = await client.get(
-                    f"{OPENSKY_BASE}/states/all",
+                    url,
                     params=params,
                     headers=headers,
                 )

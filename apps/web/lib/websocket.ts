@@ -2,7 +2,19 @@
 import { useEffect, useRef, useState } from "react"
 import { useSimulationStore } from "@/stores/simulation"
 
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000"
+// Prefer an explicit NEXT_PUBLIC_WS_URL. If it's missing but the API URL is
+// set (the common deploy case), derive the WS origin from it — http→ws,
+// https→wss — so a single forgotten env var can't silently point the socket
+// back at localhost. Falls back to localhost only for local dev.
+function resolveWsUrl(): string {
+  const explicit = process.env.NEXT_PUBLIC_WS_URL
+  if (explicit) return explicit
+  const api = process.env.NEXT_PUBLIC_API_URL
+  if (api) return api.replace(/^http/, "ws")
+  return "ws://localhost:8000"
+}
+
+const WS_URL = resolveWsUrl()
 
 export function useWebSocket() {
   const ws = useRef<WebSocket | null>(null)
