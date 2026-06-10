@@ -131,7 +131,7 @@ Ten canned scenarios ship in `data/scenarios/` (e.g. `chicago_ground_stop`,
 **Prerequisites:** Docker ≥ 24 and Docker Compose ≥ 2.20.
 
 ```bash
-git clone https://github.com/your-org/aeolus.git
+git clone https://github.com/mizuharaa/aeolus.git
 cd aeolus
 docker compose up --build
 ```
@@ -281,6 +281,7 @@ state snapshot).
 | Component | Technology |
 |---|---|
 | Containerisation | Docker + Docker Compose (api + web) |
+| Deployment | Docker images; the API binds the platform-provided `$PORT` and is deployed on Railway |
 | Prod IaC (reference) | Terraform (`infra/terraform/`) |
 
 ---
