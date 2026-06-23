@@ -19,36 +19,9 @@ jobs:
       run:
         working-directory: apps/api
 
-    services:
-      postgres:
-        image: timescale/timescaledb:latest-pg16
-        env:
-          POSTGRES_USER: aeolus_test
-          POSTGRES_PASSWORD: test_password
-          POSTGRES_DB: aeolus_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
+    # Aeolus is a fully in-memory simulator — no DB/cache/queue at runtime, so
+    # CI needs no service containers. Tests load the Nimbus network from YAML.
     env:
-      DATABASE_URL: postgresql+asyncpg://aeolus_test:test_password@localhost:5432/aeolus_test
-      REDIS_URL: redis://localhost:6379/0
-      SECRET_KEY: ci-test-secret-key-not-for-production
-      ENVIRONMENT: test
       PYTHONPATH: .
 
     steps:
