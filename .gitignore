@@ -24,6 +24,10 @@ credentials.*.json
 *-credentials.json
 *-creds.json
 
+# graphify knowledge-graph output (local tooling artifact, not source)
+graphify-out/
+.graphify_*
+
 # -----------------------------------------------------------------------------
 # Python
 # -----------------------------------------------------------------------------

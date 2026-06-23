@@ -133,6 +133,7 @@ class Counterfactual(BaseModel):
 
 
 class ExplainResponse(BaseModel):
+    
     """Glass-box rationale wrapping a base ledger and N flipped-decision deltas."""
     plan_id:            str
     base_cost_usd:      float

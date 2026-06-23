@@ -1,148 +1,64 @@
 name: Deploy
 
-# Deploy targets AWS ECS + Vercel and needs secrets (AWS_DEPLOY_ROLE_ARN,
-# VERCEL_TOKEN, …). It does NOT run on ordinary pushes to main — that would
-# fail at the credentials step when no infra is configured. Cut a v*.*.* tag
-# or trigger it manually once those secrets exist.
+# Continuous deployment for the Railway (API) + Vercel (web) stack.
+#
+# This pipeline pushes the backend to Railway and the frontend to Vercel after
+# CI passes on main. If you instead rely on Railway's and Vercel's *native* Git
+# integrations (auto-deploy on push), disable those for this repo to avoid
+# double-deploying — or just delete the corresponding job below.
+#
+# Required repository secrets:
+#   RAILWAY_TOKEN     — Railway project/account token (Project Settings → Tokens)
+#   VERCEL_TOKEN      — Vercel account token
+#   VERCEL_ORG_ID     — Vercel org/team id
+#   VERCEL_PROJECT_ID — Vercel project id (the apps/web project)
+#   API_URL           — Public Railway API URL, e.g. https://aeolus-api.up.railway.app
+# Required repository variable (optional, defaults to "aeolus-api"):
+#   RAILWAY_SERVICE   — the Railway service name to deploy
+
 on:
   push:
-    tags: ["v*.*.*"]
-
+    branches: [main]
   workflow_dispatch:
     inputs:
       environment:
         description: "Target environment"
         required: true
-        default: "prod"
+        default: "production"
         type: choice
-        options: [prod, staging]
+        options: [production, staging]
 
 concurrency:
   group: deploy-${{ github.ref }}
-  cancel-in-progress: false  # Never cancel in-flight deployments
-
-env:
-  AWS_REGION: us-east-1
-  ECR_REPOSITORY: aeolus-prod-api
-  ECS_CLUSTER: aeolus-prod-cluster
-  ECS_SERVICE: aeolus-prod-api
+  cancel-in-progress: false # Never cancel an in-flight deployment
 
 jobs:
-  # ── Build & Push API Image ───────────────────────────────────────────────────
-  build-api:
-    name: Build & Push API Image
-    runs-on: ubuntu-latest
-    outputs:
-      image: ${{ steps.image-meta.outputs.full_image }}
-      digest: ${{ steps.build.outputs.digest }}
-
-    permissions:
-      id-token: write
-      contents: read
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Login to ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Set image tag
-        id: tag
-        run: |
-          SHORT_SHA=$(echo "${{ github.sha }}" | head -c 7)
-          echo "tag=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      # Dockerfile COPY paths use repo root (apps/api/..., data/) — same as docker-compose.
-      - name: Build & push API image
-        id: build
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: apps/api/Dockerfile
-          push: true
-          tags: |
-            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.tag.outputs.tag }}
-            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          build-args: |
-            BUILD_SHA=${{ github.sha }}
-            BUILD_REF=${{ github.ref_name }}
-
-      - name: Export image ref for ECS
-        id: image-meta
-        run: |
-          URI="${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.tag.outputs.tag }}"
-          echo "full_image=$URI" >> "$GITHUB_OUTPUT"
-          echo "Pushed $URI"
-
-
-  # ── Deploy API to ECS Fargate ─────────────────────────────────────────────────
+  # ── Deploy API to Railway ─────────────────────────────────────────────────────
   deploy-api:
-    name: Deploy API to ECS
+    name: Deploy API to Railway
     runs-on: ubuntu-latest
-    needs: build-api
-    environment: ${{ github.event.inputs.environment || 'prod' }}
-
-    permissions:
-      id-token: write
-      contents: read
+    environment: ${{ github.event.inputs.environment || 'production' }}
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
         with:
-          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
+          node-version: "20"
 
-      - name: Login to ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
+      - name: Install Railway CLI
+        run: npm i -g @railway/cli
 
-      - name: Fetch current task definition
-        run: |
-          aws ecs describe-task-definition \
-            --task-definition ${{ env.ECS_SERVICE }} \
-            --query taskDefinition > task-def.json
+      # railway.json (repo root) pins builder=DOCKERFILE + dockerfilePath, so
+      # `railway up` builds the API image with the repo root as context — the
+      # same context docker-compose and CI use.
+      - name: Deploy to Railway
+        run: railway up --service "${{ vars.RAILWAY_SERVICE || 'aeolus-api' }}" --ci
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
-      - name: Update task definition image
-        id: task-def
-        uses: aws-actions/amazon-ecs-render-task-definition@v1
-        with:
-          task-definition: task-def.json
-          container-name: api
-          image: ${{ needs.build-api.outputs.image }}
-
-      - name: Deploy to ECS
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
-        with:
-          task-definition: ${{ steps.task-def.outputs.task-definition }}
-          service: ${{ env.ECS_SERVICE }}
-          cluster: ${{ env.ECS_CLUSTER }}
-          wait-for-service-stability: true
-          codedeploy-appspec: false
-
-      - name: Verify deployment
-        run: |
-          aws ecs describe-services \
-            --cluster ${{ env.ECS_CLUSTER }} \
-            --services ${{ env.ECS_SERVICE }} \
-            --query 'services[0].{running:runningCount,desired:desiredCount,status:status}' \
-            --output table
-
-  # ── Deploy Frontend to Vercel ──────────────────────────────────────────────
+  # ── Deploy Frontend to Vercel ─────────────────────────────────────────────────
   deploy-web:
     name: Deploy Web to Vercel
     runs-on: ubuntu-latest
@@ -158,9 +74,7 @@ jobs:
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
           working-directory: apps/web
-          vercel-args: ${{ github.ref == 'refs/heads/main' && '--prod' || '' }}
-          alias-domains: |
-            ${{ github.ref == 'refs/heads/main' && 'aeolus.nimbus.ai' || format('pr-{0}.aeolus-preview.vercel.app', github.event.number) }}
+          vercel-args: "--prod"
 
   # ── Smoke Test ────────────────────────────────────────────────────────────────
   smoke-test:
@@ -171,31 +85,19 @@ jobs:
     steps:
       - name: Health check API
         run: |
-          for i in {1..5}; do
+          for i in {1..10}; do
             STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${{ secrets.API_URL }}/health")
             if [ "$STATUS" = "200" ]; then
               echo "API health check passed (HTTP $STATUS)"
               exit 0
             fi
-            echo "Attempt $i: HTTP $STATUS — retrying in 10s..."
-            sleep 10
+            echo "Attempt $i: HTTP $STATUS — retrying in 15s..."
+            sleep 15
           done
-          echo "API health check failed after 5 attempts"
+          echo "API health check failed after 10 attempts"
           exit 1
 
       - name: Check network endpoint
         run: |
           curl -f "${{ secrets.API_URL }}/api/v1/network" \
             -H "Accept: application/json" | jq '.airports | length'
-
-      - name: Notify on failure
-        if: failure()
-        uses: slackapi/slack-github-action@v1
-        with:
-          payload: |
-            {
-              "text": "🚨 Aeolus deploy FAILED on ${{ github.ref_name }} — <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View run>"
-            }
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        continue-on-error: true

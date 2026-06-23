@@ -390,7 +390,7 @@ function buildPlanes(): Plane[] {
     const pos = bez(arc, t)
     return {
       id: `${d.from}-${d.to}`, arc, color: CASC[d.sev], sev: d.sev, tail: d.tail, type: d.type, kt: d.kt,
-      from: d.from, to: d.to, t, speed: 0.05 + (d.kt - 380) / 380 * 0.07, x: pos.x, y: pos.y, deg: bezDeg(arc, t),
+      from: d.from, to: d.to, t, speed: 0.085 + (d.kt - 380) / 380 * 0.11, x: pos.x, y: pos.y, deg: bezDeg(arc, t),
       trail: [], lastRipple: 0, boostUntil: 0,
     }
   })
@@ -483,8 +483,8 @@ function NetworkMap({ reduce }: { reduce: boolean }) {
             stroke={p.color}
             strokeWidth={1}
             strokeDasharray="4 6"
-            initial={reduce ? false : { pathLength: 0, opacity: 0 }}
-            animate={{ pathLength: 1, opacity: p.sev === "direct" ? 0.5 : 0.28 }}
+            initial={reduce ? false : { opacity: 0 }}
+            animate={{ opacity: p.sev === "direct" ? 0.5 : 0.28 }}
             transition={reduce ? { duration: 0 } : { duration: 0.9, delay: (T.map + i * 80) / 1000, ease: EASE }}
           />
         ))}
