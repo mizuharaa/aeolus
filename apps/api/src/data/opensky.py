@@ -136,7 +136,9 @@ class OpenSkyClient:
         Return all tracked flights over US airspace.
         Cached for CACHE_TTL seconds. Returns normalised flight dicts.
         """
-        ttl = CACHE_TTL_AUTHENTICATED if (self._has_oauth or self._use_proxy) else CACHE_TTL_ANONYMOUS
+        ttl = (
+            CACHE_TTL_AUTHENTICATED if (self._has_oauth or self._use_proxy) else CACHE_TTL_ANONYMOUS
+        )
 
         async with self._lock:
             age = time.monotonic() - self._cache_ts
