@@ -43,7 +43,7 @@ async function getToken(): Promise<string | null> {
       client_id: id,
       client_secret: secret,
     }),
-    signal: AbortSignal.timeout(5000),
+    signal: (() => { const c = new AbortController(); setTimeout(() => c.abort(), 5000); return c.signal })(),
   }).catch(() => null)
   if (!res || !res.ok) return null
   const data = await res.json()
@@ -92,12 +92,13 @@ export async function GET(
   const headers: Record<string, string> = {}
   if (token) headers["Authorization"] = `Bearer ${token}`
 
+  const dataController = new AbortController()
+  setTimeout(() => dataController.abort(), 6000)
   try {
     const res = await fetch(target, {
       headers,
       cache: "no-store",
-      // Fail within 6s so callers don't hang past Vercel's function timeout.
-      signal: AbortSignal.timeout(6000),
+      signal: dataController.signal,
     })
     const text = await res.text()
     return new NextResponse(text, {

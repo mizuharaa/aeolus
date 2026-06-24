@@ -21,7 +21,7 @@
  *   squawk     squawk code (4-digit string)
  *   r          registration
  */
-import { NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 
 export const runtime = "edge"
 export const dynamic = "force-dynamic"
@@ -76,20 +76,24 @@ interface AdsbLolAircraft {
   r?: string
 }
 
-export async function GET(_req: NextRequest) {
+export async function GET() {
   let aircraft: AdsbLolAircraft[] = []
 
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 6000)
   try {
     const res = await fetch(ADSB_LOL_URL, {
       cache: "no-store",
-      signal: AbortSignal.timeout(6000),
+      signal: controller.signal,
       headers: { "User-Agent": "Aeolus/0.2 (github.com/mizuharaa/aeolus)" },
     })
+    clearTimeout(timer)
     if (res.ok) {
       const body = (await res.json()) as { ac?: AdsbLolAircraft[] }
       aircraft = body.ac ?? []
     }
   } catch {
+    clearTimeout(timer)
     // Graceful degradation — return empty list if feed is unavailable
   }
 
