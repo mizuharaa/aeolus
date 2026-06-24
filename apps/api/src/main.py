@@ -245,7 +245,7 @@ async def lifespan(app: FastAPI):
         len(flights),
         len(aircraft),
         len(crews),
-        "authenticated" if (settings.opensky_username) else "anonymous",
+        "authenticated" if (_client_id and _client_secret) else "anonymous (set OPENSKY_CLIENT_ID/SECRET for live planes)",
     )
 
     yield
@@ -279,7 +279,7 @@ app.add_middleware(GZipMiddleware, minimum_size=1024)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

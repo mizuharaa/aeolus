@@ -1,7 +1,9 @@
-// Use the explicit API URL when set (also powers WebSocket URL derivation in
-// websocket.ts). Fall back to "" so requests hit the same origin and are
-// caught by the server-side proxy route at app/api/v1/[...path]/route.ts.
-const API_URL = process.env.NEXT_PUBLIC_API_URL || ""
+// Always use same-origin paths so requests go through the server-side proxy
+// at app/api/v1/[...path]/route.ts — that route reads API_URL (server-side)
+// and forwards to Railway. This keeps Railway's URL off the browser and
+// removes any CORS dependency for REST calls.
+// Note: NEXT_PUBLIC_API_URL is still used by websocket.ts for WS URL derivation.
+const API_URL = ""
 
 export const apiClient = {
   async get<T = unknown>(path: string): Promise<{ data: T }> {

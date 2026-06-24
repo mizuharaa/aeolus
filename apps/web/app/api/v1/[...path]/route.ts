@@ -68,3 +68,14 @@ export async function DELETE(
 ) {
   return proxy(req, (await params).path)
 }
+
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: {
+      "access-control-allow-origin": "*",
+      "access-control-allow-methods": "GET, POST, DELETE, OPTIONS",
+      "access-control-allow-headers": "content-type",
+    },
+  })
+}
