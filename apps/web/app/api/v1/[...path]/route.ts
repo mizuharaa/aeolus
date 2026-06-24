@@ -17,7 +17,10 @@ import { NextRequest, NextResponse } from "next/server"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-const BACKEND = () => process.env.API_URL || "http://localhost:8000"
+const BACKEND = () => {
+  const raw = process.env.API_URL || "http://localhost:8000"
+  return raw.startsWith("http") ? raw : `https://${raw}`
+}
 
 async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
   const url = `${BACKEND()}/api/v1/${path.join("/")}${req.nextUrl.search}`
