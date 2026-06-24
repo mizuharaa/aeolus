@@ -134,13 +134,32 @@ class OpenSkyClient:
     async def get_us_flights(self, force: bool = False) -> list[dict]:
         """
         Return all tracked flights over US airspace.
-        Cached for CACHE_TTL seconds. Returns normalised flight dicts.
+
+        Stale-while-revalidate: if any cached data exists (even past TTL),
+        return it immediately and kick off a background refresh. This keeps
+        the endpoint fast even when the OpenSky connection is slow or blocked.
+        Only blocks synchronously when the cache is completely empty (first
+        call after startup).
         """
         ttl = (
             CACHE_TTL_AUTHENTICATED if (self._has_oauth or self._use_proxy) else CACHE_TTL_ANONYMOUS
         )
+        age = time.monotonic() - self._cache_ts
 
+        # Fresh cache — return immediately.
+        if not force and self._cache and age < ttl:
+            return self._cache
+
+        # Stale cache — return it now and refresh in the background.
+        if self._cache and not force:
+            logger.debug("OpenSky: stale cache (%ds old) — returning now, refreshing in background", int(age))
+            asyncio.create_task(self._do_refresh())
+            return self._cache
+
+        # No cache at all — must fetch synchronously (startup / forced).
         async with self._lock:
+            # Re-check: another coroutine may have populated the cache while
+            # we waited for the lock.
             age = time.monotonic() - self._cache_ts
             if not force and self._cache and age < ttl:
                 return self._cache
@@ -153,12 +172,22 @@ class OpenSkyClient:
                 logger.debug(
                     "OpenSky: cached %d US flights (auth=%s)", len(self._cache), self._has_oauth
                 )
-            elif self._cache:
-                logger.debug("OpenSky fetch failed — returning stale cache (%d)", len(self._cache))
             else:
                 logger.warning("OpenSky fetch failed — no cache available")
 
             return self._cache
+
+    async def _do_refresh(self) -> None:
+        """Background cache refresh — holds the write lock while fetching."""
+        async with self._lock:
+            raw = await self._fetch_states(**US_BBOX)
+            if raw is not None:
+                self._cache = self._parse_states(raw)
+                self._cache_ts = time.monotonic()
+                self._last_error = None
+                logger.debug("OpenSky: background refresh — %d flights", len(self._cache))
+            else:
+                logger.debug("OpenSky: background refresh failed — keeping stale cache")
 
     async def search(self, query: str) -> list[dict]:
         """Search live flights by IATA/ICAO flight number (e.g. 'AA123', 'UAL456')."""
@@ -232,7 +261,7 @@ class OpenSkyClient:
             if token:
                 headers["Authorization"] = f"Bearer {token}"
         try:
-            async with httpx.AsyncClient(timeout=15.0) as client:
+            async with httpx.AsyncClient(timeout=8.0) as client:
                 resp = await client.get(
                     url,
                     params=params,
@@ -304,7 +333,7 @@ class OpenSkyClient:
                 headers["Authorization"] = f"Bearer {token}"
 
         try:
-            async with httpx.AsyncClient(timeout=20.0) as client:
+            async with httpx.AsyncClient(timeout=8.0) as client:
                 resp = await client.get(
                     url,
                     params=params,
@@ -325,7 +354,7 @@ class OpenSkyClient:
                 return resp.json()
         except httpx.TimeoutException:
             self._last_error = "timeout"
-            logger.warning("OpenSky: request timed out")
+            logger.warning("OpenSky: request timed out (8s) — set OPENSKY_PROXY_BASE if on Railway")
             return None
         except Exception as exc:
             self._last_error = str(exc)
