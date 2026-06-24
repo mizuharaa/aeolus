@@ -82,6 +82,7 @@ class OpenSkyClient:
         # Flight state cache
         self._cache: list[dict] = []
         self._cache_ts: float = 0.0
+        self._last_fetch_attempt: float = 0.0  # time of last fetch attempt (success or failure)
         self._lock = asyncio.Lock()
         self._last_error: Optional[str] = None
 
@@ -138,32 +139,50 @@ class OpenSkyClient:
         Stale-while-revalidate: if any cached data exists (even past TTL),
         return it immediately and kick off a background refresh. This keeps
         the endpoint fast even when the OpenSky connection is slow or blocked.
-        Only blocks synchronously when the cache is completely empty (first
-        call after startup).
+
+        If the cache is empty AND a fetch was attempted recently (within 60s),
+        return [] immediately instead of blocking again — avoids hammering a
+        blocked OpenSky connection on every request.
+
+        Only blocks synchronously on the very first call (truly empty cache,
+        no recent attempt).
         """
         ttl = (
             CACHE_TTL_AUTHENTICATED if (self._has_oauth or self._use_proxy) else CACHE_TTL_ANONYMOUS
         )
-        age = time.monotonic() - self._cache_ts
+        now = time.monotonic()
+        age = now - self._cache_ts
+        attempt_age = now - self._last_fetch_attempt
 
         # Fresh cache — return immediately.
         if not force and self._cache and age < ttl:
             return self._cache
 
-        # Stale cache — return it now and refresh in the background.
+        # Stale non-empty cache — return now, refresh in background.
         if self._cache and not force:
-            logger.debug("OpenSky: stale cache (%ds old) — returning now, refreshing in background", int(age))
+            logger.debug(
+                "OpenSky: stale cache (%ds old) — returning now, refreshing in background", int(age)
+            )
             asyncio.create_task(self._do_refresh())
             return self._cache
 
-        # No cache at all — must fetch synchronously (startup / forced).
+        # Empty cache but we tried recently — return [] rather than blocking.
+        if not force and self._last_fetch_attempt > 0 and attempt_age < 60:
+            logger.debug("OpenSky: no cache, last attempt %ds ago — skipping fetch", int(attempt_age))
+            return []
+
+        # Must fetch synchronously (first call or forced).
         async with self._lock:
-            # Re-check: another coroutine may have populated the cache while
-            # we waited for the lock.
-            age = time.monotonic() - self._cache_ts
+            # Re-check after acquiring lock.
+            now = time.monotonic()
+            age = now - self._cache_ts
+            attempt_age = now - self._last_fetch_attempt
             if not force and self._cache and age < ttl:
                 return self._cache
+            if not force and self._last_fetch_attempt > 0 and attempt_age < 60:
+                return self._cache
 
+            self._last_fetch_attempt = time.monotonic()
             raw = await self._fetch_states(**US_BBOX)
             if raw is not None:
                 self._cache = self._parse_states(raw)
@@ -180,6 +199,7 @@ class OpenSkyClient:
     async def _do_refresh(self) -> None:
         """Background cache refresh — holds the write lock while fetching."""
         async with self._lock:
+            self._last_fetch_attempt = time.monotonic()
             raw = await self._fetch_states(**US_BBOX)
             if raw is not None:
                 self._cache = self._parse_states(raw)
@@ -299,12 +319,14 @@ class OpenSkyClient:
         }
 
     def status(self) -> dict:
+        now = time.monotonic()
         return {
             "cached_flights": len(self._cache),
-            "cache_age_sec": round(time.monotonic() - self._cache_ts, 1),
+            "cache_age_sec": round(now - self._cache_ts, 1) if self._cache_ts else None,
+            "last_attempt_age_sec": round(now - self._last_fetch_attempt, 1) if self._last_fetch_attempt else None,
             "authenticated": self._has_oauth or self._use_proxy,
             "relay": self._proxy_base,
-            "token_valid": bool(self._token and time.monotonic() < self._token_expires),
+            "token_valid": bool(self._token and now < self._token_expires),
             "last_error": self._last_error,
         }
 
