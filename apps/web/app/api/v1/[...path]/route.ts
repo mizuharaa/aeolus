@@ -34,8 +34,14 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
     init.body = await req.arrayBuffer()
   }
 
+  // 9-second abort so the Vercel function always responds before its 10s
+  // default timeout — prevents HTTP 000 (connection dropped) on slow upstreams.
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 9000)
+
   try {
-    const upstream = await fetch(url, init)
+    const upstream = await fetch(url, { ...init, signal: controller.signal })
+    clearTimeout(timer)
     const body = await upstream.arrayBuffer()
     return new NextResponse(body, {
       status: upstream.status,
@@ -44,9 +50,11 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
       },
     })
   } catch (e) {
+    clearTimeout(timer)
+    const isTimeout = e instanceof Error && e.name === "AbortError"
     return NextResponse.json(
-      { detail: `Proxy error: ${String(e)}` },
-      { status: 502 }
+      { detail: isTimeout ? "upstream timeout" : `Proxy error: ${String(e)}` },
+      { status: isTimeout ? 504 : 502 }
     )
   }
 }
