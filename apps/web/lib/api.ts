@@ -1,5 +1,7 @@
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+// Use the explicit API URL when set (also powers WebSocket URL derivation in
+// websocket.ts). Fall back to "" so requests hit the same origin and are
+// caught by the Next.js rewrite proxy in next.config.ts → no CORS needed.
+const API_URL = process.env.NEXT_PUBLIC_API_URL || ""
 
 export const apiClient = {
   async get<T = unknown>(path: string): Promise<{ data: T }> {

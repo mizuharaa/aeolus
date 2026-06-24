@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     # Stored as the raw string from env (via CORS_ORIGINS) and exposed as a
     # parsed list through the ``cors_origins`` property below. This sidesteps
     # pydantic-settings' eager JSON decoding of list[str] fields.
-    cors_origins_raw: str = Field(default="http://localhost:3000", alias="CORS_ORIGINS")
+    cors_origins_raw: str = Field(default="*", alias="CORS_ORIGINS")
 
     @property
     def cors_origins(self) -> list[str]:
