@@ -850,8 +850,11 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
   const fetchLive = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await apiClient.get<{ flights?: LiveFlight[] }>("/flights/live?limit=1200&on_ground=false")
-      const all: LiveFlight[] = res.data.flights || []
+      // Use the Vercel-native endpoint — Railway's IPs are blocked by OpenSky,
+      // so /api/v1/flights/live (proxied to Railway) always times out in prod.
+      // /api/flights-live fetches via the /api/osky relay on Vercel's network.
+      const res = await fetch("/api/flights-live").then((r) => r.json()) as { flights?: LiveFlight[] }
+      const all: LiveFlight[] = res.flights || []
       setLiveFlights(all.filter((f) => f.airline_iata && f.airline_name !== "Unknown"), Date.now())
       setLastFetch(Date.now())
     } catch { /* degrade */ } finally { setLoading(false) }
