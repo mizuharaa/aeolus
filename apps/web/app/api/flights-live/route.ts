@@ -1,21 +1,34 @@
 /**
- * Vercel-native live flights endpoint.
+ * Vercel-native live flights endpoint using adsb.lol.
  *
- * Fetches OpenSky state vectors through the /api/osky relay (which runs on
- * Vercel's network, where OpenSky's IP filters don't apply) and normalises
- * the raw state vectors into the same shape as the Railway /flights/live
- * route. This bypasses Railway entirely for live plane data, which matters
- * because Railway's datacenter IPs are blocked by OpenSky.
+ * OpenSky blocks all cloud-provider IPs (Railway, Vercel Node.js, Vercel Edge)
+ * at the TCP level. adsb.lol is a free community ADS-B aggregator that allows
+ * cloud access without authentication and returns data already normalised to
+ * feet / knots / fpm — no unit conversion required.
  *
- * The frontend calls this route directly (/api/flights-live) instead of
- * going through the Railway proxy for this specific endpoint.
+ * Coverage: radius of 2500nm from the geographic centre of the contiguous US
+ * (37°N, -95°W) — covers CONUS and approaches. Alaska/Hawaii are outside this
+ * bounding box but the app focuses on CONUS operations.
+ *
+ * adsb.lol field reference:
+ *   hex        ICAO 24-bit transponder code
+ *   flight     callsign (may have trailing spaces)
+ *   lat / lon  position
+ *   alt_baro   barometric altitude in feet (string "ground" when on ground)
+ *   gs         ground speed in knots
+ *   track      true track / heading in degrees (0 = north, clockwise)
+ *   baro_rate  vertical rate in ft/min
+ *   squawk     squawk code (4-digit string)
+ *   r          registration
  */
 import { NextRequest, NextResponse } from "next/server"
 
 export const runtime = "edge"
 export const dynamic = "force-dynamic"
 
-// ICAO callsign prefix → IATA two-letter code (ported from apps/api/src/data/airlines.py)
+const ADSB_LOL_URL = "https://api.adsb.lol/v2/lat/37/lon/-95/dist/2500"
+
+// ICAO callsign prefix → IATA two-letter code (from apps/api/src/data/airlines.py)
 const ICAO_TO_IATA: Record<string, string> = {
   AAL: "AA", UAL: "UA", DAL: "DL", SWA: "WN", JBU: "B6",
   ASA: "AS", NKS: "NK", FFT: "F9", AAY: "G4", HAL: "HA",
@@ -49,87 +62,59 @@ const AIRLINE_NAMES: Record<string, string> = {
   AM: "Aeroméxico", AV: "Avianca",
 }
 
-interface LiveFlight {
-  icao24: string
-  callsign: string
-  flight_iata: string | null
-  flight_icao: string
-  airline_iata: string | null
-  airline_name: string
-  origin_country: string
-  lat: number
-  lon: number
-  altitude_ft: number | null
-  on_ground: boolean
-  velocity_kt: number | null
-  heading: number | null
-  vertical_fpm: number | null
-  squawk: string | null
-  last_contact: number
-  tracking: {
-    flightaware: string | null
-    flightradar24: string
-    adsbexchange: string
-    opensky: string
-  }
+interface AdsbLolAircraft {
+  hex?: string
+  flight?: string
+  lat?: number
+  lon?: number
+  alt_baro?: number | string
+  alt_geom?: number
+  gs?: number
+  track?: number
+  baro_rate?: number
+  squawk?: string
+  r?: string
 }
 
-function parseCallsign(raw: string): { iata: string | null; num: string } {
-  const cs = raw.trim().toUpperCase().replace(/\s+$/, "")
-  const icaoPrefix = cs.slice(0, 3)
-  const num = cs.slice(3).replace(/\s+$/, "")
-  return { iata: ICAO_TO_IATA[icaoPrefix] ?? null, num }
-}
+export async function GET(_req: NextRequest) {
+  let aircraft: AdsbLolAircraft[] = []
 
-export async function GET(req: NextRequest) {
-  const sp = new URLSearchParams({
-    lamin: "15", lamax: "72", lomin: "-180", lomax: "-50", extended: "1",
-  })
-  const relayUrl = `${req.nextUrl.origin}/api/osky/states?${sp.toString()}`
-
-  let raw: { states?: unknown[][] } | null = null
   try {
-    const res = await fetch(relayUrl, {
+    const res = await fetch(ADSB_LOL_URL, {
       cache: "no-store",
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(6000),
+      headers: { "User-Agent": "Aeolus/0.2 (github.com/mizuharaa/aeolus)" },
     })
     if (res.ok) {
-      raw = (await res.json()) as { states?: unknown[][] }
+      const body = (await res.json()) as { ac?: AdsbLolAircraft[] }
+      aircraft = body.ac ?? []
     }
   } catch {
-    // Relay unavailable — return empty list gracefully
+    // Graceful degradation — return empty list if feed is unavailable
   }
 
-  if (!raw?.states) {
-    return NextResponse.json({ flights: [], total: 0, source: "opensky-network.org" })
-  }
-
-  const flights: LiveFlight[] = []
-
-  for (const sv of raw.states) {
-    if (!sv || sv.length < 17) continue
-
-    const callsignRaw = ((sv[1] as string) ?? "").trim()
+  const flights = []
+  for (const ac of aircraft) {
+    const callsignRaw = (ac.flight ?? "").trim()
     if (!callsignRaw) continue
 
-    const lat = sv[6] as number | null
-    const lon = sv[5] as number | null
+    const lat = ac.lat
+    const lon = ac.lon
     if (lat == null || lon == null) continue
 
-    const onGround = Boolean(sv[8])
-    const icao24 = ((sv[0] as string) ?? "").toLowerCase()
+    // Skip ground traffic (alt_baro is the string "ground" when on ground)
+    const onGround = ac.alt_baro === "ground" || ac.alt_baro === 0
+    if (onGround) continue
 
-    const velMs = sv[9] as number | null
-    const altM = ((sv[7] ?? sv[13]) as number | null)
-    const vertMs = sv[11] as number | null
-    const timePos = ((sv[3] ?? sv[4] ?? 0) as number)
-    const originCountry = (sv[2] as string) ?? ""
+    const altFt = typeof ac.alt_baro === "number" ? ac.alt_baro : null
+    const icao24 = (ac.hex ?? "").toLowerCase()
 
-    const { iata, num } = parseCallsign(callsignRaw)
+    // Derive IATA airline code from the 3-letter ICAO callsign prefix
+    const icaoPrefix = callsignRaw.slice(0, 3).toUpperCase()
+    const iata = ICAO_TO_IATA[icaoPrefix] ?? null
+    const num = callsignRaw.slice(3).replace(/\s+$/, "")
     const flightIata = iata && num ? iata + num : null
-    const airlineName = iata
-      ? (AIRLINE_NAMES[iata] ?? originCountry || "Unknown")
-      : "Unknown"
+    const airlineName = iata ? (AIRLINE_NAMES[iata] ?? "Unknown") : "Unknown"
 
     flights.push({
       icao24,
@@ -138,16 +123,16 @@ export async function GET(req: NextRequest) {
       flight_icao: callsignRaw,
       airline_iata: iata,
       airline_name: airlineName,
-      origin_country: originCountry,
+      origin_country: "",
       lat,
       lon,
-      altitude_ft: altM != null ? Math.round(altM * 3.281) : null,
-      on_ground: onGround,
-      velocity_kt: velMs != null ? Math.round(velMs * 1.944) : null,
-      heading: sv[10] as number | null,
-      vertical_fpm: vertMs != null ? Math.round(vertMs * 196.85) : null,
-      squawk: sv[14] as string | null,
-      last_contact: timePos,
+      altitude_ft: altFt,
+      on_ground: false,
+      velocity_kt: ac.gs != null ? Math.round(ac.gs) : null,
+      heading: ac.track ?? null,
+      vertical_fpm: ac.baro_rate != null ? Math.round(ac.baro_rate) : null,
+      squawk: ac.squawk ?? null,
+      last_contact: Math.floor(Date.now() / 1000),
       tracking: {
         flightaware: callsignRaw
           ? `https://www.flightaware.com/live/flight/${callsignRaw}`
@@ -161,5 +146,5 @@ export async function GET(req: NextRequest) {
     })
   }
 
-  return NextResponse.json({ flights, total: flights.length, source: "opensky-network.org" })
+  return NextResponse.json({ flights, total: flights.length, source: "adsb.lol" })
 }
