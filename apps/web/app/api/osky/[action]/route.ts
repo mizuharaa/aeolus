@@ -19,7 +19,7 @@
  */
 import { NextRequest, NextResponse } from "next/server"
 
-export const runtime = "nodejs"
+export const runtime = "edge"
 export const dynamic = "force-dynamic"
 
 const TOKEN_URL =

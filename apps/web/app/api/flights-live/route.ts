@@ -12,7 +12,7 @@
  */
 import { NextRequest, NextResponse } from "next/server"
 
-export const runtime = "nodejs"
+export const runtime = "edge"
 export const dynamic = "force-dynamic"
 
 // ICAO callsign prefix → IATA two-letter code (ported from apps/api/src/data/airlines.py)
