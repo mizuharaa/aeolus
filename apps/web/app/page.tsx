@@ -1,6 +1,7 @@
 "use client"
 import { motion } from "framer-motion"
 import Link from "next/link"
+import type { Route } from "next"
 import {
   Zap, BarChart3, Shield, ArrowRight, Leaf,
   CloudLightning, Sparkles, Network,
@@ -458,7 +459,7 @@ function LandingNav() {
         ].map((l) => (
           <Link
             key={l.href}
-            href={l.href}
+            href={l.href as Route}
             style={{
               padding: "8px 14px",
               borderRadius: r.sm,
@@ -530,7 +531,7 @@ function LandingFooter() {
               { href: "/simulator/carbon",     label: "Carbon dashboard" },
               { href: "/simulator/stress-test", label: "Stress test" },
             ].map((l) => (
-              <Link key={l.href} href={l.href} style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", textDecoration: "none" }}>
+              <Link key={l.href} href={l.href as Route} style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", textDecoration: "none" }}>
                 {l.label}
               </Link>
             ))}

@@ -627,7 +627,7 @@ function LiveFeed({
       (a, b) => (FAA_TYPE_ORDER[a.type] ?? 9) - (FAA_TYPE_ORDER[b.type] ?? 9)
     ), [faaData])
 
-  const allAlerts    = alertsData?.alerts ?? []
+  const allAlerts    = useMemo(() => alertsData?.alerts ?? [], [alertsData])
   const nimbusAlerts = allAlerts.filter((a) => a.affected_nimbus_airports.length > 0)
   const wxFiltered   = nimbusOnly ? nimbusAlerts : allAlerts
   const highImpactWx = wxFiltered.filter((a) => a.severity === "Severe" || a.severity === "Extreme")

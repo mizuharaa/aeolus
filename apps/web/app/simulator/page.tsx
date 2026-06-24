@@ -15,6 +15,7 @@ import { apiClient } from "@/lib/api"
 import { c, ff, r, sp, sh } from "@/lib/design-tokens"
 import { Eyebrow, Hairline } from "@/components/ds/primitives"
 import Link from "next/link"
+import type { Route } from "next"
 import { ArrowRight, Leaf, Network as NetworkIcon, Users as UsersIcon, GitCompareArrows, ShieldCheck } from "lucide-react"
 
 const FlightMap = dynamic(() => import("@/components/simulator/flight-map"), {
@@ -399,7 +400,7 @@ function DeepLinkStrip() {
       {tiles.map((t) => (
         <Link
           key={t.href}
-          href={t.href}
+          href={t.href as Route}
           style={{
             textDecoration: "none",
             display: "flex",

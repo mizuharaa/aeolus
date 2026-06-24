@@ -9,6 +9,7 @@
  */
 import { useEffect } from "react"
 import Link from "next/link"
+import type { Route } from "next"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { useSimulationStore, type ScheduledFlight, type FleetAircraft } from "@/stores/simulation"
 import { useWebSocket } from "@/lib/websocket"
@@ -85,7 +86,7 @@ export function SimulatorPageShell({
                 <span key={`${b.label}-${i}`} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                   {b.href ? (
                     <Link
-                      href={b.href}
+                      href={b.href as Route}
                       style={{ color: c.muted, textDecoration: "none" }}
                     >
                       {b.label}
