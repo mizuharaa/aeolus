@@ -245,7 +245,9 @@ async def lifespan(app: FastAPI):
         len(flights),
         len(aircraft),
         len(crews),
-        "authenticated" if (_client_id and _client_secret) else "anonymous (set OPENSKY_CLIENT_ID/SECRET for live planes)",
+        "authenticated"
+        if (_client_id and _client_secret)
+        else "anonymous (set OPENSKY_CLIENT_ID/SECRET for live planes)",
     )
 
     yield

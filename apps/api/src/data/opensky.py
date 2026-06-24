@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 OPENSKY_BASE = "https://opensky-network.org/api"
 OPENSKY_TOKEN_URL = (
-    "https://auth.opensky-network.org/auth/realms/opensky-network" "/protocol/openid-connect/token"
+    "https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token"
 )
 
 # Bounding box: CONUS + Alaska + Hawaii
@@ -168,7 +168,9 @@ class OpenSkyClient:
 
         # Empty cache but we tried recently — return [] rather than blocking.
         if not force and self._last_fetch_attempt > 0 and attempt_age < 60:
-            logger.debug("OpenSky: no cache, last attempt %ds ago — skipping fetch", int(attempt_age))
+            logger.debug(
+                "OpenSky: no cache, last attempt %ds ago — skipping fetch", int(attempt_age)
+            )
             return []
 
         # Must fetch synchronously (first call or forced).
@@ -323,7 +325,9 @@ class OpenSkyClient:
         return {
             "cached_flights": len(self._cache),
             "cache_age_sec": round(now - self._cache_ts, 1) if self._cache_ts else None,
-            "last_attempt_age_sec": round(now - self._last_fetch_attempt, 1) if self._last_fetch_attempt else None,
+            "last_attempt_age_sec": round(now - self._last_fetch_attempt, 1)
+            if self._last_fetch_attempt
+            else None,
             "authenticated": self._has_oauth or self._use_proxy,
             "relay": self._proxy_base,
             "token_valid": bool(self._token and now < self._token_expires),
