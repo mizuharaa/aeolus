@@ -1,390 +1,230 @@
 "use client"
-import { motion } from "framer-motion"
 import Link from "next/link"
 import type { Route } from "next"
-import {
-  Zap, BarChart3, Shield, ArrowRight, Leaf,
-  CloudLightning, Sparkles, Network,
-} from "lucide-react"
+import { ArrowRight } from "lucide-react"
 import { AeolusLogo } from "@/components/ds/logo"
-import { c, ff, r, sp, sh, type as typeStyle } from "@/lib/design-tokens"
-import {
-  ButtonPrimary, ButtonSecondary, SignatureCard, CreamCallout,
-  ContentCard, Container, Section, Type, Eyebrow, Hairline, Stat,
-} from "@/components/ds/primitives"
+import { c, ff } from "@/lib/design-tokens"
+import { ButtonPrimary, Container, Eyebrow } from "@/components/ds/primitives"
 import { SystemCapabilities } from "@/components/landing/capabilities"
 import { HeroSection } from "@/components/landing/hero-section"
+import { PanIn, ScrollPlane } from "@/components/landing/scroll-fx"
 
 // ─── Page data ──────────────────────────────────────────────────────────
 
 const stats = [
-  { value: "$34B",   label: "Annual disruption cost (US)", color: c.signatureCoral },
-  { value: "74%",    label: "Weather-caused delays",       color: c.signatureMustard },
-  { value: "18h",    label: "Avg cascade duration",        color: c.link },
-  { value: "<10ms",  label: "Recovery plan solve time",    color: c.statusOnTime.ink },
-]
-
-// (System Capabilities now lives in components/landing/capabilities.tsx —
-// bespoke product fragments instead of the old uniform Lucide grid.)
-const _features_legacy_removed = [
-  {
-    Icon: CloudLightning,
-    title: "21 disruption event types",
-    desc: "Weather closures, mechanical AOG, crew sickouts, airspace closures, cyber incidents — every disruption with realistic cascade propagation through aircraft rotations.",
-    tone: { surface: c.statusOnTime.bg, accent: c.signatureForest, ink: c.statusOnTime.ink },
-  },
-  {
-    Icon: Zap,
-    title: "CP-SAT recovery optimizer",
-    desc: "Plans A through D — minimize cost, minimize pax impact, protect tomorrow, and now Plan D (Green Recovery) with full carbon accounting under EU ETS.",
-    tone: { surface: c.statusDelayed.bg, accent: c.signatureMustard, ink: "#5C3D0F" },
-  },
-  {
-    Icon: Shield,
-    title: "FAR Part 117 crew legality",
-    desc: "Duty-time checks surface violation counts on every plan so you can compare regulatory tradeoffs before committing to a recovery strategy.",
-    tone: { surface: c.statusCancelled.bg, accent: c.signatureCoral, ink: c.statusCancelled.ink },
-  },
-  {
-    Icon: BarChart3,
-    title: "Deterministic cascade predictor",
-    desc: "Rotation-graph propagation built from the schedule itself \u2014 no ML model, no training data. Same inputs always produce the same forecast, so every plan is fully reproducible.",
-    tone: { surface: c.surfaceSoft, accent: c.link, ink: c.link },
-  },
-  {
-    Icon: Leaf,
-    title: "Carbon-aware recovery",
-    desc: "EU ETS-priced CO₂ as a fourth optimizer objective. Plan D minimizes emissions; every plan card shows tons of CO₂ alongside dollars.",
-    tone: { surface: c.statusRecovered.bg, accent: c.signatureMint, ink: c.statusRecovered.ink },
-  },
-  {
-    Icon: Network,
-    title: "Network vulnerability stress test",
-    desc: "Run Monte Carlo disruptions against the schedule and surface the most fragile rotations, airports, and crew bases. Chaos engineering for airline ops.",
-    tone: { surface: c.signatureCream, accent: c.signatureForest, ink: c.statusOnTime.ink },
-  },
+  { value: "$34B", label: "US airline disruption cost, annual" },
+  { value: "74%",  label: "of delay minutes are weather-driven" },
+  { value: "18h",  label: "average cascade after a hub closure" },
+  { value: "<10ms", label: "CP-SAT solve on the 200-flight network" },
 ]
 
 const steps = [
-  { n: "01", t: "Trigger Event",     d: "Pick disruption type, airport or tail number, severity, and duration from the real-world event library." },
-  { n: "02", t: "Cascade Computed",  d: "The predictor propagates delays through aircraft rotations, surfacing every downstream effect in real time." },
-  { n: "03", t: "Plans Generated",   d: "The optimizer assembles four differentiated strategies, each with full cost decomposition and FAR 117 flags." },
-  { n: "04", t: "Why & What-If",     d: "Inspect each plan's counterfactual rationale: what changes if you flip a single decision? Glass-box advisor, not a black box." },
+  {
+    n: "01",
+    t: "Trigger a disruption",
+    d: "Pick one of 21 event types — weather closure to cyber incident — set severity and duration, or load a live FAA ground stop from the NAS feed.",
+  },
+  {
+    n: "02",
+    t: "The cascade propagates",
+    d: "The rotation graph carries the delay through every downstream leg, two generations deep, and prices the damage in dollars and pax-minutes.",
+  },
+  {
+    n: "03",
+    t: "The solver returns four plans",
+    d: "CP-SAT minimizes cost, passenger impact, next-day exposure, or carbon — each plan fully costed, with FAR 117 flags attached.",
+  },
+  {
+    n: "04",
+    t: "Inspect and apply",
+    d: "Apply a plan to the live map, read its counterfactual rationale, and watch cancellations, delays, and tail swaps execute leg by leg.",
+  },
 ]
 
 // ─── Page ───────────────────────────────────────────────────────────────
+// Section entrances are scroll-SCRUBBED via PanIn (pure functions of scroll
+// position — they pan in from left/right and reverse on scroll back).
 
 export default function LandingPage() {
   return (
-    <main style={{ background: c.canvas, minHeight: "100vh", overflowX: "hidden", fontFamily: ff.body, color: c.body }}>
+    <main
+      style={{
+        background: "var(--ae-bg)",
+        minHeight: "100vh",
+        overflowX: "hidden",
+        fontFamily: ff.body,
+        color: c.body,
+      }}
+    >
       <LandingNav />
+
+      {/* The scroll-driven aircraft — flies the page down and back up */}
+      <ScrollPlane />
 
       <HeroSection />
 
-      <Hairline />
-
-      {/* ── Stats ── */}
-      <Section background={c.canvas} style={{ paddingTop: 64, paddingBottom: 64 }}>
-        <Container>
+      {/* ── Stats — one ruled band, four plain numbers ── */}
+      <section style={{ borderTop: `1px solid ${c.hairline}`, borderBottom: `1px solid ${c.hairline}` }}>
+        <Container maxWidth={1200}>
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-              gap: sp.xl,
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
             }}
           >
             {stats.map((s, i) => (
-              <motion.div
+              <PanIn
                 key={s.label}
-                initial={{ opacity: 0, y: 32 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-60px" }}
-                transition={{ duration: 0.5, delay: i * 0.06 }}
-                style={{ textAlign: "center" }}
+                from={i % 2 === 0 ? "left" : "right"}
+                dist={70 + i * 14}
+                style={{
+                  padding: "44px 32px 44px 0",
+                  borderLeft: i > 0 ? `1px solid ${c.hairline}` : "none",
+                  paddingLeft: i > 0 ? 32 : 0,
+                }}
               >
                 <div
                   style={{
                     fontFamily: ff.display,
-                    fontWeight: 400,
-                    fontSize: "clamp(36px, 4vw, 56px)",
-                    lineHeight: 1.05,
-                    color: s.color,
+                    fontWeight: 600,
+                    fontSize: "clamp(36px, 3.6vw, 52px)",
+                    lineHeight: 1.02,
+                    letterSpacing: "-0.02em",
+                    color: c.ink,
                     fontVariantNumeric: "tabular-nums",
-                    letterSpacing: "-0.01em",
                   }}
                 >
                   {s.value}
                 </div>
-                <div style={{ ...typeStyle("caption", c.muted), marginTop: 8 }}>
+                <div style={{ fontSize: 13, lineHeight: 1.5, color: c.muted, marginTop: 10, maxWidth: 210 }}>
                   {s.label}
                 </div>
-              </motion.div>
+              </PanIn>
             ))}
           </div>
         </Container>
-      </Section>
+      </section>
 
-      <Hairline />
-
-      {/* ── System Capabilities — bespoke product fragments, no Lucide grid ──
-          See components/landing/capabilities.tsx. Each card carries an actual
-          SVG fragment of the system (rotation graph, optimizer objective,
-          duty timeline, cost stack, carbon ledger, MC heatmap) — per the
-          Airtable demo-grid "uneven heights + photography-as-depth" rule. */}
-      <Section background={c.canvas} style={{ paddingTop: 96, paddingBottom: 96 }}>
-        <Container>
+      {/* ── Capabilities — two anchors + quiet text grid ── */}
+      <section style={{ paddingTop: 112, paddingBottom: 112 }}>
+        <Container maxWidth={1200}>
           <SystemCapabilities />
         </Container>
-      </Section>
+      </section>
 
-      <Hairline />
-
-      {/* ── How it works — cream callout strip ── */}
-      <Section background={c.surfaceSoft} style={{ paddingTop: 96, paddingBottom: 96 }}>
-        <Container>
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-60px" }}
-            transition={{ duration: 0.55 }}
-            style={{ textAlign: "center", marginBottom: 64 }}
-          >
-            <Eyebrow color={c.muted}>How It Works</Eyebrow>
-            <h2 style={{ ...typeStyle("displayMd", c.ink), marginTop: 12 }}>
-              From disruption to recovery in seconds.
-            </h2>
-          </motion.div>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-              gap: sp.md,
-            }}
-          >
-            {steps.map((step, i) => (
-              <motion.div
-                key={step.n}
-                initial={{ opacity: 0, y: 32 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-60px" }}
-                transition={{ duration: 0.55, delay: i * 0.08 }}
-              >
-                <ContentCard
-                  padding={sp.lg}
-                  style={{
-                    height: "100%",
-                    position: "relative",
-                    overflow: "hidden",
-                  }}
-                >
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: -12,
-                      right: -8,
-                      fontFamily: ff.display,
-                      fontWeight: 400,
-                      fontSize: 96,
-                      color: c.surfaceStrong,
-                      lineHeight: 1,
-                      opacity: 0.5,
-                      pointerEvents: "none",
-                      userSelect: "none",
-                    }}
-                  >
-                    {step.n}
-                  </div>
-                  <div style={{ position: "relative" }}>
-                    <Eyebrow color={c.muted}>Step {step.n}</Eyebrow>
-                    <h3 style={{ ...typeStyle("titleSm", c.ink), marginTop: 8, marginBottom: 8 }}>
-                      {step.t}
-                    </h3>
-                    <p style={{ ...typeStyle("bodyMd", c.muted), lineHeight: 1.55 }}>
-                      {step.d}
-                    </p>
-                  </div>
-                </ContentCard>
-              </motion.div>
-            ))}
-          </div>
-        </Container>
-      </Section>
-
-      {/* ── New capabilities band — signature forest card with cream callout ── */}
-      <Section background={c.canvas} style={{ paddingTop: 96, paddingBottom: 96 }}>
-        <Container>
-          <SignatureCard variant="forest" padding={sp.xxl} style={{ marginBottom: sp.xl }}>
-            <div style={{ maxWidth: 720, display: "flex", flexDirection: "column", gap: sp.sm }}>
-              <Eyebrow color="rgba(255,255,255,0.65)">New in this release</Eyebrow>
-              <h2
-                style={{
-                  ...typeStyle("displayMd", c.onPrimary),
-                  fontFamily: ff.display,
-                }}
-              >
-                Carbon, counterfactuals, and chaos engineering.
-              </h2>
-              <p
-                style={{
-                  ...typeStyle("titleMd", "rgba(255,255,255,0.78)"),
-                  fontSize: 16,
-                  lineHeight: 1.55,
-                }}
-              >
-                Three new capabilities that legacy recovery systems don&apos;t have: carbon-aware
-                Plan&nbsp;D under EU ETS pricing, a glass-box &ldquo;Why this plan?&rdquo; explainer that
-                re-runs the optimizer with one decision flipped, and a Monte Carlo network
-                vulnerability stress test that surfaces your most fragile rotations before
-                weather finds them.
-              </p>
-              <div style={{ display: "flex", gap: 12, marginTop: 16, flexWrap: "wrap" }}>
-                <Link href="/simulator/carbon" style={{ textDecoration: "none" }}>
-                  <button
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 8,
-                      height: 40,
-                      padding: "0 18px",
-                      borderRadius: r.lg,
-                      background: c.canvas,
-                      color: c.ink,
-                      border: "none",
-                      cursor: "pointer",
-                      fontFamily: ff.body,
-                      fontSize: 14,
-                      fontWeight: 500,
-                    }}
-                  >
-                    <Leaf style={{ width: 14, height: 14 }} /> Carbon dashboard
-                  </button>
-                </Link>
-                <Link href="/simulator/stress-test" style={{ textDecoration: "none" }}>
-                  <button
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 8,
-                      height: 40,
-                      padding: "0 18px",
-                      borderRadius: r.lg,
-                      background: "transparent",
-                      color: c.onPrimary,
-                      border: "1px solid rgba(255,255,255,0.35)",
-                      cursor: "pointer",
-                      fontFamily: ff.body,
-                      fontSize: 14,
-                      fontWeight: 500,
-                    }}
-                  >
-                    <Network style={{ width: 14, height: 14 }} /> Run stress test
-                  </button>
-                </Link>
-              </div>
-            </div>
-          </SignatureCard>
-
-          <CreamCallout
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-              gap: sp.lg,
-              alignItems: "center",
-            }}
-          >
-            <div>
-              <Eyebrow color={c.statusOnTime.ink}>Glass-box advisor</Eyebrow>
-              <Type as="p" role="bodyMd" color={c.body} style={{ marginTop: 6, lineHeight: 1.55 }}>
-                Every recovery plan is inspectable: counterfactual rationale, full cost
-                decomposition, FAR 117 flags, carbon ledger. No black-box AI.
-              </Type>
-            </div>
-            <div>
-              <Stat label="Plans" value="A · B · C · D" hint="Cost · Pax · Future · Carbon" />
-            </div>
-            <div>
-              <Stat label="Counterfactuals" value="∀ flight" hint="Re-run with one flip" color={c.signatureCoral} />
-            </div>
-          </CreamCallout>
-        </Container>
-      </Section>
-
-      {/* ── Final CTA — dark surface card, near-black ── */}
-      <Section background={c.canvas} style={{ paddingTop: 96, paddingBottom: 96 }}>
-        <Container>
-          <SignatureCard
-            variant="dark"
-            padding={sp.xxl}
-            style={{
-              textAlign: "center",
-              maxWidth: 880,
-              margin: "0 auto",
-            }}
-          >
-            <div
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 8,
-                marginBottom: sp.md,
-                padding: "5px 14px",
-                borderRadius: r.pill,
-                background: "rgba(255,255,255,0.08)",
-                border: "1px solid rgba(255,255,255,0.18)",
-              }}
-            >
-              <Sparkles style={{ width: 14, height: 14, color: c.signatureMustard }} />
-              <span style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(255,255,255,0.78)" }}>
-                Try it now — no setup required
-              </span>
-            </div>
-
+      {/* ── How it works — one horizontal timeline, no boxes ── */}
+      <section style={{ paddingTop: 96, paddingBottom: 112, background: "var(--ae-surface)", borderTop: `1px solid ${c.hairline}`, borderBottom: `1px solid ${c.hairline}` }}>
+        <Container maxWidth={1200}>
+          <PanIn from="right" dist={100} style={{ marginBottom: 56, maxWidth: 560 }}>
+            <Eyebrow>How it works</Eyebrow>
             <h2
               style={{
-                ...typeStyle("displayLg", c.onPrimary),
                 fontFamily: ff.display,
-                marginBottom: sp.md,
+                fontSize: "clamp(26px, 3vw, 34px)",
+                fontWeight: 600,
+                letterSpacing: "-0.015em",
+                lineHeight: 1.15,
+                color: c.ink,
+                marginTop: 14,
               }}
             >
-              Trigger your first<br />disruption.
+              One event in, one decision out.
             </h2>
+          </PanIn>
 
-            <p
+          <div style={{ position: "relative" }}>
+            {/* The timeline rule */}
+            <div
+              aria-hidden
               style={{
-                ...typeStyle("titleMd", "rgba(255,255,255,0.66)"),
-                fontSize: 16,
-                marginBottom: sp.lg,
-                maxWidth: 560,
-                marginLeft: "auto",
-                marginRight: "auto",
-                lineHeight: 1.55,
+                position: "absolute",
+                top: 5,
+                left: 0,
+                right: 0,
+                height: 1,
+                background: c.hairline,
+              }}
+            />
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                gap: 40,
               }}
             >
-              One click. Watch flights cascade on the live US map. Compare four recovery plans.
-              Inspect FAR 117 flags, cost decomposition, and CO₂ ledgers in real time.
-            </p>
+              {steps.map((step, i) => (
+                <PanIn
+                  key={step.n}
+                  from={i % 2 === 0 ? "left" : "right"}
+                  dist={60 + i * 18}
+                  style={{ position: "relative", paddingTop: 28 }}
+                >
+                  <span
+                    aria-hidden
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: 11,
+                      height: 11,
+                      borderRadius: "50%",
+                      background: i === 0 ? "var(--ae-teal)" : "var(--ae-surface)",
+                      border: i === 0 ? "1px solid var(--ae-teal)" : `1px solid ${c.borderStrong}`,
+                    }}
+                  />
+                  <div style={{ fontFamily: ff.mono, fontSize: 11, color: c.muted, marginBottom: 10 }}>{step.n}</div>
+                  <h3 style={{ fontFamily: ff.body, fontSize: 15.5, fontWeight: 550, color: c.ink, marginBottom: 8 }}>
+                    {step.t}
+                  </h3>
+                  <p style={{ fontSize: 13, lineHeight: 1.6, color: c.muted }}>{step.d}</p>
+                </PanIn>
+              ))}
+            </div>
+          </div>
+        </Container>
+      </section>
 
-            <div style={{ display: "flex", justifyContent: "center", gap: 12, flexWrap: "wrap" }}>
+      {/* ── Final CTA — full-bleed ink band ── */}
+      <section style={{ background: "#0F1412", paddingTop: 104, paddingBottom: 104 }}>
+        <Container maxWidth={1200}>
+          <PanIn from="left" dist={120} style={{ maxWidth: 640 }}>
+            <h2
+              style={{
+                fontFamily: ff.display,
+                fontSize: "clamp(32px, 4vw, 44px)",
+                fontWeight: 600,
+                letterSpacing: "-0.018em",
+                lineHeight: 1.08,
+                color: "#ECEEE9",
+                marginBottom: 18,
+              }}
+            >
+              Trigger your first disruption.
+            </h2>
+            <p style={{ fontSize: 15.5, lineHeight: 1.6, color: "rgba(236,238,233,0.6)", marginBottom: 36, maxWidth: 520 }}>
+              The full Nimbus Air network loads in the browser. Close O&apos;Hare
+              for four hours, watch 23 flights cascade, and compare four ways out.
+            </p>
+            <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
               <Link href="/simulator" style={{ textDecoration: "none" }}>
                 <button
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
                     gap: 8,
-                    height: 48,
-                    padding: "0 22px",
-                    borderRadius: r.lg,
-                    background: c.canvas,
-                    color: c.ink,
+                    height: 44,
+                    padding: "0 24px",
+                    borderRadius: 10,
+                    background: "var(--ae-teal)",
+                    color: "#0F1412",
                     border: "none",
                     cursor: "pointer",
                     fontFamily: ff.body,
-                    fontSize: 16,
-                    fontWeight: 500,
+                    fontSize: 14,
+                    fontWeight: 550,
                   }}
                 >
-                  Open the simulator <ArrowRight style={{ width: 16, height: 16 }} />
+                  Open the simulator <ArrowRight style={{ width: 15, height: 15 }} />
                 </button>
               </Link>
               <Link href="/scenarios" style={{ textDecoration: "none" }}>
@@ -392,15 +232,15 @@ export default function LandingPage() {
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
-                    height: 48,
-                    padding: "0 22px",
-                    borderRadius: r.lg,
+                    height: 44,
+                    padding: "0 24px",
+                    borderRadius: 10,
                     background: "transparent",
-                    color: c.onPrimary,
-                    border: "1px solid rgba(255,255,255,0.35)",
+                    color: "#ECEEE9",
+                    border: "1px solid rgba(236,238,233,0.25)",
                     cursor: "pointer",
                     fontFamily: ff.body,
-                    fontSize: 16,
+                    fontSize: 14,
                     fontWeight: 500,
                   }}
                 >
@@ -408,16 +248,19 @@ export default function LandingPage() {
                 </button>
               </Link>
             </div>
-          </SignatureCard>
+            <div style={{ marginTop: 40, fontFamily: ff.mono, fontSize: 11.5, color: "rgba(236,238,233,0.4)" }}>
+              FastAPI + Next.js · OR-Tools CP-SAT · open data: DOT BTS, FAA NAS, NWS
+            </div>
+          </PanIn>
         </Container>
-      </Section>
+      </section>
 
       <LandingFooter />
     </main>
   )
 }
 
-// ─── Nav (white canvas, near-black ink, hairline) ───────────────────────
+// ─── Nav ─────────────────────────────────────────────────────────────────
 
 function LandingNav() {
   return (
@@ -429,20 +272,20 @@ function LandingNav() {
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        height: 64,
+        height: 62,
         padding: "0 32px",
-        background: "rgba(255,255,255,0.94)",
+        background: "rgba(245,245,240,0.92)",
         backdropFilter: "blur(12px)",
         borderBottom: `1px solid ${c.hairline}`,
       }}
     >
       <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
-        <AeolusLogo size={32} />
+        <AeolusLogo size={28} />
         <span
           style={{
             fontFamily: ff.display,
-            fontWeight: 500,
-            fontSize: 18,
+            fontWeight: 600,
+            fontSize: 17,
             color: c.ink,
             letterSpacing: "-0.01em",
           }}
@@ -451,10 +294,10 @@ function LandingNav() {
         </span>
       </Link>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
         {[
           { href: "/scenarios", label: "Scenarios" },
-          { href: "/docs",      label: "Methodology" },
+          { href: "/docs", label: "Methodology" },
           { href: "/simulator", label: "Simulator" },
         ].map((l) => (
           <Link
@@ -462,10 +305,9 @@ function LandingNav() {
             href={l.href as Route}
             style={{
               padding: "8px 14px",
-              borderRadius: r.sm,
               fontFamily: ff.body,
               fontSize: 14,
-              fontWeight: 400,
+              fontWeight: 450,
               color: c.body,
               textDecoration: "none",
             }}
@@ -476,7 +318,7 @@ function LandingNav() {
       </div>
 
       <Link href="/simulator" style={{ textDecoration: "none" }}>
-        <ButtonPrimary size="sm" trailingIcon={<ArrowRight style={{ width: 14, height: 14 }} />}>
+        <ButtonPrimary size="sm" trailingIcon={<ArrowRight style={{ width: 13, height: 13 }} />}>
           Launch simulator
         </ButtonPrimary>
       </Link>
@@ -490,12 +332,13 @@ function LandingFooter() {
   return (
     <footer
       style={{
-        background: c.surfaceDark,
-        color: "rgba(255,255,255,0.55)",
-        padding: "64px 32px 32px",
+        background: "#0F1412",
+        borderTop: "1px solid rgba(236,238,233,0.08)",
+        color: "rgba(236,238,233,0.55)",
+        padding: "56px 32px 32px",
       }}
     >
-      <Container style={{ paddingLeft: 0, paddingRight: 0 }}>
+      <Container maxWidth={1200} style={{ paddingLeft: 0, paddingRight: 0 }}>
         <div
           style={{
             display: "flex",
@@ -506,41 +349,45 @@ function LandingFooter() {
           }}
         >
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-              <AeolusLogo size={32} />
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+              <AeolusLogo size={28} />
               <div>
-                <div style={{ fontFamily: ff.display, fontWeight: 500, fontSize: 16, color: c.onPrimary, letterSpacing: "-0.01em" }}>
+                <div style={{ fontFamily: ff.display, fontWeight: 550, fontSize: 15, color: "#ECEEE9", letterSpacing: "-0.01em" }}>
                   Aeolus
                 </div>
-                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", marginTop: 2 }}>
+                <div style={{ fontSize: 12, color: "rgba(236,238,233,0.4)", marginTop: 2 }}>
                   Open-source OCC reference
                 </div>
               </div>
             </div>
-            <p style={{ fontSize: 13, lineHeight: 1.55, maxWidth: 380 }}>
-              Built with FastAPI · Next.js · OR-Tools · Leaflet · Zustand. Open data — DOT BTS,
-              FAA NAS, NWS NOAA. No proprietary lock-in.
+            <p style={{ fontSize: 13, lineHeight: 1.6, maxWidth: 380 }}>
+              Built with FastAPI, Next.js, OR-Tools, and Leaflet on open data —
+              DOT BTS, FAA NAS status, NWS alerts.
             </p>
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <Eyebrow color="rgba(255,255,255,0.45)">Product</Eyebrow>
+            <span style={{ fontSize: 11, fontWeight: 550, letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(236,238,233,0.35)" }}>
+              Product
+            </span>
             {[
-              { href: "/simulator",            label: "Simulator" },
-              { href: "/simulator/plans",      label: "Recovery plans" },
-              { href: "/simulator/carbon",     label: "Carbon dashboard" },
+              { href: "/simulator", label: "Simulator" },
+              { href: "/simulator/plans", label: "Recovery plans" },
+              { href: "/simulator/carbon", label: "Carbon dashboard" },
               { href: "/simulator/stress-test", label: "Stress test" },
             ].map((l) => (
-              <Link key={l.href} href={l.href as Route} style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", textDecoration: "none" }}>
+              <Link key={l.href} href={l.href as Route} style={{ fontSize: 13, color: "rgba(236,238,233,0.6)", textDecoration: "none" }}>
                 {l.label}
               </Link>
             ))}
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <Eyebrow color="rgba(255,255,255,0.45)">Reference</Eyebrow>
-            <Link href="/scenarios" style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", textDecoration: "none" }}>Scenarios</Link>
-            <Link href="/docs" style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", textDecoration: "none" }}>Methodology</Link>
+            <span style={{ fontSize: 11, fontWeight: 550, letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(236,238,233,0.35)" }}>
+              Reference
+            </span>
+            <Link href="/scenarios" style={{ fontSize: 13, color: "rgba(236,238,233,0.6)", textDecoration: "none" }}>Scenarios</Link>
+            <Link href="/docs" style={{ fontSize: 13, color: "rgba(236,238,233,0.6)", textDecoration: "none" }}>Methodology</Link>
           </div>
         </div>
 
@@ -548,17 +395,17 @@ function LandingFooter() {
           style={{
             marginTop: 48,
             paddingTop: 24,
-            borderTop: "1px solid rgba(255,255,255,0.08)",
+            borderTop: "1px solid rgba(236,238,233,0.08)",
             fontSize: 12,
-            color: "rgba(255,255,255,0.35)",
+            color: "rgba(236,238,233,0.35)",
             display: "flex",
             justifyContent: "space-between",
             flexWrap: "wrap",
             gap: 16,
           }}
         >
-          <span>Aeolus is a research artifact. Not a substitute for production OCC software.</span>
-          <span style={{ fontFamily: ff.mono }}>v0.2.0 · Apache 2.0</span>
+          <span>Aeolus is a research artifact, not production OCC software.</span>
+          <span style={{ fontFamily: ff.mono }}>v0.3.0 · Apache 2.0</span>
         </div>
       </Container>
     </footer>

@@ -60,24 +60,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://rsms.me" crossOrigin="anonymous" />
         {/*
-          Inter Display + Inter is the documented open-source substitute for
-          Haas Groot Disp / Haas Grotesk (per DESIGN.md). Loaded at the unusual
-          mid-weights 400 / 475 / 500 / 575 to match the Airtable type stack —
-          notably 475 and 575 power the pricing-page sub-system signature.
-          JetBrains Mono for delay-minute / cost / flight-ID monospace cells.
+          ONE typeface family: Inter (+ Inter Display, its optical-size
+          variant for headlines) served variable from rsms.me. JetBrains
+          Mono is reserved for code blocks, flight IDs, and tabular ops
+          data — it is not a display font.
         */}
+        <link href="https://rsms.me/inter/inter.css" rel="stylesheet" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;475;500;575;600&family=JetBrains+Mono:wght@400;500;600&display=swap"
-          rel="stylesheet"
-        />
-        {/*
-          "Inter Display" is the optical-size-tuned variant from rsms.me. Loaded
-          separately so display headlines pick up the tighter cap-height while
-          body text uses the standard Inter.
-        */}
-        <link
-          href="https://rsms.me/inter/inter.css"
+          href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap"
           rel="stylesheet"
         />
       </head>
@@ -85,16 +77,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>
           {children}
           <Toaster
-            theme="light"
             position="top-right"
-            richColors
             closeButton
             toastOptions={{
               style: {
                 fontFamily: 'Inter, "Inter Display", system-ui, sans-serif',
-                fontSize: 14,
+                fontSize: 13,
                 fontWeight: 500,
                 borderRadius: 10,
+                background: "var(--ae-surface)",
+                color: "var(--ae-text)",
+                border: "1px solid var(--ae-line)",
               },
             }}
           />

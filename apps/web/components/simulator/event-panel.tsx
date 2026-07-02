@@ -314,91 +314,28 @@ const FORM_SCHEMA: Record<EventKind, {
   },
 }
 
-// ─── Semantic tone palette ───────────────────────────────────────────────────
-// Replaces the 16-hue rainbow with 5 brand-voltage tones, one per event
-// category. Same color = same meaning everywhere on the dashboard.
-//
-//  weather  → mint     (atmospheric / cool)
-//  atc      → coral    (stop / urgent)
-//  ops      → mustard  (mechanical / warning)
-//  crew     → peach    (personnel)
-//  security → forest-on-cream (gravity but not panic)
-//
-// Selected tile inverts to dark ink on canvas (Airtable editorial pattern).
+// ─── Tile tone ───────────────────────────────────────────────────────────────
+// One neutral treatment for all 21 event types; the accent color appears
+// only on the SELECTED tile (teal border + teal icon). Icons are a single
+// lucide set, one stroke weight, monochrome at rest — category identity
+// comes from the group label, not from per-category color.
 
 type Tone = {
-  bg: string         // soft surface for the un-selected tile
-  ink: string        // text color
-  border: string     // hairline border tint
-  ringHex: string    // selection ring
-  iconBg: string     // small icon chip background
-  selectedBg: string // surface for selected/active tile
-  selectedInk: string
+  bg: string
+  ink: string
+  border: string
+  iconBg: string
 }
 
-const EVENT_TONES = {
-  weather: {
-    bg: "#F1F7F4",                  // mint tint
-    ink: c.statusOnTime.ink,        // forest
-    border: c.signatureMint,
-    ringHex: c.statusOnTime.dot,
-    iconBg: c.signatureMint,
-    selectedBg: c.statusOnTime.bg,
-    selectedInk: c.statusOnTime.ink,
-  },
-  atc: {
-    bg: c.statusCancelled.bg,
-    ink: c.statusCancelled.ink,
-    border: c.statusCancelled.dot,
-    ringHex: c.statusCancelled.dot,
-    iconBg: "#F0CDC0",              // coral chip
-    selectedBg: c.statusCancelled.bg,
-    selectedInk: c.statusCancelled.ink,
-  },
-  ops: {
-    bg: c.statusDelayed.bg,         // peach
-    ink: "#5C3D0F",                 // mustard ink
-    border: c.signatureMustard,
-    ringHex: c.signatureMustard,
-    iconBg: "#F5D58A",
-    selectedBg: c.statusDelayed.bg,
-    selectedInk: "#5C3D0F",
-  },
-  crew: {
-    bg: "#FCEAD9",                  // peach soft
-    ink: c.statusDelayed.ink,
-    border: c.signaturePeach,
-    ringHex: c.signaturePeach,
-    iconBg: "#F8D2B4",
-    selectedBg: "#FCEAD9",
-    selectedInk: c.statusDelayed.ink,
-  },
-  security: {
-    bg: c.signatureCream,
-    ink: c.statusOnTime.ink,        // forest
-    border: c.statusOnTime.dot,
-    ringHex: c.statusOnTime.dot,
-    iconBg: "#E5D9C0",
-    selectedBg: c.signatureCream,
-    selectedInk: c.statusOnTime.ink,
-  },
-} as const satisfies Record<string, Tone>
-
-type ToneKey = keyof typeof EVENT_TONES
-
-const EVENT_TONE_BY_KIND: Record<EventKind, ToneKey> = {
-  weather_closure: "weather", thunderstorm: "weather", blizzard: "weather",
-  sandstorm: "weather", dense_fog: "weather", wind_shear: "weather",
-  hurricane: "weather", volcanic_ash: "weather",
-  ground_stop: "atc", airspace_closure: "atc", atc_staffing: "atc",
-  mechanical_aog: "ops", bird_strike: "ops", deicing_shortage: "ops",
-  runway_closure: "ops", fuel_contamination: "ops",
-  crew_sickout: "crew", labor_action: "crew",
-  security_event: "security", airport_emergency: "security", cyber_incident: "security",
+const NEUTRAL_TONE: Tone = {
+  bg: "var(--ae-surface)",
+  ink: "var(--ae-text)",
+  border: "var(--ae-line)",
+  iconBg: "var(--ae-surface-2)",
 }
 
-function toneFor(kind: EventKind): Tone {
-  return EVENT_TONES[EVENT_TONE_BY_KIND[kind]]
+function toneFor(_kind: EventKind): Tone {
+  return NEUTRAL_TONE
 }
 
 // ─── Live data types ──────────────────────────────────────────────────────────
@@ -467,6 +404,42 @@ const FAA_TYPE_ORDER: Record<string, number> = {
   departure_delay: 2,
 }
 
+// ─── Severity vocabulary — rust (critical) / amber (warning) only ────────────
+
+const SEV = {
+  critical: { dot: "var(--ae-amber)",       ink: "var(--ae-amber-ink)", bg: "var(--ae-amber-bg)" },
+  high:     { dot: "var(--ae-amber-soft)",  ink: "var(--ae-amber-ink)", bg: "var(--ae-neutral-bg)" },
+  moderate: { dot: "var(--ae-line-strong)", ink: "var(--ae-text-2)",    bg: "var(--ae-neutral-bg)" },
+} as const
+
+/** Teal "load into simulator" action chip. */
+function SimButton({ disabled, onClick }: { disabled: boolean; onClick: () => void }) {
+  return (
+    <button
+      disabled={disabled}
+      onClick={onClick}
+      className="shrink-0 flex items-center gap-1 text-[10px] font-semibold px-2 py-1.5 transition-all disabled:opacity-40"
+      style={{ borderRadius: r.sm, background: "var(--ae-teal)", color: "#0F1412", border: "none", cursor: "pointer" }}
+    >
+      <Zap className="w-3 h-3" strokeWidth={1.75} /> Sim
+    </button>
+  )
+}
+
+/** Small severity chip — pigment dot + neutral text, never color-alone. */
+function SevChip({ level, label }: { level: keyof typeof SEV; label: string }) {
+  const s = SEV[level]
+  return (
+    <span
+      className="inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-full font-semibold shrink-0"
+      style={{ background: s.bg, color: s.ink }}
+    >
+      <span className="w-1.5 h-1.5 rounded-full" style={{ background: s.dot }} />
+      {label}
+    </span>
+  )
+}
+
 // ─── Alert row ───────────────────────────────────────────────────────────────
 
 function renderAlertRow(
@@ -475,40 +448,42 @@ function renderAlertRow(
   isLoadingEvent: boolean,
   onLoadToSim: (kind: string, params: Record<string, any>) => Promise<void>
 ) {
-  const sevColor =
-    alert.severity === "Extreme" ? "text-red-700"
-    : alert.severity === "Severe" ? "text-orange-700"
-    : "text-amber-700"
-  const sevBg =
-    alert.severity === "Extreme" ? "bg-red-100 text-red-700 border-red-200"
-    : alert.severity === "Severe" ? "bg-orange-100 text-orange-700 border-orange-200"
-    : "bg-amber-50 text-amber-700 border-amber-200"
+  const level: keyof typeof SEV =
+    alert.severity === "Extreme" ? "critical"
+    : alert.severity === "Severe" ? "high"
+    : "moderate"
+  const sev = SEV[level]
   return (
     <div
       key={alert.id}
-      className={`rounded-xl border p-3 ${
-        isNimbus ? "border-sky-200 bg-sky-50/80" : "border-border bg-secondary/30"
-      }`}
+      className="rounded-lg border p-3"
+      style={{
+        borderColor: "var(--ae-line)",
+        background: "var(--ae-surface)",
+        borderLeft: isNimbus ? "2px solid var(--ae-teal)" : "1px solid var(--ae-line)",
+      }}
     >
       <div className="flex items-start gap-2.5">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap mb-1">
             {alert.event.toLowerCase().includes("thunder") || alert.event.toLowerCase().includes("tornado")
-              ? <CloudLightning className={`w-3.5 h-3.5 shrink-0 ${sevColor}`} />
+              ? <CloudLightning className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} style={{ color: sev.ink }} />
               : alert.event.toLowerCase().includes("wind")
-              ? <Wind className={`w-3.5 h-3.5 shrink-0 ${sevColor}`} />
-              : <TriangleAlert className={`w-3.5 h-3.5 shrink-0 ${sevColor}`} />
+              ? <Wind className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} style={{ color: sev.ink }} />
+              : <TriangleAlert className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} style={{ color: sev.ink }} />
             }
-            <span className={`text-xs font-semibold ${sevColor}`}>{alert.event}</span>
-            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold border ${sevBg}`}>
-              {alert.severity}
-            </span>
+            <span className="text-xs font-semibold text-foreground">{alert.event}</span>
+            <SevChip level={level} label={alert.severity} />
           </div>
           {isNimbus && (
             <div className="flex items-center gap-1 mb-1 flex-wrap">
-              <span className="text-[9px] text-sky-600 font-semibold">Nimbus:</span>
+              <span className="text-[9px] font-semibold" style={{ color: "var(--ae-teal-ink)" }}>Nimbus:</span>
               {alert.affected_nimbus_airports.map((ap) => (
-                <span key={ap} className="text-[9px] font-mono px-1.5 py-0.5 bg-sky-100 text-sky-700 rounded-md border border-sky-200">
+                <span
+                  key={ap}
+                  className="text-[9px] font-mono px-1.5 py-0.5 rounded-md"
+                  style={{ background: "var(--ae-teal-bg)", color: "var(--ae-teal-ink)" }}
+                >
                   {ap.replace(/^K/, "")}
                 </span>
               ))}
@@ -517,14 +492,10 @@ function renderAlertRow(
           <div className="text-[10px] text-muted-foreground line-clamp-2">{alert.area}</div>
         </div>
         {isNimbus && alert.sim_event && (
-          <button
+          <SimButton
             disabled={isLoadingEvent}
             onClick={() => onLoadToSim(alert.sim_event!.kind, alert.sim_event!.params)}
-            className="shrink-0 flex items-center gap-1 text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition-all disabled:opacity-40"
-            style={{ background: c.ink, color: c.onPrimary }}
-          >
-            <Zap className="w-3 h-3" /> Sim
-          </button>
+          />
         )}
       </div>
     </div>
@@ -558,8 +529,8 @@ function SectionToggle({ label, badge, children, defaultOpen = true }: {
         onClick={() => setOpen((o) => !o)}
         className="flex items-center gap-2 w-full mb-2 group"
       >
-        <ChevronDown className={`w-3 h-3 text-muted-foreground transition-transform ${open ? "" : "-rotate-90"}`} />
-        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex-1 text-left">{label}</span>
+        <ChevronDown className={`w-3 h-3 text-muted-foreground transition-transform ${open ? "" : "-rotate-90"}`} strokeWidth={1.75} />
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex-1 text-left">{label}</span>
         {badge}
       </button>
       <AnimatePresence initial={false}>
@@ -700,7 +671,7 @@ function LiveFeed({
               <div className="text-[10px] text-muted-foreground">
                 {minutesAgo === null ? "Fetching…" : minutesAgo === 0 ? "Live" : `${minutesAgo}m ago`}
                 {nimbusHit > 0 && (
-                  <span className="ml-1.5 text-orange-600 font-semibold">· {nimbusHit} Nimbus impact{nimbusHit !== 1 ? "s" : ""}</span>
+                  <span className="ml-1.5 font-semibold" style={{ color: "var(--ae-amber-ink)" }}>· {nimbusHit} Nimbus impact{nimbusHit !== 1 ? "s" : ""}</span>
                 )}
               </div>
             </div>
@@ -717,14 +688,21 @@ function LiveFeed({
         </div>
         <div className="grid grid-cols-4 gap-1.5">
           {[
-            { color: "text-red-600",    bg: "bg-red-50",    val: faaSum?.concurrent_ground_stops ?? "—",           label: "GS" },
-            { color: "text-orange-600", bg: "bg-orange-50", val: faaSum?.concurrent_gdps ?? "—",                   label: "GDP" },
-            { color: "text-sky-600",    bg: "bg-sky-50",    val: nwsSum?.severe_or_extreme ?? "—",                 label: "Sev / Ext" },
-            { color: "text-teal-600",   bg: "bg-teal-50",   val: faaSum?.nimbus_network_overlap ?? "—",            label: "Nimbus hit" },
-          ].map(({ color, bg, val, label }) => (
-            <div key={label} className={`rounded-xl ${bg} border border-border/40 px-2 py-2 text-center`}>
-              <div className={`text-base font-black font-mono leading-none ${color}`}>{val}</div>
-              <div className="text-[9px] text-muted-foreground mt-0.5 leading-tight">{label}</div>
+            { dot: "var(--ae-rust)",  val: faaSum?.concurrent_ground_stops ?? "—",  label: "GS" },
+            { dot: "var(--ae-amber)", val: faaSum?.concurrent_gdps ?? "—",          label: "GDP" },
+            { dot: "var(--ae-amber-soft)", val: nwsSum?.severe_or_extreme ?? "—",   label: "Sev / Ext" },
+            { dot: "var(--ae-teal)",  val: faaSum?.nimbus_network_overlap ?? "—",   label: "Nimbus hit" },
+          ].map(({ dot, val, label }) => (
+            <div
+              key={label}
+              className="rounded-lg px-2 py-2 text-center"
+              style={{ background: "var(--ae-surface)", border: "1px solid var(--ae-line)" }}
+            >
+              <div className="flex items-center justify-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: dot }} />
+                <span className="text-base font-semibold font-mono leading-none text-foreground tabular-nums">{val}</span>
+              </div>
+              <div className="text-[9px] text-muted-foreground mt-1 leading-tight">{label}</div>
             </div>
           ))}
         </div>
@@ -757,7 +735,10 @@ function LiveFeed({
         <SectionToggle
           label="Top Active Disruptions"
           badge={
-            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200">
+            <span
+              className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
+              style={{ background: "var(--ae-rust-bg)", color: "var(--ae-rust-ink)" }}
+            >
               {topDisruptions.length}
             </span>
           }
@@ -767,30 +748,23 @@ function LiveFeed({
             {topDisruptions.map((d) => (
               <div
                 key={d.id}
-                className={`rounded-xl border p-2.5 flex items-start gap-2.5 ${
-                  d.isNimbus
-                    ? d.typeSeverity === "critical" ? "border-red-200 bg-red-50/70" : "border-orange-200 bg-orange-50/60"
-                    : "border-border bg-secondary/30"
-                }`}
+                className="rounded-lg p-2.5 flex items-start gap-2.5"
+                style={{
+                  background: "var(--ae-surface)",
+                  border: "1px solid var(--ae-line)",
+                  borderLeft: d.isNimbus ? "2px solid var(--ae-teal)" : "1px solid var(--ae-line)",
+                }}
               >
                 {/* Severity dot */}
                 <div className="mt-0.5 shrink-0">
-                  <span className={`block w-2 h-2 rounded-full ${
-                    d.typeSeverity === "critical" ? "bg-red-500" : d.typeSeverity === "high" ? "bg-orange-500" : "bg-amber-400"
-                  }`} />
+                  <span className="block w-2 h-2 rounded-full" style={{ background: SEV[d.typeSeverity].dot }} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-xs font-bold text-foreground truncate">{d.title}</span>
-                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${
-                      d.typeSeverity === "critical" ? "bg-red-100 text-red-800 border-red-200"
-                      : d.typeSeverity === "high" ? "bg-orange-100 text-orange-800 border-orange-200"
-                      : "bg-amber-50 text-amber-800 border-amber-200"
-                    }`}>
-                      {d.typeLabel}
-                    </span>
+                    <span className="text-xs font-semibold text-foreground truncate">{d.title}</span>
+                    <SevChip level={d.typeSeverity} label={d.typeLabel} />
                     {d.isNimbus && (
-                      <span className="text-[9px] font-bold shrink-0" style={{ color: c.statusOnTime.ink }}>Nimbus</span>
+                      <span className="text-[9px] font-semibold shrink-0" style={{ color: "var(--ae-teal-ink)" }}>Nimbus</span>
                     )}
                   </div>
                   {d.detail && (
@@ -799,7 +773,11 @@ function LiveFeed({
                   {d.airports.length > 0 && (
                     <div className="flex gap-1 mt-1 flex-wrap">
                       {d.airports.slice(0, 4).map((ap) => (
-                        <span key={ap} className="text-[9px] font-mono px-1.5 py-0.5 bg-white rounded-md border border-border/60">
+                        <span
+                          key={ap}
+                          className="text-[9px] font-mono px-1.5 py-0.5 rounded-md"
+                          style={{ background: "var(--ae-surface-2)", border: "1px solid var(--ae-line)", color: "var(--ae-text-2)" }}
+                        >
                           {ap.replace(/^K/, "")}
                         </span>
                       ))}
@@ -807,14 +785,10 @@ function LiveFeed({
                   )}
                 </div>
                 {d.simEvent && (
-                  <button
+                  <SimButton
                     disabled={isLoadingEvent}
                     onClick={() => onLoadToSim(d.simEvent!.kind, d.simEvent!.params)}
-                    className="shrink-0 flex items-center gap-1 text-[10px] font-bold px-2 py-1.5 transition-all disabled:opacity-40"
-                    style={{ borderRadius: r.sm, background: c.ink, color: c.onPrimary, border: "none", cursor: "pointer" }}
-                  >
-                    <Zap className="w-3 h-3" /> Sim
-                  </button>
+                  />
                 )}
               </div>
             ))}
@@ -826,19 +800,25 @@ function LiveFeed({
       <SectionToggle
         label="FAA Ground Programs"
         badge={programs.length > 0 && (
-          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200">
+          <span
+            className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
+            style={{ background: "var(--ae-rust-bg)", color: "var(--ae-rust-ink)" }}
+          >
             {programs.length} active
           </span>
         )}
         defaultOpen={false}
       >
         {faaData?.error && (
-          <div className="rounded-xl border border-orange-200 bg-orange-50 px-3 py-2.5 text-xs text-orange-700 mb-2">
+          <div
+            className="rounded-lg px-3 py-2.5 text-xs mb-2"
+            style={{ background: "var(--ae-amber-bg)", color: "var(--ae-amber-ink)", border: "1px solid var(--ae-line)" }}
+          >
             FAA status temporarily unavailable. See nasstatus.faa.gov.
           </div>
         )}
         {!fetching && !faaData?.error && programs.length === 0 && faaData && (
-          <div className="rounded-xl border border-border bg-secondary/40 px-3 py-3 text-center text-xs text-muted-foreground mb-2">
+          <div className="rounded-lg border border-border bg-secondary/40 px-3 py-3 text-center text-xs text-muted-foreground mb-2">
             No active FAA programs — NAS operating normally.
           </div>
         )}
@@ -846,18 +826,26 @@ function LiveFeed({
         {/* Ground Stops — highest priority */}
         {groundStops.length > 0 && (
           <div className="mb-3">
-            <div className="text-[9px] font-bold uppercase tracking-wider text-red-700 mb-1.5 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+            <div className="text-[9px] font-semibold uppercase tracking-wider mb-1.5 flex items-center gap-1.5" style={{ color: "var(--ae-rust-ink)" }}>
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--ae-rust)" }} />
               Ground Stops ({groundStops.length})
             </div>
             <div className="space-y-1.5">
               {groundStops.map((prog, i) => (
-                <div key={`gs-${i}`} className={`rounded-xl border p-2.5 ${prog.in_nimbus_network ? "border-red-200 bg-red-50/80" : "border-border bg-secondary/30"}`}>
+                <div
+                  key={`gs-${i}`}
+                  className="rounded-lg p-2.5"
+                  style={{
+                    background: "var(--ae-surface)",
+                    border: "1px solid var(--ae-line)",
+                    borderLeft: prog.in_nimbus_network ? "2px solid var(--ae-rust)" : "1px solid var(--ae-line)",
+                  }}
+                >
                   <div className="flex items-start gap-2">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="font-mono font-bold text-sm text-foreground">{prog.airport_iata}</span>
-                        {prog.in_nimbus_network && <span className="text-[9px] font-bold" style={{ color: c.statusOnTime.ink }}>Nimbus</span>}
+                        <span className="font-mono font-semibold text-sm text-foreground">{prog.airport_iata}</span>
+                        {prog.in_nimbus_network && <span className="text-[9px] font-semibold" style={{ color: "var(--ae-teal-ink)" }}>Nimbus</span>}
                       </div>
                       <div className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">
                         {prog.reason}{prog.avg_delay_minutes ? ` · avg ${prog.avg_delay_minutes}m` : ""}
@@ -865,11 +853,7 @@ function LiveFeed({
                       {prog.recheck && <div className="text-[9px] text-muted-foreground/60 mt-0.5">Recheck: {prog.recheck}</div>}
                     </div>
                     {prog.in_nimbus_network && (
-                      <button disabled={isLoadingEvent} onClick={() => onLoadToSim(prog.sim_event.kind, prog.sim_event.params)}
-                        className="shrink-0 flex items-center gap-1 text-[10px] font-bold px-2 py-1.5 disabled:opacity-40"
-                        style={{ borderRadius: r.sm, background: c.ink, color: c.onPrimary, border: "none", cursor: "pointer" }}>
-                        <Zap className="w-3 h-3" /> Sim
-                      </button>
+                      <SimButton disabled={isLoadingEvent} onClick={() => onLoadToSim(prog.sim_event.kind, prog.sim_event.params)} />
                     )}
                   </div>
                 </div>
@@ -881,19 +865,34 @@ function LiveFeed({
         {/* GDPs */}
         {gdps.length > 0 && (
           <div className="mb-3">
-            <div className="text-[9px] font-bold uppercase tracking-wider text-orange-700 mb-1.5 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+            <div className="text-[9px] font-semibold uppercase tracking-wider mb-1.5 flex items-center gap-1.5" style={{ color: "var(--ae-amber-ink)" }}>
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--ae-amber)" }} />
               Ground Delay Programs ({gdps.length})
             </div>
             <div className="space-y-1.5">
               {gdps.map((prog, i) => (
-                <div key={`gdp-${i}`} className={`rounded-xl border p-2.5 ${prog.in_nimbus_network ? "border-orange-200 bg-orange-50/70" : "border-border bg-secondary/30"}`}>
+                <div
+                  key={`gdp-${i}`}
+                  className="rounded-lg p-2.5"
+                  style={{
+                    background: "var(--ae-surface)",
+                    border: "1px solid var(--ae-line)",
+                    borderLeft: prog.in_nimbus_network ? "2px solid var(--ae-amber)" : "1px solid var(--ae-line)",
+                  }}
+                >
                   <div className="flex items-start gap-2">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="font-mono font-bold text-sm">{prog.airport_iata}</span>
-                        {prog.avg_delay_minutes && <span className="text-[9px] font-bold text-orange-700 bg-orange-100 px-1.5 py-0.5 rounded-full border border-orange-200">avg {prog.avg_delay_minutes}m</span>}
-                        {prog.in_nimbus_network && <span className="text-[9px] font-bold" style={{ color: c.statusOnTime.ink }}>Nimbus</span>}
+                        <span className="font-mono font-semibold text-sm">{prog.airport_iata}</span>
+                        {prog.avg_delay_minutes && (
+                          <span
+                            className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
+                            style={{ background: "var(--ae-amber-bg)", color: "var(--ae-amber-ink)" }}
+                          >
+                            avg {prog.avg_delay_minutes}m
+                          </span>
+                        )}
+                        {prog.in_nimbus_network && <span className="text-[9px] font-semibold" style={{ color: "var(--ae-teal-ink)" }}>Nimbus</span>}
                       </div>
                       <div className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">{prog.reason}</div>
                       {(prog.start || prog.recheck) && (
@@ -903,11 +902,7 @@ function LiveFeed({
                       )}
                     </div>
                     {prog.in_nimbus_network && (
-                      <button disabled={isLoadingEvent} onClick={() => onLoadToSim(prog.sim_event.kind, prog.sim_event.params)}
-                        className="shrink-0 flex items-center gap-1 text-[10px] font-bold px-2 py-1.5 disabled:opacity-40"
-                        style={{ borderRadius: r.sm, background: c.ink, color: c.onPrimary, border: "none", cursor: "pointer" }}>
-                        <Zap className="w-3 h-3" /> Sim
-                      </button>
+                      <SimButton disabled={isLoadingEvent} onClick={() => onLoadToSim(prog.sim_event.kind, prog.sim_event.params)} />
                     )}
                   </div>
                 </div>
@@ -919,23 +914,23 @@ function LiveFeed({
         {/* Departure Delays */}
         {depDelays.length > 0 && (
           <div className="mb-1">
-            <div className="text-[9px] font-bold uppercase tracking-wider text-amber-700 mb-1.5 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+            <div className="text-[9px] font-semibold uppercase tracking-wider mb-1.5 flex items-center gap-1.5" style={{ color: "var(--ae-amber-ink)" }}>
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--ae-amber-soft)" }} />
               Departure Delays ({depDelays.length})
             </div>
             <div className="space-y-1.5">
               {depDelays.map((prog, i) => (
-                <div key={`dep-${i}`} className={`rounded-xl border p-2.5 ${prog.in_nimbus_network ? "border-amber-200 bg-amber-50/60" : "border-border bg-secondary/30"}`}>
+                <div
+                  key={`dep-${i}`}
+                  className="rounded-lg p-2.5"
+                  style={{ background: "var(--ae-surface)", border: "1px solid var(--ae-line)" }}
+                >
                   <div className="flex items-center gap-2">
-                    <span className="font-mono font-bold text-sm">{prog.airport_iata}</span>
+                    <span className="font-mono font-semibold text-sm">{prog.airport_iata}</span>
                     {prog.avg_delay_minutes && <span className="text-[9px] text-muted-foreground">avg {prog.avg_delay_minutes}m</span>}
                     <span className="text-[10px] text-muted-foreground flex-1 truncate">{prog.reason}</span>
                     {prog.in_nimbus_network && (
-                      <button disabled={isLoadingEvent} onClick={() => onLoadToSim(prog.sim_event.kind, prog.sim_event.params)}
-                        className="shrink-0 flex items-center gap-1 text-[10px] font-bold px-2 py-1 disabled:opacity-40"
-                        style={{ borderRadius: r.sm, background: c.ink, color: c.onPrimary, border: "none", cursor: "pointer" }}>
-                        <Zap className="w-3 h-3" /> Sim
-                      </button>
+                      <SimButton disabled={isLoadingEvent} onClick={() => onLoadToSim(prog.sim_event.kind, prog.sim_event.params)} />
                     )}
                   </div>
                 </div>
@@ -949,19 +944,25 @@ function LiveFeed({
       <SectionToggle
         label="NWS Weather Alerts"
         badge={nimbusAlerts.length > 0 && (
-          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200">
+          <span
+            className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
+            style={{ background: "var(--ae-teal-bg)", color: "var(--ae-teal-ink)" }}
+          >
             {nimbusAlerts.length} Nimbus
           </span>
         )}
         defaultOpen={false}
       >
         {alertsData?.error && (
-          <div className="rounded-xl border border-orange-200 bg-orange-50 px-3 py-2.5 text-xs text-orange-700 mb-2">
+          <div
+            className="rounded-lg px-3 py-2.5 text-xs mb-2"
+            style={{ background: "var(--ae-amber-bg)", color: "var(--ae-amber-ink)", border: "1px solid var(--ae-line)" }}
+          >
             NWS alerts temporarily unavailable.
           </div>
         )}
         {!fetching && !alertsData?.error && wxFiltered.length === 0 && alertsData && (
-          <div className="rounded-xl border border-border bg-secondary/40 px-3 py-3 text-center text-xs text-muted-foreground mb-2">
+          <div className="rounded-lg border border-border bg-secondary/40 px-3 py-3 text-center text-xs text-muted-foreground mb-2">
             {nimbusOnly ? "No alerts overlap Nimbus airports." : "No active aviation-relevant NWS alerts."}
           </div>
         )}
@@ -974,7 +975,7 @@ function LiveFeed({
           <div className="space-y-3 max-h-[min(55vh,28rem)] overflow-y-auto pr-0.5">
             {highImpactWx.length > 0 && (
               <div>
-                <div className="text-[9px] font-bold uppercase tracking-wider text-orange-800 mb-1.5">Severe &amp; extreme</div>
+                <div className="text-[9px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: "var(--ae-amber-ink)" }}>Severe &amp; extreme</div>
                 <div className="space-y-1.5">
                   {highImpactWx.map((alert) =>
                     renderAlertRow(alert, alert.affected_nimbus_airports.length > 0, isLoadingEvent, onLoadToSim)
@@ -1074,34 +1075,32 @@ export function EventPanel() {
 
       <Tabs defaultValue="trigger" className="flex-1 flex flex-col min-h-0">
 
-        {/* Tab bar */}
-        <div className="px-3 pt-3 pb-0 shrink-0 border-b border-border/50">
+        {/* Tab bar — underline tabs, no boxed pills */}
+        <div className="px-3 pt-1 pb-0 shrink-0" style={{ borderBottom: `1px solid ${c.hairline}` }}>
           <TabsList
-            className="w-full mb-3 h-9 rounded-lg p-0.5"
-            style={{ background: "#EBEBEB" }}
+            className="w-full h-9 rounded-none p-0 justify-start gap-1 bg-transparent"
           >
             <TabsTrigger
               value="trigger"
-              className="flex-1 text-[11px] h-8 rounded-md font-semibold data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground"
+              className="flex-none px-3 text-[12px] h-9 rounded-none font-medium border-b-2 border-transparent data-[state=active]:border-[var(--ae-teal)] data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-foreground text-muted-foreground"
             >
               Events
             </TabsTrigger>
             <TabsTrigger
               value="live"
-              className="flex-1 text-[11px] h-8 rounded-md font-semibold data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground"
+              className="flex-none px-3 text-[12px] h-9 rounded-none font-medium border-b-2 border-transparent data-[state=active]:border-[var(--ae-teal)] data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-foreground text-muted-foreground"
             >
               Live
-              <span className="ml-1.5 w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block shrink-0" />
             </TabsTrigger>
             <TabsTrigger
               value="active"
-              className="flex-1 text-[11px] h-8 rounded-md font-semibold data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground"
+              className="flex-none px-3 text-[12px] h-9 rounded-none font-medium border-b-2 border-transparent data-[state=active]:border-[var(--ae-teal)] data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-foreground text-muted-foreground"
             >
               Active
               {activeEvents.length > 0 && (
                 <span
-                  className="ml-1.5 text-[9px] font-bold rounded-full w-4 h-4 inline-flex items-center justify-center shrink-0"
-                  style={{ background: c.ink, color: c.onPrimary }}
+                  className="ml-1.5 text-[9px] font-semibold rounded-full w-4 h-4 inline-flex items-center justify-center shrink-0"
+                  style={{ background: "var(--ae-teal)", color: "#0F1412" }}
                 >
                   {activeEvents.length}
                 </span>
@@ -1126,37 +1125,25 @@ export function EventPanel() {
                   <div className="grid grid-cols-2 gap-1.5 mt-2">
                     {catEvents.map((et) => {
                       const isSel = selectedKind === et.value
-                      const t     = toneFor(et.value)
                       return (
                         <button
                           key={et.value}
                           onClick={() => selectKind(et.value)}
-                          className="flex items-center gap-2 px-2.5 py-2.5 text-left transition-all"
+                          className="flex items-center gap-2 px-2.5 py-2 text-left transition-all"
                           style={{
-                            borderRadius: r.md,
-                            border: `1px solid ${isSel ? c.ink : c.hairline}`,
-                            background: isSel ? c.ink : c.canvas,
-                            color: isSel ? c.onPrimary : c.body,
-                            boxShadow: isSel ? "0 1px 2px rgba(24,29,38,0.08)" : "none",
+                            borderRadius: r.sm,
+                            border: `1px solid ${isSel ? "var(--ae-teal)" : c.hairline}`,
+                            background: isSel ? "var(--ae-teal-bg)" : c.canvas,
+                            color: isSel ? c.ink : c.body,
                             fontFamily: ff.body,
                           }}
                         >
-                          <span
-                            style={{
-                              width: 28,
-                              height: 28,
-                              borderRadius: r.sm,
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              flexShrink: 0,
-                              background: isSel ? t.iconBg : t.bg,
-                              color: t.ink,
-                            }}
-                          >
-                            <et.Icon className="w-3.5 h-3.5" />
-                          </span>
-                          <span className="text-[11px] font-semibold leading-tight">{et.label}</span>
+                          <et.Icon
+                            className="w-3.5 h-3.5 shrink-0"
+                            strokeWidth={1.75}
+                            style={{ color: isSel ? "var(--ae-teal-ink)" : c.muted }}
+                          />
+                          <span className="text-[11px] font-medium leading-tight">{et.label}</span>
                         </button>
                       )
                     })}
@@ -1190,11 +1177,11 @@ export function EventPanel() {
                 <div className="flex items-center gap-2.5">
                   <span
                     className="w-8 h-8 flex items-center justify-center shrink-0"
-                    style={{ borderRadius: r.sm, background: tone.iconBg, color: tone.ink }}
+                    style={{ borderRadius: r.sm, background: tone.iconBg, color: "var(--ae-teal-ink)" }}
                   >
-                    <selectedInfo.Icon className="w-4 h-4" />
+                    <selectedInfo.Icon className="w-4 h-4" strokeWidth={1.75} />
                   </span>
-                  <div className="text-sm font-bold leading-tight" style={{ color: tone.ink }}>
+                  <div className="text-sm font-semibold leading-tight" style={{ color: tone.ink }}>
                     {selectedInfo.label}
                   </div>
                 </div>
@@ -1233,7 +1220,7 @@ export function EventPanel() {
                 <div className="grid grid-cols-1 gap-3">
                   {schema.fields.map((f) => (
                     <div key={f.key}>
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 block">
+                      <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">
                         {f.label}
                       </label>
                       {f.type === "select" ? (
@@ -1242,7 +1229,7 @@ export function EventPanel() {
                           onChange={(e) => setField(f.key, e.target.value)}
                           className="w-full h-9 text-xs px-3 outline-none transition-shadow"
                           style={{ background: c.canvas, border: `1px solid ${c.hairline}`, borderRadius: r.sm, color: c.ink, fontFamily: ff.body }}
-                          onFocus={(e) => e.currentTarget.style.boxShadow = "0 0 0 3px rgba(27,97,201,0.35)"}
+                          onFocus={(e) => e.currentTarget.style.boxShadow = "0 0 0 3px var(--ae-focus)"}
                           onBlur={(e) => e.currentTarget.style.boxShadow = "none"}
                         >
                           {f.options?.map((opt) => (
@@ -1257,7 +1244,7 @@ export function EventPanel() {
                           min={f.min} max={f.max} step={f.step}
                           className="w-full h-9 text-xs px-3 outline-none transition-shadow"
                           style={{ background: c.canvas, border: `1px solid ${c.hairline}`, borderRadius: r.sm, color: c.ink, fontFamily: ff.mono }}
-                          onFocus={(e) => e.currentTarget.style.boxShadow = "0 0 0 3px rgba(27,97,201,0.35)"}
+                          onFocus={(e) => e.currentTarget.style.boxShadow = "0 0 0 3px var(--ae-focus)"}
                           onBlur={(e) => e.currentTarget.style.boxShadow = "none"}
                         />
                       )}

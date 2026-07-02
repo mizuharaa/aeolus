@@ -14,51 +14,28 @@ import { c, ff, r, sp, sh, type } from "@/lib/design-tokens"
 import { ButtonSecondary, CreamCallout, Eyebrow, Type } from "@/components/ds/primitives"
 import { LiveCostDisplay } from "@/components/ds/live-cost"
 
-// ─── Plan signature colors ────────────────────────────────────────────────
-// Each plan gets one of the Airtable signature pastels. Same hue rules as
-// `c.statusRecovered` for D so the green-recovery card visually echoes the
-// "recovered" state when applied.
+// ─── Plan metadata ────────────────────────────────────────────────────────
+// Plans are differentiated by their DATA (objective, cost, actions), not by
+// per-plan pastel identities. Every card is neutral; the applied plan — and
+// only the applied plan — carries the teal accent.
 const PLAN_META = {
-  A: {
-    label:    "Minimize Cost",
-    sublabel: "Lowest financial exposure",
-    accent:   c.signatureMustard,    // #D9A441
-    surface:  c.signatureCream,      // #F5E9D4 — soft beige
-    ink:      "#5C3D0F",             // dark mustard for accessible text
-  },
-  B: {
-    label:    "Min. Pax Impact",
-    sublabel: "Best passenger experience",
-    accent:   c.signatureMint,       // #A8D8C4
-    surface:  c.statusRecovered.bg,  // mint tint
-    ink:      c.signatureForest,
-  },
-  C: {
-    label:    "Protect Tomorrow",
-    sublabel: "Minimizes next-day cascades",
-    accent:   c.signaturePeach,      // #FCAB79
-    surface:  c.statusDelayed.bg,    // peach tint
-    ink:      c.statusDelayed.ink,
-  },
-  // Reserved for Slice 4 — the Carbon-Aware Recovery feature ships Plan D.
-  D: {
-    label:    "Green Recovery",
-    sublabel: "Lowest carbon footprint",
-    accent:   c.signatureForest,
-    surface:  c.statusOnTime.bg,
-    ink:      c.signatureForest,
-  },
+  A: { label: "Minimize Cost",   sublabel: "Lowest financial exposure" },
+  B: { label: "Min. Pax Impact", sublabel: "Best passenger experience" },
+  C: { label: "Protect Tomorrow", sublabel: "Minimizes next-day cascades" },
+  D: { label: "Green Recovery",  sublabel: "Lowest carbon footprint" },
 } as const
+
+const APPLIED_ACCENT = "var(--ae-teal)"
 
 // ─── Solver-status pill ───────────────────────────────────────────────────
 // Glass-box solver report — uses the semantic palette so a green tick here
 // means the same thing as a green tick on an on-time flight.
 function SolverStatus({ status }: { status: string }) {
   const map: Record<string, { Icon: typeof CheckCircle2; ink: string; bg: string }> = {
-    optimal:    { Icon: CheckCircle2, ink: c.statusOnTime.ink,    bg: c.statusOnTime.bg },
+    optimal:    { Icon: CheckCircle2, ink: c.statusRecovered.ink, bg: c.statusRecovered.bg },
     feasible:   { Icon: CheckCircle2, ink: c.statusRecovered.ink, bg: c.statusRecovered.bg },
     heuristic:  { Icon: Clock,        ink: c.statusDelayed.ink,   bg: c.statusDelayed.bg },
-    infeasible: { Icon: AlertCircle,  ink: c.statusCancelled.ink, bg: c.statusCancelled.bg },
+    infeasible: { Icon: AlertCircle,  ink: c.statusDelayed.ink,   bg: c.statusDelayed.bg },
   }
   const s = map[status] || map.heuristic
   return (
@@ -213,22 +190,38 @@ function PlanCard({
       style={{
         borderRadius: r.lg,
         overflow: "hidden",
-        background: isApplied ? meta.surface : c.canvas,
-        border: `1px solid ${isApplied ? meta.accent : c.hairline}`,
+        background: c.canvas,
+        border: `1px solid ${isApplied ? APPLIED_ACCENT : c.hairline}`,
         boxShadow: isApplied ? sh.cardElev : sh.cardSoft,
         fontFamily: ff.body,
       }}
     >
       {/* ── Card header — always visible ── */}
       <div style={{ display: "flex", gap: 0 }}>
-        {/* Left accent strip */}
-        <div style={{ width: 4, flexShrink: 0, background: meta.accent }} />
+        {/* Left accent strip — teal only when applied */}
+        <div style={{ width: 3, flexShrink: 0, background: isApplied ? APPLIED_ACCENT : "transparent" }} />
 
         <div style={{ flex: 1, padding: sp.md }}>
           {/* Title row */}
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: sp.xs, marginBottom: sp.sm }}>
             <div>
-              <Eyebrow color={meta.ink}>Plan {plan.plan_id}</Eyebrow>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <Eyebrow color={isApplied ? c.statusRecovered.ink : c.muted}>Plan {plan.plan_id}</Eyebrow>
+                {isApplied && (
+                  <span
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 550,
+                      padding: "2px 7px",
+                      borderRadius: r.pill,
+                      background: c.statusRecovered.bg,
+                      color: c.statusRecovered.ink,
+                    }}
+                  >
+                    Applied
+                  </span>
+                )}
+              </div>
               <div style={{ ...type("titleSm", c.ink), marginTop: 2 }}>{meta.label}</div>
               <div style={{ ...type("bodyMd", c.muted), fontSize: 12, marginTop: 2 }}>{meta.sublabel}</div>
             </div>
@@ -252,7 +245,7 @@ function PlanCard({
                 background: c.canvas,
                 color: c.ink,
                 border: `1px solid ${c.hairline}`,
-                borderLeft: `3px solid ${meta.accent}`,
+                borderLeft: `3px solid ${isApplied ? APPLIED_ACCENT : c.borderStrong}`,
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: c.muted }}>
@@ -284,7 +277,7 @@ function PlanCard({
                 style={{
                   fontWeight: 600,
                   fontSize: 13,
-                  color: plan.crew_violations > 0 ? c.statusCancelled.ink : c.statusOnTime.ink,
+                  color: plan.crew_violations > 0 ? c.statusDelayed.ink : c.statusOnTime.ink,
                 }}
               >
                 {plan.crew_violations > 0 ? `${plan.crew_violations} viol.` : "OK"}
@@ -310,7 +303,7 @@ function PlanCard({
           {plan.total_co2_kg !== undefined && (
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: sp.sm, fontSize: 11, color: c.muted, fontFamily: ff.mono }}>
               <Leaf style={{ width: 11, height: 11, color: c.signatureForest }} />
-              <span style={{ color: plan.total_co2_kg < 0 ? c.statusOnTime.ink : c.statusCancelled.ink, fontWeight: 600 }}>
+              <span style={{ color: plan.total_co2_kg < 0 ? c.statusRecovered.ink : c.statusDelayed.ink, fontWeight: 600 }}>
                 {plan.total_co2_kg >= 0 ? "+" : ""}{(plan.total_co2_kg / 1000).toFixed(2)} tCO₂e
               </span>
               {plan.eu_ets_cost_usd ? (
@@ -325,7 +318,7 @@ function PlanCard({
               onClick={onApply}
               style={{
                 flex: 1,
-                height: 36,
+                height: 34,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -333,15 +326,15 @@ function PlanCard({
                 fontSize: 13,
                 fontWeight: 500,
                 fontFamily: ff.body,
-                borderRadius: r.lg,
-                border: `1px solid ${isApplied ? c.signatureCoral : c.primary}`,
-                background: isApplied ? c.signatureCoral : c.primary,
-                color: c.onPrimary,
+                borderRadius: r.md,
+                border: isApplied ? `1px solid ${c.borderStrong}` : `1px solid ${c.primary}`,
+                background: isApplied ? "transparent" : c.primary,
+                color: isApplied ? c.ink : c.onPrimary,
                 cursor: "pointer",
                 transition: "background 150ms ease",
               }}
             >
-              {isApplied ? <><X style={{ width: 13, height: 13 }} /> Unapply</> : <><Play style={{ width: 13, height: 13 }} /> Apply</>}
+              {isApplied ? <><X style={{ width: 13, height: 13 }} strokeWidth={1.75} /> Unapply</> : <><Play style={{ width: 13, height: 13 }} strokeWidth={1.75} /> Apply</>}
             </button>
             <ButtonSecondary
               size="sm"
@@ -411,9 +404,9 @@ function PlanCard({
                     <Eyebrow>Cost breakdown</Eyebrow>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: sp.xs }}>
-                    <CostBar label="Cancellation costs (rev. loss + rebook + DOT 261)" value={cb.cancellation_total_usd} total={cb.grand_total_usd} color={c.signatureCoral} />
-                    <CostBar label="Delay costs (ops + crew OT + pax value-of-time)"     value={cb.delay_total_usd}        total={cb.grand_total_usd} color={c.signaturePeach} />
-                    <CostBar label="Aircraft repositioning"                                value={cb.reposition_cost_usd}    total={cb.grand_total_usd} color={c.link} />
+                    <CostBar label="Cancellation costs (rev. loss + rebook + DOT 261)" value={cb.cancellation_total_usd} total={cb.grand_total_usd} color={c.borderStrong} />
+                    <CostBar label="Delay costs (ops + crew OT + pax value-of-time)"     value={cb.delay_total_usd}        total={cb.grand_total_usd} color={c.amber} />
+                    <CostBar label="Aircraft repositioning"                                value={cb.reposition_cost_usd}    total={cb.grand_total_usd} color={c.teal} />
                   </div>
                   <div
                     style={{
@@ -423,8 +416,8 @@ function PlanCard({
                       marginTop: sp.sm,
                       borderRadius: r.md,
                       padding: "8px 12px",
-                      background: meta.surface,
-                      color: meta.ink,
+                      background: c.surfaceSoft,
+                      color: c.ink,
                     }}
                   >
                     <span style={{ fontSize: 12, fontWeight: 500 }}>Total estimated impact</span>
@@ -477,7 +470,7 @@ function PlanCard({
               {cancelled > 0 && (
                 <div>
                   <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 6 }}>
-                    <X style={{ width: 12, height: 12, color: c.signatureCoral }} />
+                    <X style={{ width: 12, height: 12, color: c.muted }} strokeWidth={1.75} />
                     <Eyebrow>Cancellations ({cancelled})</Eyebrow>
                   </div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
@@ -591,11 +584,11 @@ function PlanCard({
                             {route.codes && <span style={{ fontFamily: ff.mono, color: c.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{route.codes}</span>}
                           </div>
                           <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                            <span style={{ fontFamily: ff.mono, color: c.statusCancelled.ink }}>{oldAc.tail || s.old_aircraft}</span>
-                            {oldAc.typeLabel && <span style={{ fontSize: 10, color: c.statusCancelled.ink, opacity: 0.75 }}>({oldAc.typeLabel})</span>}
+                            <span style={{ fontFamily: ff.mono, color: c.muted, textDecoration: "line-through" }}>{oldAc.tail || s.old_aircraft}</span>
+                            {oldAc.typeLabel && <span style={{ fontSize: 10, color: c.muted, opacity: 0.75 }}>({oldAc.typeLabel})</span>}
                             <span style={{ color: c.muted }}>→</span>
-                            <span style={{ fontFamily: ff.mono, color: c.statusOnTime.ink }}>{newAc.tail || s.new_aircraft}</span>
-                            {newAc.typeLabel && <span style={{ fontSize: 10, color: c.statusOnTime.ink, opacity: 0.75 }}>({newAc.typeLabel})</span>}
+                            <span style={{ fontFamily: ff.mono, color: c.statusRecovered.ink }}>{newAc.tail || s.new_aircraft}</span>
+                            {newAc.typeLabel && <span style={{ fontSize: 10, color: c.statusRecovered.ink, opacity: 0.75 }}>({newAc.typeLabel})</span>}
                           </div>
                         </div>
                       )
@@ -714,19 +707,19 @@ export function RecoveryPlans({
         <PanelHeader
           Icon={Activity}
           title="Recovery Plans"
-          subtitle="3 differentiated strategies"
+          subtitle="Plans A–D · cost / pax / tomorrow / carbon"
         />
         <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: sp.md }}>
           <CreamCallout style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "flex-start", gap: 8 }}>
-            <Eyebrow color={c.signatureForest}>Awaiting Disruption</Eyebrow>
+            <Eyebrow color={c.statusRecovered.ink}>Awaiting disruption</Eyebrow>
             <Type as="div" role="titleSm" color={c.ink}>
               All flights operating nominally.
             </Type>
             <Type as="p" role="bodyMd" color={c.muted}>
-              Trigger an event from the left rail to receive 3 ranked recovery plans with cost breakdowns and counterfactual rationale.
+              Trigger an event from the left rail to receive ranked recovery plans with cost breakdowns and counterfactual rationale.
             </Type>
             <span style={{ fontFamily: ff.mono, fontSize: 11, color: c.muted, marginTop: 4 }}>
-              MILP solve typically &lt; 5 ms · cost engine deterministic
+              CP-SAT solve typically &lt; 10 ms · cost engine deterministic
             </span>
           </CreamCallout>
         </div>

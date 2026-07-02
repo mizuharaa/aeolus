@@ -47,7 +47,7 @@ const FlightMap = dynamic(() => import("@/components/simulator/flight-map"), {
   ),
 })
 
-const NAV_H   = 64   // Airtable-style nav height (DESIGN.md top-nav spec)
+const NAV_H   = 60   // top-bar height (see components/simulator/nav.tsx)
 const RAIL_L  = 308  // left control rail width
 const RAIL_R  = 340  // right decision rail width
 const STRIP_H = 192  // docked timeline height
@@ -132,9 +132,9 @@ export default function SimulatorPage() {
   }, [setSchedule, setFleet])
 
   return (
-    <div style={{ background: c.canvas, minHeight: "100vh" }}>
+    <div className="register-dark" style={{ background: "var(--ae-bg)", minHeight: "100vh" }}>
 
-      {/* ── Sticky top nav (Airtable editorial — see components/simulator/nav.tsx) ── */}
+      {/* ── Sticky top nav — dark register (see components/simulator/nav.tsx) ── */}
       <div className="sticky top-0 z-50">
         <SimulatorNav isConnected={isConnected} affectedCount={affectedCount} />
       </div>
@@ -214,14 +214,14 @@ export default function SimulatorPage() {
                 top: 12,
                 right: 12,
                 zIndex: 600,
-                width: 40,
-                height: 40,
-                borderRadius: r.lg,
+                width: 38,
+                height: 38,
+                borderRadius: r.md,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 color: c.ink,
-                background: "rgba(255,255,255,0.95)",
+                background: "rgba(20,25,23,0.90)",
                 border: `1px solid ${c.hairline}`,
                 boxShadow: sh.cardElev,
                 backdropFilter: "blur(8px)",
@@ -348,45 +348,30 @@ function DeepLinkStrip() {
       Icon: GitCompareArrows,
       label: "Compare plans",
       sub: "Side-by-side cost / pax / FAR 117 / carbon",
-      accent: c.signatureMustard,
-      surface: c.signatureCream,
-      ink: "#5C3D0F",
     },
     {
       href: "/simulator/crew",
       Icon: ShieldCheck,
       label: "Crew shortage",
       sub: "FAR 117 legality + max-coverage MILP",
-      accent: c.signaturePeach,
-      surface: c.statusDelayed.bg,
-      ink: c.statusDelayed.ink,
     },
     {
       href: "/simulator/passengers",
       Icon: UsersIcon,
       label: "Passenger solutions",
       sub: "Rebooking · hotel · DOT 261 vouchers",
-      accent: c.signatureMint,
-      surface: c.statusRecovered.bg,
-      ink: c.signatureForest,
     },
     {
       href: "/simulator/carbon",
       Icon: Leaf,
       label: "Carbon dashboard",
       sub: "Net CO\u2082 ledger priced under EU ETS",
-      accent: c.signatureForest,
-      surface: c.statusOnTime.bg,
-      ink: c.signatureForest,
     },
     {
       href: "/simulator/stress-test",
       Icon: NetworkIcon,
       label: "Stress test",
       sub: "Monte-Carlo network vulnerability sweep",
-      accent: c.signatureCoral,
-      surface: c.statusCancelled.bg,
-      ink: c.statusCancelled.ink,
     },
   ]
   return (
@@ -405,37 +390,23 @@ function DeepLinkStrip() {
             textDecoration: "none",
             display: "flex",
             flexDirection: "column",
-            gap: 10,
-            padding: sp.lg,
-            borderRadius: r.lg,
-            background: t.surface,
-            border: `1px solid ${t.accent}33`,
-            color: t.ink,
-            boxShadow: sh.cardSoft,
-            transition: "transform 150ms ease",
+            gap: 8,
+            padding: sp.md,
+            borderRadius: r.md,
+            background: c.canvas,
+            border: `1px solid ${c.hairline}`,
+            color: c.ink,
+            transition: "border-color 150ms ease",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <span
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: r.sm,
-                background: c.canvas,
-                color: t.accent,
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <t.Icon style={{ width: 16, height: 16 }} />
-            </span>
-            <ArrowRight style={{ width: 14, height: 14, color: t.ink, opacity: 0.55 }} />
+            <t.Icon style={{ width: 16, height: 16, color: c.muted }} strokeWidth={1.75} />
+            <ArrowRight style={{ width: 13, height: 13, color: c.muted }} strokeWidth={1.75} />
           </div>
-          <div style={{ fontFamily: ff.display, fontSize: 18, fontWeight: 500, color: t.ink, lineHeight: 1.25 }}>
+          <div style={{ fontFamily: ff.body, fontSize: 14, fontWeight: 550, color: c.ink, lineHeight: 1.3 }}>
             {t.label}
           </div>
-          <div style={{ fontFamily: ff.body, fontSize: 12, color: t.ink, opacity: 0.75, lineHeight: 1.5 }}>
+          <div style={{ fontFamily: ff.body, fontSize: 11.5, color: c.muted, lineHeight: 1.5 }}>
             {t.sub}
           </div>
         </Link>
@@ -482,7 +453,7 @@ function FocusOverlay({
     >
       <div
         style={{
-          background: "rgba(255,255,255,0.96)",
+          background: "rgba(20,25,23,0.92)",
           border: `1px solid ${c.hairline}`,
           borderRadius: r.lg,
           boxShadow: sh.overlay,
@@ -495,13 +466,13 @@ function FocusOverlay({
           fontFamily: ff.body,
         }}
       >
-        {/* Mode label — uses near-black ink, no teal glow */}
+        {/* Mode label */}
         <div className="flex items-center gap-2 shrink-0">
           <span
-            className="w-2 h-2 rounded-full"
-            style={{ background: c.ink }}
+            className="w-1.5 h-1.5 rounded-full"
+            style={{ background: "var(--ae-teal)" }}
           />
-          <Eyebrow color={c.ink}>Focus Mode</Eyebrow>
+          <Eyebrow color={c.ink}>Focus mode</Eyebrow>
         </div>
 
         <span className="hidden md:block w-px h-7" style={{ background: c.hairline }} />
@@ -610,7 +581,7 @@ function FocusOverlay({
               border: `1px solid ${c.hairline}`,
               fontSize: 9,
               fontFamily: ff.mono,
-              background: "rgba(255,255,255,0.6)",
+              background: "var(--ae-surface-2)",
               color: c.ink,
             }}
           >

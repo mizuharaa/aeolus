@@ -1,6 +1,6 @@
 "use client"
 import "leaflet/dist/leaflet.css"
-import { useEffect, useMemo, useRef, useState, useCallback } from "react"
+import { useEffect, useMemo, useRef, useState, useCallback, type CSSProperties } from "react"
 import {
   MapContainer, TileLayer, Marker, Polyline, Circle,
   Tooltip, ZoomControl, useMap, useMapEvents,
@@ -17,42 +17,49 @@ import {
 } from "@/stores/simulation"
 import { NIMBUS_AIRPORTS, HUB_AIRPORTS } from "./airports"
 import { apiClient } from "@/lib/api"
-import { c as tc } from "@/lib/design-tokens"
+import {
+  CloudLightning as CloudLightningIcon, OctagonAlert as OctagonAlertIcon,
+  Ban as BanIcon, ShieldAlert as ShieldAlertIcon, Wrench as WrenchIcon,
+  HeartPulse as HeartPulseIcon, AlertTriangle as AlertTriangleIcon,
+  Radio as RadioIcon, Mountain as MountainIcon, ServerCrash as ServerCrashIcon,
+} from "lucide-react"
 
-// ── Map colors — sourced from design tokens so the map shares the same
-//    semantic palette as cascade-timeline, my-flights, plan cards, etc.
-//    `tc.*` is aliased so it doesn't collide with the local `c` variable
-//    used in this file as a [number, number] tuple shorthand.
+// ── Map colors — the five-pigment vocabulary as LITERAL hex.
+//    The map runs Leaflet's canvas renderer (preferCanvas), which resolves
+//    colors in JS — CSS variables can't reach it, so these are the same
+//    pigments as globals.css, inlined. Keep them in sync by hand.
+//
+//    teal  = recovery / reroute / brand    amber = the ONE status color
+//    gray  = cancelled / nominal / live    (severity = amber opacity steps)
 const MAP_COLORS = {
-  // ── Plan-applied actions ────────────────────────────────────────────────
-  // Operator vocabulary: GREY = "this flight is no longer operating",
-  // GREEN = "this flight has been re-routed / re-assigned", PEACH = "this
-  // flight is now operating late". Cancelled lines stay clickable (low
-  // opacity + dashed) so users can still inspect why a flight was cut.
-  planCancelled: "#9CA3AF",                // neutral grey — Tailwind gray-400
-  planCancelledInk: "#6B7280",             // darker grey for cancelled aircraft icons
-  planSwap:      "#15803D",                // green-700 — "new reroute" semantic
-  planSwapFlow:  "#22C55E",                // green-500 — bright flow tint for the animated dash
-  planDelayed:   tc.statusDelayed.dot,     // peach — unchanged
+  // Plan-applied actions. GREY = "no longer operating" (always paired with
+  // the ✕ badge + dashed stroke — never color-alone), TEAL = "re-routed /
+  // re-assigned", AMBER = "operating late".
+  planCancelled: "#5F6763",
+  planCancelledInk: "#8A918D",
+  planSwap:      "#0D9488",
+  planSwapFlow:  "#0D9488",
+  planDelayed:   "#B8863C",
 
-  // Cascade severity (warmth = severity)
-  cascadeDirect: tc.cascadeDirect,         // coral
-  cascadeOrder1: tc.cascadeOrder1,         // mustard
-  cascadeOrder2: tc.cascadeOrder2,         // yellow
-  unaffected:    tc.statusOnTime.dot,      // forest
+  // Cascade severity: one amber, stepped down for later generations
+  // (markers also step down in size; direct hits carry a halo).
+  cascadeDirect: "#B8863C",
+  cascadeOrder1: "#8E6C33",
+  cascadeOrder2: "#5F4A25",
+  unaffected:    "#57605B",
 
-  // Live ADS-B — kept distinct from sim semantic palette
-  live:          "#38BDF8",
-  liveSelected:  tc.link,                  // crisp brand link blue
+  // Live ADS-B — quiet neutral traffic beneath the sim layer
+  live:          "#79837E",
+  liveSelected:  "#0D9488",
 
   // Airport state
-  airportHub:    tc.statusOnTime.ink,      // forest
-  airportNormal: tc.body,
-  groundStop:    tc.statusCancelled.dot,
-  gdp:           tc.cascadeOrder1,
-  depDelay:      tc.statusDelayed.dot,
-  eventEpicenter: tc.cascadeDirect,        // coral — same as direct-hit cascade
-  weather:       "#7C3AED",                // purple — kept (no token)
+  airportHub:    "#0D9488",
+  airportNormal: "#79837E",
+  groundStop:    "#B8863C",
+  gdp:           "#8E6C33",
+  depDelay:      "#8E6C33",
+  eventEpicenter: "#B8863C",
+  weather:       "#8E6C33",
 } as const
 
 // ── Pure helpers ───────────────────────────────────────────────────────────────
@@ -310,11 +317,18 @@ const EVENT_LABELS: Record<string, string> = {
   runway_closure: "Runway Closure", atc_staffing: "ATC Shortage",
   volcanic_ash: "Volcanic Ash", cyber_incident: "Cyber Incident",
 }
-const EVENT_ICONS: Record<string, string> = {
-  weather_closure: "🌩️", ground_stop: "🛑", airspace_closure: "🚫",
-  security_event: "🛡️", mechanical_aog: "🔧", crew_sickout: "💊",
-  runway_closure: "⚠️", atc_staffing: "📻", volcanic_ash: "🌋",
-  cyber_incident: "💻",
+// One icon family (lucide), one stroke weight — no emoji in UI chrome.
+const EVENT_ICONS: Record<string, typeof CloudLightningIcon> = {
+  weather_closure: CloudLightningIcon, ground_stop: OctagonAlertIcon,
+  airspace_closure: BanIcon, security_event: ShieldAlertIcon,
+  mechanical_aog: WrenchIcon, crew_sickout: HeartPulseIcon,
+  runway_closure: AlertTriangleIcon, atc_staffing: RadioIcon,
+  volcanic_ash: MountainIcon, cyber_incident: ServerCrashIcon,
+}
+
+function EventIcon({ kind, className, style }: { kind: string; className?: string; style?: CSSProperties }) {
+  const Icon = EVENT_ICONS[kind] ?? AlertTriangleIcon
+  return <Icon className={className} style={style} strokeWidth={1.75} />
 }
 
 // ── Overlay components ─────────────────────────────────────────────────────────
@@ -330,26 +344,27 @@ function DisruptionBanner({
   return (
     <div className="absolute top-3 left-3 z-[450] flex flex-col gap-2" style={{ maxWidth: 268 }}>
       <div
-        className="rounded-2xl overflow-hidden"
+        className="rounded-xl overflow-hidden"
         style={{
-          background: "rgba(12,8,6,0.88)",
+          background: "rgba(15,20,18,0.92)",
           backdropFilter: "blur(14px)",
-          border: "1px solid rgba(239,108,74,0.50)",
-          boxShadow: "0 6px 24px rgba(239,108,74,0.22)",
+          border: "1px solid var(--ae-line)",
+          borderLeft: "2px solid var(--ae-rust)",
+          boxShadow: "var(--ae-shadow-card-elev)",
         }}
       >
         {/* Header strip */}
         <div
           className="px-3.5 py-2.5 flex items-center gap-2"
-          style={{ background: "rgba(239,108,74,0.28)", borderBottom: "1px solid rgba(239,108,74,0.28)" }}
+          style={{ borderBottom: "1px solid var(--ae-line)" }}
         >
-          <span className="text-sm leading-none shrink-0">⚡</span>
-          <span className="text-[11px] font-black uppercase tracking-widest text-orange-200 flex-1">
-            Disruption Active
+          <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "var(--ae-rust)" }} />
+          <span className="text-[11px] font-semibold flex-1" style={{ color: "var(--ae-text)" }}>
+            Disruption active
           </span>
           <span
-            className="text-[10px] font-black px-2 py-0.5 rounded-full shrink-0"
-            style={{ background: "rgba(239,108,74,0.50)", color: "#FCA5A5" }}
+            className="text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0"
+            style={{ background: "var(--ae-rust-bg)", color: "var(--ae-rust-ink)" }}
           >
             {events.length}
           </span>
@@ -359,23 +374,23 @@ function DisruptionBanner({
         <div className="px-3.5 py-2.5 space-y-2.5">
           {events.slice(0, 3).map((ev) => (
             <div key={ev.id} className="flex items-start gap-2.5">
-              <span className="text-base shrink-0 mt-0.5 leading-none">{EVENT_ICONS[ev.kind] ?? "⚠️"}</span>
+              <EventIcon kind={ev.kind} className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: "var(--ae-rust-ink)" }} />
               <div className="min-w-0">
-                <div className="text-[11px] font-bold text-orange-100 leading-tight">
+                <div className="text-[11px] font-semibold leading-tight" style={{ color: "var(--ae-text)" }}>
                   {EVENT_LABELS[ev.kind] ?? ev.kind.replace(/_/g, " ")}
                 </div>
                 {(ev.params?.airport || ev.params?.aircraft_tail || ev.params?.base || ev.params?.destination_airport) && (
                   <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                    <span className="text-[10px] font-mono font-bold text-orange-300">
+                    <span className="text-[10px] font-mono font-semibold" style={{ color: "var(--ae-text-2)" }}>
                       {ev.params.airport || ev.params.aircraft_tail || ev.params.base || ev.params.destination_airport}
                     </span>
                     {ev.params.severity && (
-                      <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold" style={{ background: "rgba(239,108,74,0.30)", color: "#FDBA74" }}>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold" style={{ background: "var(--ae-amber-bg)", color: "var(--ae-amber-ink)" }}>
                         {ev.params.severity}
                       </span>
                     )}
                     {ev.params.duration_hours && (
-                      <span className="text-[9px] text-orange-400/70">{ev.params.duration_hours}h</span>
+                      <span className="text-[9px]" style={{ color: "var(--ae-text-3)" }}>{ev.params.duration_hours}h</span>
                     )}
                   </div>
                 )}
@@ -383,7 +398,7 @@ function DisruptionBanner({
             </div>
           ))}
           {events.length > 3 && (
-            <div className="text-[10px] text-orange-400/60 pl-7">+{events.length - 3} more</div>
+            <div className="text-[10px] pl-6" style={{ color: "var(--ae-text-3)" }}>+{events.length - 3} more</div>
           )}
         </div>
 
@@ -391,17 +406,16 @@ function DisruptionBanner({
         {(summary || impactCount > 0) && (
           <div
             className="px-3.5 py-2 flex items-center gap-2 flex-wrap"
-            style={{ background: "rgba(0,0,0,0.30)", borderTop: "1px solid rgba(239,108,74,0.18)" }}
+            style={{ background: "rgba(0,0,0,0.25)", borderTop: "1px solid var(--ae-line)" }}
           >
-            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "#0D9488" }} />
             {summary ? (
-              <span className="text-[10px] font-semibold text-orange-300">
-                <span className="font-black text-orange-100">{summary.total_affected}</span> affected ·{" "}
-                <span className="text-orange-400/80">{summary.directly_affected} direct</span> ·{" "}
-                <span className="text-orange-400/70">{(summary.cascade_1 || 0) + (summary.cascade_2 || 0)} cascade</span>
+              <span className="text-[10px] font-medium" style={{ color: "var(--ae-text-2)" }}>
+                <span className="font-semibold font-mono" style={{ color: "var(--ae-text)" }}>{summary.total_affected}</span> affected ·{" "}
+                {summary.directly_affected} direct ·{" "}
+                {(summary.cascade_1 || 0) + (summary.cascade_2 || 0)} cascade
               </span>
             ) : (
-              <span className="text-[10px] font-semibold text-orange-300">{impactCount} routes impacted</span>
+              <span className="text-[10px] font-medium" style={{ color: "var(--ae-text-2)" }}>{impactCount} routes impacted</span>
             )}
           </div>
         )}
@@ -411,9 +425,10 @@ function DisruptionBanner({
 }
 
 const PLAN_META_MAP = {
-  A: { label: "Minimize Cost",    color: "#FFD23F", colorDim: "rgba(255,210,63,0.20)", border: "rgba(255,210,63,0.55)" },
-  B: { label: "Min. Pax Impact",  color: "#6366F1", colorDim: "rgba(99,102,241,0.20)", border: "rgba(99,102,241,0.55)" },
-  C: { label: "Protect Tomorrow", color: "#5DADE2", colorDim: "rgba(93,173,226,0.20)", border: "rgba(93,173,226,0.55)" },
+  A: { label: "Minimize Cost" },
+  B: { label: "Min. Pax Impact" },
+  C: { label: "Protect Tomorrow" },
+  D: { label: "Green Recovery" },
 }
 
 function RecoveryBanner({ plan, onUnapply }: { plan: RecoveryPlan; onUnapply: () => void }) {
@@ -426,76 +441,78 @@ function RecoveryBanner({ plan, onUnapply }: { plan: RecoveryPlan; onUnapply: ()
     // Banner anchored to top-right — leaves the left where FlightSearch lives
     <div className="absolute top-3 right-3 z-[450]" style={{ maxWidth: 560, left: "min(460px, calc(50% - 40px))" }}>
       <div
-        className="rounded-2xl px-3 py-2.5 flex items-center gap-2.5 flex-wrap"
+        className="rounded-xl px-3 py-2.5 flex items-center gap-2.5 flex-wrap"
         style={{
-          background: "rgba(8,25,22,0.95)",
+          background: "rgba(15,20,18,0.94)",
           backdropFilter: "blur(16px)",
-          border: `1.5px solid ${meta.border}`,
-          boxShadow: `0 6px 28px ${meta.colorDim}, 0 2px 8px rgba(0,0,0,0.30)`,
+          border: "1px solid var(--ae-line)",
+          borderLeft: "2px solid var(--ae-teal)",
+          boxShadow: "var(--ae-shadow-card-elev)",
         }}
       >
-        {/* Plan badge */}
+        {/* Plan badge — teal marks the applied plan; the letter carries identity */}
         <div className="flex items-center gap-2 shrink-0">
           <div
-            className="w-7 h-7 rounded-full flex items-center justify-center text-sm font-black shrink-0"
-            style={{ background: meta.colorDim, border: `1.5px solid ${meta.border}`, color: meta.color }}
+            className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold shrink-0"
+            style={{ background: "var(--ae-teal-bg)", border: "1px solid var(--ae-teal)", color: "var(--ae-teal-ink)" }}
           >
-            ✓
+            {plan.plan_id}
           </div>
           <div>
-            <div className="text-[9px] font-black uppercase tracking-widest leading-none" style={{ color: meta.color }}>
-              Plan {plan.plan_id} Applied
+            <div className="text-[9px] font-semibold uppercase tracking-widest leading-none" style={{ color: "var(--ae-teal-ink)" }}>
+              Plan applied
             </div>
-            <div className="text-[11px] font-bold text-white leading-tight">{meta.label}</div>
+            <div className="text-[11px] font-semibold leading-tight mt-0.5" style={{ color: "var(--ae-text)" }}>{meta.label}</div>
           </div>
         </div>
 
         {/* Separator */}
-        <div className="hidden sm:block w-px h-7 shrink-0" style={{ background: "rgba(255,255,255,0.12)" }} />
+        <div className="hidden sm:block w-px h-7 shrink-0" style={{ background: "var(--ae-line)" }} />
 
         {/* Metrics row */}
         <div className="flex items-center gap-3 flex-wrap flex-1 min-w-0">
-          <MetricChip icon="💵" label="Cost" value={cost} color="#FCD34D" />
+          <MetricChip label="Cost" value={cost} />
           {(plan.cancelled_flights?.length ?? 0) > 0 && (
-            <MetricChip icon="✕" label="Canc." value={String(plan.cancelled_flights.length)} color="#F87171" />
+            <MetricChip label="Canc." value={String(plan.cancelled_flights.length)} dot="var(--ae-rust)" />
           )}
           {(plan.delayed_flights?.length ?? 0) > 0 && (
-            <MetricChip icon="⏱" label="Delay" value={String(plan.delayed_flights.length)} color="#FB923C" />
+            <MetricChip label="Delay" value={String(plan.delayed_flights.length)} dot="var(--ae-amber)" />
           )}
           {(plan.aircraft_swaps?.length ?? 0) > 0 && (
-            <MetricChip icon="↕" label="Swap" value={String(plan.aircraft_swaps.length)} color={meta.color} />
+            <MetricChip label="Swap" value={String(plan.aircraft_swaps.length)} dot="var(--ae-teal)" />
           )}
           <MetricChip
-            icon={plan.crew_violations > 0 ? "⚠" : "✓"}
             label="FAR 117"
-            value={plan.crew_violations > 0 ? `${plan.crew_violations}v` : "OK"}
-            color={plan.crew_violations > 0 ? "#FB923C" : "#4ADE80"}
+            value={plan.crew_violations > 0 ? `${plan.crew_violations} flags` : "OK"}
+            dot={plan.crew_violations > 0 ? "var(--ae-amber)" : "var(--ae-teal)"}
           />
         </div>
 
         {/* Unapply */}
         <button
           onClick={onUnapply}
-          className="shrink-0 text-[11px] font-bold px-3 py-1.5 rounded-full transition-all hover:bg-white/20 whitespace-nowrap"
+          className="shrink-0 text-[11px] font-medium px-3 py-1.5 rounded-md transition-all whitespace-nowrap"
           style={{
-            background: "rgba(255,255,255,0.10)",
-            border: "1px solid rgba(255,255,255,0.25)",
-            color: "rgba(255,255,255,0.90)",
+            background: "transparent",
+            border: "1px solid var(--ae-line-strong)",
+            color: "var(--ae-text)",
+            cursor: "pointer",
           }}
         >
-          × Unapply
+          Unapply
         </button>
       </div>
     </div>
   )
 }
 
-function MetricChip({ icon, label, value, color }: { icon: string; label: string; value: string; color: string }) {
+/** Label + value pair; an optional pigment dot carries state, text stays neutral. */
+function MetricChip({ label, value, dot }: { label: string; value: string; dot?: string }) {
   return (
     <div className="flex items-center gap-1.5">
-      <span style={{ color, fontSize: 12 }}>{icon}</span>
-      <span className="text-[10px] font-medium" style={{ color: "rgba(255,255,255,0.45)" }}>{label}</span>
-      <span className="text-[11px] font-black" style={{ color }}>{value}</span>
+      {dot && <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: dot }} />}
+      <span className="text-[10px] font-medium" style={{ color: "var(--ae-text-3)" }}>{label}</span>
+      <span className="text-[11px] font-semibold font-mono tabular-nums" style={{ color: "var(--ae-text)" }}>{value}</span>
     </div>
   )
 }
@@ -537,26 +554,26 @@ function FlightDetailCard({
       style={{ top: appliedPlan ? 72 : 12, right: 12 }}
     >
       <div
-        className="rounded-2xl overflow-hidden"
+        className="rounded-xl overflow-hidden"
         style={{
-          background: "rgba(255,255,255,0.97)",
+          background: "rgba(20,25,23,0.96)",
           backdropFilter: "blur(16px)",
-          border: "1px solid #DDDDDD",
-          boxShadow: "0 8px 32px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.06)",
+          border: "1px solid var(--ae-line)",
+          boxShadow: "var(--ae-shadow-overlay)",
         }}
       >
         {/* Header */}
         <div
           className="px-4 py-3 flex items-center justify-between"
-          style={{ background: "#F7F7F7", borderBottom: "1px solid #DDDDDD" }}
+          style={{ background: "var(--ae-surface-2)", borderBottom: "1px solid var(--ae-line)" }}
         >
           <div>
             <div className="flex items-center gap-2 mb-0.5">
               <span
-                className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full"
-                style={{ background: "rgba(239,108,74,0.12)", color: "#D45233" }}
+                className="text-[9px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded-full"
+                style={{ background: "var(--ae-neutral-bg)", color: "var(--ae-text-3)", border: "1px solid var(--ae-line)" }}
               >SIM</span>
-              <span className="font-mono font-black text-sm" style={{ color: "#1F2937" }}>{flight.id}</span>
+              <span className="font-mono font-semibold text-sm" style={{ color: "var(--ae-text)" }}>{flight.id}</span>
             </div>
             <div className="text-[10px] text-muted-foreground">
               {flight.aircraft_id} · {flight.passengers ?? "—"} pax
@@ -572,7 +589,7 @@ function FlightDetailCard({
           {/* Route arc display */}
           <div className="flex items-center gap-3 mb-4">
             <div className="text-center shrink-0">
-              <div className="font-mono font-black text-2xl leading-none" style={{ color: "#1F2937" }}>
+              <div className="font-mono font-semibold text-2xl leading-none" style={{ color: "var(--ae-text)" }}>
                 {flight.origin.replace("K", "")}
               </div>
               <div className="text-[9px] text-muted-foreground mt-0.5">{oAp?.city ?? ""}</div>
@@ -583,16 +600,21 @@ function FlightDetailCard({
                 className="flex-1 h-px"
                 style={{
                   background: isCancelled
-                    ? "repeating-linear-gradient(90deg,#EF4444 0,#EF4444 5px,transparent 5px,transparent 10px)"
-                    : "#DDDDDD",
+                    ? `repeating-linear-gradient(90deg,${MAP_COLORS.planCancelled} 0,${MAP_COLORS.planCancelled} 5px,transparent 5px,transparent 10px)`
+                    : "var(--ae-line-strong)",
                 }}
               />
               <div
                 className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center w-7 h-7 rounded-full text-sm"
                 style={{
-                  background: isCancelled ? "#EF4444" : isSwapped ? "#6366F1" : delayMin > 0 ? "#F59E0B" : "#0D9488",
-                  boxShadow: `0 2px 10px ${isCancelled ? "rgba(239,68,68,0.40)" : "rgba(13,148,136,0.40)"}`,
-                  color: "white",
+                  background: isCancelled
+                    ? MAP_COLORS.planCancelled
+                    : isSwapped
+                    ? MAP_COLORS.planSwap
+                    : delayMin > 0
+                    ? MAP_COLORS.planDelayed
+                    : "var(--ae-surface-3)",
+                  color: isCancelled || isSwapped || delayMin > 0 ? "#0F1412" : "var(--ae-text)",
                 }}
               >
                 {isCancelled ? "✕" : "✈"}
@@ -601,45 +623,44 @@ function FlightDetailCard({
                 className="flex-1 h-px"
                 style={{
                   background: isCancelled
-                    ? "repeating-linear-gradient(90deg,#EF4444 0,#EF4444 5px,transparent 5px,transparent 10px)"
-                    : "#DDDDDD",
+                    ? `repeating-linear-gradient(90deg,${MAP_COLORS.planCancelled} 0,${MAP_COLORS.planCancelled} 5px,transparent 5px,transparent 10px)`
+                    : "var(--ae-line-strong)",
                 }}
               />
             </div>
 
             <div className="text-center shrink-0">
-              <div className="font-mono font-black text-2xl leading-none" style={{ color: "#1F2937" }}>
+              <div className="font-mono font-semibold text-2xl leading-none" style={{ color: "var(--ae-text)" }}>
                 {flight.destination.replace("K", "")}
               </div>
               <div className="text-[9px] text-muted-foreground mt-0.5">{dAp?.city ?? ""}</div>
             </div>
           </div>
 
-          {/* Status grid */}
+          {/* Status grid — pigment dot + neutral text */}
           <div className="grid grid-cols-2 gap-2 mb-2.5">
             {[
               {
                 label: "Status",
-                value: isCancelled ? "Cancelled" : delayMin > 0 ? `+${delayMin}m delay` : state?.status ?? "On time",
-                color: isCancelled ? "#EF4444" : delayMin > 0 ? "#F59E0B" : "#22C55E",
-                bg: isCancelled ? "rgba(239,68,68,0.07)" : delayMin > 0 ? "rgba(245,158,11,0.07)" : "rgba(34,197,94,0.07)",
-                border: isCancelled ? "rgba(239,68,68,0.20)" : delayMin > 0 ? "rgba(245,158,11,0.20)" : "rgba(34,197,94,0.20)",
+                value: isCancelled ? "✕ Cancelled" : delayMin > 0 ? `+${delayMin}m delay` : state?.status ?? "On time",
+                dot: isCancelled ? "var(--ae-line-strong)" : delayMin > 0 ? "var(--ae-amber)" : "var(--ae-teal)",
               },
               {
                 label: "Cascade",
                 value: cascOrder < 0 ? "None" : cascOrder === 0 ? "Direct" : `Order ${cascOrder}`,
-                color: cascOrder === 0 ? "#F97316" : cascOrder > 0 ? "#FBBF24" : "#22C55E",
-                bg: "rgba(0,166,153,0.05)",
-                border: "rgba(0,166,153,0.14)",
+                dot: cascOrder === 0 ? "var(--ae-amber)" : cascOrder > 0 ? "var(--ae-amber-soft)" : "var(--ae-line-strong)",
               },
             ].map((item) => (
               <div
                 key={item.label}
-                className="rounded-xl p-2.5"
-                style={{ background: item.bg, border: `1px solid ${item.border}` }}
+                className="rounded-lg p-2.5"
+                style={{ background: "var(--ae-surface)", border: "1px solid var(--ae-line)" }}
               >
-                <div className="text-[10px] text-muted-foreground mb-0.5">{item.label}</div>
-                <div className="text-[12px] font-black" style={{ color: item.color }}>{item.value}</div>
+                <div className="text-[10px] text-muted-foreground mb-1">{item.label}</div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: item.dot }} />
+                  <span className="text-[12px] font-semibold" style={{ color: "var(--ae-text)" }}>{item.value}</span>
+                </div>
               </div>
             ))}
           </div>
@@ -647,19 +668,19 @@ function FlightDetailCard({
           {/* P(delay) bar — hidden for cancelled flights */}
           {!isCancelled && (
             <div
-              className="rounded-xl p-2.5 mb-2.5"
-              style={{ background: "rgba(0,166,153,0.05)", border: "1px solid rgba(0,166,153,0.12)" }}
+              className="rounded-lg p-2.5 mb-2.5"
+              style={{ background: "var(--ae-surface)", border: "1px solid var(--ae-line)" }}
             >
               <div className="flex items-center justify-between mb-1.5">
                 <div className="text-[10px] text-muted-foreground">Impact probability</div>
-                <div className="text-[11px] font-black font-mono" style={{ color: pDelay > 0.6 ? "#F97316" : "#0D9488" }}>
+                <div className="text-[11px] font-semibold font-mono" style={{ color: pDelay > 0.6 ? "var(--ae-amber-ink)" : "var(--ae-teal-ink)" }}>
                   {(pDelay * 100).toFixed(0)}%
                 </div>
               </div>
-              <div className="h-1.5 rounded-full" style={{ background: "rgba(0,166,153,0.15)" }}>
+              <div className="h-1.5 rounded-full" style={{ background: "var(--ae-neutral-bg)" }}>
                 <div
                   className="h-full rounded-full transition-all duration-500"
-                  style={{ width: `${pDelay * 100}%`, background: pDelay > 0.6 ? "#F97316" : "#0D9488" }}
+                  style={{ width: `${pDelay * 100}%`, background: pDelay > 0.6 ? "var(--ae-amber)" : "var(--ae-teal)" }}
                 />
               </div>
             </div>
@@ -700,26 +721,28 @@ function LivePanel({ flight, onClose }: { flight: LiveFlight; onClose: () => voi
   const hdg = flight.heading != null ? `${Math.round(flight.heading)}°` : "—"
   return (
     <div
-      className="absolute top-12 right-3 left-3 sm:left-auto z-[450] w-72 rounded-2xl overflow-hidden"
+      className="absolute top-12 right-3 left-3 sm:left-auto z-[450] w-72 rounded-xl overflow-hidden"
       style={{
-        background: "rgba(255,255,255,0.97)",
+        background: "rgba(20,25,23,0.96)",
         backdropFilter: "blur(16px)",
-        border: "1.5px solid rgba(93,173,226,0.30)",
-        boxShadow: "0 8px 32px rgba(0,0,0,0.14), 0 2px 8px rgba(93,173,226,0.14)",
+        border: "1px solid var(--ae-line)",
+        boxShadow: "var(--ae-shadow-overlay)",
       }}
     >
       <div
         className="px-4 py-3 flex items-center justify-between"
-        style={{ background: "linear-gradient(135deg, #EFF8FF 0%, #FFFFFF 100%)", borderBottom: "1px solid rgba(93,173,226,0.15)" }}
+        style={{ background: "var(--ae-surface-2)", borderBottom: "1px solid var(--ae-line)" }}
       >
         <div>
           <div className="flex items-center gap-2 mb-0.5">
-            <span className="w-2 h-2 rounded-full bg-sky-400 animate-pulse shrink-0" />
-            <span className="font-mono font-black text-sm">{flight.flight_icao}</span>
+            <span className="font-mono font-semibold text-sm" style={{ color: "var(--ae-text)" }}>{flight.flight_icao}</span>
             {flight.flight_iata && flight.flight_iata !== flight.flight_icao && (
               <span className="font-mono text-xs text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">{flight.flight_iata}</span>
             )}
-            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-sky-100 border border-sky-200 text-sky-700 font-bold">LIVE</span>
+            <span
+              className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold"
+              style={{ background: "var(--ae-neutral-bg)", border: "1px solid var(--ae-line)", color: "var(--ae-text-3)" }}
+            >ADS-B</span>
           </div>
           <div className="text-[10px] text-muted-foreground">{flight.airline_name}</div>
         </div>
@@ -728,21 +751,24 @@ function LivePanel({ flight, onClose }: { flight: LiveFlight; onClose: () => voi
       <div className="px-4 py-3">
         <div className="grid grid-cols-2 gap-2 mb-3">
           {([["Alt", alt], ["Speed", spd], ["V/S", vs], ["Hdg", hdg]] as [string, string][]).map(([label, val]) => (
-            <div key={label} className="rounded-xl p-2.5" style={{ background: "rgba(93,173,226,0.06)", border: "1px solid rgba(93,173,226,0.14)" }}>
+            <div key={label} className="rounded-lg p-2.5" style={{ background: "var(--ae-surface)", border: "1px solid var(--ae-line)" }}>
               <div className="text-[10px] text-muted-foreground mb-0.5">{label}</div>
-              <div className="font-mono font-bold text-xs">{val}</div>
+              <div className="font-mono font-medium text-xs" style={{ color: "var(--ae-text)" }}>{val}</div>
             </div>
           ))}
         </div>
         <div className="flex flex-wrap gap-1.5">
           {flight.tracking.flightaware && (
             <a href={flight.tracking.flightaware} target="_blank" rel="noopener noreferrer"
-              className="text-[10px] px-2 py-0.5 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 font-semibold">FA ↗</a>
+              className="text-[10px] px-2 py-0.5 rounded-md font-medium"
+              style={{ background: "var(--ae-neutral-bg)", border: "1px solid var(--ae-line)", color: "var(--ae-text-2)" }}>FA ↗</a>
           )}
           <a href={flight.tracking.flightradar24} target="_blank" rel="noopener noreferrer"
-            className="text-[10px] px-2 py-0.5 rounded-lg bg-orange-50 border border-orange-200 text-orange-700 hover:bg-orange-100 font-semibold">FR24 ↗</a>
+            className="text-[10px] px-2 py-0.5 rounded-md font-medium"
+            style={{ background: "var(--ae-neutral-bg)", border: "1px solid var(--ae-line)", color: "var(--ae-text-2)" }}>FR24 ↗</a>
           <a href={flight.tracking.adsbexchange} target="_blank" rel="noopener noreferrer"
-            className="text-[10px] px-2 py-0.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 font-semibold">ADS-B ↗</a>
+            className="text-[10px] px-2 py-0.5 rounded-md font-medium"
+            style={{ background: "var(--ae-neutral-bg)", border: "1px solid var(--ae-line)", color: "var(--ae-text-2)" }}>ADS-B ↗</a>
         </div>
       </div>
     </div>
@@ -756,24 +782,27 @@ function AirportPanel({ icao, faa, hasWx, wxText, simAffected, onClose }: {
   if (!ap) return null
   return (
     <div
-      className="absolute bottom-20 left-3 z-[450] w-64 rounded-2xl overflow-hidden"
+      className="absolute bottom-20 left-3 z-[450] w-64 rounded-xl overflow-hidden"
       style={{
-        background: "rgba(255,255,255,0.97)",
+        background: "rgba(20,25,23,0.96)",
         backdropFilter: "blur(16px)",
-        border: "1px solid #DDDDDD",
-        boxShadow: "0 8px 28px rgba(0,0,0,0.12)",
+        border: "1px solid var(--ae-line)",
+        boxShadow: "var(--ae-shadow-overlay)",
       }}
     >
       <div
         className="px-4 py-3 flex items-center justify-between"
-        style={{ background: "#F7F7F7", borderBottom: "1px solid #DDDDDD" }}
+        style={{ background: "var(--ae-surface-2)", borderBottom: "1px solid var(--ae-line)" }}
       >
         <div>
           <div className="flex items-center gap-2">
-            <span className="font-mono font-black text-base">{ap.iata}</span>
+            <span className="font-mono font-semibold text-base" style={{ color: "var(--ae-text)" }}>{ap.iata}</span>
             <span className="text-[10px] font-mono text-muted-foreground">{icao}</span>
             {HUB_AIRPORTS.has(icao) && (
-              <span className="text-[8px] px-1.5 py-0.5 rounded-full font-black" style={{ background: "rgba(239,108,74,0.12)", color: "#D45233", border: "1px solid rgba(239,108,74,0.20)" }}>HUB</span>
+              <span
+                className="text-[8px] px-1.5 py-0.5 rounded-full font-semibold"
+                style={{ background: "var(--ae-teal-bg)", color: "var(--ae-teal-ink)" }}
+              >HUB</span>
             )}
           </div>
           <div className="text-[10px] text-muted-foreground mt-0.5">{ap.name}, {ap.city}</div>
@@ -782,37 +811,37 @@ function AirportPanel({ icao, faa, hasWx, wxText, simAffected, onClose }: {
       </div>
       <div className="px-4 py-3 space-y-2">
         {!faa && !hasWx && !simAffected && (
-          <div className="flex items-center gap-2 text-emerald-600 text-xs font-semibold">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />Normal operations
+          <div className="flex items-center gap-2 text-xs font-medium" style={{ color: "var(--ae-text-2)" }}>
+            <span className="w-2 h-2 rounded-full" style={{ background: "var(--ae-teal)" }} />Normal operations
           </div>
         )}
         {faa?.type === "ground_stop" && (
-          <div className="rounded-xl p-2.5" style={{ background: "rgba(220,38,38,0.07)", border: "1px solid rgba(220,38,38,0.20)" }}>
-            <div className="font-black text-red-700 text-xs">🛑 GROUND STOP</div>
-            {faa.reason && <div className="text-red-600/80 text-[10px] mt-0.5">{faa.reason}</div>}
+          <div className="rounded-lg p-2.5" style={{ background: "var(--ae-rust-bg)", border: "1px solid var(--ae-line)" }}>
+            <div className="font-semibold text-xs" style={{ color: "var(--ae-rust-ink)" }}>Ground stop</div>
+            {faa.reason && <div className="text-[10px] mt-0.5" style={{ color: "var(--ae-text-2)" }}>{faa.reason}</div>}
           </div>
         )}
         {faa?.type === "ground_delay_program" && (
-          <div className="rounded-xl p-2.5" style={{ background: "rgba(234,88,12,0.07)", border: "1px solid rgba(234,88,12,0.20)" }}>
-            <div className="font-black text-orange-700 text-xs">🟠 GDP{faa.delay_minutes > 0 && ` avg +${faa.delay_minutes} min`}</div>
-            {faa.reason && <div className="text-orange-600/80 text-[10px] mt-0.5">{faa.reason}</div>}
+          <div className="rounded-lg p-2.5" style={{ background: "var(--ae-amber-bg)", border: "1px solid var(--ae-line)" }}>
+            <div className="font-semibold text-xs" style={{ color: "var(--ae-amber-ink)" }}>GDP{faa.delay_minutes > 0 && ` — avg +${faa.delay_minutes} min`}</div>
+            {faa.reason && <div className="text-[10px] mt-0.5" style={{ color: "var(--ae-text-2)" }}>{faa.reason}</div>}
           </div>
         )}
         {faa?.type === "departure_delay" && (
-          <div className="rounded-xl p-2.5" style={{ background: "rgba(202,138,4,0.07)", border: "1px solid rgba(202,138,4,0.20)" }}>
-            <div className="font-black text-amber-700 text-xs">⏱ Dep delay{faa.delay_minutes > 0 && ` +${faa.delay_minutes} min`}</div>
-            {faa.reason && <div className="text-amber-600/80 text-[10px] mt-0.5">{faa.reason}</div>}
+          <div className="rounded-lg p-2.5" style={{ background: "var(--ae-amber-bg)", border: "1px solid var(--ae-line)" }}>
+            <div className="font-semibold text-xs" style={{ color: "var(--ae-amber-ink)" }}>Departure delay{faa.delay_minutes > 0 && ` +${faa.delay_minutes} min`}</div>
+            {faa.reason && <div className="text-[10px] mt-0.5" style={{ color: "var(--ae-text-2)" }}>{faa.reason}</div>}
           </div>
         )}
         {hasWx && (
-          <div className="rounded-xl p-2.5" style={{ background: "rgba(124,58,237,0.07)", border: "1px solid rgba(124,58,237,0.20)" }}>
-            <div className="font-black text-purple-700 text-xs">⚡ NWS Weather Alert</div>
-            {wxText && <div className="text-purple-600/80 text-[10px] mt-0.5 line-clamp-2">{wxText}</div>}
+          <div className="rounded-lg p-2.5" style={{ background: "var(--ae-amber-bg)", border: "1px solid var(--ae-line)" }}>
+            <div className="font-semibold text-xs" style={{ color: "var(--ae-amber-ink)" }}>NWS weather alert</div>
+            {wxText && <div className="text-[10px] mt-0.5 line-clamp-2" style={{ color: "var(--ae-text-2)" }}>{wxText}</div>}
           </div>
         )}
         {simAffected && (
-          <div className="rounded-xl p-2.5" style={{ background: "rgba(239,108,74,0.08)", border: "1px solid rgba(239,108,74,0.22)" }}>
-            <div className="text-orange-700 text-[10px] font-bold">⚠ Simulation disruption active at this airport</div>
+          <div className="rounded-lg p-2.5" style={{ background: "var(--ae-rust-bg)", border: "1px solid var(--ae-line)" }}>
+            <div className="text-[10px] font-semibold" style={{ color: "var(--ae-rust-ink)" }}>Simulation disruption active at this airport</div>
           </div>
         )}
       </div>
@@ -1182,7 +1211,7 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
         <MapResizeFix />
         <ZoomControl position="topright" />
         <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
           attribution='&copy; <a href="https://carto.com/attributions">CARTO</a>'
           subdomains="abcd" maxZoom={19}
         />
@@ -1215,7 +1244,7 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
           return (
             <Polyline key={`bg-${f.id}`}
               positions={[[o.lat, o.lon], [d.lat, d.lon]]}
-              pathOptions={{ color: "#94A3B8", weight: sel ? 2 : 1, opacity: sel ? 0.45 : 0.12, dashArray: sel ? undefined : "2 6" }}
+              pathOptions={{ color: "#57605B", weight: sel ? 2 : 1, opacity: sel ? 0.55 : 0.16, dashArray: sel ? undefined : "2 6" }}
               eventHandlers={{ click: () => onFlightSelect(sel ? null : f.id) }}
             />
           )
@@ -1302,14 +1331,14 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
                 <div className="font-mono font-bold text-xs">{ap.iata} · {id}</div>
                 <div className="text-[10px] text-muted-foreground">{ap.name}, {ap.city}</div>
                 {airportFAA[id] && (
-                  <div className="text-[10px] font-semibold mt-0.5" style={{ color: airportFAA[id].type === "ground_stop" ? "#DC2626" : "#EA580C" }}>
-                    {airportFAA[id].type === "ground_stop" ? "🛑 Ground Stop"
-                      : airportFAA[id].type === "ground_delay_program" ? `🟠 GDP +${airportFAA[id].delay_minutes}m`
-                      : `⏱ +${airportFAA[id].delay_minutes}m dep delay`}
+                  <div className="text-[10px] font-semibold mt-0.5" style={{ color: airportFAA[id].type === "ground_stop" ? "var(--ae-rust-ink)" : "var(--ae-amber-ink)" }}>
+                    {airportFAA[id].type === "ground_stop" ? "Ground stop"
+                      : airportFAA[id].type === "ground_delay_program" ? `GDP +${airportFAA[id].delay_minutes}m`
+                      : `+${airportFAA[id].delay_minutes}m dep delay`}
                   </div>
                 )}
-                {id in wxAirports && <div className="text-[10px] text-purple-600">⚡ WX Alert</div>}
-                {simEvtAirports.has(id) && <div className="text-[10px] text-orange-600 font-semibold">⚠ Disruption epicenter</div>}
+                {id in wxAirports && <div className="text-[10px]" style={{ color: "var(--ae-amber-ink)" }}>WX alert</div>}
+                {simEvtAirports.has(id) && <div className="text-[10px] font-semibold" style={{ color: "var(--ae-rust-ink)" }}>Disruption epicenter</div>}
               </div>
             </Tooltip>
           </Marker>
@@ -1347,10 +1376,10 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
             >
               <Tooltip direction="top" offset={[0, -10]} opacity={1}>
                 <div>
-                  <div className="font-mono font-bold text-xs">{id} <span className="text-[9px] text-orange-500 font-bold">[SIM]</span></div>
+                  <div className="font-mono font-bold text-xs">{id} <span className="text-[9px] font-semibold" style={{ color: "var(--ae-text-3)" }}>[SIM]</span></div>
                   <div className="text-[10px] text-muted-foreground">{f.aircraft_id} · {f.origin} → {f.destination}</div>
-                  {state?.delay_minutes > 0 && <div className="text-[10px] text-orange-600 font-semibold">+{state.delay_minutes} min delay</div>}
-                  {state?.cascade_order === 0 && !isCancelled && <div className="text-[10px] text-red-600 font-semibold">⚡ Direct impact</div>}
+                  {state?.delay_minutes > 0 && <div className="text-[10px] font-semibold" style={{ color: "var(--ae-amber-ink)" }}>+{state.delay_minutes} min delay</div>}
+                  {state?.cascade_order === 0 && !isCancelled && <div className="text-[10px] font-semibold" style={{ color: "var(--ae-rust-ink)" }}>Direct impact</div>}
                   {isCancelled && (
                     <div className="text-[10px] font-bold" style={{ color: MAP_COLORS.planCancelledInk }}>
                       ✕ Cancelled by plan — click to inspect
@@ -1381,7 +1410,10 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
                   <div>
                     <div className="font-mono font-bold text-xs">
                       {lf.flight_iata || lf.flight_icao}
-                      <span className="ml-1.5 text-[8px] px-1 py-0.5 rounded bg-sky-100 text-sky-700 border border-sky-200 font-bold">LIVE</span>
+                      <span
+                        className="ml-1.5 text-[8px] px-1 py-0.5 rounded font-semibold"
+                        style={{ background: "var(--ae-neutral-bg)", border: "1px solid var(--ae-line)", color: "var(--ae-text-3)" }}
+                      >ADS-B</span>
                     </div>
                     <div className="text-[10px] text-muted-foreground">{lf.airline_name}</div>
                     {lf.altitude_ft != null && <div className="text-[10px] font-mono">{lf.altitude_ft.toLocaleString()} ft · {lf.velocity_kt} kt</div>}
@@ -1407,18 +1439,19 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
       {activePlan && hasActiveEvents && (
         <div className="absolute top-3 left-3 z-[450]" style={{ maxWidth: 240 }}>
           <div
-            className="rounded-xl px-3 py-2"
+            className="rounded-lg px-3 py-2"
             style={{
-              background: "rgba(12,8,6,0.82)", backdropFilter: "blur(12px)",
-              border: "1px solid rgba(239,108,74,0.40)",
+              background: "rgba(20,25,23,0.9)", backdropFilter: "blur(12px)",
+              border: "1px solid var(--ae-line)",
+              borderLeft: "2px solid var(--ae-rust)",
             }}
           >
-            <div className="text-[9px] font-black uppercase tracking-widest text-orange-300 mb-1.5">
-              ⚡ {dedupEvents.length} disruption{dedupEvents.length !== 1 ? "s" : ""} active
+            <div className="text-[9px] font-semibold uppercase tracking-widest mb-1.5" style={{ color: "var(--ae-rust-ink)" }}>
+              {dedupEvents.length} disruption{dedupEvents.length !== 1 ? "s" : ""} active
             </div>
             {dedupEvents.slice(0, 2).map((ev) => (
-              <div key={ev.id} className="flex items-center gap-1.5 text-[10px] text-orange-200/80 mb-0.5">
-                <span>{EVENT_ICONS[ev.kind] ?? "⚠️"}</span>
+              <div key={ev.id} className="flex items-center gap-1.5 text-[10px] mb-0.5" style={{ color: "var(--ae-text-2)" }}>
+                <EventIcon kind={ev.kind} className="w-3 h-3 shrink-0" style={{ color: "var(--ae-text-3)" }} />
                 <span className="truncate">{EVENT_LABELS[ev.kind] ?? ev.kind.replace(/_/g, " ")}</span>
               </div>
             ))}
@@ -1449,32 +1482,40 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
         />
       )}
 
-      {/* Connection status — bottom-right above layer toggles */}
+      {/* Layer toggles — bottom-right */}
       <div className="absolute bottom-3 right-3 z-[400] flex flex-col gap-2 items-end">
         <div
-          className="rounded-xl px-3 py-2 flex flex-col gap-1.5 text-[11px]"
-          style={{ background: "rgba(255,255,255,0.92)", backdropFilter: "blur(12px)", border: "1px solid #DDDDDD", boxShadow: "0 2px 12px rgba(0,0,0,0.08)" }}
+          className="rounded-lg px-3 py-2 flex flex-col gap-1.5 text-[11px]"
+          style={{ background: "rgba(20,25,23,0.92)", backdropFilter: "blur(12px)", border: "1px solid var(--ae-line)" }}
         >
           <button
             onClick={() => setShowLiveFlights(!showLiveFlights)}
-            className={`flex items-center gap-2 font-semibold transition-colors ${showLiveFlights ? "text-sky-600" : "text-muted-foreground"}`}
+            className="flex items-center gap-2 font-medium transition-colors"
+            style={{ color: showLiveFlights ? "var(--ae-text)" : "var(--ae-text-3)" }}
           >
-            <span className={`w-2 h-2 rounded-full shrink-0 ${showLiveFlights ? "bg-sky-400 animate-pulse" : "bg-muted-foreground/30"}`} />
+            <span
+              className="w-2 h-2 rounded-full shrink-0"
+              style={{ background: showLiveFlights ? MAP_COLORS.live : "var(--ae-line-strong)" }}
+            />
             <span>Real flights (ADS-B)</span>
             {showLiveFlights && liveFlights.length > 0 && (
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: "rgba(56,189,248,0.15)", color: "#0284C7" }}>
+              <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full font-mono tabular-nums" style={{ background: "var(--ae-neutral-bg)", color: "var(--ae-text-2)" }}>
                 {liveFlights.length.toLocaleString()}
               </span>
             )}
           </button>
           <button
             onClick={() => setShowSimulation(!showSimulation)}
-            className={`flex items-center gap-2 font-semibold transition-colors ${showSimulation ? "text-orange-500" : "text-muted-foreground"}`}
+            className="flex items-center gap-2 font-medium transition-colors"
+            style={{ color: showSimulation ? "var(--ae-text)" : "var(--ae-text-3)" }}
           >
-            <span className={`w-2 h-2 rounded-full shrink-0 ${showSimulation ? "bg-orange-400 animate-pulse" : "bg-muted-foreground/30"}`} />
+            <span
+              className="w-2 h-2 rounded-full shrink-0"
+              style={{ background: showSimulation ? "var(--ae-teal)" : "var(--ae-line-strong)" }}
+            />
             <span>Nimbus Air sim</span>
             {showSimulation && simPlanes.length > 0 && (
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: "rgba(249,115,22,0.15)", color: "#EA580C" }}>
+              <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full font-mono tabular-nums" style={{ background: "var(--ae-teal-bg)", color: "var(--ae-teal-ink)" }}>
                 {simPlanes.length}
               </span>
             )}
@@ -1484,10 +1525,18 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
         {/* ADS-B age */}
         {ageSec != null && (
           <div
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-semibold"
-            style={{ background: "rgba(255,255,255,0.85)", backdropFilter: "blur(8px)", border: "1px solid #DDDDDD", color: ageSec > 30 ? "#EA580C" : "#6B7280" }}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[9px] font-medium"
+            style={{
+              background: "rgba(20,25,23,0.88)",
+              backdropFilter: "blur(8px)",
+              border: "1px solid var(--ae-line)",
+              color: ageSec > 30 ? "var(--ae-amber-ink)" : "var(--ae-text-3)",
+            }}
           >
-            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${loading ? "bg-amber-400 animate-pulse" : liveFlights.length > 0 ? "bg-emerald-400" : "bg-red-400"}`} />
+            <span
+              className="w-1.5 h-1.5 rounded-full shrink-0"
+              style={{ background: loading ? "var(--ae-amber)" : liveFlights.length > 0 ? "var(--ae-teal)" : "var(--ae-rust)" }}
+            />
             {loading ? "Fetching…" : `ADS-B · ${ageSec}s ago`}
           </div>
         )}
@@ -1496,18 +1545,18 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
       {/* Legend — bottom-left */}
       <div className="absolute bottom-3 left-3 z-[400]">
         <div
-          className="px-3 py-2 rounded-xl text-[10px]"
-          style={{ background: "rgba(255,255,255,0.94)", backdropFilter: "blur(12px)", border: "1px solid #DDDDDD", boxShadow: "0 2px 12px rgba(0,0,0,0.07)" }}
+          className="px-3 py-2 rounded-lg text-[10px]"
+          style={{ background: "rgba(20,25,23,0.92)", backdropFilter: "blur(12px)", border: "1px solid var(--ae-line)" }}
         >
           {/* Always-visible: live layer */}
           <div className="flex items-center gap-2.5 flex-wrap mb-1.5">
             <div className="flex items-center gap-1.5">
-              <span className="w-3 h-1 rounded-full bg-sky-400" />
+              <span className="w-3 h-1 rounded-full" style={{ background: MAP_COLORS.live }} />
               <span className="text-muted-foreground">Live ADS-B</span>
             </div>
-            <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-600" /><span className="text-muted-foreground">GS</span></div>
-            <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-orange-500" /><span className="text-muted-foreground">GDP</span></div>
-            <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-violet-600" /><span className="text-muted-foreground">WX</span></div>
+            <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full" style={{ background: MAP_COLORS.groundStop }} /><span className="text-muted-foreground">GS</span></div>
+            <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full" style={{ background: MAP_COLORS.gdp }} /><span className="text-muted-foreground">GDP</span></div>
+            <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full" style={{ background: MAP_COLORS.weather, opacity: 0.6 }} /><span className="text-muted-foreground">WX</span></div>
           </div>
           {/* Disruption/plan legend — keyed off the canonical MAP_COLORS so
               the legend swatches always match the actual lines/markers on
@@ -1523,8 +1572,8 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
                     <span className="text-muted-foreground">On-time</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <span className="w-4 h-4 rounded-full shrink-0" style={{ background: MAP_COLORS.cascadeDirect, boxShadow: `0 0 0 2px ${MAP_COLORS.cascadeDirect}40` }} />
-                    <span className="font-semibold" style={{ color: MAP_COLORS.cascadeDirect }}>Direct hit</span>
+                    <span className="w-3.5 h-3.5 rounded-full shrink-0" style={{ background: MAP_COLORS.cascadeDirect }} />
+                    <span className="text-muted-foreground">Direct hit</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <span className="w-3.5 h-3.5 rounded-full shrink-0" style={{ background: MAP_COLORS.cascadeOrder1 }} />

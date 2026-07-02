@@ -12,10 +12,10 @@ interface Props {
   onSelect: (id: string | null) => void
 }
 
-// Live ADS-B uses the link-blue token to keep the "live" affordance distinct
-// from the orange/coral disruption colors that operators care more about.
-const LIVE_BLUE     = c.link        // #1B61C9
-const LIVE_BLUE_BG  = "#E5EEF8"     // tinted link background
+// Live ADS-B rows use the neutral register — the live layer is background
+// context; disruption pigments (amber/rust) stay reserved for sim state.
+const LIVE_BLUE     = "var(--ae-text-3)"
+const LIVE_BLUE_BG  = "var(--ae-surface-2)"
 
 export function FlightSearch({ selectedFlight, onSelect }: Props) {
   const { schedule, flightStates, liveFlights, setSelectedLiveFlight, selectedLiveFlight } =
@@ -249,8 +249,7 @@ export function FlightSearch({ selectedFlight, onSelect }: Props) {
                         }}
                       >
                         <span
-                          className="animate-pulse"
-                          style={{ width: 8, height: 8, borderRadius: r.full, background: LIVE_BLUE, flexShrink: 0 }}
+                          style={{ width: 7, height: 7, borderRadius: r.full, background: LIVE_BLUE, flexShrink: 0 }}
                         />
                         <Plane style={{ width: 16, height: 16, color: LIVE_BLUE, flexShrink: 0 }} />
                         <div style={{ flex: 1, minWidth: 0 }}>

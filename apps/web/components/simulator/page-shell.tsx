@@ -58,7 +58,7 @@ export function SimulatorPageShell({
   }, [setSchedule, setFleet])
 
   return (
-    <div style={{ background: c.canvas, minHeight: "100vh", fontFamily: ff.body }}>
+    <div className="register-dark" style={{ background: "var(--ae-bg)", minHeight: "100vh", fontFamily: ff.body }}>
       <div style={{ position: "sticky", top: 0, zIndex: 50 }}>
         <SimulatorNav isConnected={isConnected} affectedCount={affectedCount} />
       </div>
@@ -66,7 +66,7 @@ export function SimulatorPageShell({
       {/* ── Page header band — breadcrumbs + title + actions ─────────── */}
       <div
         style={{
-          background: c.canvas,
+          background: "var(--ae-bg)",
           borderBottom: `1px solid ${c.hairline}`,
         }}
       >
@@ -131,7 +131,7 @@ export function SimulatorPageShell({
       </div>
 
       {/* ── Content area ────────────────────────────────────────────── */}
-      <div style={{ background: c.surfaceSoft, minHeight: "calc(100vh - 64px)" }}>
+      <div style={{ background: "var(--ae-bg)", minHeight: "calc(100vh - 60px)" }}>
         <Container maxWidth={maxWidth} style={{ paddingTop: sp.lg, paddingBottom: sp.xxl }}>
           {children}
         </Container>

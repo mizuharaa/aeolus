@@ -1,12 +1,13 @@
 "use client"
 /**
- * Aeolus Design System Primitives — Airtable Editorial
+ * Aeolus Design System Primitives — five-pigment system.
  *
- * Every component here is one of the named building blocks in DESIGN.md.
- * Do NOT inline new hex codes anywhere outside lib/design-tokens.ts; if you
- * need a new color it goes in tokens first, then here.
+ * Do NOT inline new hex codes anywhere outside lib/design-tokens.ts /
+ * globals.css; if you need a new color it goes in tokens first, then here.
  *
- * No hover states beyond what the Airtable system documents (Default + Active).
+ * Register-aware: every surface/text role is a CSS variable, so the same
+ * primitive renders correctly on the light landing register and inside
+ * the simulator's `.register-dark` scope.
  */
 
 import * as React from "react"
@@ -23,8 +24,8 @@ type ButtonBase = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   trailingIcon?: React.ReactNode
 }
 
-/** `{component.button-primary}` — near-black ink, white text, 12px radius.
- *  Use sparingly — one per viewport. */
+/** Primary CTA — ink on the light register, teal on the dark register.
+ *  One per viewport. */
 export function ButtonPrimary({ size = "md", leadingIcon, trailingIcon, children, className = "", ...rest }: ButtonBase) {
   return (
     <button
@@ -38,8 +39,7 @@ export function ButtonPrimary({ size = "md", leadingIcon, trailingIcon, children
   )
 }
 
-/** `{component.button-secondary}` — canvas + hairline outline. Always pairs
- *  next to a `ButtonPrimary` as the less-committed choice. */
+/** Secondary CTA — transparent + hairline. Pairs next to a ButtonPrimary. */
 export function ButtonSecondary({ size = "md", leadingIcon, trailingIcon, children, className = "", ...rest }: ButtonBase) {
   return (
     <button
@@ -53,8 +53,7 @@ export function ButtonSecondary({ size = "md", leadingIcon, trailingIcon, childr
   )
 }
 
-/** `{component.button-icon-circular}` — 40×40 circular button with canvas bg
- *  and hairline border, for carousel / share / back affordances. */
+/** 40×40 circular icon button — carousel / share / back affordances. */
 export function ButtonIconCircular({
   children, ariaLabel, onClick, size = 40,
 }: {
@@ -90,8 +89,10 @@ export function ButtonIconCircular({
 // Cards & containers
 // ─────────────────────────────────────────────────────────────────────
 
-/** `{component.signature-coral-card}` / forest / dark — full-bleed brand
- *  voltage cards with white type. 48px internal padding by default. */
+/** Feature card — always the ink surface, regardless of the old variant
+ *  name. The pastel signature-card family is retired; `variant` now only
+ *  chooses between the ink card ("coral"/"forest"/"dark") and the raised
+ *  neutral surface ("cream"). */
 export function SignatureCard({
   variant,
   children,
@@ -103,17 +104,13 @@ export function SignatureCard({
   style?: React.CSSProperties
   padding?: number
 }) {
-  const bg =
-    variant === "coral"  ? c.signatureCoral  :
-    variant === "forest" ? c.signatureForest :
-    variant === "cream"  ? c.signatureCream  :
-                            c.surfaceDark
-  const ink = variant === "cream" ? c.ink : c.onPrimary
+  const isCream = variant === "cream"
   return (
     <section
       style={{
-        background: bg,
-        color: ink,
+        background: isCream ? c.surfaceSoft : c.surfaceDark,
+        color: isCream ? c.ink : "#ECEEE9",
+        border: isCream ? `1px solid ${c.hairline}` : "1px solid rgba(245,245,240,0.08)",
         borderRadius: r.lg,
         padding,
         fontFamily: ff.body,
@@ -125,14 +122,14 @@ export function SignatureCard({
   )
 }
 
-/** `{component.cream-callout-card}` — soft beige callout surface for stats /
- *  product UI fragments. 24px padding, 10px radius. */
+/** Soft recessed callout surface for stats / product UI fragments. */
 export function CreamCallout({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
   return (
     <section
       style={{
-        background: c.signatureCream,
+        background: c.surfaceSoft,
         color: c.ink,
+        border: `1px solid ${c.hairline}`,
         borderRadius: r.md,
         padding: sp.lg,
         fontFamily: ff.body,
@@ -144,7 +141,7 @@ export function CreamCallout({ children, style }: { children: React.ReactNode; s
   )
 }
 
-/** Content card — white canvas, hairline border. The default body container. */
+/** Content card — register surface, hairline border. The default container. */
 export function ContentCard({
   children,
   style,
@@ -172,8 +169,7 @@ export function ContentCard({
   )
 }
 
-/** `{component.demo-grid-card}` — used inside multi-card grids. 16px padding,
- *  10px radius. Background optionally overridden to a signature pastel. */
+/** Card used inside multi-card grids. 16px padding, 10px radius. */
 export function DemoGridCard({
   children,
   background = c.canvas,
@@ -187,7 +183,7 @@ export function DemoGridCard({
     <div
       style={{
         background,
-        border: background === c.canvas ? `1px solid ${c.hairline}` : "none",
+        border: `1px solid ${c.hairline}`,
         borderRadius: r.md,
         padding: sp.md,
         fontFamily: ff.body,
@@ -203,10 +199,10 @@ export function DemoGridCard({
 // Layout helpers
 // ─────────────────────────────────────────────────────────────────────
 
-/** Centered max-1280px container with 48px horizontal breathing room. */
+/** Centered max-1200px container with 48px horizontal breathing room. */
 export function Container({
   children,
-  maxWidth = 1280,
+  maxWidth = 1200,
   style,
 }: {
   children: React.ReactNode
@@ -228,10 +224,10 @@ export function Container({
   )
 }
 
-/** Section band — 96px top/bottom padding (universal vertical rhythm). */
+/** Section band — generous vertical rhythm between landing sections. */
 export function Section({
   children,
-  background = c.canvas,
+  background = "transparent",
   style,
 }: {
   children: React.ReactNode
@@ -282,15 +278,16 @@ export function Type({
   )
 }
 
-/** Eyebrow / uppercase label — used above section titles. */
+/** Eyebrow — the ONE sanctioned uppercase style. 11px, wide tracking,
+ *  muted. Use at most once or twice per screen. */
 export function Eyebrow({ children, color = c.muted }: { children: React.ReactNode; color?: string }) {
   return (
     <span
       style={{
         fontFamily: ff.body,
-        fontSize: 12,
-        fontWeight: 500,
-        letterSpacing: "0.12em",
+        fontSize: 11,
+        fontWeight: 550,
+        letterSpacing: "0.14em",
         textTransform: "uppercase",
         color,
       }}
@@ -301,7 +298,8 @@ export function Eyebrow({ children, color = c.muted }: { children: React.ReactNo
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// Status badge — semantic ops state. Same color = same meaning everywhere.
+// Status badge — pigment dot + neutral text. Color marks the dot, text
+// wears text tokens (never the series color). Same color = same meaning.
 // ─────────────────────────────────────────────────────────────────────
 
 type StatusKind = "on-time" | "delayed" | "cancelled" | "recovered"
@@ -317,10 +315,7 @@ export function StatusBadge({
   kind,
   count,
   compact = false,
-  /** When true, keeps the tinted background. Defaults to false — restraint
-   *  is the new default per REVAMP_PLAN_v2.md "chromatic restraint". Pass
-   *  `tinted` only where the badge is meant to be a brand voltage moment
-   *  (e.g. the applied-plan card hero). */
+  /** Tinted background — reserve for the applied-plan hero moment. */
   tinted = false,
 }: {
   kind: StatusKind
@@ -334,14 +329,14 @@ export function StatusBadge({
       style={{
         display: "inline-flex",
         alignItems: "center",
-        gap: 8,
-        background: tinted ? s.bg : c.canvas,
-        color: s.ink,
-        border: tinted ? "none" : `1px solid ${c.hairline}`,
+        gap: 7,
+        background: tinted ? s.bg : "transparent",
+        color: c.body,
+        border: tinted ? "1px solid transparent" : `1px solid ${c.hairline}`,
         fontFamily: ff.body,
         fontSize: compact ? 12 : 13,
         fontWeight: 500,
-        padding: compact ? "4px 10px" : "6px 12px",
+        padding: compact ? "3px 9px" : "5px 11px",
         borderRadius: r.pill,
         lineHeight: 1,
       }}
@@ -356,17 +351,17 @@ export function StatusBadge({
         }}
       />
       {count !== undefined && (
-        <span style={{ fontFamily: ff.mono, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
+        <span style={{ fontFamily: ff.mono, fontWeight: 550, fontVariantNumeric: "tabular-nums", color: c.ink }}>
           {count.toLocaleString()}
         </span>
       )}
-      <span style={{ letterSpacing: "0.02em" }}>{s.label}</span>
+      <span>{s.label}</span>
     </span>
   )
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// Hairline divider — used between editorial sections / table rows
+// Hairline divider
 // ─────────────────────────────────────────────────────────────────────
 
 export function Hairline({ vertical = false, style }: { vertical?: boolean; style?: React.CSSProperties }) {
@@ -382,8 +377,7 @@ export function Hairline({ vertical = false, style }: { vertical?: boolean; styl
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// Stat — uppercase label above a large numeric value (tabular-nums).
-// Used in nav strips, FocusOverlay, cream-callout dashboards.
+// Stat — eyebrow label above a large numeric value (tabular-nums).
 // ─────────────────────────────────────────────────────────────────────
 
 export function Stat({
@@ -404,8 +398,9 @@ export function Stat({
         style={{
           fontFamily: ff.display,
           fontSize: 28,
-          fontWeight: 475,
+          fontWeight: 550,
           lineHeight: 1.15,
+          letterSpacing: "-0.01em",
           color,
           fontVariantNumeric: "tabular-nums",
         }}
@@ -413,7 +408,7 @@ export function Stat({
         {value}
       </span>
       {hint && (
-        <span style={{ fontFamily: ff.body, fontSize: 13, fontWeight: 400, color: c.muted }}>
+        <span style={{ fontFamily: ff.body, fontSize: 12.5, fontWeight: 400, color: c.muted }}>
           {hint}
         </span>
       )}

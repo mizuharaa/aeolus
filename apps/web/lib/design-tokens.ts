@@ -1,91 +1,132 @@
 /**
- * Aeolus Design System — Airtable Editorial Palette
+ * Aeolus Design System — canonical tokens.
  *
- * Source: DESIGN.md spec. White canvas + near-black ink as the floor; brand
- * voltage lives in full-bleed signature surface cards (coral / forest / cream /
- * peach / mint / yellow / mustard) that punctuate the page every 2–3 screens.
+ * FIVE COLORS, ONE STATUS COLOR. Everything on every screen resolves to:
  *
- * Hex values are the canonical truth — never inline a hex anywhere else in the
- * web app. Always reference `tokens.colors.X`.
+ *   ink    #0F1412   near-black, teal-cast — dark surfaces, primary type
+ *   paper  #F5F5F0   warm off-white       — light surfaces, type on dark
+ *   gray   #6A716D   the mid neutral (ink/paper derivation) — borders, dim text
+ *   teal   #0D9488   the identity color   — actions, links, recovery, active
+ *   amber  #B8863C   THE status color     — delayed / warning / critical / cascade
+ *
+ * "Cancelled / not operating" is NOT a hue: it renders as neutral gray with
+ * a strike, dash, or x — an absence of operation. Severity within amber is
+ * carried by opacity steps (soft/soft2), never by a second status hue.
+ *
+ * Status *text* colors are per-register readability steps of teal/amber (a
+ * darker step on paper, a lighter step on ink) so 11–13px text passes AA.
+ *
+ * TWO REGISTERS, ONE TOKEN SET. Register-dependent roles (surfaces, text,
+ * lines, status inks) are CSS custom properties defined in globals.css:
+ * `:root` carries the light register (landing, docs, scenarios) and
+ * `.register-dark` flips them for the simulator. Components reference the
+ * same `c.*` token in both worlds.
+ *
+ * Chromatic constants that must survive *outside* CSS (Leaflet's canvas
+ * renderer resolves colors in JS) live in `pigment.*` as literal hex.
  */
+
+// ── Literal pigments (canvas-safe; identical in both registers) ─────────
+export const pigment = {
+  ink:   "#0F1412",
+  paper: "#F5F5F0",
+  gray:  "#6A716D", // ink 62% over paper — the stated mid-gray
+  teal:  "#0D9488",
+  amber: "#B8863C",
+} as const
 
 export const tokens = {
   colors: {
     // ── Brand & action ────────────────────────────────────────────────
-    primary:        "#181d26",  // near-black ink. The primary CTA color.
-    primaryActive:  "#0d1218",  // primary CTA pressed state
+    // Light register: ink button, paper label. Dark register: teal button,
+    // ink label. One primary action color per register.
+    primary:        "var(--ae-primary)",
+    primaryActive:  "var(--ae-primary-active)",
 
     // ── Surfaces ──────────────────────────────────────────────────────
-    canvas:              "#FFFFFF",  // the page floor
-    surfaceSoft:         "#F8FAFC",  // tabbed cards, featured pricing tier
-    surfaceStrong:       "#E0E2E6",  // light gray CTA banner near footer
-    surfaceDark:         "#181d26",  // dark navy mid-page CTA card
-    surfaceDarkElevated: "#1d1f25",  // articles hero base
-    hairline:            "#DDDDDD",  // 1px borders, dividers, secondary outlines
+    canvas:              "var(--ae-surface)",    // card / panel floor
+    surfaceSoft:         "var(--ae-surface-2)",  // recessed panel, tab well
+    surfaceStrong:       "var(--ae-surface-3)",  // track fills, deep recess
+    surfaceDark:         pigment.ink,            // ink card (both registers)
+    surfaceDarkElevated: "#161B19",              // raised step on ink
+    hairline:            "var(--ae-line)",       // 1px borders, dividers
 
     // ── Type ──────────────────────────────────────────────────────────
-    ink:           "#181d26",  // h1/h2 display, primary button text-on-light
-    body:          "#333840",  // default running text
-    muted:         "#41454D",  // captions, footer links, breadcrumbs
-    borderStrong:  "#9297A0",  // disabled secondary button outline
-    onPrimary:     "#FFFFFF",  // text on dark surfaces / primary buttons
+    ink:           "var(--ae-text)",    // headings, emphasis
+    body:          "var(--ae-text-2)",  // running text
+    muted:         "var(--ae-text-3)",  // captions, labels
+    borderStrong:  "var(--ae-line-strong)",
+    onPrimary:     "var(--ae-on-primary)",
 
-    // ── Signature card surfaces (the brand voltage) ───────────────────
-    signatureCoral:   "#AA2D00",  // dark oxide red — biggest signature card
-    signatureForest:  "#0A2E0E",  // deep green
-    signatureCream:   "#F5E9D4",  // soft beige callout band
-    signaturePeach:   "#FCAB79",  // demo-card surface (warm pastel)
-    signatureMint:    "#A8D8C4",  // demo-card surface (cool pastel)
-    signatureYellow:  "#F4D35E",  // demo-card surface
-    signatureMustard: "#D9A441",  // demo-card surface
+    // ── Chromatic accents (register-aware text steps) ────────────────
+    teal:      "var(--ae-teal)",       // graphic teal (dots, bars, borders)
+    tealInk:   "var(--ae-teal-ink)",   // teal as small text — AA per register
+    amber:     "var(--ae-amber)",
+    amberInk:  "var(--ae-amber-ink)",
+    // Legacy names — rust was retired; both alias amber. Do not use.
+    rust:      "var(--ae-rust)",
+    rustInk:   "var(--ae-rust-ink)",
+
+    // ── Legacy signature aliases — every old call site snaps into the
+    //    five-color system through these. Do not use in new code. ────
+    signatureCoral:   "var(--ae-amber)",
+    signatureForest:  "var(--ae-teal-ink)",
+    signatureCream:   "var(--ae-surface-2)",
+    signaturePeach:   "var(--ae-amber)",
+    signatureMint:    "var(--ae-teal)",
+    signatureYellow:  "var(--ae-amber)",
+    signatureMustard: "var(--ae-amber)",
 
     // ── Semantic ──────────────────────────────────────────────────────
-    link:        "#1B61C9",
-    linkActive:  "#1A3866",
-    info:        "#254FAD",
-    infoBorder:  "#458FFF",
-    success:     "#006400",
-    successBorder: "#39BF45",
+    link:          "var(--ae-teal-ink)",
+    linkActive:    "var(--ae-teal-ink)",
+    info:          "var(--ae-teal-ink)",
+    infoBorder:    "var(--ae-teal)",
+    success:       "var(--ae-teal-ink)",
+    successBorder: "var(--ae-teal)",
 
-    // ── Status palette (Aeolus extension — maps semantic ops state) ───
-    // Same color = same meaning everywhere on the app. Use these tokens for
-    // map markers, cascade bars, status badges, plan cards.
+    // ── Status palette — same color = same meaning everywhere ────────
+    // dot = graphic pigment (markers, swatches); ink = AA text step;
+    // bg = 10–16% tint of the pigment on the register surface.
+    // On-time is deliberately QUIET (neutral) — nominal state shouldn't shout.
     statusOnTime: {
-      ink: "#0A2E0E",  // signatureForest as type color
-      bg:  "#E8F1E9",  // forest tinted 92% white
-      dot: "#0A2E0E",
+      ink: "var(--ae-text-2)",
+      bg:  "var(--ae-neutral-bg)",
+      dot: "var(--ae-teal)",
     },
     statusDelayed: {
-      ink: "#7A3E0F",  // peach-ink — readable
-      bg:  "#FDEBD9",  // peach tinted
-      dot: "#FCAB79",  // signaturePeach
+      ink: "var(--ae-amber-ink)",
+      bg:  "var(--ae-amber-bg)",
+      dot: "var(--ae-amber)",
     },
+    // Cancelled = not operating = NEUTRAL. Always pairs with a strike,
+    // dash, or x — never a status hue, never color-alone.
     statusCancelled: {
-      ink: "#AA2D00",  // signatureCoral
-      bg:  "#F8E3D9",  // coral tinted
-      dot: "#AA2D00",
+      ink: "var(--ae-text-2)",
+      bg:  "var(--ae-neutral-bg)",
+      dot: "var(--ae-line-strong)",
     },
     statusRecovered: {
-      ink: "#0A2E0E",
-      bg:  "#DDEFE5",  // mint tinted
-      dot: "#A8D8C4",  // signatureMint
+      ink: "var(--ae-teal-ink)",
+      bg:  "var(--ae-teal-bg)",
+      dot: "var(--ae-teal)",
     },
 
-    // ── Cascade severity (direct → order-1 → order-2 → unaffected) ────
-    // Warmth = severity. Coral hottest, mustard mid, yellow lightest.
-    cascadeDirect:  "#AA2D00",   // signatureCoral
-    cascadeOrder1:  "#D9A441",   // signatureMustard
-    cascadeOrder2:  "#F4D35E",   // signatureYellow
-    cascadeNone:    "#DDDDDD",   // hairline
+    // ── Cascade severity — ONE hue, three opacity steps. Direct hit is
+    //    full amber (plus size/halo secondary encoding at marks). ──
+    cascadeDirect:  "var(--ae-amber)",
+    cascadeOrder1:  "var(--ae-amber-soft)",
+    cascadeOrder2:  "var(--ae-amber-soft2)",
+    cascadeNone:    "var(--ae-line-strong)",
   },
 
   radius: {
-    xs:   2,    // legal / cookie CTAs (system-required)
-    sm:   6,    // text inputs, small inline buttons
-    md:   10,   // secondary content cards, article cards, cream callouts
-    lg:   12,   // primary CTAs, signature surface cards, tabbed feature cards
-    pill: 9999, // pricing sub-system only
-    full: 9999, // circular icon buttons, avatars
+    xs:   2,
+    sm:   6,
+    md:   10,
+    lg:   12,
+    pill: 9999,
+    full: 9999,
   },
 
   spacing: {
@@ -96,49 +137,51 @@ export const tokens = {
     lg:     24,
     xl:     32,
     xxl:    48,
-    section: 96,  // universal vertical rhythm between editorial bands
+    section: 112, // vertical rhythm between landing sections
   },
 
   fontFamily: {
-    // Inter Display is the open-source substitute for Haas Groot Disp / Haas Grotesk.
-    // Per DESIGN.md, adjust line-height ~5% tighter to match Haas's cap-height.
+    // ONE typeface family. Inter Display is Inter's optical-size variant —
+    // same family, tuned cap-height for headlines. Mono is reserved for
+    // code blocks, flight IDs, timestamps, and tabular ops data only.
     display: '"Inter Display", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
     body:    '"Inter", "Inter Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
     mono:    '"JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace',
   },
 
-  // Typography roles — size / weight / line-height / letter-spacing.
-  // Reference these everywhere instead of inlining font CSS.
+  // Typography roles. Three real tiers — display, body, label — with a
+  // couple of intermediate sizes for dense panel UI. No five-near-identical
+  // sizes; no default uppercase anywhere except `eyebrow`.
   typography: {
-    displayXl:        { size: 48,   weight: 500, lh: 1.10, ls: "0" },        // articles h2
-    displayLg:        { size: 40,   weight: 400, lh: 1.20, ls: "0" },        // homepage h1 hero
-    displayMd:        { size: 32,   weight: 400, lh: 1.20, ls: "0" },        // platform h2 / section heads
-    titleLg:          { size: 24,   weight: 400, lh: 1.35, ls: "0.12px" },   // section titles
-    titleMd:          { size: 20,   weight: 400, lh: 1.50, ls: "0" },        // sub-section titles
-    titleSm:          { size: 18,   weight: 500, lh: 1.40, ls: "0" },        // article-card titles
-    labelMd:          { size: 16,   weight: 500, lh: 1.40, ls: "0" },        // demo-card titles
-    button:           { size: 16,   weight: 500, lh: 1.40, ls: "0" },        // CTA button labels
-    bodyMd:           { size: 14,   weight: 400, lh: 1.25, ls: "0" },        // body copy, nav items
-    caption:          { size: 14,   weight: 500, lh: 1.35, ls: "0.16px" },   // meta text, breadcrumbs
-    legal:            { size: 13.12,weight: 600, lh: 1.20, ls: "0" },        // ToS / cookie banner only
-    monoSm:           { size: 12,   weight: 500, lh: 1.30, ls: "0" },        // small mono labels
-    monoMd:           { size: 14,   weight: 500, lh: 1.30, ls: "0" },        // delay min, flight IDs
+    displayXl:  { size: 56,  weight: 600, lh: 1.04, ls: "-0.022em" }, // landing h1
+    displayLg:  { size: 40,  weight: 600, lh: 1.10, ls: "-0.018em" }, // CTA band h2
+    displayMd:  { size: 28,  weight: 600, lh: 1.16, ls: "-0.012em" }, // section h2
+    titleLg:    { size: 20,  weight: 550, lh: 1.30, ls: "-0.008em" }, // card titles
+    titleMd:    { size: 16,  weight: 550, lh: 1.40, ls: "0" },        // panel titles
+    titleSm:    { size: 14,  weight: 550, lh: 1.40, ls: "0" },        // row titles
+    labelMd:    { size: 14,  weight: 500, lh: 1.40, ls: "0" },
+    button:     { size: 14,  weight: 500, lh: 1.40, ls: "0" },
+    bodyMd:     { size: 14,  weight: 400, lh: 1.55, ls: "0" },        // running text
+    caption:    { size: 12,  weight: 450, lh: 1.45, ls: "0" },        // meta text
+    legal:      { size: 12,  weight: 450, lh: 1.45, ls: "0" },
+    eyebrow:    { size: 11,  weight: 550, lh: 1.2,  ls: "0.14em" },   // THE caps style
+    monoSm:     { size: 11.5,weight: 450, lh: 1.5,  ls: "0" },
+    monoMd:     { size: 13,  weight: 500, lh: 1.5,  ls: "0" },
   },
 
   shadow: {
-    // Color-block first, shadow second. Use sparingly.
     flat:        "none",
-    buttonRest:  "0 1px 2px rgba(24,29,38,0.08)",
-    buttonFocus: "0 0 0 3px rgba(27,97,201,0.35)",
-    cardSoft:    "0 1px 2px rgba(24,29,38,0.06)",
-    cardElev:    "0 4px 16px rgba(24,29,38,0.08)",
-    overlay:     "0 12px 36px rgba(24,29,38,0.12)",
+    buttonRest:  "0 1px 2px rgba(15,20,18,0.10)",
+    buttonFocus: "0 0 0 3px var(--ae-focus)",
+    cardSoft:    "0 1px 2px rgba(15,20,18,0.05)",
+    cardElev:    "0 6px 24px rgba(15,20,18,0.10)",
+    overlay:     "0 16px 48px rgba(15,20,18,0.16)",
   },
 } as const
 
 export type Tokens = typeof tokens
 
-// Convenience aliases used by inline-style call sites that want shorter names.
+// Convenience aliases used by inline-style call sites.
 export const c  = tokens.colors
 export const r  = tokens.radius
 export const sp = tokens.spacing
@@ -146,8 +189,7 @@ export const ty = tokens.typography
 export const ff = tokens.fontFamily
 export const sh = tokens.shadow
 
-// ── Typography helpers ────────────────────────────────────────────────
-// Apply a typography role as inline styles. Avoids repeating 4 fields each call.
+// ── Typography helper ────────────────────────────────────────────────
 export function type(role: keyof typeof tokens.typography, color?: string) {
   const t = tokens.typography[role]
   return {
@@ -155,8 +197,9 @@ export function type(role: keyof typeof tokens.typography, color?: string) {
     fontWeight: t.weight,
     lineHeight: t.lh,
     letterSpacing: t.ls,
-    fontFamily: role.startsWith("display") || role.startsWith("title") ? ff.display : ff.body,
+    fontFamily: role.startsWith("display") ? ff.display : role.startsWith("mono") ? ff.mono : ff.body,
     color: color ?? c.body,
+    ...(role === "eyebrow" ? { textTransform: "uppercase" as const } : {}),
   } as const
 }
 

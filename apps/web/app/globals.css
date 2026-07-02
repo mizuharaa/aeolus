@@ -4,252 +4,271 @@
 @tailwind utilities;
 
 /* ══════════════════════════════════════════════════════════════════
-   Aeolus — Airtable Editorial Design System
+   Aeolus — five-pigment design system.
 
-   White canvas + near-black ink as the floor. Brand voltage lives in
-   signature surface cards (coral / forest / cream / peach / mint /
-   yellow / mustard) that punctuate the page every 2–3 screens.
+     ink #0F1412 · paper #F5F5F0 · teal #0D9488 · amber #B8863C · rust #C4674A
 
-   Source of truth: apps/web/lib/design-tokens.ts
-   Fonts loaded via <link> in layout.tsx (Inter Display + Inter).
+   Two registers, one token set:
+     :root           light register — landing, docs, scenarios
+     .register-dark  dark register  — the simulator app
 
-   Legacy --cs-* / --ember-* aliases are kept pointing at Airtable
-   tokens so existing components keep working until they get rewritten
-   in Slice 2. New code should reference tokens.ts directly.
+   Register-dependent roles are CSS custom properties; components read
+   them through lib/design-tokens.ts. Chromatic pigments are constant
+   across registers; only their *text steps* (--ae-*-ink) and tint
+   backgrounds re-resolve so 11–13px status text stays AA on each floor.
    ══════════════════════════════════════════════════════════════════ */
 
 @layer base {
   :root {
-    /* ── Airtable palette (canonical) ─────────────────────────────── */
-    --ae-primary:          #181d26;
-    --ae-primary-active:   #0d1218;
-    --ae-canvas:           #FFFFFF;
-    --ae-surface-soft:     #F8FAFC;
-    --ae-surface-strong:   #E0E2E6;
-    --ae-surface-dark:     #181d26;
-    --ae-surface-dark-elv: #1d1f25;
-    --ae-hairline:         #DDDDDD;
+    /* ── Pigments (constant) ─────────────────────────────────────────
+       FIVE colors total: ink, paper, gray (derived), teal, amber.
+       Amber is THE status color. "Cancelled / not operating" is neutral
+       gray + strike/✕ — an absence of operation, not a status hue.
+       The legacy --ae-rust* names are kept as ALIASES of amber so no
+       call site breaks; do not use them in new code. ─────────────── */
+    --ae-teal:  #0D9488;
+    --ae-amber: #B8863C;
+    --ae-rust:  var(--ae-amber);
 
-    --ae-ink:           #181d26;
-    --ae-body:          #333840;
-    --ae-muted:         #41454D;
-    --ae-border-strong: #9297A0;
-    --ae-on-primary:    #FFFFFF;
+    /* ── Light register ──────────────────────────────────────────── */
+    --ae-bg:            #F5F5F0;
+    --ae-surface:       #FAFAF6;
+    --ae-surface-2:     #EFEFE8;
+    --ae-surface-3:     #E2E2D9;
+    --ae-line:          rgba(15, 20, 18, 0.12);
+    --ae-line-strong:   rgba(15, 20, 18, 0.30);
+    --ae-text:          #0F1412;
+    --ae-text-2:        #3F4642;
+    --ae-text-3:        #6A716D;
 
-    --ae-signature-coral:   #AA2D00;
-    --ae-signature-forest:  #0A2E0E;
-    --ae-signature-cream:   #F5E9D4;
-    --ae-signature-peach:   #FCAB79;
-    --ae-signature-mint:    #A8D8C4;
-    --ae-signature-yellow:  #F4D35E;
-    --ae-signature-mustard: #D9A441;
+    --ae-primary:        #0F1412;
+    --ae-primary-active: #262D29;
+    --ae-on-primary:     #F5F5F0;
 
-    --ae-link:    #1B61C9;
-    --ae-info:    #254FAD;
-    --ae-success: #006400;
+    --ae-teal-ink:  #0B7065;
+    --ae-amber-ink: #7E5A20;
+    --ae-rust-ink:  var(--ae-amber-ink);
 
-    /* ── Status palette ───────────────────────────────────────────── */
-    --ae-status-ontime-ink:    #0A2E0E;
-    --ae-status-ontime-bg:     #E8F1E9;
-    --ae-status-delayed-ink:   #7A3E0F;
-    --ae-status-delayed-bg:    #FDEBD9;
-    --ae-status-cancelled-ink: #AA2D00;
-    --ae-status-cancelled-bg:  #F8E3D9;
-    --ae-status-recovered-ink: #0A2E0E;
-    --ae-status-recovered-bg:  #DDEFE5;
+    --ae-teal-bg:    rgba(13, 148, 136, 0.10);
+    --ae-amber-bg:   rgba(184, 134, 60, 0.13);
+    --ae-rust-bg:    var(--ae-amber-bg);
+    --ae-neutral-bg: rgba(15, 20, 18, 0.05);
+    --ae-amber-soft:  rgba(184, 134, 60, 0.55);
+    --ae-amber-soft2: rgba(184, 134, 60, 0.30);
 
-    /* ── Cascade severity ─────────────────────────────────────────── */
-    --ae-cascade-direct:  #AA2D00;
-    --ae-cascade-order1:  #D9A441;
-    --ae-cascade-order2:  #F4D35E;
-    --ae-cascade-none:    #DDDDDD;
+    --ae-focus: rgba(13, 148, 136, 0.35);
 
-    /* ── Radii ────────────────────────────────────────────────────── */
-    --ae-r-xs:   2px;
-    --ae-r-sm:   6px;
-    --ae-r-md:   10px;
-    --ae-r-lg:   12px;
-    --ae-r-pill: 9999px;
-
-    /* ── Spacing ──────────────────────────────────────────────────── */
-    --ae-sp-xxs:     4px;
-    --ae-sp-xs:      8px;
-    --ae-sp-sm:     12px;
-    --ae-sp-md:     16px;
-    --ae-sp-lg:     24px;
-    --ae-sp-xl:     32px;
-    --ae-sp-xxl:    48px;
-    --ae-sp-section: 96px;
-
-    /* ── Fonts ────────────────────────────────────────────────────── */
+    /* ── Fonts ───────────────────────────────────────────────────── */
     --ae-font-display: "Inter Display", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     --ae-font-body:    "Inter", "Inter Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     --ae-font-mono:    "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
 
-    /* ── Shadows (sparse, color-block-first) ──────────────────────── */
-    --ae-shadow-button:    0 1px 2px rgba(24,29,38,0.08);
-    --ae-shadow-card:      0 1px 2px rgba(24,29,38,0.06);
-    --ae-shadow-card-elev: 0 4px 16px rgba(24,29,38,0.08);
-    --ae-shadow-overlay:   0 12px 36px rgba(24,29,38,0.12);
-    --ae-shadow-focus:     0 0 0 3px rgba(27,97,201,0.35);
+    /* ── Shadows ─────────────────────────────────────────────────── */
+    --ae-shadow-button:    0 1px 2px rgba(15, 20, 18, 0.10);
+    --ae-shadow-card:      0 1px 2px rgba(15, 20, 18, 0.05);
+    --ae-shadow-card-elev: 0 6px 24px rgba(15, 20, 18, 0.10);
+    --ae-shadow-overlay:   0 16px 48px rgba(15, 20, 18, 0.16);
+    --ae-shadow-focus:     0 0 0 3px var(--ae-focus);
 
-    /* ── Legacy aliases — point at Airtable tokens so old components keep working ── */
-    --cs-primary:        var(--ae-primary);
-    --cs-primary-hover:  var(--ae-primary-active);
-    --cs-secondary:      var(--ae-signature-mustard);
-    --cs-bg:             var(--ae-canvas);
-    --cs-surface:        var(--ae-surface-soft);
-    --cs-surface-raised: var(--ae-surface-strong);
-    --cs-border:         var(--ae-hairline);
-    --cs-text:           var(--ae-ink);
-    --cs-text-2:         var(--ae-muted);
-    --cs-neutral:        var(--ae-border-strong);
-    --cs-success:        var(--ae-success);
-    --cs-warning:        var(--ae-signature-mustard);
-    --cs-error:          var(--ae-signature-coral);
+    /* ── shadcn/Tailwind semantic bridge (light) ─────────────────── */
+    --background:   60 14% 95%;            /* paper */
+    --foreground:   160 14% 6%;            /* ink */
+    --card:         60 25% 97%;
+    --card-foreground: 160 14% 6%;
+    --primary:      160 14% 6%;
+    --primary-foreground: 60 14% 95%;
+    --secondary:    60 12% 92%;
+    --secondary-foreground: 160 14% 6%;
+    --muted:        60 12% 92%;
+    --muted-foreground: 150 3% 42%;
+    --accent:       60 12% 92%;
+    --accent-foreground: 160 14% 6%;
+    --destructive:  37 59% 31%;            /* amber ink */
+    --destructive-foreground: 60 14% 95%;
+    --border:       160 14% 6% / 0.12;
+    --input:        160 14% 6% / 0.16;
+    --ring:         174 84% 32%;           /* teal */
+    --radius:       0.625rem;
 
-    --ember-primary:        var(--ae-primary);
-    --ember-primary-hover:  var(--ae-primary-active);
-    --ember-accent:         var(--ae-signature-mustard);
-    --ember-bg:             var(--ae-canvas);
-    --ember-surface:        var(--ae-surface-soft);
-    --ember-surface-raised: var(--ae-surface-strong);
-    --ember-border:         var(--ae-hairline);
-    --ember-text:           var(--ae-ink);
-    --ember-text-2:         var(--ae-muted);
-    --ember-neutral:        var(--ae-border-strong);
-
-    /* ── Tailwind / shadcn semantic bridge ────────────────────────── */
-    --background:   0 0% 100%;
-    --foreground:   220 17% 12%;        /* #181d26 */
-    --card:         0 0% 100%;
-    --card-foreground: 220 17% 12%;
-    --primary:      220 17% 12%;        /* near-black */
-    --primary-foreground: 0 0% 100%;
-    --secondary:    18 100% 33%;        /* coral signature */
-    --secondary-foreground: 0 0% 100%;
-    --muted:        210 20% 98%;
-    --muted-foreground: 220 8% 28%;
-    --accent:       210 20% 98%;
-    --accent-foreground: 220 17% 12%;
-    --destructive:  18 100% 33%;        /* coral */
-    --destructive-foreground: 0 0% 100%;
-    --border:       0 0% 87%;           /* #DDDDDD hairline */
-    --input:        0 0% 87%;
-    --ring:         215 70% 45%;        /* link blue for focus */
-    --radius:       0.625rem;           /* 10px md */
-
-    /* Legacy shadow names */
+    /* Legacy shadow names still referenced by old components */
     --shadow-card:  var(--ae-shadow-card);
     --shadow-hover: var(--ae-shadow-card-elev);
     --shadow-modal: var(--ae-shadow-overlay);
-    --shadow-coral: 0 4px 16px rgba(170,45,0,0.25);
-    --shadow-teal:  0 4px 16px rgba(24,29,38,0.10);
-    --shadow-nav:   0 1px 0 var(--ae-hairline);
+    --shadow-nav:   0 1px 0 var(--ae-line);
+  }
+
+  /* ── Dark register — the simulator ───────────────────────────────── */
+  .register-dark {
+    --ae-bg:            #0F1412;
+    --ae-surface:       #141917;
+    --ae-surface-2:     #1A201D;
+    --ae-surface-3:     #242B27;
+    --ae-line:          rgba(245, 245, 240, 0.10);
+    --ae-line-strong:   rgba(245, 245, 240, 0.26);
+    --ae-text:          #ECEEE9;
+    --ae-text-2:        #B9BEB7;
+    --ae-text-3:        #878E88;
+
+    --ae-primary:        #0D9488;
+    --ae-primary-active: #0B7F75;
+    --ae-on-primary:     #0F1412;
+
+    --ae-teal-ink:  #45B3A5;
+    --ae-amber-ink: #CDA05E;
+    --ae-rust-ink:  var(--ae-amber-ink);
+
+    --ae-teal-bg:    rgba(13, 148, 136, 0.16);
+    --ae-amber-bg:   rgba(184, 134, 60, 0.16);
+    --ae-rust-bg:    var(--ae-amber-bg);
+    --ae-neutral-bg: rgba(245, 245, 240, 0.06);
+    --ae-amber-soft:  rgba(184, 134, 60, 0.60);
+    --ae-amber-soft2: rgba(184, 134, 60, 0.34);
+
+    --ae-focus: rgba(13, 148, 136, 0.45);
+
+    --ae-shadow-button:    0 1px 2px rgba(0, 0, 0, 0.4);
+    --ae-shadow-card:      0 1px 2px rgba(0, 0, 0, 0.3);
+    --ae-shadow-card-elev: 0 8px 28px rgba(0, 0, 0, 0.45);
+    --ae-shadow-overlay:   0 16px 48px rgba(0, 0, 0, 0.55);
+
+    /* shadcn bridge (dark) — Tailwind utility classes inside the
+       simulator (text-muted-foreground, border-border, bg-secondary…)
+       resolve into the dark register automatically. */
+    --background:   150 9% 6%;
+    --foreground:   80 11% 92%;
+    --card:         150 7% 9%;
+    --card-foreground: 80 11% 92%;
+    --primary:      174 84% 32%;
+    --primary-foreground: 150 9% 6%;
+    --secondary:    150 7% 11%;
+    --secondary-foreground: 80 11% 92%;
+    --muted:        150 7% 11%;
+    --muted-foreground: 140 3% 54%;
+    --accent:       150 7% 13%;
+    --accent-foreground: 80 11% 92%;
+    --destructive:  36 53% 59%;
+    --destructive-foreground: 150 9% 6%;
+    --border:       80 11% 95% / 0.10;
+    --input:        80 11% 95% / 0.14;
+    --ring:         174 84% 40%;
+
+    color-scheme: dark;
   }
 
   html { color-scheme: light; }
   * { @apply border-border; box-sizing: border-box; }
 
   body {
-    background: var(--ae-canvas);
-    color: var(--ae-body);
+    background: var(--ae-bg);
+    color: var(--ae-text-2);
     font-family: var(--ae-font-body);
     font-size: 14px;
     font-weight: 400;
-    line-height: 1.25;
+    line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "cv11", "ss01";
   }
 
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--ae-font-display);
-    color: var(--ae-ink);
-    font-weight: 400;   /* display weight is intentionally light */
-    letter-spacing: 0;
+    color: var(--ae-text);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  ::selection { background: rgba(13, 148, 136, 0.22); }
+
+  /* Motion discipline: continuous decorative animation is banned. On
+     reduced-motion, everything snaps. */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   Component primitives — Airtable button system
+   Component primitives
    ══════════════════════════════════════════════════════════════════ */
 
-/* Primary CTA — near-black ink. One per viewport. */
+/* Primary CTA — ink on light register, teal on dark. One per viewport. */
 .btn-primary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 12px 24px;
-  min-height: 44px;
+  padding: 11px 22px;
+  min-height: 42px;
   font-family: var(--ae-font-body);
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 500;
   line-height: 1.4;
   letter-spacing: 0;
   color: var(--ae-on-primary);
   background: var(--ae-primary);
   border: 1px solid var(--ae-primary);
-  border-radius: var(--ae-r-lg);     /* 12px */
+  border-radius: 10px;
   cursor: pointer;
-  transition: background 150ms ease, transform 100ms ease;
+  transition: background 150ms ease, border-color 150ms ease;
   white-space: nowrap;
   box-shadow: var(--ae-shadow-button);
 }
 .btn-primary:hover:not(:disabled) { background: var(--ae-primary-active); border-color: var(--ae-primary-active); }
-.btn-primary:active:not(:disabled) { background: var(--ae-primary-active); transform: scale(0.98); }
+.btn-primary:active:not(:disabled) { background: var(--ae-primary-active); }
 .btn-primary:focus-visible { outline: none; box-shadow: var(--ae-shadow-focus); }
 .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
 
-/* Secondary CTA — canvas with hairline outline. The pair to btn-primary. */
+/* Secondary CTA — surface + hairline. */
 .btn-secondary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 12px 24px;
-  min-height: 44px;
+  padding: 11px 22px;
+  min-height: 42px;
   font-family: var(--ae-font-body);
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 500;
   line-height: 1.4;
-  color: var(--ae-ink);
-  background: var(--ae-canvas);
-  border: 1px solid var(--ae-hairline);
-  border-radius: var(--ae-r-lg);
+  color: var(--ae-text);
+  background: transparent;
+  border: 1px solid var(--ae-line-strong);
+  border-radius: 10px;
   cursor: pointer;
-  transition: background 150ms ease, border-color 150ms ease, transform 100ms ease;
+  transition: background 150ms ease, border-color 150ms ease;
   white-space: nowrap;
 }
-.btn-secondary:hover:not(:disabled) { background: var(--ae-surface-soft); border-color: var(--ae-border-strong); }
-.btn-secondary:active:not(:disabled) { transform: scale(0.98); }
+.btn-secondary:hover:not(:disabled) { background: var(--ae-neutral-bg); }
 .btn-secondary:focus-visible { outline: none; box-shadow: var(--ae-shadow-focus); }
-.btn-secondary:disabled { color: var(--ae-border-strong); border-color: var(--ae-hairline); cursor: not-allowed; }
+.btn-secondary:disabled { color: var(--ae-text-3); border-color: var(--ae-line); cursor: not-allowed; }
 
-/* Small CTA — compact variant for dense panels. Keeps shape, scales down. */
 .btn-primary--sm,
 .btn-secondary--sm {
-  padding: 8px 14px;
-  min-height: 32px;
+  padding: 7px 13px;
+  min-height: 31px;
   font-size: 13px;
+  border-radius: 8px;
 }
 
-/* Legacy classes — kept as aliases so old components still render correctly. */
+/* Legacy aliases */
 .btn-gold,
 .btn-teal {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 8px 14px;
-  min-height: 32px;
+  padding: 7px 13px;
+  min-height: 31px;
   font-family: var(--ae-font-body);
   font-size: 13px;
   font-weight: 500;
   color: var(--ae-on-primary);
   background: var(--ae-primary);
   border: 1px solid var(--ae-primary);
-  border-radius: var(--ae-r-lg);
+  border-radius: 8px;
   cursor: pointer;
   transition: background 150ms ease;
   white-space: nowrap;
@@ -259,79 +278,76 @@
 .btn-gold:disabled,
 .btn-teal:disabled { opacity: 0.45; cursor: not-allowed; }
 
-/* Panel header — kept for compatibility */
+/* Panel header */
 .panel-header {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 16px 24px;
-  border-bottom: 1px solid var(--ae-hairline);
-  background: var(--ae-canvas);
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--ae-line);
+  background: var(--ae-surface);
   flex-shrink: 0;
 }
 
-/* Typography utility classes */
 .section-title {
-  font-family: var(--ae-font-display);
-  font-size: 20px;
-  font-weight: 400;
-  line-height: 1.5;
-  color: var(--ae-ink);
+  font-family: var(--ae-font-body);
+  font-size: 15px;
+  font-weight: 550;
+  line-height: 1.4;
+  color: var(--ae-text);
   letter-spacing: 0;
 }
 
+/* Eyebrow — THE one sanctioned uppercase style. 11px, wide tracking, muted. */
 .section-badge,
 .ember-label {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   font-family: var(--ae-font-body);
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.08em;
+  font-size: 11px;
+  font-weight: 550;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--ae-muted);
+  color: var(--ae-text-3);
 }
 
 /* Card surfaces */
 .ember-card,
 .surface-card {
-  background: var(--ae-canvas);
-  border: 1px solid var(--ae-hairline);
-  border-radius: var(--ae-r-md);
+  background: var(--ae-surface);
+  border: 1px solid var(--ae-line);
+  border-radius: 10px;
   box-shadow: var(--ae-shadow-card);
-  transition: box-shadow 200ms ease;
 }
-.ember-card:hover { box-shadow: var(--ae-shadow-card-elev); }
 
 .surface-floating {
-  background: rgba(255,255,255,0.97);
-  backdrop-filter: blur(16px);
-  border: 1px solid var(--ae-hairline);
-  border-radius: var(--ae-r-lg);
+  background: var(--ae-surface);
+  border: 1px solid var(--ae-line);
+  border-radius: 12px;
   box-shadow: var(--ae-shadow-overlay);
 }
 
-/* Signature surface cards — brand voltage moments. Use sparingly. */
+/* Legacy signature cards — all collapse to the ink feature card. */
 .signature-coral,
 .signature-forest,
 .signature-dark {
-  border-radius: var(--ae-r-lg);
-  padding: var(--ae-sp-xxl);
-  color: var(--ae-on-primary);
+  border-radius: 12px;
+  padding: 48px;
+  color: #ECEEE9;
+  background: #0F1412;
+  border: 1px solid rgba(245, 245, 240, 0.08);
 }
-.signature-coral  { background: var(--ae-signature-coral); }
-.signature-forest { background: var(--ae-signature-forest); }
-.signature-dark   { background: var(--ae-surface-dark); }
 
 .signature-cream {
-  background: var(--ae-signature-cream);
-  color: var(--ae-ink);
-  border-radius: var(--ae-r-md);
-  padding: var(--ae-sp-lg);
+  background: var(--ae-surface-2);
+  color: var(--ae-text);
+  border-radius: 10px;
+  padding: 24px;
+  border: 1px solid var(--ae-line);
 }
 
-/* Monospace — flight IDs, delay minutes, costs */
+/* Monospace data */
 .ember-code {
   font-family: var(--ae-font-mono);
   font-size: 12px;
@@ -340,11 +356,11 @@
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   Leaflet map
+   Leaflet — dark register styling (the map only exists in the simulator)
    ══════════════════════════════════════════════════════════════════ */
 
 .leaflet-container {
-  background: #EDEEF0 !important;
+  background: #0F1412 !important;
   font-family: var(--ae-font-body);
 }
 
@@ -357,29 +373,30 @@
 .simulator-map-shell .leaflet-container { outline: none; }
 .simulator-map-shell .leaflet-control-container { z-index: 1000; }
 
-/* Subtle neutral tile treatment — no warm tint */
+/* Dark tiles arrive nearly right; nudge saturation down so route/status
+   pigments own all chroma on the canvas. */
 .leaflet-tile {
-  filter: saturate(0.85) brightness(1.02) contrast(0.98);
+  filter: saturate(0.6) brightness(0.94) contrast(1.02);
 }
 
 .leaflet-bar a {
-  background: var(--ae-canvas) !important;
-  color: var(--ae-ink) !important;
-  border-color: var(--ae-hairline) !important;
+  background: var(--ae-surface) !important;
+  color: var(--ae-text) !important;
+  border-color: var(--ae-line) !important;
   font-weight: 500;
 }
 .leaflet-bar a:hover {
-  background: var(--ae-surface-soft) !important;
-  color: var(--ae-primary) !important;
+  background: var(--ae-surface-2) !important;
+  color: var(--ae-teal-ink) !important;
 }
 
 .leaflet-popup-content-wrapper,
 .leaflet-tooltip {
-  border-radius: var(--ae-r-md) !important;
-  border: 1px solid var(--ae-hairline) !important;
+  border-radius: 8px !important;
+  border: 1px solid var(--ae-line) !important;
   box-shadow: var(--ae-shadow-card-elev) !important;
-  background: var(--ae-canvas) !important;
-  color: var(--ae-ink) !important;
+  background: var(--ae-surface) !important;
+  color: var(--ae-text) !important;
 }
 .leaflet-tooltip {
   padding: 6px 10px !important;
@@ -393,12 +410,13 @@
 .leaflet-tooltip-right:before { display: none; }
 
 .leaflet-control-attribution {
-  background: rgba(255,255,255,0.88) !important;
+  background: rgba(15, 20, 18, 0.75) !important;
   font-size: 10px !important;
   padding: 2px 6px !important;
-  border-radius: var(--ae-r-sm) !important;
-  color: var(--ae-muted) !important;
+  border-radius: 6px !important;
+  color: var(--ae-text-3) !important;
 }
+.leaflet-control-attribution a { color: var(--ae-text-3) !important; }
 
 /* ══════════════════════════════════════════════════════════════════
    Scrollbars
@@ -407,92 +425,55 @@
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: var(--ae-hairline);
+  background: var(--ae-line-strong);
   border-radius: 99px;
 }
-::-webkit-scrollbar-thumb:hover { background: var(--ae-border-strong); }
+::-webkit-scrollbar-thumb:hover { background: var(--ae-text-3); }
 
 .cascade-timeline-scroll::-webkit-scrollbar { width: 4px; }
 .cascade-timeline-scroll::-webkit-scrollbar-thumb {
-  background: rgba(24,29,38,0.15);
+  background: var(--ae-line-strong);
   border-radius: 99px;
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   Animations
+   Animations — state-change only. No continuous decorative pulses.
    ══════════════════════════════════════════════════════════════════ */
-
-@keyframes plane-pulse {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50%       { transform: scale(1.18); opacity: 0.85; }
-}
-.animate-plane-pulse { animation: plane-pulse 1.6s ease-in-out infinite; }
-
-@keyframes ripple {
-  0%   { transform: scale(0.4); opacity: 0.7; }
-  100% { transform: scale(3.0); opacity: 0; }
-}
-.animate-ripple { animation: ripple 2.2s ease-out infinite; }
 
 @keyframes shimmer {
   0%   { background-position: -200% 0; }
   100% { background-position:  200% 0; }
 }
 .shimmer-bg {
-  background: linear-gradient(90deg, transparent, rgba(24,29,38,0.04), transparent);
+  background: linear-gradient(90deg, transparent, var(--ae-neutral-bg), transparent);
   background-size: 200% 100%;
   animation: shimmer 2s linear infinite;
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   Leaflet route animations — applied-plan visual semantics
-
-   Routes on the map use these classes (set via `pathOptions.className`
-   in flight-map.tsx). The React key on each Polyline is folded with
-   `applyEpoch`, so applying a plan remounts the layer and re-runs the
-   `ae-route-fade-in` keyframe — the operator perceives the apply as
-   an actual visual event, not an in-place color swap.
-
-   `.ae-route-flow` is the GREEN swap/reroute treatment: a moving dash
-   pattern that reads as "the system is actively rerouting this leg".
-   `.ae-route-cancelled` keeps the line clickable (Leaflet's default
-   cursor: pointer) but visually mutes it — a faint slow pulse signals
-   "you can still inspect this; it's just no longer operating".
-   ══════════════════════════════════════════════════════════════════ */
-
+/* Leaflet route semantics — applying a plan remounts the layer (React key
+   folds applyEpoch) so the fade-in reads as an actual event. The flowing
+   dash on swap routes is FUNCTIONAL motion: it encodes "actively being
+   rerouted", not decoration. */
 @keyframes ae-route-fade-in {
   from { opacity: 0; }
   to   { opacity: var(--ae-route-target-opacity, 1); }
 }
 
 @keyframes ae-route-dash-flow {
-  /* dash period = 8 + 6 = 14; offset that distance over the cycle so the
-     dashes appear to flow along the line at a constant cadence. */
   from { stroke-dashoffset: 0;   }
   to   { stroke-dashoffset: -28; }
 }
 
-@keyframes ae-route-cancel-pulse {
-  0%, 100% { opacity: 0.30; }
-  50%      { opacity: 0.45; }
-}
-
-/* All applied-plan routes fade in on remount. */
 .ae-route {
   animation: ae-route-fade-in 350ms ease-out;
 }
 
-/* Swap/reroute = flowing green beam. The keyframe drives stroke-dashoffset
-   so the dash pattern visually walks along the line. We also slightly
-   thicken on hover so the operator can tell they're clickable. */
 .ae-route-flow {
   animation: ae-route-fade-in 350ms ease-out, ae-route-dash-flow 1.6s linear infinite;
 }
 
-/* Cancelled = grey + faint slow pulse so the line still reads as
-   interactive but visually recedes behind the live routes. */
 .ae-route-cancelled {
-  animation: ae-route-fade-in 350ms ease-out, ae-route-cancel-pulse 3s ease-in-out infinite;
+  animation: ae-route-fade-in 350ms ease-out;
   cursor: pointer;
 }
 
@@ -500,6 +481,8 @@
 @media (max-width: 960px) {
   .hero-grid {
     grid-template-columns: 1fr !important;
-    gap: 40px !important;
+    gap: 48px !important;
   }
+  /* The scroll-driven aircraft needs room to fly — desktop only. */
+  .ae-scroll-plane { display: none !important; }
 }

@@ -8,22 +8,24 @@ import { Eyebrow, Type } from "@/components/ds/primitives"
 const HOURS = Array.from({ length: 18 }, (_, i) => i + 6) // 6:00–23:00 UTC
 
 // ─── Cascade severity → token color ───────────────────────────────────────
-// Same palette used by the map markers and plan badges so a coral block here
-// means the same thing as a coral marker on the map.
-function getBarColor(status: string, cascadeOrder: number): { bg: string; border: string } {
+// Same vocabulary as the map markers and plan badges: rust = direct hit,
+// amber = cascade (order 2 is a lighter step of the same amber), muted gray
+// = cancelled (not operating), quiet neutral = nominal. Cancelled is never
+// color-alone — the bar also renders dashed.
+function getBarColor(status: string, cascadeOrder: number): { bg: string; border: string; dashed?: boolean } {
   if (status === "cancelled") {
-    return { bg: c.signatureCoral,   border: c.signatureCoral }
+    return { bg: "var(--ae-neutral-bg)", border: "var(--ae-line-strong)", dashed: true }
   }
   if (cascadeOrder === 0) {
-    return { bg: c.cascadeDirect,    border: c.cascadeDirect }    // coral — direct hit
+    return { bg: c.cascadeDirect, border: c.cascadeDirect }      // rust — direct hit
   }
   if (cascadeOrder === 1) {
-    return { bg: c.cascadeOrder1,    border: c.cascadeOrder1 }    // mustard
+    return { bg: c.cascadeOrder1, border: c.cascadeOrder1 }      // amber
   }
   if (cascadeOrder === 2) {
-    return { bg: c.cascadeOrder2,    border: c.cascadeOrder2 }    // yellow
+    return { bg: c.cascadeOrder2, border: c.cascadeOrder2 }      // amber, soft step
   }
-  return { bg: c.statusOnTime.dot, border: c.statusOnTime.ink }    // forest
+  return { bg: "var(--ae-surface-3)", border: c.borderStrong }   // nominal — quiet
 }
 
 function parseHourUTC(isoStr: string): number {
@@ -83,12 +85,12 @@ export function CascadeTimeline({
             <div style={{ ...type("caption", c.muted), fontSize: 11, marginTop: 1 }}>18-hour window · UTC</div>
           </div>
 
-          {/* Legend — semantic palette, hairline borders */}
+          {/* Legend — same vocabulary as the map */}
           <div className="hidden md:flex flex-wrap items-center justify-end" style={{ gap: 16, fontSize: 11, color: c.body, fontFamily: ff.body, fontWeight: 500 }}>
-            <LegendSwatch color={c.cascadeDirect}     label="Direct" />
-            <LegendSwatch color={c.cascadeOrder1}     label="Cascade" />
-            <LegendSwatch color={c.signatureCoral}    label="Cancelled" />
-            <LegendSwatch color={c.statusOnTime.dot}  label="On time" />
+            <LegendSwatch color={c.cascadeDirect}          label="Direct" />
+            <LegendSwatch color={c.cascadeOrder1}          label="Cascade" />
+            <LegendSwatch color="var(--ae-line-strong)"    label="Cancelled" />
+            <LegendSwatch color="var(--ae-surface-3)"      label="On time" />
           </div>
         </div>
       </div>
@@ -180,8 +182,8 @@ export function CascadeTimeline({
                   borderBottom: `1px solid ${c.hairline}`,
                   cursor: "pointer",
                   minHeight: 46,
-                  background: isSelected ? c.statusDelayed.bg : zebra,
-                  boxShadow: isSelected ? `inset 0 0 0 1px ${c.signaturePeach}` : undefined,
+                  background: isSelected ? "var(--ae-teal-bg)" : zebra,
+                  boxShadow: isSelected ? "inset 0 0 0 1px var(--ae-teal)" : undefined,
                 }}
               >
                 <div
@@ -202,7 +204,7 @@ export function CascadeTimeline({
                       fontFamily: ff.mono,
                       fontWeight: 600,
                       lineHeight: 1.2,
-                      color: isSelected ? c.statusDelayed.ink : c.ink,
+                      color: c.ink,
                       fontVariantNumeric: "tabular-nums",
                     }}
                   >
@@ -258,11 +260,11 @@ export function CascadeTimeline({
                       bottom: 8,
                       borderRadius: r.sm,
                       background: palette.bg,
-                      border: `1px solid ${palette.border}`,
+                      border: `1px ${palette.dashed ? "dashed" : "solid"} ${palette.border}`,
                       left: `${leftPct}%`,
                       width: `${widthPct}%`,
                       minWidth: 6,
-                      boxShadow: isSelected ? `0 0 0 2px ${c.canvas}, 0 0 0 4px ${c.signaturePeach}` : undefined,
+                      boxShadow: isSelected ? `0 0 0 2px ${c.canvas}, 0 0 0 3.5px var(--ae-teal)` : undefined,
                     }}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}

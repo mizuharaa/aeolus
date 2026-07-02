@@ -1,25 +1,21 @@
 "use client"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Wifi, WifiOff, RotateCcw } from "lucide-react"
+import { RotateCcw } from "lucide-react"
 import { AeolusLogo } from "@/components/ds/logo"
 import { useSimulationStore } from "@/stores/simulation"
 import { apiClient } from "@/lib/api"
 import { toast } from "sonner"
 import { useMemo } from "react"
-import { c, ff, r, sp } from "@/lib/design-tokens"
-import { ButtonPrimary, ButtonSecondary, StatusBadge } from "@/components/ds/primitives"
+import { c, ff } from "@/lib/design-tokens"
 
 /**
- * Top nav — `{component.top-nav}` from DESIGN.md.
+ * Simulator top bar — dark register.
  *
- * White canvas, 64px tall, hairline bottom border. The nav stays light on
- * every page; never inverts over dark sections.
- *
- * Left:   Aeolus wordmark (with the small near-black tile icon, no gold).
- * Center: Horizontal route menu (Simulator / Plans / Cascade / Crew /
- *         Passengers / Stress Test / Carbon).
- * Right:  Connection pill + Reset (secondary) + status badges as compact pills.
+ * Flat ink surface, hairline bottom border. Routes are underline tabs
+ * (teal rule on the active route), not boxed pills. Fleet status is plain
+ * text with pigment dots. The connection indicator is THE one live dot in
+ * the app: small, solid, static — teal connected, rust offline.
  */
 interface SimulatorNavProps {
   isConnected: boolean
@@ -27,14 +23,14 @@ interface SimulatorNavProps {
 }
 
 const NAV_LINKS = [
-  { href: "/simulator",              label: "Simulator" },
-  { href: "/simulator/playtest",     label: "Playtest" },
-  { href: "/simulator/plans",        label: "Plans" },
-  { href: "/simulator/cascade",      label: "Cascade" },
-  { href: "/simulator/crew",         label: "Crew" },
-  { href: "/simulator/passengers",   label: "Passengers" },
-  { href: "/simulator/stress-test",  label: "Stress test" },
-  { href: "/simulator/carbon",       label: "Carbon" },
+  { href: "/simulator",             label: "Simulator" },
+  { href: "/simulator/playtest",    label: "Playtest" },
+  { href: "/simulator/plans",       label: "Plans" },
+  { href: "/simulator/cascade",     label: "Cascade" },
+  { href: "/simulator/crew",        label: "Crew" },
+  { href: "/simulator/passengers",  label: "Passengers" },
+  { href: "/simulator/stress-test", label: "Stress test" },
+  { href: "/simulator/carbon",      label: "Carbon" },
 ] as const
 
 export function SimulatorNav({ isConnected }: SimulatorNavProps) {
@@ -70,24 +66,21 @@ export function SimulatorNav({ isConnected }: SimulatorNavProps) {
   return (
     <nav
       style={{
-        height: 64,
+        height: 60,
         display: "flex",
-        alignItems: "center",
-        gap: sp.md,
-        paddingLeft: sp.lg,
-        paddingRight: sp.lg,
-        background: c.canvas,
+        alignItems: "stretch",
+        gap: 20,
+        paddingLeft: 20,
+        paddingRight: 20,
+        background: "var(--ae-bg)",
         borderBottom: `1px solid ${c.hairline}`,
         flexShrink: 0,
         zIndex: 50,
         fontFamily: ff.body,
-        // Overall horizontal containment: prevent the bar itself from causing
-        // page-level overflow. The route menu is the one element allowed to
-        // scroll horizontally.
         minWidth: 0,
       }}
     >
-      {/* ── Wordmark (never compresses) ── */}
+      {/* ── Wordmark ── */}
       <Link
         href="/"
         style={{
@@ -98,12 +91,12 @@ export function SimulatorNav({ isConnected }: SimulatorNavProps) {
           flexShrink: 0,
         }}
       >
-        <AeolusLogo size={28} />
+        <AeolusLogo size={26} />
         <span
           style={{
             fontFamily: ff.display,
-            fontWeight: 500,
-            fontSize: 18,
+            fontWeight: 600,
+            fontSize: 16,
             lineHeight: 1,
             color: c.ink,
             letterSpacing: "-0.01em",
@@ -111,13 +104,11 @@ export function SimulatorNav({ isConnected }: SimulatorNavProps) {
         >
           Aeolus
         </span>
-        {/* The "Nimbus Air OCC" subtitle hides below 1100px so it doesn't
-            collide with the route menu on standard laptop widths. */}
         <span
           className="ae-nav-subtitle"
           style={{
             fontFamily: ff.body,
-            fontSize: 13,
+            fontSize: 12.5,
             fontWeight: 400,
             color: c.muted,
             borderLeft: `1px solid ${c.hairline}`,
@@ -130,25 +121,18 @@ export function SimulatorNav({ isConnected }: SimulatorNavProps) {
         </span>
       </Link>
 
-      {/* ── Center route menu — own its overflow lane ──
-          The wordmark + right cluster are pinned (flexShrink: 0). The menu
-          itself is `flex: 1, overflow-x: auto` so when the 8 route labels
-          are wider than the available canvas, the menu scrolls horizontally
-          INSIDE the bar rather than pushing the right cluster off-screen. */}
+      {/* ── Route menu — underline tabs, scrolls in its own lane ── */}
       <div
         className="ae-nav-routes"
         style={{
           flex: 1,
           minWidth: 0,
           display: "flex",
-          alignItems: "center",
-          gap: 4,
+          alignItems: "stretch",
+          gap: 2,
           overflowX: "auto",
           overflowY: "hidden",
-          // Hide the scrollbar on Firefox / WebKit; the underlying scroll
-          // gesture still works (trackpad swipe, shift+wheel).
           scrollbarWidth: "none",
-          // ms-overflow-style:none for legacy Edge.
           msOverflowStyle: "none",
         }}
       >
@@ -160,14 +144,16 @@ export function SimulatorNav({ isConnected }: SimulatorNavProps) {
               href={link.href}
               style={{
                 fontFamily: ff.body,
-                fontSize: 14,
-                fontWeight: active ? 500 : 400,
-                color: active ? c.ink : c.body,
+                fontSize: 13.5,
+                fontWeight: active ? 550 : 450,
+                color: active ? c.ink : c.muted,
                 textDecoration: "none",
-                padding: "8px 12px",
-                borderRadius: r.sm,
-                background: active ? c.surfaceSoft : "transparent",
-                transition: "background 150ms ease, color 150ms ease",
+                padding: "0 12px",
+                display: "inline-flex",
+                alignItems: "center",
+                borderBottom: active ? "2px solid var(--ae-teal)" : "2px solid transparent",
+                marginBottom: -1,
+                transition: "color 150ms ease, border-color 150ms ease",
                 whiteSpace: "nowrap",
                 flexShrink: 0,
               }}
@@ -178,98 +164,106 @@ export function SimulatorNav({ isConnected }: SimulatorNavProps) {
         })}
       </div>
 
-      {/* ── Right cluster (pinned, never compresses) ── */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
-        {/* Status pills — hidden below 1400px so they don't crowd the
-            route menu's scroll lane on standard laptops. */}
+      {/* ── Right cluster ── */}
+      <div style={{ display: "flex", alignItems: "center", gap: 16, flexShrink: 0 }}>
+        {/* Fleet status — plain text, pigment dots */}
         {stats.total > 0 && (
-          <div className="ae-nav-stats" style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <StatusBadge kind="on-time"   count={stats.onTime}    compact />
-            {stats.delayed   > 0 && <StatusBadge kind="delayed"   count={stats.delayed}   compact />}
-            {stats.cancelled > 0 && <StatusBadge kind="cancelled" count={stats.cancelled} compact />}
+          <div
+            className="ae-nav-stats"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 14,
+              fontSize: 12,
+              color: c.muted,
+              fontVariantNumeric: "tabular-nums",
+            }}
+          >
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <span style={{ fontFamily: ff.mono, fontWeight: 550, color: c.ink }}>{stats.onTime}</span>
+              on time
+            </span>
+            {stats.delayed > 0 && (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--ae-amber)" }} />
+                <span style={{ fontFamily: ff.mono, fontWeight: 550, color: c.ink }}>{stats.delayed}</span>
+                delayed
+              </span>
+            )}
+            {stats.cancelled > 0 && (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--ae-line-strong)" }} />
+                <span style={{ fontFamily: ff.mono, fontWeight: 550, color: c.ink }}>{stats.cancelled}</span>
+                cancelled
+              </span>
+            )}
           </div>
         )}
 
-        <div className="ae-nav-stats" style={{ width: 1, height: 20, background: c.hairline }} />
+        <div className="ae-nav-stats" style={{ width: 1, height: 18, background: c.hairline }} />
 
-        <ConnectionPill connected={isConnected} />
+        {/* THE live indicator — static dot, no animation */}
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 7,
+            fontSize: 12,
+            fontWeight: 500,
+            color: c.muted,
+            lineHeight: 1,
+          }}
+        >
+          <span
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: "50%",
+              background: isConnected ? "var(--ae-teal)" : "var(--ae-amber)",
+              flexShrink: 0,
+            }}
+          />
+          {isConnected ? "Live" : "Offline"}
+        </span>
 
-        {/* Reset collapses to icon-only on narrow widths. */}
-        <ButtonSecondary
-          size="sm"
+        <button
           onClick={handleReset}
           aria-label="Reset simulation"
-          leadingIcon={<RotateCcw style={{ width: 13, height: 13 }} />}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 7,
+            height: 30,
+            padding: "0 12px",
+            borderRadius: 8,
+            background: "transparent",
+            border: `1px solid ${c.borderStrong}`,
+            color: c.ink,
+            fontFamily: ff.body,
+            fontSize: 12.5,
+            fontWeight: 500,
+            cursor: "pointer",
+            transition: "background 150ms ease",
+          }}
         >
+          <RotateCcw style={{ width: 12, height: 12 }} strokeWidth={1.75} />
           <span className="ae-nav-reset-label">Reset</span>
-        </ButtonSecondary>
-
-        {/* Primary CTA — one per viewport. */}
-        <Link href="/simulator/stress-test" style={{ textDecoration: "none" }}>
-          <ButtonPrimary size="sm">
-            <span className="ae-nav-cta-label">Run stress test</span>
-            <span className="ae-nav-cta-short">Stress</span>
-          </ButtonPrimary>
-        </Link>
+        </button>
       </div>
 
-      {/* Scoped responsive rules — applied without polluting Tailwind config.
-          The styled-jsx tag is parsed once at module load. */}
       <style jsx>{`
-        /* Hide the scrollbar inside the route lane on WebKit. */
         .ae-nav-routes::-webkit-scrollbar { display: none; }
 
-        /* Subtitle collapses below 1100px to give the route menu room. */
         @media (max-width: 1100px) {
           .ae-nav-subtitle { display: none; }
         }
-
-        /* Status pills + divider hide below 1400px so the right cluster
-           doesn't crowd the route menu at standard 1280/1366 widths. */
         @media (max-width: 1400px) {
           .ae-nav-stats { display: none !important; }
         }
-
-        /* Reset button collapses to icon-only below 900px (mobile/iPad). */
         @media (max-width: 900px) {
           .ae-nav-reset-label { display: none; }
         }
-
-        /* Primary CTA shrinks to "Stress" below 1200px. */
-        .ae-nav-cta-short { display: none; }
-        @media (max-width: 1200px) {
-          .ae-nav-cta-label { display: none; }
-          .ae-nav-cta-short { display: inline; }
-        }
       `}</style>
     </nav>
-  )
-}
-
-function ConnectionPill({ connected }: { connected: boolean }) {
-  // Connection state lives off the semantic palette: green forest tint when
-  // live, coral tint when offline. No more arbitrary opacity-on-teal pills.
-  const palette = connected ? c.statusOnTime : c.statusCancelled
-  return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 6,
-        fontFamily: ff.body,
-        fontSize: 12,
-        fontWeight: 500,
-        padding: "5px 10px",
-        borderRadius: r.pill,
-        background: palette.bg,
-        color: palette.ink,
-        lineHeight: 1,
-      }}
-    >
-      {connected
-        ? <Wifi    style={{ width: 12, height: 12 }} />
-        : <WifiOff style={{ width: 12, height: 12 }} />}
-      {connected ? "Live" : "Offline"}
-    </span>
   )
 }
