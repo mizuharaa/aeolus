@@ -1,30 +1,32 @@
 import type { Config } from "tailwindcss"
 
 /**
- * Tailwind config — Aeolus five-pigment system.
+ * Tailwind config — Aeolus daylight sky system.
  *
  * Source of truth: apps/web/lib/design-tokens.ts + globals.css.
  *
- *   ink #0F1412 · paper #F5F5F0 · teal #0D9488 · amber #B8863C · rust #C4674A
+ *   ink #0B2434 · paper #F2F8FE · sky #38BDF8 · teal #0D9488
+ *   pink #EC4899 · amber #B8863C
  *
  * PALETTE CLAMP: every default Tailwind hue family is overridden with a
- * ramp generated from one of the three chromatic pigments (or the neutral
- * gray). A stray `text-red-700` or `bg-sky-50` anywhere in the app can only
- * ever resolve into the restrained vocabulary — the rainbow is structurally
- * impossible, not just discouraged.
+ * ramp generated from one of the vocabulary pigments (or the neutral
+ * gray) — a stray `text-red-700` anywhere in the app resolves into the
+ * vocabulary, never into the default rainbow.
  *
- *   red / rose / pink / orange / amber / yellow / violet / purple → amber
- *   green / emerald / lime / teal / sky / blue / cyan / indigo    → teal
- *   slate / gray / zinc / neutral / stone                         → neutral
- *
- * Amber is the ONLY status hue; cancelled/critical-off states are neutral.
+ *   red / rose / pink / fuchsia                  → pink
+ *   orange / amber / yellow                      → amber
+ *   green / emerald / lime / teal                → teal
+ *   sky / blue / cyan / indigo / violet / purple → sky
+ *   slate / gray / zinc / neutral / stone        → neutral
  */
 
-const INK   = "#0F1412"
-const PAPER = "#F5F5F0"
+const INK   = "#0B2434"
+const PAPER = "#F2F8FE"
+const SKY   = "#38BDF8"
 const TEAL  = "#0D9488"
+const PINK  = "#EC4899"
 const AMBER = "#B8863C"
-const GRAY  = "#6A716D"
+const GRAY  = "#63808F"
 
 function hexToRgb(hex: string): [number, number, number] {
   const h = hex.replace("#", "")
@@ -60,6 +62,8 @@ function ramp(base: string) {
 
 const amberRamp   = ramp(AMBER)
 const tealRamp    = ramp(TEAL)
+const skyRamp     = ramp(SKY)
+const pinkRamp    = ramp(PINK)
 const neutralRamp = ramp(GRAY)
 const rustRamp    = amberRamp // rust retired — legacy classes resolve to amber
 
@@ -81,22 +85,22 @@ const config: Config = {
         // amber + teal defined below via the clamp (same object)
 
         /* ── Palette clamp — every Tailwind hue → vocabulary ramp ── */
-        red:     amberRamp,
-        rose:    amberRamp,
-        pink:    amberRamp,
-        fuchsia: amberRamp,
+        red:     pinkRamp,
+        rose:    pinkRamp,
+        pink:    pinkRamp,
+        fuchsia: pinkRamp,
         orange:  amberRamp,
         amber:   amberRamp,
         yellow:  amberRamp,
-        violet:  amberRamp,
-        purple:  amberRamp,
+        violet:  skyRamp,
+        purple:  skyRamp,
         lime:    tealRamp,
         green:   tealRamp,
         emerald: tealRamp,
-        cyan:    tealRamp,
-        sky:     tealRamp,
-        blue:    tealRamp,
-        indigo:  tealRamp,
+        cyan:    skyRamp,
+        sky:     skyRamp,
+        blue:    skyRamp,
+        indigo:  skyRamp,
         slate:   neutralRamp,
         gray:    neutralRamp,
         zinc:    neutralRamp,

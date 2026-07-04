@@ -1,18 +1,15 @@
 /**
- * AeolusLogo — the Aeolus brand mark.
+ * AeolusLogo — the Aeolus brand mark, daylight edition.
  *
- * A flat teal rounded-square tile carrying the origami-jet glyph in paper
- * white. Static by design: the mark is the one place the identity teal
- * appears at full strength on every screen, and it does not animate,
- * pulse, orbit, or glow. app/icon.svg mirrors this resting state.
+ * A sky→teal gradient tile carrying a white globe with an orbiting jet:
+ * the same motif as the landing hero (planes circling a spinning world).
+ * Front of the orbit passes over the globe at full strength, the back
+ * half recedes — one mark, a little depth, no glow, no animation.
  *
  * The wordmark text ("Aeolus") stays at each call site — this is the mark only.
  */
 
 import type { CSSProperties } from "react"
-
-const JET_MAIN = "M2 9.6 L22 2 L11 13 Z"
-const JET_WING = "M11 13 L22 2 L14.5 22 Z"
 
 export function AeolusLogo({
   size = 32,
@@ -41,8 +38,8 @@ export function AeolusLogo({
         position: "relative",
         overflow: "hidden",
         boxSizing: "border-box",
-        background: "#0D9488",
-        border: "1px solid rgba(15,20,18,0.10)",
+        background: "linear-gradient(135deg, #38BDF8 0%, #0EA5C9 55%, #0D9488 100%)",
+        border: "1px solid rgba(11,36,52,0.10)",
         ...style,
       }}
     >
@@ -52,9 +49,31 @@ export function AeolusLogo({
         height="100%"
         style={{ position: "absolute", inset: 0, display: "block" }}
       >
-        <g transform="translate(16 16) scale(0.86) translate(-12 -12)">
-          <path d={JET_MAIN} fill="#F5F5F0" />
-          <path d={JET_WING} fill="#F5F5F0" opacity={0.62} />
+        {/* back half of the orbit — passes behind the globe */}
+        <path
+          d="M 28.06 10.63 A 13.2 5 -24 0 0 3.94 21.37"
+          fill="none"
+          stroke="#FFFFFF"
+          strokeWidth="1.4"
+          strokeLinecap="round"
+          opacity="0.38"
+        />
+        {/* the globe */}
+        <circle cx="16" cy="16" r="7.2" fill="none" stroke="#FFFFFF" strokeWidth="2" />
+        {/* one meridian + the equator hint */}
+        <ellipse cx="16" cy="16" rx="3.1" ry="7.2" fill="none" stroke="#FFFFFF" strokeWidth="0.9" opacity="0.55" />
+        <line x1="9.2" y1="16" x2="22.8" y2="16" stroke="#FFFFFF" strokeWidth="0.9" opacity="0.55" />
+        {/* front half of the orbit — passes over the globe */}
+        <path
+          d="M 3.94 21.37 A 13.2 5 -24 0 0 28.06 10.63"
+          fill="none"
+          stroke="#FFFFFF"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+        />
+        {/* the jet riding the orbit */}
+        <g transform="translate(28.06 10.63) rotate(-46)">
+          <path d="M 0 -3.1 L 2.5 3.1 L 0 1.7 L -2.5 3.1 Z" fill="#FFFFFF" />
         </g>
       </svg>
     </span>

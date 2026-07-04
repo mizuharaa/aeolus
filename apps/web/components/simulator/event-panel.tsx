@@ -419,7 +419,7 @@ function SimButton({ disabled, onClick }: { disabled: boolean; onClick: () => vo
       disabled={disabled}
       onClick={onClick}
       className="shrink-0 flex items-center gap-1 text-[10px] font-semibold px-2 py-1.5 transition-all disabled:opacity-40"
-      style={{ borderRadius: r.sm, background: "var(--ae-teal)", color: "#0F1412", border: "none", cursor: "pointer" }}
+      style={{ borderRadius: r.sm, background: "var(--ae-teal)", color: "#FFFFFF", border: "none", cursor: "pointer" }}
     >
       <Zap className="w-3 h-3" strokeWidth={1.75} /> Sim
     </button>
@@ -1100,7 +1100,7 @@ export function EventPanel() {
               {activeEvents.length > 0 && (
                 <span
                   className="ml-1.5 text-[9px] font-semibold rounded-full w-4 h-4 inline-flex items-center justify-center shrink-0"
-                  style={{ background: "var(--ae-teal)", color: "#0F1412" }}
+                  style={{ background: "var(--ae-teal)", color: "#FFFFFF" }}
                 >
                   {activeEvents.length}
                 </span>

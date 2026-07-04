@@ -4,90 +4,95 @@
 @tailwind utilities;
 
 /* ══════════════════════════════════════════════════════════════════
-   Aeolus — five-pigment design system.
+   Aeolus — daylight sky system.
 
-     ink #0F1412 · paper #F5F5F0 · teal #0D9488 · amber #B8863C · rust #C4674A
+     ink   #0B2434  deep sea-blue ink — type, dark marks
+     paper #F2F8FE  sky-tinted white  — surfaces
+     sky   #38BDF8  the atmosphere    — gradients, chrome accents
+     teal  #0D9488  the identity      — actions, recovery, active
+     pink  #EC4899  the disruption    — events, cascade energy
+     amber #B8863C  the status hue    — delayed / warning (simulator)
 
    Two registers, one token set:
-     :root           light register — landing, docs, scenarios
-     .register-dark  dark register  — the simulator app
-
-   Register-dependent roles are CSS custom properties; components read
-   them through lib/design-tokens.ts. Chromatic pigments are constant
-   across registers; only their *text steps* (--ae-*-ink) and tint
-   backgrounds re-resolve so 11–13px status text stays AA on each floor.
+     :root           landing, docs, scenarios — bright sky
+     .register-dark  the simulator app — same daylight family, denser
+                     surfaces (name kept so no call site churns)
    ══════════════════════════════════════════════════════════════════ */
 
 @layer base {
   :root {
-    /* ── Pigments (constant) ─────────────────────────────────────────
-       FIVE colors total: ink, paper, gray (derived), teal, amber.
-       Amber is THE status color. "Cancelled / not operating" is neutral
-       gray + strike/✕ — an absence of operation, not a status hue.
-       The legacy --ae-rust* names are kept as ALIASES of amber so no
-       call site breaks; do not use them in new code. ─────────────── */
+    /* ── Pigments (constant across registers) ─────────────────────── */
+    --ae-sky:   #38BDF8;
     --ae-teal:  #0D9488;
     --ae-amber: #B8863C;
-    --ae-rust:  var(--ae-amber);
+    --ae-rust:  var(--ae-amber);   /* legacy alias */
+    --ae-rose:  #EC4899;           /* disruption pink */
+    --ae-pink:  var(--ae-rose);
 
     /* ── Light register ──────────────────────────────────────────── */
-    --ae-bg:            #F5F5F0;
-    --ae-surface:       #FAFAF6;
-    --ae-surface-2:     #EFEFE8;
-    --ae-surface-3:     #E2E2D9;
-    --ae-line:          rgba(15, 20, 18, 0.12);
-    --ae-line-strong:   rgba(15, 20, 18, 0.30);
-    --ae-text:          #0F1412;
-    --ae-text-2:        #3F4642;
-    --ae-text-3:        #6A716D;
+    --ae-bg:            #F2F8FE;
+    --ae-surface:       #FFFFFF;
+    --ae-surface-2:     #E7F2FC;
+    --ae-surface-3:     #D3E7F8;
+    --ae-line:          rgba(11, 36, 52, 0.12);
+    --ae-line-strong:   rgba(11, 36, 52, 0.30);
+    --ae-text:          #0B2434;
+    --ae-text-2:        #3A5A6E;
+    --ae-text-3:        #63808F;
 
-    --ae-primary:        #0F1412;
-    --ae-primary-active: #262D29;
-    --ae-on-primary:     #F5F5F0;
+    --ae-primary:        #0B2434;
+    --ae-primary-active: #14405C;
+    --ae-on-primary:     #F2F8FE;
 
+    --ae-sky-ink:   #0369A1;
     --ae-teal-ink:  #0B7065;
     --ae-amber-ink: #7E5A20;
     --ae-rust-ink:  var(--ae-amber-ink);
+    --ae-rose-ink:  #BE185D;
 
+    --ae-sky-bg:     rgba(56, 189, 248, 0.14);
     --ae-teal-bg:    rgba(13, 148, 136, 0.10);
     --ae-amber-bg:   rgba(184, 134, 60, 0.13);
     --ae-rust-bg:    var(--ae-amber-bg);
-    --ae-neutral-bg: rgba(15, 20, 18, 0.05);
+    --ae-rose-bg:    rgba(236, 72, 153, 0.10);
+    --ae-neutral-bg: rgba(11, 36, 52, 0.05);
     --ae-amber-soft:  rgba(184, 134, 60, 0.55);
     --ae-amber-soft2: rgba(184, 134, 60, 0.30);
+    --ae-rose-soft:   rgba(236, 72, 153, 0.55);
+    --ae-rose-soft2:  rgba(236, 72, 153, 0.30);
 
-    --ae-focus: rgba(13, 148, 136, 0.35);
+    --ae-focus: rgba(2, 132, 199, 0.35);
 
     /* ── Fonts ───────────────────────────────────────────────────── */
     --ae-font-display: "Inter Display", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     --ae-font-body:    "Inter", "Inter Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     --ae-font-mono:    "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
 
-    /* ── Shadows ─────────────────────────────────────────────────── */
-    --ae-shadow-button:    0 1px 2px rgba(15, 20, 18, 0.10);
-    --ae-shadow-card:      0 1px 2px rgba(15, 20, 18, 0.05);
-    --ae-shadow-card-elev: 0 6px 24px rgba(15, 20, 18, 0.10);
-    --ae-shadow-overlay:   0 16px 48px rgba(15, 20, 18, 0.16);
+    /* ── Shadows — blue-cast, daylight ───────────────────────────── */
+    --ae-shadow-button:    0 1px 2px rgba(11, 36, 52, 0.10);
+    --ae-shadow-card:      0 1px 2px rgba(11, 36, 52, 0.05);
+    --ae-shadow-card-elev: 0 6px 24px rgba(11, 36, 52, 0.10);
+    --ae-shadow-overlay:   0 16px 48px rgba(11, 36, 52, 0.16);
     --ae-shadow-focus:     0 0 0 3px var(--ae-focus);
 
     /* ── shadcn/Tailwind semantic bridge (light) ─────────────────── */
-    --background:   60 14% 95%;            /* paper */
-    --foreground:   160 14% 6%;            /* ink */
-    --card:         60 25% 97%;
-    --card-foreground: 160 14% 6%;
-    --primary:      160 14% 6%;
-    --primary-foreground: 60 14% 95%;
-    --secondary:    60 12% 92%;
-    --secondary-foreground: 160 14% 6%;
-    --muted:        60 12% 92%;
-    --muted-foreground: 150 3% 42%;
-    --accent:       60 12% 92%;
-    --accent-foreground: 160 14% 6%;
-    --destructive:  37 59% 31%;            /* amber ink */
-    --destructive-foreground: 60 14% 95%;
-    --border:       160 14% 6% / 0.12;
-    --input:        160 14% 6% / 0.16;
-    --ring:         174 84% 32%;           /* teal */
+    --background:   207 75% 97%;           /* sky paper */
+    --foreground:   203 65% 12%;           /* sea ink */
+    --card:         0 0% 100%;
+    --card-foreground: 203 65% 12%;
+    --primary:      203 65% 12%;
+    --primary-foreground: 207 75% 97%;
+    --secondary:    206 68% 95%;
+    --secondary-foreground: 203 65% 12%;
+    --muted:        206 68% 95%;
+    --muted-foreground: 203 19% 47%;
+    --accent:       206 68% 93%;
+    --accent-foreground: 203 65% 12%;
+    --destructive:  336 74% 42%;           /* pink ink */
+    --destructive-foreground: 207 75% 97%;
+    --border:       203 65% 12% / 0.12;
+    --input:        203 65% 12% / 0.16;
+    --ring:         199 89% 48%;           /* sky */
     --radius:       0.625rem;
 
     /* Legacy shadow names still referenced by old components */
@@ -97,62 +102,68 @@
     --shadow-nav:   0 1px 0 var(--ae-line);
   }
 
-  /* ── Dark register — the simulator ───────────────────────────────── */
+  /* ── App register — the simulator. Same daylight family, slightly
+     denser floor so panels/cards sit white-on-blue. The class name
+     .register-dark is historical; values are BRIGHT now. ─────────── */
   .register-dark {
-    --ae-bg:            #0F1412;
-    --ae-surface:       #141917;
-    --ae-surface-2:     #1A201D;
-    --ae-surface-3:     #242B27;
-    --ae-line:          rgba(245, 245, 240, 0.10);
-    --ae-line-strong:   rgba(245, 245, 240, 0.26);
-    --ae-text:          #ECEEE9;
-    --ae-text-2:        #B9BEB7;
-    --ae-text-3:        #878E88;
+    --ae-bg:            #EAF4FC;
+    --ae-surface:       #FFFFFF;
+    --ae-surface-2:     #E1EEF9;
+    --ae-surface-3:     #CDE3F4;
+    --ae-line:          rgba(11, 36, 52, 0.12);
+    --ae-line-strong:   rgba(11, 36, 52, 0.30);
+    --ae-text:          #0B2434;
+    --ae-text-2:        #3A5A6E;
+    --ae-text-3:        #63808F;
 
     --ae-primary:        #0D9488;
     --ae-primary-active: #0B7F75;
-    --ae-on-primary:     #0F1412;
+    --ae-on-primary:     #FFFFFF;
 
-    --ae-teal-ink:  #45B3A5;
-    --ae-amber-ink: #CDA05E;
+    --ae-sky-ink:   #0369A1;
+    --ae-teal-ink:  #0B7065;
+    --ae-amber-ink: #7E5A20;
     --ae-rust-ink:  var(--ae-amber-ink);
+    --ae-rose-ink:  #BE185D;
 
-    --ae-teal-bg:    rgba(13, 148, 136, 0.16);
-    --ae-amber-bg:   rgba(184, 134, 60, 0.16);
+    --ae-sky-bg:     rgba(56, 189, 248, 0.16);
+    --ae-teal-bg:    rgba(13, 148, 136, 0.10);
+    --ae-amber-bg:   rgba(184, 134, 60, 0.14);
     --ae-rust-bg:    var(--ae-amber-bg);
-    --ae-neutral-bg: rgba(245, 245, 240, 0.06);
-    --ae-amber-soft:  rgba(184, 134, 60, 0.60);
-    --ae-amber-soft2: rgba(184, 134, 60, 0.34);
+    --ae-rose-bg:    rgba(236, 72, 153, 0.10);
+    --ae-neutral-bg: rgba(11, 36, 52, 0.05);
+    --ae-amber-soft:  rgba(184, 134, 60, 0.55);
+    --ae-amber-soft2: rgba(184, 134, 60, 0.30);
+    --ae-rose-soft:   rgba(236, 72, 153, 0.55);
+    --ae-rose-soft2:  rgba(236, 72, 153, 0.30);
 
-    --ae-focus: rgba(13, 148, 136, 0.45);
+    --ae-focus: rgba(2, 132, 199, 0.35);
 
-    --ae-shadow-button:    0 1px 2px rgba(0, 0, 0, 0.4);
-    --ae-shadow-card:      0 1px 2px rgba(0, 0, 0, 0.3);
-    --ae-shadow-card-elev: 0 8px 28px rgba(0, 0, 0, 0.45);
-    --ae-shadow-overlay:   0 16px 48px rgba(0, 0, 0, 0.55);
+    --ae-shadow-button:    0 1px 2px rgba(11, 36, 52, 0.12);
+    --ae-shadow-card:      0 1px 2px rgba(11, 36, 52, 0.06);
+    --ae-shadow-card-elev: 0 8px 28px rgba(11, 36, 52, 0.12);
+    --ae-shadow-overlay:   0 16px 48px rgba(11, 36, 52, 0.18);
 
-    /* shadcn bridge (dark) — Tailwind utility classes inside the
-       simulator (text-muted-foreground, border-border, bg-secondary…)
-       resolve into the dark register automatically. */
-    --background:   150 9% 6%;
-    --foreground:   80 11% 92%;
-    --card:         150 7% 9%;
-    --card-foreground: 80 11% 92%;
-    --primary:      174 84% 32%;
-    --primary-foreground: 150 9% 6%;
-    --secondary:    150 7% 11%;
-    --secondary-foreground: 80 11% 92%;
-    --muted:        150 7% 11%;
-    --muted-foreground: 140 3% 54%;
-    --accent:       150 7% 13%;
-    --accent-foreground: 80 11% 92%;
-    --destructive:  36 53% 59%;
-    --destructive-foreground: 150 9% 6%;
-    --border:       80 11% 95% / 0.10;
-    --input:        80 11% 95% / 0.14;
-    --ring:         174 84% 40%;
+    /* shadcn bridge — daylight app values */
+    --background:   206 72% 95%;
+    --foreground:   203 65% 12%;
+    --card:         0 0% 100%;
+    --card-foreground: 203 65% 12%;
+    --primary:      174 84% 32%;           /* teal action */
+    --primary-foreground: 0 0% 100%;
+    --secondary:    206 65% 93%;
+    --secondary-foreground: 203 65% 12%;
+    --muted:        206 65% 93%;
+    --muted-foreground: 203 19% 47%;
+    --accent:       206 65% 91%;
+    --accent-foreground: 203 65% 12%;
+    --destructive:  336 74% 42%;
+    --destructive-foreground: 0 0% 100%;
+    --border:       203 65% 12% / 0.12;
+    --input:        203 65% 12% / 0.16;
+    --ring:         199 89% 48%;
 
-    color-scheme: dark;
+    color-scheme: light;
   }
 
   html { color-scheme: light; }
@@ -177,10 +188,8 @@
     letter-spacing: -0.01em;
   }
 
-  ::selection { background: rgba(13, 148, 136, 0.22); }
+  ::selection { background: rgba(56, 189, 248, 0.30); }
 
-  /* Motion discipline: continuous decorative animation is banned. On
-     reduced-motion, everything snaps. */
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
       animation-duration: 0.01ms !important;
@@ -194,7 +203,6 @@
    Component primitives
    ══════════════════════════════════════════════════════════════════ */
 
-/* Primary CTA — ink on light register, teal on dark. One per viewport. */
 .btn-primary {
   display: inline-flex;
   align-items: center;
@@ -221,7 +229,6 @@
 .btn-primary:focus-visible { outline: none; box-shadow: var(--ae-shadow-focus); }
 .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
 
-/* Secondary CTA — surface + hairline. */
 .btn-secondary {
   display: inline-flex;
   align-items: center;
@@ -298,7 +305,7 @@
   letter-spacing: 0;
 }
 
-/* Eyebrow — THE one sanctioned uppercase style. 11px, wide tracking, muted. */
+/* Eyebrow — THE one sanctioned uppercase label style. */
 .section-badge,
 .ember-label {
   display: inline-flex;
@@ -328,15 +335,15 @@
   box-shadow: var(--ae-shadow-overlay);
 }
 
-/* Legacy signature cards — all collapse to the ink feature card. */
+/* Legacy signature cards — collapse to the sea-ink feature card. */
 .signature-coral,
 .signature-forest,
 .signature-dark {
   border-radius: 12px;
   padding: 48px;
-  color: #ECEEE9;
-  background: #0F1412;
-  border: 1px solid rgba(245, 245, 240, 0.08);
+  color: #EAF4FC;
+  background: #0B2434;
+  border: 1px solid rgba(242, 248, 254, 0.08);
 }
 
 .signature-cream {
@@ -356,11 +363,11 @@
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   Leaflet — dark register styling (the map only exists in the simulator)
+   Leaflet — daylight register (Carto voyager tiles)
    ══════════════════════════════════════════════════════════════════ */
 
 .leaflet-container {
-  background: #0F1412 !important;
+  background: #CBE3F5 !important;   /* voyager water tone */
   font-family: var(--ae-font-body);
 }
 
@@ -373,10 +380,10 @@
 .simulator-map-shell .leaflet-container { outline: none; }
 .simulator-map-shell .leaflet-control-container { z-index: 1000; }
 
-/* Dark tiles arrive nearly right; nudge saturation down so route/status
-   pigments own all chroma on the canvas. */
+/* Voyager arrives warm; cool it slightly so route/status pigments own
+   the chroma on the canvas. */
 .leaflet-tile {
-  filter: saturate(0.6) brightness(0.94) contrast(1.02);
+  filter: saturate(0.82) brightness(1.02);
 }
 
 .leaflet-bar a {
@@ -410,7 +417,7 @@
 .leaflet-tooltip-right:before { display: none; }
 
 .leaflet-control-attribution {
-  background: rgba(15, 20, 18, 0.75) !important;
+  background: rgba(255, 255, 255, 0.75) !important;
   font-size: 10px !important;
   padding: 2px 6px !important;
   border-radius: 6px !important;
@@ -437,7 +444,7 @@
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   Animations — state-change only. No continuous decorative pulses.
+   Animations
    ══════════════════════════════════════════════════════════════════ */
 
 @keyframes shimmer {
@@ -450,10 +457,8 @@
   animation: shimmer 2s linear infinite;
 }
 
-/* Leaflet route semantics — applying a plan remounts the layer (React key
-   folds applyEpoch) so the fade-in reads as an actual event. The flowing
-   dash on swap routes is FUNCTIONAL motion: it encodes "actively being
-   rerouted", not decoration. */
+/* Leaflet route semantics — the flowing dash on swap routes is FUNCTIONAL
+   motion: it encodes "actively being rerouted". */
 @keyframes ae-route-fade-in {
   from { opacity: 0; }
   to   { opacity: var(--ae-route-target-opacity, 1); }
@@ -477,12 +482,155 @@
   cursor: pointer;
 }
 
-/* Landing hero — stack on narrow viewports */
+/* Simulator map — focus mode. */
+.simulator-map-shell .leaflet-tile-pane,
+.simulator-map-shell .leaflet-overlay-pane,
+.simulator-map-shell .leaflet-marker-pane {
+  transition: opacity 350ms ease, filter 350ms ease;
+}
+.simulator-map-shell.map-focus .leaflet-tile-pane {
+  filter: blur(2.5px) saturate(0.75) brightness(1.02);
+}
+.simulator-map-shell.map-focus .leaflet-overlay-pane { opacity: 0.10; }
+.simulator-map-shell.map-focus .leaflet-marker-pane  { opacity: 0.14; }
+
+/* ══════════════════════════════════════════════════════════════════
+   Landing — sky theme. GSAP ScrollTrigger drives the intro, hero globe,
+   marquee and the recovery-loop story; these classes carry layout +
+   text treatments that inline styles can't express.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Full-bleed sky gradient behind the intro + hero. */
+.sky-gradient {
+  background:
+    radial-gradient(120% 70% at 50% -10%, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0) 55%),
+    linear-gradient(180deg, #4BA6EC 0%, #6FBCF4 42%, #A8D8FA 74%, #E4F3FE 100%);
+}
+.sky-gradient--deep {
+  background:
+    radial-gradient(110% 60% at 50% 0%, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0) 50%),
+    linear-gradient(180deg, #3E9CE8 0%, #5FB3F2 55%, #8FCCf8 100%);
+}
+
+/* Punched display type — the landing's loud voice. */
+.punch {
+  font-family: var(--ae-font-display);
+  font-weight: 700;
+  letter-spacing: -0.028em;
+  line-height: 0.98;
+  text-transform: uppercase;
+  margin: 0;
+}
+.punch--white { color: #FFFFFF; text-shadow: 0 2px 24px rgba(17, 68, 105, 0.18); }
+.punch--ink   { color: var(--ae-text); }
+/* Outlined ghost variant for the marquee strip. */
+.punch--ghost {
+  color: transparent;
+  -webkit-text-stroke: 1.5px rgba(11, 36, 52, 0.35);
+}
+
+/* Split-text lines: overflow well for the slam-up reveal. */
+.punch-line { display: block; overflow: hidden; }
+.punch-line > span { display: inline-block; will-change: transform; }
+
+/* Glass chips floating around the hero globe. */
+.sky-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 16px 9px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 8px 32px rgba(15, 68, 108, 0.18);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  font-family: var(--ae-font-body);
+  font-size: 12.5px;
+  font-weight: 550;
+  color: var(--ae-text);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.sky-chip .sky-chip-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Marquee strip — GSAP scrubs backgroundPosition/x. */
+.lp-marquee {
+  overflow: hidden;
+  white-space: nowrap;
+  user-select: none;
+}
+.lp-marquee-track {
+  display: inline-flex;
+  gap: 48px;
+  will-change: transform;
+}
+
+/* Recovery loop — pinned story grid: caption rail left, 3D stage right. */
+.lp-story-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 380px) minmax(0, 1fr);
+  gap: 48px;
+  align-items: center;
+  width: 100%;
+}
+
+/* Capability composition: 12-col asymmetric grid. */
+.lp-grid-12 {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 14px;
+}
+.lp-span-7 { grid-column: span 7 / span 7; }
+.lp-span-5 { grid-column: span 5 / span 5; }
+.lp-span-4 { grid-column: span 4 / span 4; }
+.lp-span-8 { grid-column: span 8 / span 8; }
+.lp-span-12 { grid-column: span 12 / span 12; }
+
+/* Two-column editorial header / CTA split. */
+.lp-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 48px;
+  align-items: end;
+}
+
+/* Methodology ledger rows. */
+.lp-ledger-row {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr) auto;
+  gap: 24px;
+  align-items: baseline;
+  padding: 18px 4px;
+  border-top: 1px solid var(--ae-line);
+  transition: background 160ms ease;
+}
+.lp-ledger-row:hover { background: var(--ae-neutral-bg); }
+
+/* Hover lift for capability panels. */
+.lp-panel {
+  transition: border-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+}
+.lp-panel:hover {
+  border-color: var(--ae-line-strong) !important;
+  transform: translateY(-3px);
+  box-shadow: var(--ae-shadow-card-elev);
+}
+
 @media (max-width: 960px) {
-  .hero-grid {
-    grid-template-columns: 1fr !important;
-    gap: 48px !important;
-  }
-  /* The scroll-driven aircraft needs room to fly — desktop only. */
-  .ae-scroll-plane { display: none !important; }
+  .lp-story-grid { grid-template-columns: 1fr; gap: 24px; }
+  .lp-grid-12 { grid-template-columns: 1fr; }
+  .lp-span-7, .lp-span-5, .lp-span-4, .lp-span-8, .lp-span-12 { grid-column: span 1 / span 1; }
+  .lp-split { grid-template-columns: 1fr; gap: 24px; align-items: start; }
+  .lp-ledger-row { grid-template-columns: 1fr; gap: 6px; }
+  .lp-hide-mobile { display: none !important; }
+  .sky-chip { display: none; }
 }

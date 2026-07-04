@@ -132,9 +132,10 @@ export default function SimulatorPage() {
   }, [setSchedule, setFleet])
 
   return (
-    <div className="register-dark" style={{ background: "var(--ae-bg)", minHeight: "100vh" }}>
+    // Light register — the simulator runs on the paper/teal/matcha palette.
+    <div style={{ background: "var(--ae-bg)", minHeight: "100vh" }}>
 
-      {/* ── Sticky top nav — dark register (see components/simulator/nav.tsx) ── */}
+      {/* ── Sticky top nav (see components/simulator/nav.tsx) ── */}
       <div className="sticky top-0 z-50">
         <SimulatorNav isConnected={isConnected} affectedCount={affectedCount} />
       </div>
@@ -221,7 +222,7 @@ export default function SimulatorPage() {
                 alignItems: "center",
                 justifyContent: "center",
                 color: c.ink,
-                background: "rgba(20,25,23,0.90)",
+                background: "rgba(250,250,246,0.92)",
                 border: `1px solid ${c.hairline}`,
                 boxShadow: sh.cardElev,
                 backdropFilter: "blur(8px)",
@@ -453,7 +454,7 @@ function FocusOverlay({
     >
       <div
         style={{
-          background: "rgba(20,25,23,0.92)",
+          background: "rgba(250,250,246,0.94)",
           border: `1px solid ${c.hairline}`,
           borderRadius: r.lg,
           boxShadow: sh.overlay,

@@ -58,7 +58,7 @@ export function SimulatorPageShell({
   }, [setSchedule, setFleet])
 
   return (
-    <div className="register-dark" style={{ background: "var(--ae-bg)", minHeight: "100vh", fontFamily: ff.body }}>
+    <div style={{ background: "var(--ae-bg)", minHeight: "100vh", fontFamily: ff.body }}>
       <div style={{ position: "sticky", top: 0, zIndex: 50 }}>
         <SimulatorNav isConnected={isConnected} affectedCount={affectedCount} />
       </div>

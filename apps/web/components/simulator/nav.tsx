@@ -202,27 +202,20 @@ export function SimulatorNav({ isConnected }: SimulatorNavProps) {
 
         <div className="ae-nav-stats" style={{ width: 1, height: 18, background: c.hairline }} />
 
-        {/* THE live indicator — static dot, no animation */}
+        {/* Connection state — plain text, no dot, no pulse */}
         <span
           style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 7,
-            fontSize: 12,
-            fontWeight: 500,
-            color: c.muted,
+            fontFamily: ff.mono,
+            fontSize: 10.5,
+            fontWeight: 600,
+            letterSpacing: "0.14em",
+            textTransform: "uppercase",
             lineHeight: 1,
+            color: isConnected ? c.tealInk : c.amberInk,
+            borderBottom: `2px solid ${isConnected ? "var(--ae-teal)" : "var(--ae-amber)"}`,
+            paddingBottom: 3,
           }}
         >
-          <span
-            style={{
-              width: 6,
-              height: 6,
-              borderRadius: "50%",
-              background: isConnected ? "var(--ae-teal)" : "var(--ae-amber)",
-              flexShrink: 0,
-            }}
-          />
           {isConnected ? "Live" : "Offline"}
         </span>
 

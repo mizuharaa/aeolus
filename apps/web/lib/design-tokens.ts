@@ -1,26 +1,22 @@
 /**
- * Aeolus Design System — canonical tokens.
+ * Aeolus Design System — canonical tokens. DAYLIGHT SKY edition.
  *
- * FIVE COLORS, ONE STATUS COLOR. Everything on every screen resolves to:
+ * The vocabulary:
  *
- *   ink    #0F1412   near-black, teal-cast — dark surfaces, primary type
- *   paper  #F5F5F0   warm off-white       — light surfaces, type on dark
- *   gray   #6A716D   the mid neutral (ink/paper derivation) — borders, dim text
- *   teal   #0D9488   the identity color   — actions, links, recovery, active
- *   amber  #B8863C   THE status color     — delayed / warning / critical / cascade
+ *   ink    #0B2434   deep sea-blue ink  — type, dark marks, primary CTA
+ *   paper  #F2F8FE   sky-tinted white   — surfaces
+ *   sky    #38BDF8   the atmosphere     — gradients, chrome accents
+ *   teal   #0D9488   the identity color — actions, links, recovery, active
+ *   pink   #EC4899   the disruption     — events, cascade energy (landing)
+ *   amber  #B8863C   THE status color   — delayed / warning (simulator ops)
  *
  * "Cancelled / not operating" is NOT a hue: it renders as neutral gray with
- * a strike, dash, or x — an absence of operation. Severity within amber is
- * carried by opacity steps (soft/soft2), never by a second status hue.
+ * a strike, dash, or x. Severity within amber is carried by opacity steps.
  *
- * Status *text* colors are per-register readability steps of teal/amber (a
- * darker step on paper, a lighter step on ink) so 11–13px text passes AA.
- *
- * TWO REGISTERS, ONE TOKEN SET. Register-dependent roles (surfaces, text,
- * lines, status inks) are CSS custom properties defined in globals.css:
- * `:root` carries the light register (landing, docs, scenarios) and
- * `.register-dark` flips them for the simulator. Components reference the
- * same `c.*` token in both worlds.
+ * TWO REGISTERS, ONE TOKEN SET. `:root` carries the landing/docs register;
+ * `.register-dark` (name kept for call-site stability — its values are now
+ * BRIGHT) carries the denser simulator app register. Components reference
+ * the same `c.*` token in both worlds.
  *
  * Chromatic constants that must survive *outside* CSS (Leaflet's canvas
  * renderer resolves colors in JS) live in `pigment.*` as literal hex.
@@ -28,11 +24,13 @@
 
 // ── Literal pigments (canvas-safe; identical in both registers) ─────────
 export const pigment = {
-  ink:   "#0F1412",
-  paper: "#F5F5F0",
-  gray:  "#6A716D", // ink 62% over paper — the stated mid-gray
+  ink:   "#0B2434",
+  paper: "#F2F8FE",
+  gray:  "#63808F", // sea-gray mid neutral
+  sky:   "#38BDF8",
   teal:  "#0D9488",
   amber: "#B8863C",
+  rose:  "#EC4899", // disruption pink (landing narrative; teal = recovery)
 } as const
 
 export const tokens = {
@@ -48,7 +46,7 @@ export const tokens = {
     surfaceSoft:         "var(--ae-surface-2)",  // recessed panel, tab well
     surfaceStrong:       "var(--ae-surface-3)",  // track fills, deep recess
     surfaceDark:         pigment.ink,            // ink card (both registers)
-    surfaceDarkElevated: "#161B19",              // raised step on ink
+    surfaceDarkElevated: "#123349",              // raised step on ink
     hairline:            "var(--ae-line)",       // 1px borders, dividers
 
     // ── Type ──────────────────────────────────────────────────────────
@@ -59,10 +57,18 @@ export const tokens = {
     onPrimary:     "var(--ae-on-primary)",
 
     // ── Chromatic accents (register-aware text steps) ────────────────
+    sky:       "var(--ae-sky)",        // atmosphere accent
+    skyInk:    "var(--ae-sky-ink)",
+    skyBg:     "var(--ae-sky-bg)",
     teal:      "var(--ae-teal)",       // graphic teal (dots, bars, borders)
     tealInk:   "var(--ae-teal-ink)",   // teal as small text — AA per register
     amber:     "var(--ae-amber)",
     amberInk:  "var(--ae-amber-ink)",
+    rose:      "var(--ae-rose)",      // disruption pink
+    roseInk:   "var(--ae-rose-ink)",
+    roseBg:    "var(--ae-rose-bg)",
+    roseSoft:  "var(--ae-rose-soft)",
+    roseSoft2: "var(--ae-rose-soft2)",
     // Legacy names — rust was retired; both alias amber. Do not use.
     rust:      "var(--ae-rust)",
     rustInk:   "var(--ae-rust-ink)",
@@ -171,11 +177,11 @@ export const tokens = {
 
   shadow: {
     flat:        "none",
-    buttonRest:  "0 1px 2px rgba(15,20,18,0.10)",
+    buttonRest:  "0 1px 2px rgba(11,36,52,0.10)",
     buttonFocus: "0 0 0 3px var(--ae-focus)",
-    cardSoft:    "0 1px 2px rgba(15,20,18,0.05)",
-    cardElev:    "0 6px 24px rgba(15,20,18,0.10)",
-    overlay:     "0 16px 48px rgba(15,20,18,0.16)",
+    cardSoft:    "0 1px 2px rgba(11,36,52,0.05)",
+    cardElev:    "0 6px 24px rgba(11,36,52,0.10)",
+    overlay:     "0 16px 48px rgba(11,36,52,0.16)",
   },
 } as const
 

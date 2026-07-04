@@ -2,10 +2,11 @@
 import "leaflet/dist/leaflet.css"
 import { useEffect, useMemo, useRef, useState, useCallback, type CSSProperties } from "react"
 import {
-  MapContainer, TileLayer, Marker, Polyline, Circle,
+  MapContainer, TileLayer, Marker, Polyline, Circle, Pane,
   Tooltip, ZoomControl, useMap, useMapEvents,
 } from "react-leaflet"
 import L from "leaflet"
+import { AircraftDetail } from "./aircraft-detail"
 import {
   useSimulationStore,
   type ScheduledFlight,
@@ -35,32 +36,37 @@ const MAP_COLORS = {
   // Plan-applied actions. GREY = "no longer operating" (always paired with
   // the ✕ badge + dashed stroke — never color-alone), TEAL = "re-routed /
   // re-assigned", AMBER = "operating late".
-  planCancelled: "#5F6763",
-  planCancelledInk: "#8A918D",
+  // LIGHT REGISTER: the map runs on Carto voyager tiles; darker = stronger.
+  planCancelled: "#98A29B",
+  planCancelledInk: "#6A716D",
   planSwap:      "#0D9488",
   planSwapFlow:  "#0D9488",
   planDelayed:   "#B8863C",
 
-  // Cascade severity: one amber, stepped down for later generations
-  // (markers also step down in size; direct hits carry a halo).
-  cascadeDirect: "#B8863C",
-  cascadeOrder1: "#8E6C33",
-  cascadeOrder2: "#5F4A25",
-  unaffected:    "#57605B",
+  // Cascade severity: one amber family; on the light floor the DIRECT hit
+  // is the darkest step and later generations lighten.
+  cascadeDirect: "#9A6420",
+  cascadeOrder1: "#B8863C",
+  cascadeOrder2: "#CFA96A",
+  unaffected:    "#8CA096",
 
-  // Live ADS-B — quiet neutral traffic beneath the sim layer
-  live:          "#79837E",
+  // Live ADS-B — quiet sage traffic beneath the sim layer
+  live:          "#93A29A",
   liveSelected:  "#0D9488",
 
   // Airport state
-  airportHub:    "#0D9488",
-  airportNormal: "#79837E",
-  groundStop:    "#B8863C",
-  gdp:           "#8E6C33",
-  depDelay:      "#8E6C33",
-  eventEpicenter: "#B8863C",
-  weather:       "#8E6C33",
+  airportHub:    "#0B7065",
+  airportNormal: "#7B8A80",
+  groundStop:    "#9A6420",
+  gdp:           "#B8863C",
+  depDelay:      "#B8863C",
+  eventEpicenter: "#9A6420",
+  weather:       "#B8863C",
 } as const
+
+// Overlay glass — light register (paper at high alpha over the map).
+const GLASS        = "rgba(250,250,246,0.92)"
+const GLASS_STRONG = "rgba(252,252,249,0.96)"
 
 // ── Pure helpers ───────────────────────────────────────────────────────────────
 
@@ -346,7 +352,7 @@ function DisruptionBanner({
       <div
         className="rounded-xl overflow-hidden"
         style={{
-          background: "rgba(15,20,18,0.92)",
+          background: GLASS,
           backdropFilter: "blur(14px)",
           border: "1px solid var(--ae-line)",
           borderLeft: "2px solid var(--ae-rust)",
@@ -406,7 +412,7 @@ function DisruptionBanner({
         {(summary || impactCount > 0) && (
           <div
             className="px-3.5 py-2 flex items-center gap-2 flex-wrap"
-            style={{ background: "rgba(0,0,0,0.25)", borderTop: "1px solid var(--ae-line)" }}
+            style={{ background: "rgba(15,20,18,0.04)", borderTop: "1px solid var(--ae-line)" }}
           >
             {summary ? (
               <span className="text-[10px] font-medium" style={{ color: "var(--ae-text-2)" }}>
@@ -443,7 +449,7 @@ function RecoveryBanner({ plan, onUnapply }: { plan: RecoveryPlan; onUnapply: ()
       <div
         className="rounded-xl px-3 py-2.5 flex items-center gap-2.5 flex-wrap"
         style={{
-          background: "rgba(15,20,18,0.94)",
+          background: GLASS,
           backdropFilter: "blur(16px)",
           border: "1px solid var(--ae-line)",
           borderLeft: "2px solid var(--ae-teal)",
@@ -517,14 +523,19 @@ function MetricChip({ label, value, dot }: { label: string; value: string; dot?:
   )
 }
 
+function fmtZ(iso: string): string {
+  try { return new Date(iso).toISOString().slice(11, 16) + "Z" } catch { return "—" }
+}
+
 function FlightDetailCard({
-  flight, state, appliedPlan, applied, onClose,
+  flight, state, appliedPlan, applied, onClose, onOpenAircraft,
 }: {
   flight: ScheduledFlight
   state: FlightState | undefined
   appliedPlan: RecoveryPlan | null
   applied: { cancelled: Set<string>; swap: Set<string>; delayed: Map<string, number> }
   onClose: () => void
+  onOpenAircraft: () => void
 }) {
   const isPlanCancelled    = applied.cancelled.has(flight.id)
   const isCascadeCancelled = !isPlanCancelled && state?.status === "cancelled"
@@ -556,7 +567,7 @@ function FlightDetailCard({
       <div
         className="rounded-xl overflow-hidden"
         style={{
-          background: "rgba(20,25,23,0.96)",
+          background: GLASS_STRONG,
           backdropFilter: "blur(16px)",
           border: "1px solid var(--ae-line)",
           boxShadow: "var(--ae-shadow-overlay)",
@@ -614,7 +625,7 @@ function FlightDetailCard({
                     : delayMin > 0
                     ? MAP_COLORS.planDelayed
                     : "var(--ae-surface-3)",
-                  color: isCancelled || isSwapped || delayMin > 0 ? "#0F1412" : "var(--ae-text)",
+                  color: isCancelled || isSwapped || delayMin > 0 ? "#FFFFFF" : "var(--ae-text)",
                 }}
               >
                 {isCancelled ? "✕" : "✈"}
@@ -635,6 +646,17 @@ function FlightDetailCard({
               </div>
               <div className="text-[9px] text-muted-foreground mt-0.5">{dAp?.city ?? ""}</div>
             </div>
+          </div>
+
+          {/* Scheduled times — where it's heading and when */}
+          <div
+            className="flex items-center justify-between rounded-lg px-3 py-2 mb-2.5 text-[11px] font-mono"
+            style={{ background: "var(--ae-surface-2)", border: "1px solid var(--ae-line)", color: "var(--ae-text-2)" }}
+          >
+            <span>dep {fmtZ(flight.scheduled_departure)}</span>
+            <span style={{ color: "var(--ae-text-3)" }}>→</span>
+            <span>arr {fmtZ(flight.scheduled_arrival)}</span>
+            <span style={{ color: "var(--ae-text-3)" }}>{dAp?.name ? dAp.name.slice(0, 18) : ""}</span>
           </div>
 
           {/* Status grid — pigment dot + neutral text */}
@@ -706,6 +728,20 @@ function FlightDetailCard({
               {state.reason}
             </div>
           )}
+
+          {/* Aircraft & seating — opens the seat-map modal */}
+          <button
+            onClick={onOpenAircraft}
+            className="mt-2.5 w-full text-[11.5px] font-medium px-3 py-2 rounded-lg transition-colors"
+            style={{
+              background: "var(--ae-teal-bg)",
+              border: "1px solid var(--ae-teal)",
+              color: "var(--ae-teal-ink)",
+              cursor: "pointer",
+            }}
+          >
+            Aircraft &amp; seating →
+          </button>
         </div>
       </div>
     </div>
@@ -723,7 +759,7 @@ function LivePanel({ flight, onClose }: { flight: LiveFlight; onClose: () => voi
     <div
       className="absolute top-12 right-3 left-3 sm:left-auto z-[450] w-72 rounded-xl overflow-hidden"
       style={{
-        background: "rgba(20,25,23,0.96)",
+        background: GLASS_STRONG,
         backdropFilter: "blur(16px)",
         border: "1px solid var(--ae-line)",
         boxShadow: "var(--ae-shadow-overlay)",
@@ -784,7 +820,7 @@ function AirportPanel({ icao, faa, hasWx, wxText, simAffected, onClose }: {
     <div
       className="absolute bottom-20 left-3 z-[450] w-64 rounded-xl overflow-hidden"
       style={{
-        background: "rgba(20,25,23,0.96)",
+        background: GLASS_STRONG,
         backdropFilter: "blur(16px)",
         border: "1px solid var(--ae-line)",
         boxShadow: "var(--ae-shadow-overlay)",
@@ -1139,34 +1175,26 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
       })
   }, [liveFlights, nowMs, mapBounds])
 
-  // Simulated Nimbus aircraft
-  // When events are active, ALL affected flights are pinned at their best position
-  // so the user always sees every colored plane, not just the ones "airborne" in the time cycle.
+  // Simulated Nimbus aircraft.
+  //
+  // Every scheduled flight is ALWAYS visible, looping continuously along
+  // its leg (progress wraps modulo 1). The previous time-window gating hid
+  // most of the fleet for most of the 6-minute day cycle, which read as
+  // "the planes disappeared" until you zoomed into the few survivors.
   const simPlanes = useMemo(() => {
     if (!showSimulation) return []
     const cycle = 60 * 6, phase = ((nowMs / 1000) % cycle) / cycle, hr = 6 + phase * 18
     return schedule.flatMap((f) => {
       const o = NIMBUS_AIRPORTS[f.origin], d = NIMBUS_AIRPORTS[f.destination]
       if (!o || !d) return []
-      const state = flightStates[f.id]
-      const isAffected = state && state.cascade_order >= 0
       const dep = isoToHour(f.scheduled_departure), arr = isoToHour(f.scheduled_arrival)
-      const inWindow = arr > dep && hr >= dep && hr <= arr
-
-      let t: number
-      if (inWindow) {
-        t = (hr - dep) / (arr - dep)
-      } else if (isAffected && hasActiveEvents) {
-        // Force affected flight to appear at midpoint so user can see it colored
-        t = 0.5
-      } else {
-        return []
-      }
-
+      const dur = arr > dep ? arr - dep : 1.5
+      let t = ((hr - dep) / dur) % 1
+      if (t < 0) t += 1
       const [lat, lon] = interp(o.lat, o.lon, d.lat, d.lon, Math.max(0.02, Math.min(0.98, t)))
       return [{ id: f.id, f, lat, lon, brg: bearing(o.lat, o.lon, d.lat, d.lon) }]
     })
-  }, [schedule, nowMs, showSimulation, flightStates, hasActiveEvents])
+  }, [schedule, nowMs, showSimulation])
 
   // Selected flight arc
   const selectedSched = selectedFlight ? schedule.find((f) => f.id === selectedFlight) ?? null : null
@@ -1200,8 +1228,16 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
   const focusTarget: ScheduledFlight | LiveFlight | null = selectedSched || selectedLiveFlight
   const ageSec = lastFetch ? Math.round((nowMs - lastFetch) / 1000) : null
 
+  // Focus mode — selecting a scheduled flight blurs the basemap and dims
+  // every other layer; the selected route + endpoints re-render into the
+  // ae-focus panes so they stay crisp. Reverts on deselect.
+  const focusMode = !!selectedSched
+  const selPlane = selectedSched ? simPlanes.find((p) => p.id === selectedSched.id) ?? null : null
+  const [showAircraft, setShowAircraft] = useState(false)
+  useEffect(() => { setShowAircraft(false) }, [selectedFlight])
+
   return (
-    <div className="simulator-map-shell w-full h-full min-h-0 relative overflow-hidden isolate">
+    <div className={`simulator-map-shell w-full h-full min-h-0 relative overflow-hidden isolate${focusMode ? " map-focus" : ""}`}>
       <MapContainer
         center={[39.5, -98.0]} zoom={4} minZoom={2} maxZoom={14}
         zoomControl={false} scrollWheelZoom worldCopyJump={false}
@@ -1211,7 +1247,7 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
         <MapResizeFix />
         <ZoomControl position="topright" />
         <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
           attribution='&copy; <a href="https://carto.com/attributions">CARTO</a>'
           subdomains="abcd" maxZoom={19}
         />
@@ -1244,7 +1280,7 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
           return (
             <Polyline key={`bg-${f.id}`}
               positions={[[o.lat, o.lon], [d.lat, d.lon]]}
-              pathOptions={{ color: "#57605B", weight: sel ? 2 : 1, opacity: sel ? 0.55 : 0.16, dashArray: sel ? undefined : "2 6" }}
+              pathOptions={{ color: "#9FAEA5", weight: sel ? 2 : 1, opacity: sel ? 0.7 : 0.3, dashArray: sel ? undefined : "2 6" }}
               eventHandlers={{ click: () => onFlightSelect(sel ? null : f.id) }}
             />
           )
@@ -1293,17 +1329,24 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
           )
         })}
 
-        {/* Selected flight — bezier arc overlay */}
+        {/* Focus panes — siblings of the dimmed overlay/marker panes, so
+            everything rendered here stays crisp while the rest recedes. */}
+        <Pane name="ae-focus-line" style={{ zIndex: 460 }} />
+        <Pane name="ae-focus-marker" style={{ zIndex: 640 }} />
+
+        {/* Selected flight — highlighted bezier arc in the focus pane */}
         {selectedArc && (
           <>
-            {/* Glow underlayer */}
+            {/* Soft underlayer */}
             <Polyline
+              pane="ae-focus-line"
               positions={selectedArc}
-              pathOptions={{ color: selArcColor, weight: 10, opacity: 0.12 }}
+              pathOptions={{ color: selArcColor, weight: 10, opacity: 0.14 }}
             />
             {/* Main arc — dashed if the selected flight is cancelled (by
                 plan or by cascade), preserving the "non-operating" semantic. */}
             <Polyline
+              pane="ae-focus-line"
               positions={selectedArc}
               pathOptions={{
                 color: selArcColor, weight: 3.5, opacity: 0.95,
@@ -1311,6 +1354,42 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
               }}
             />
           </>
+        )}
+
+        {/* Selected flight — endpoints + aircraft re-rendered crisp above
+            the dimmed layers while focus mode is active */}
+        {focusMode && selectedSched && [selectedSched.origin, selectedSched.destination].map((icao) => {
+          const ap = NIMBUS_AIRPORTS[icao]
+          if (!ap) return null
+          return (
+            <Marker
+              key={`focus-ap-${icao}`}
+              pane="ae-focus-marker"
+              position={[ap.lat, ap.lon]}
+              icon={airportIcon(HUB_AIRPORTS.has(icao), airportFAA[icao], icao in wxAirports, simEvtAirports.has(icao), false)}
+              interactive={false}
+            >
+              <Tooltip direction="top" offset={[0, -14]} opacity={1} permanent>
+                <span className="font-mono font-bold text-[10px]">
+                  {icao === selectedSched.origin ? `${ap.iata} · departs` : `${ap.iata} · arrives`}
+                </span>
+              </Tooltip>
+            </Marker>
+          )
+        })}
+        {focusMode && selPlane && (
+          <Marker
+            pane="ae-focus-marker"
+            position={[selPlane.lat, selPlane.lon]}
+            icon={simIcon(
+              cascColor(selPlane.id, flightStates[selPlane.id]),
+              selPlane.brg, true,
+              flightStates[selPlane.id]?.cascade_order ?? -1,
+              visuallyCancelled.has(selPlane.id),
+              applied.swap.has(selPlane.id),
+            )}
+            eventHandlers={{ click: () => onFlightSelect(null) }}
+          />
         )}
 
         {/* Live trail for selected live flight */}
@@ -1441,7 +1520,7 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
           <div
             className="rounded-lg px-3 py-2"
             style={{
-              background: "rgba(20,25,23,0.9)", backdropFilter: "blur(12px)",
+              background: GLASS, backdropFilter: "blur(12px)",
               border: "1px solid var(--ae-line)",
               borderLeft: "2px solid var(--ae-rust)",
             }}
@@ -1470,7 +1549,13 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
           appliedPlan={activePlan}
           applied={applied}
           onClose={() => onFlightSelect(null)}
+          onOpenAircraft={() => setShowAircraft(true)}
         />
+      )}
+
+      {/* Aircraft seat-map modal */}
+      {showAircraft && selectedSched && (
+        <AircraftDetail flight={selectedSched} onClose={() => setShowAircraft(false)} />
       )}
 
       {/* Airport panel */}
@@ -1486,7 +1571,7 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
       <div className="absolute bottom-3 right-3 z-[400] flex flex-col gap-2 items-end">
         <div
           className="rounded-lg px-3 py-2 flex flex-col gap-1.5 text-[11px]"
-          style={{ background: "rgba(20,25,23,0.92)", backdropFilter: "blur(12px)", border: "1px solid var(--ae-line)" }}
+          style={{ background: GLASS, backdropFilter: "blur(12px)", border: "1px solid var(--ae-line)" }}
         >
           <button
             onClick={() => setShowLiveFlights(!showLiveFlights)}
@@ -1527,7 +1612,7 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
           <div
             className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[9px] font-medium"
             style={{
-              background: "rgba(20,25,23,0.88)",
+              background: GLASS,
               backdropFilter: "blur(8px)",
               border: "1px solid var(--ae-line)",
               color: ageSec > 30 ? "var(--ae-amber-ink)" : "var(--ae-text-3)",
@@ -1546,7 +1631,7 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
       <div className="absolute bottom-3 left-3 z-[400]">
         <div
           className="px-3 py-2 rounded-lg text-[10px]"
-          style={{ background: "rgba(20,25,23,0.92)", backdropFilter: "blur(12px)", border: "1px solid var(--ae-line)" }}
+          style={{ background: GLASS, backdropFilter: "blur(12px)", border: "1px solid var(--ae-line)" }}
         >
           {/* Always-visible: live layer */}
           <div className="flex items-center gap-2.5 flex-wrap mb-1.5">

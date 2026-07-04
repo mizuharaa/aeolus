@@ -1,0 +1,345 @@
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - navigation:
+      - link "Aeolus Aeolus":
+        - /url: /
+        - img "Aeolus":
+          - img
+        - generic: Aeolus
+      - generic:
+        - link "Scenarios":
+          - /url: /scenarios
+        - link "Methodology":
+          - /url: /docs
+        - link "Simulator":
+          - /url: /simulator
+      - link "Launch simulator":
+        - /url: /simulator
+        - button "Launch simulator":
+          - text: Launch simulator
+          - img
+    - region "Aeolus" [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]:
+          - img "Aeolus" [ref=e7]:
+            - img [ref=e8]
+          - generic [ref=e15]: Aeolus
+          - generic [ref=e16]: Airline disruption · simulated · solved
+        - generic [ref=e17]:
+          - text: Scroll
+          - img [ref=e18]
+    - generic [ref=e20]:
+      - generic:
+        - generic:
+          - generic:
+            - img
+          - text: KORD · ground stop
+      - generic:
+        - generic:
+          - generic:
+            - img
+          - text: 112 flights re-routed
+      - generic:
+        - generic:
+          - generic:
+            - img
+          - text: solved in 8.4 ms
+      - generic [ref=e21]:
+        - heading "Put airline recovery on autopilot" [level=1] [ref=e22]:
+          - text: Put airline recovery
+          - text: on autopilot
+        - paragraph [ref=e23]: Aeolus simulates real-world disruptions against a 200-flight airline, predicts the delay cascade, and returns four costed recovery plans — in milliseconds.
+        - generic [ref=e24]:
+          - link "Launch the simulator" [ref=e25] [cursor=pointer]:
+            - /url: /simulator
+            - button "Launch the simulator" [ref=e26]:
+              - text: Launch the simulator
+              - img [ref=e27]
+          - link "Watch the recovery loop" [ref=e29] [cursor=pointer]:
+            - /url: "#loop"
+            - button "Watch the recovery loop" [ref=e30]
+    - generic [ref=e32]:
+      - generic [ref=e33]: Simulate · Predict · Solve · Commit ·
+      - generic [ref=e34]: Simulate · Predict · Solve · Commit ·
+      - generic [ref=e35]: Simulate · Predict · Solve · Commit ·
+      - generic [ref=e36]: Simulate · Predict · Solve · Commit ·
+    - region "The recovery loop" [ref=e37]:
+      - generic [ref=e42]:
+        - generic [ref=e43]: The recovery loop
+        - button "01 A full airline, live. 202 flights, 40 aircraft, 15 airports — every rotation tracked in real time against the schedule." [ref=e44] [cursor=pointer]:
+          - generic [ref=e45]:
+            - generic [ref=e46]: "01"
+            - generic [ref=e47]: A full airline, live.
+          - paragraph [ref=e48]: 202 flights, 40 aircraft, 15 airports — every rotation tracked in real time against the schedule.
+        - button "02 A hub drops out. A storm shuts Chicago O’Hare. 47 departures stop, and the delay starts cascading into every connecting rotation." [ref=e49] [cursor=pointer]:
+          - generic [ref=e50]:
+            - generic [ref=e51]: "02"
+            - generic [ref=e52]: A hub drops out.
+          - paragraph [ref=e53]: A storm shuts Chicago O’Hare. 47 departures stop, and the delay starts cascading into every connecting rotation.
+        - button "03 Four plans. 8 ms. The optimizer returns four ranked recovery plans — cheapest, kindest to passengers, safest for tomorrow, lowest carbon." [ref=e54] [cursor=pointer]:
+          - generic [ref=e55]:
+            - generic [ref=e56]: "03"
+            - generic [ref=e57]: Four plans. 8 ms.
+          - paragraph [ref=e58]: The optimizer returns four ranked recovery plans — cheapest, kindest to passengers, safest for tomorrow, lowest carbon.
+        - 'button "04 The cascade stops. Apply a plan and the network heals: 3 cancellations instead of 16, zero crew violations, every trade-off inspectable." [ref=e59] [cursor=pointer]':
+          - generic [ref=e60]:
+            - generic [ref=e61]: "04"
+            - generic [ref=e62]: The cascade stops.
+          - paragraph [ref=e63]: "Apply a plan and the network heals: 3 cancellations instead of 16, zero crew violations, every trade-off inspectable."
+    - generic [ref=e66]:
+      - generic [ref=e67]:
+        - generic [ref=e68]: "0"
+        - generic [ref=e69]: flights simulated daily
+      - generic [ref=e70]:
+        - generic [ref=e71]: 0 ms
+        - generic [ref=e72]: median recovery solve
+      - generic [ref=e73]:
+        - generic [ref=e74]: "0"
+        - generic [ref=e75]: ranked plans per event
+      - generic [ref=e76]:
+        - generic [ref=e77]: "0"
+        - generic [ref=e78]: connections saved per storm
+    - generic [ref=e80]:
+      - generic [ref=e82]:
+        - generic [ref=e83]:
+          - text: System capabilities
+          - heading "Built like a real OCC, not a settings menu." [level=2] [ref=e84]:
+            - text: Built like a real OCC,
+            - text: not a settings menu.
+        - paragraph [ref=e85]: Every capability below is shown as an actual artifact of the system — the rotation graph, the objective function, the duty timeline, the cost stack, the carbon ledger, the vulnerability matrix. No hero icons, no filler.
+      - generic [ref=e86]:
+        - generic [ref=e88]:
+          - generic [ref=e89]:
+            - text: Cascade predictor
+            - heading "Rotation physics, not a black box" [level=3] [ref=e90]
+            - paragraph [ref=e91]: Delays propagate through aircraft rotations the way they actually do — buffer-aware, deterministic, reproducible. Same inputs, same forecast, every time.
+          - img [ref=e93]:
+            - generic [ref=e97]: buffer 30m
+            - generic [ref=e98]: residual +181m
+            - generic [ref=e99]: cascade +161m
+            - generic [ref=e100]:
+              - generic [ref=e103]: DEN–ORD
+              - generic [ref=e104]: DIRECT
+              - generic [ref=e105]: +211m
+            - generic [ref=e106]:
+              - generic [ref=e109]: ORD–LAX
+              - generic [ref=e110]: ORDER 1
+              - generic [ref=e111]: +181m
+            - generic [ref=e112]:
+              - generic [ref=e115]: LAX–SEA
+              - generic [ref=e116]: ORDER 2
+              - generic [ref=e117]: +161m
+        - generic [ref=e119]:
+          - generic [ref=e120]:
+            - text: CP-SAT optimizer
+            - heading "Four plans, one solver" [level=3] [ref=e121]
+            - paragraph [ref=e122]: Globally optimal under each objective. Auditable weights, reproducible runs.
+          - generic [ref=e123]:
+            - text: minimize α·cancel
+            - subscript [ref=e124]: f
+            - text: + β·delay
+            - subscript [ref=e125]: f
+            - text: + γ·crew
+            - subscript [ref=e126]: viol
+            - text: + δ·oop + ε·co2
+            - subscript [ref=e127]: kg
+            - text: s.t. Σ swap
+            - subscript [ref=e128]: f,a
+            - text: ≤ 1 ∀ f
+            - text: delay
+            - subscript [ref=e129]: f
+            - text: ≤ 480
+            - text: "# A: α=10 · B: β=10 · C: δ=10 · D: ε=12"
+        - generic [ref=e131]:
+          - generic [ref=e132]:
+            - text: FAR Part 117
+            - heading "Crew legality, checked on every plan" [level=3] [ref=e133]
+          - generic [ref=e134]:
+            - img [ref=e135]:
+              - generic [ref=e137]: "00"
+              - generic [ref=e139]: "04"
+              - generic [ref=e141]: "08"
+              - generic [ref=e143]: "12"
+              - generic [ref=e145]: "16"
+              - generic [ref=e147]: "20"
+              - generic [ref=e149]: "24"
+              - generic [ref=e152]: now
+            - generic [ref=e153]:
+              - generic [ref=e154]: FDP 14h · legal
+              - generic [ref=e155]: 7-day 52h / 60h
+        - generic [ref=e157]:
+          - generic [ref=e158]:
+            - text: Cost engine
+            - heading "DOT-sourced, fully decomposed" [level=3] [ref=e159]
+          - generic [ref=e160]:
+            - generic [ref=e161]:
+              - generic [ref=e162]: Cancellation
+              - generic [ref=e164]: $103.7K
+            - generic [ref=e165]:
+              - generic [ref=e166]: Delay
+              - generic [ref=e168]: $23.7K
+            - generic [ref=e169]:
+              - generic [ref=e170]: Repositioning
+              - generic [ref=e172]: $8.0K
+            - generic [ref=e173]:
+              - generic [ref=e174]: DOT compensation
+              - generic [ref=e176]: $38.4K
+            - generic [ref=e177]: B737-800 · 160 pax · 90-min delay · BTS 2023 rates
+        - generic [ref=e179]:
+          - generic [ref=e180]:
+            - text: Plan D · green recovery
+            - heading "EU-ETS-priced carbon ledger" [level=3] [ref=e181]
+          - generic [ref=e182]:
+            - generic [ref=e183]:
+              - text: +12.4 t
+              - generic [ref=e184]: net CO₂e across recovery · $1,054 ETS
+            - generic [ref=e189]:
+              - generic [ref=e190]: burned 19.2 t
+              - generic [ref=e191]: saved 6.8 t
+        - generic [ref=e193]:
+          - generic [ref=e194]:
+            - generic [ref=e195]: Stress test
+            - heading "Find the fragile rotations before weather does" [level=3] [ref=e196]
+            - paragraph [ref=e197]: Monte Carlo disruption sweeps against the live schedule surface the airports, tails, and crew bases where a single event does the most damage — chaos engineering for airline ops.
+            - generic [ref=e198]: 1,000 iterations · severity sampled by stage
+          - generic [ref=e199]:
+            - generic [ref=e200]:
+              - generic [ref=e202]: Weather
+              - generic [ref=e203]: Ground stop
+              - generic [ref=e204]: ATC
+              - generic [ref=e205]: Mechanical
+              - generic [ref=e206]: Crew
+            - generic [ref=e207]:
+              - generic [ref=e208]:
+                - generic [ref=e209]: ORD
+                - generic [ref=e210]: "0.92"
+                - generic [ref=e211]: "0.78"
+                - generic [ref=e212]: "0.41"
+                - generic [ref=e213]: "0.36"
+                - generic [ref=e214]: "0.52"
+              - generic [ref=e215]:
+                - generic [ref=e216]: ATL
+                - generic [ref=e217]: "0.71"
+                - generic [ref=e218]: "0.62"
+                - generic [ref=e219]: "0.35"
+                - generic [ref=e220]: "0.31"
+                - generic [ref=e221]: "0.44"
+              - generic [ref=e222]:
+                - generic [ref=e223]: DFW
+                - generic [ref=e224]: "0.55"
+                - generic [ref=e225]: "0.49"
+                - generic [ref=e226]: "0.28"
+                - generic [ref=e227]: "0.34"
+                - generic [ref=e228]: "0.38"
+              - generic [ref=e229]:
+                - generic [ref=e230]: DEN
+                - generic [ref=e231]: "0.61"
+                - generic [ref=e232]: "0.42"
+                - generic [ref=e233]: "0.31"
+                - generic [ref=e234]: "0.26"
+                - generic [ref=e235]: "0.29"
+              - generic [ref=e236]:
+                - generic [ref=e237]: JFK
+                - generic [ref=e238]: "0.58"
+                - generic [ref=e239]: "0.66"
+                - generic [ref=e240]: "0.52"
+                - generic [ref=e241]: "0.22"
+                - generic [ref=e242]: "0.35"
+              - generic [ref=e243]:
+                - generic [ref=e244]: LAX
+                - generic [ref=e245]: "0.42"
+                - generic [ref=e246]: "0.31"
+                - generic [ref=e247]: "0.22"
+                - generic [ref=e248]: "0.28"
+                - generic [ref=e249]: "0.24"
+      - link "Try them in the simulator" [ref=e252] [cursor=pointer]:
+        - /url: /simulator
+        - text: Try them in the simulator
+        - img [ref=e253]
+    - generic [ref=e256]:
+      - generic [ref=e257]:
+        - text: Methodology
+        - heading "Deterministic. Auditable. Open." [level=2] [ref=e258]
+      - generic [ref=e259]:
+        - generic [ref=e261]:
+          - generic [ref=e262]: Cascade model
+          - generic [ref=e263]: Rotation-graph propagation built from the schedule itself — buffer-aware, no ML, no training data. Every forecast is reproducible from its inputs.
+          - generic [ref=e264]: deterministic
+        - generic [ref=e266]:
+          - generic [ref=e267]: Recovery optimizer
+          - generic [ref=e268]: OR-Tools CP-SAT over swaps, delays, cancellations and reroutes; four weighted objectives produce four differentiated plans.
+          - generic [ref=e269]: <10 ms
+        - generic [ref=e271]:
+          - generic [ref=e272]: Cost engine
+          - generic [ref=e273]: DOT BTS 2023 delay and cancellation rates, DOT compensation rules, EU-ETS carbon pricing — every dollar in a plan is decomposable.
+          - generic [ref=e274]: BTS 2023
+        - generic [ref=e276]:
+          - generic [ref=e277]: Crew legality
+          - generic [ref=e278]: FAR Part 117 flight-duty-period tables and cumulative limits, evaluated per plan; violations surface as flags before you commit.
+          - generic [ref=e279]: Part 117
+        - generic [ref=e281]:
+          - generic [ref=e282]: Live context
+          - generic [ref=e283]: FAA NAS status and NWS weather alerts stream in beside the synthetic network, so scenarios sit against real airspace conditions.
+          - generic [ref=e284]: FAA · NWS
+      - link "Read the full methodology" [ref=e287] [cursor=pointer]:
+        - /url: /docs
+        - text: Read the full methodology
+        - img [ref=e288]
+    - generic [ref=e293]:
+      - generic [ref=e294]:
+        - heading "Trigger your first storm." [level=2] [ref=e295]
+        - paragraph [ref=e297]: No setup, no account. Pick an event, watch the cascade cross the network, and compare four recovery plans with full cost, crew, and carbon detail.
+        - generic [ref=e299]:
+          - link "Open the simulator" [ref=e300] [cursor=pointer]:
+            - /url: /simulator
+            - button "Open the simulator" [ref=e301]:
+              - text: Open the simulator
+              - img [ref=e302]
+          - link "Browse scenarios" [ref=e304] [cursor=pointer]:
+            - /url: /scenarios
+            - button "Browse scenarios" [ref=e305]
+      - generic [ref=e307]:
+        - generic [ref=e309]: $ aeolus trigger --event weather_closure --airport KORD --severity 4
+        - generic [ref=e312]:
+          - text: cascade 47 direct · 61 first-order · 39 second-order
+          - generic [ref=e313]: 2.1 ms
+        - generic [ref=e316]:
+          - text: solve plans A · B · C · D
+          - generic [ref=e317]: 8.4 ms
+        - generic [ref=e320]:
+          - text: ranked B — minimize pax impact
+          - generic [ref=e321]: $2.4M · 0 flags
+        - generic [ref=e323]: $ aeolus apply B
+        - generic [ref=e326]:
+          - text: committed 118 actions · network recovering
+          - generic [ref=e327]: 14:33Z
+    - generic [ref=e329]:
+      - generic [ref=e330]:
+        - generic [ref=e331]:
+          - generic [ref=e332]:
+            - img "Aeolus" [ref=e333]:
+              - img [ref=e334]
+            - generic [ref=e341]:
+              - generic [ref=e342]: Aeolus
+              - generic [ref=e343]: Open-source OCC reference
+          - paragraph [ref=e344]: Built with FastAPI · Next.js · OR-Tools · three.js · GSAP. Open data — DOT BTS, FAA NAS, NWS NOAA. No proprietary lock-in.
+        - generic [ref=e345]:
+          - generic [ref=e346]: Product
+          - link "Simulator" [ref=e347] [cursor=pointer]:
+            - /url: /simulator
+          - link "Recovery plans" [ref=e348] [cursor=pointer]:
+            - /url: /simulator/plans
+          - link "Carbon dashboard" [ref=e349] [cursor=pointer]:
+            - /url: /simulator/carbon
+          - link "Stress test" [ref=e350] [cursor=pointer]:
+            - /url: /simulator/stress-test
+        - generic [ref=e351]:
+          - generic [ref=e352]: Reference
+          - link "Scenarios" [ref=e353] [cursor=pointer]:
+            - /url: /scenarios
+          - link "Methodology" [ref=e354] [cursor=pointer]:
+            - /url: /docs
+      - generic [ref=e355]:
+        - generic [ref=e356]: Aeolus is a research artifact. Not a substitute for production OCC software.
+        - generic [ref=e357]: v0.4.0 · Apache 2.0
+  - region "Notifications alt+T"
