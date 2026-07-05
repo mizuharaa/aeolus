@@ -1,0 +1,351 @@
+- generic [active] [ref=f12e1]:
+  - main [ref=f12e2]:
+    - navigation [ref=f12e430]:
+      - link "Aeolus Aeolus" [ref=f12e432] [cursor=pointer]:
+        - /url: /
+        - img "Aeolus" [ref=f12e433]:
+          - img [ref=f12e434]
+        - generic [ref=f12e438]: Aeolus
+      - link "Launch simulator" [ref=f12e439] [cursor=pointer]:
+        - /url: /simulator
+        - text: Launch simulator
+        - img [ref=f12e440]
+    - region "Aeolus" [ref=f12e3]:
+      - generic:
+        - img
+      - generic:
+        - img
+      - generic:
+        - img
+      - generic:
+        - img
+      - generic:
+        - img
+      - generic [ref=f12e4]:
+        - generic [ref=f12e5]:
+          - img "Aeolus" [ref=f12e6]:
+            - img [ref=f12e7]
+          - generic [ref=f12e11]: Aeolus
+        - generic [ref=f12e12]: Airline disruption & recovery simulator
+      - img "AEOLUS" [ref=f12e14]:
+        - generic:
+          - generic:
+            - generic: AEOLUS
+        - generic [ref=f12e22]: AEOLUS
+      - generic [ref=f12e30]:
+        - paragraph [ref=f12e31]: Trigger a hub closure. Watch the delay cascade spread. Recover the network.
+        - generic [ref=f12e32]:
+          - text: Scroll
+          - img [ref=f12e34]
+    - region "Airline recovery, simulated live" [ref=f12e36]:
+      - generic:
+        - img
+      - generic:
+        - img
+      - generic [ref=f12e37]:
+        - generic [ref=f12e38]: 01 — The premise
+        - heading "Airline recovery, simulated live." [level=1] [ref=f12e39]:
+          - generic [ref=f12e443]: Airline
+          - generic [ref=f12e445]: recovery,
+          - emphasis [ref=f12e40]: simulated live.
+        - generic [ref=f12e41]:
+          - paragraph [ref=f12e43]:
+            - text: Trigger a hub closure, watch the delay cascade spread across the network, then compare recovery plans by
+            - strong [ref=f12e44]: cost
+            - text: ","
+            - strong [ref=f12e45]: passengers
+            - text: ","
+            - strong [ref=f12e46]: crew legality
+            - text: and
+            - strong [ref=f12e47]: carbon
+            - text: .
+          - generic [ref=f12e49]:
+            - link "Launch simulator" [ref=f12e50] [cursor=pointer]:
+              - /url: /simulator
+              - text: Launch simulator
+              - img [ref=f12e51]
+            - link "Watch the recovery loop" [ref=f12e53] [cursor=pointer]:
+              - /url: "#demo"
+              - text: Watch the recovery loop
+              - img [ref=f12e54]
+    - generic [ref=f12e57]:
+      - generic [ref=f12e58]: Hub closure·
+      - generic [ref=f12e59]: Delay cascade·
+      - generic [ref=f12e60]: Four plans·
+      - generic [ref=f12e61]: Recovery·
+      - generic [ref=f12e62]: Hub closure·
+      - generic [ref=f12e63]: Delay cascade·
+      - generic [ref=f12e64]: Four plans·
+      - generic [ref=f12e65]: Recovery·
+      - generic [ref=f12e66]: Hub closure·
+      - generic [ref=f12e67]: Delay cascade·
+      - generic [ref=f12e68]: Four plans·
+      - generic [ref=f12e69]: Recovery·
+      - generic [ref=f12e70]: Hub closure·
+      - generic [ref=f12e71]: Delay cascade·
+      - generic [ref=f12e72]: Four plans·
+      - generic [ref=f12e73]: Recovery·
+    - region "Simulator demo" [ref=f12e74]:
+      - generic [ref=f12e76]:
+        - complementary [ref=f12e77]:
+          - generic [ref=f12e78]: 02 — One recovery loop
+          - generic [ref=f12e79]:
+            - button "01 Command" [ref=f12e80] [cursor=pointer]:
+              - generic [ref=f12e81]:
+                - generic [ref=f12e82]: "01"
+                - generic [ref=f12e83]: Command
+            - button "02 Cascade" [ref=f12e84] [cursor=pointer]:
+              - generic [ref=f12e85]:
+                - generic [ref=f12e86]: "02"
+                - generic [ref=f12e87]: Cascade
+            - button "03 Solve" [ref=f12e88] [cursor=pointer]:
+              - generic [ref=f12e89]:
+                - generic [ref=f12e90]: "03"
+                - generic [ref=f12e91]: Solve
+            - button "04 Commit" [ref=f12e92] [cursor=pointer]:
+              - generic [ref=f12e93]:
+                - generic [ref=f12e94]: "04"
+                - generic [ref=f12e95]: Commit
+        - generic [ref=f12e97]:
+          - generic [ref=f12e98]:
+            - generic [ref=f12e99]:
+              - img "Aeolus" [ref=f12e100]:
+                - img [ref=f12e101]
+              - generic [ref=f12e105]: Aeolus OCC
+            - generic [ref=f12e106]: 14:31Z
+            - generic [ref=f12e107]:
+              - generic [ref=f12e108]: Nominal
+              - generic [ref=f12e109]: Disrupted
+              - generic [ref=f12e110]: Recovering
+              - generic [ref=f12e111]: Stable
+          - generic [ref=f12e113]:
+            - generic [ref=f12e114]:
+              - img [ref=f12e115]
+              - img [ref=f12e117]
+              - generic [ref=f12e142]: ATL
+              - generic [ref=f12e145]: DFW
+              - generic [ref=f12e148]: LAX
+              - generic [ref=f12e151]: DEN
+              - generic [ref=f12e154]: JFK
+              - generic [ref=f12e157]: SEA
+              - generic [ref=f12e160]: MIA
+              - generic [ref=f12e163]: PHX
+              - generic [ref=f12e166]: LAS
+              - generic [ref=f12e169]: BOS
+              - generic [ref=f12e172]: SFO
+              - generic [ref=f12e175]: IAH
+              - generic [ref=f12e178]: DTW
+              - generic [ref=f12e181]: MSP
+              - generic [ref=f12e184]: ORD
+            - generic [ref=f12e185]:
+              - generic [ref=f12e186]: Trigger event
+              - generic [ref=f12e187]:
+                - generic [ref=f12e188]:
+                  - img [ref=f12e189]
+                  - text: Weather closure
+                - generic [ref=f12e192]:
+                  - img [ref=f12e193]
+                  - text: Ground stop
+                - generic [ref=f12e197]:
+                  - img [ref=f12e198]
+                  - text: Runway closure
+                - generic [ref=f12e203]:
+                  - img [ref=f12e204]
+                  - text: Crew sick-out
+              - generic [ref=f12e210]: Severity
+            - generic [ref=f12e217]:
+              - generic [ref=f12e218]: Departures held
+              - generic [ref=f12e219]: "27"
+            - generic [ref=f12e220]: Recovery plan applied — 118 actions committed
+            - generic [ref=f12e221]:
+              - generic [ref=f12e222]:
+                - img "Aeolus" [ref=f12e223]:
+                  - img [ref=f12e224]
+                - generic [ref=f12e228]: Aeolus agent
+                - generic [ref=f12e229]: demo
+              - generic [ref=f12e230]: ">"
+              - generic [ref=f12e232]:
+                - generic [ref=f12e233]: "→ event: weather_closure @ KORD · sev 4"
+                - generic [ref=f12e234]: "→ cascade: 47 direct · 61 first-order"
+                - generic [ref=f12e235]: → 4 plans solved in 8.4 ms
+                - generic [ref=f12e236]: → committed plan B · 118 actions
+            - generic [ref=f12e237]:
+              - generic [ref=f12e238]: Recovery plans · A–D
+              - generic [ref=f12e239]:
+                - generic [ref=f12e240]:
+                  - generic [ref=f12e241]:
+                    - generic [ref=f12e242]: A
+                    - generic [ref=f12e243]: Minimize cost
+                  - generic [ref=f12e244]:
+                    - generic [ref=f12e245]: $1.9M
+                    - generic [ref=f12e246]: 11 cxl
+                    - generic [ref=f12e247]: 0 flags
+                - generic [ref=f12e248]:
+                  - generic [ref=f12e249]:
+                    - generic [ref=f12e250]: B
+                    - generic [ref=f12e251]: Minimize pax impact
+                  - generic [ref=f12e252]:
+                    - generic [ref=f12e253]: $2.4M
+                    - generic [ref=f12e254]: 3 cxl
+                    - generic [ref=f12e255]: 0 flags
+                - generic [ref=f12e256]:
+                  - generic [ref=f12e257]:
+                    - generic [ref=f12e258]: C
+                    - generic [ref=f12e259]: Protect tomorrow
+                  - generic [ref=f12e260]:
+                    - generic [ref=f12e261]: $2.7M
+                    - generic [ref=f12e262]: 5 cxl
+                    - generic [ref=f12e263]: 0 flags
+                - generic [ref=f12e264]:
+                  - generic [ref=f12e265]:
+                    - generic [ref=f12e266]: D
+                    - generic [ref=f12e267]: Minimize carbon
+                  - generic [ref=f12e268]:
+                    - generic [ref=f12e269]: $2.2M
+                    - generic [ref=f12e270]: 8 cxl
+                    - generic [ref=f12e271]: 0 flags
+              - generic [ref=f12e272]:
+                - generic [ref=f12e273]: Plan B — committed
+                - generic [ref=f12e274]:
+                  - generic [ref=f12e275]: Cancellations
+                  - generic [ref=f12e276]: "16"
+                  - generic [ref=f12e277]: was 16
+                - generic [ref=f12e278]:
+                  - generic [ref=f12e279]: Pax reaccommodated
+                  - generic [ref=f12e280]: "0"
+                - generic [ref=f12e281]:
+                  - generic [ref=f12e282]: Crew legality
+                  - generic [ref=f12e283]: 0 flags
+                  - generic [ref=f12e284]: FAR 117
+                - generic [ref=f12e285]:
+                  - generic [ref=f12e286]: Cost vs no action
+                  - generic [ref=f12e287]: −$0.0M
+            - generic:
+              - img
+          - generic [ref=f12e288]:
+            - generic [ref=f12e289]: 06:00
+            - generic [ref=f12e290]: 09:00
+            - generic [ref=f12e291]: 12:00
+            - generic [ref=f12e292]: 15:00
+            - generic [ref=f12e293]: 18:00
+            - generic [ref=f12e294]: 21:00
+    - region "Methodology" [ref=f12e295]:
+      - generic [ref=f12e296]:
+        - generic [ref=f12e297]:
+          - generic [ref=f12e298]:
+            - generic [ref=f12e299]: 03 — Methodology
+            - heading "Deterministic.Auditable. Open." [level=2] [ref=f12e449]:
+              - generic [ref=f12e451]: Deterministic.
+              - generic [ref=f12e453]:
+                - emphasis [ref=f12e301]: Auditable.
+                - text: Open.
+          - paragraph [ref=f12e303]: Six systems, no black boxes. Same inputs, same cascade, same plans — every run of the simulator is reproducible end to end.
+        - generic [ref=f12e304]:
+          - generic [ref=f12e306]:
+            - generic [ref=f12e307]: "01"
+            - generic [ref=f12e308]: Cascade model
+            - generic [ref=f12e309]: Rotation-graph propagation built from the schedule itself — buffer-aware, no ML, no training data. Every forecast is reproducible from its inputs.
+            - generic [ref=f12e310]: deterministic
+          - generic [ref=f12e312]:
+            - generic [ref=f12e313]: "02"
+            - generic [ref=f12e314]: Recovery optimizer
+            - generic [ref=f12e315]: OR-Tools CP-SAT over swaps, delays, cancellations and reroutes; four weighted objectives produce four differentiated plans.
+            - generic [ref=f12e316]: < 10 ms
+          - generic [ref=f12e318]:
+            - generic [ref=f12e319]: "03"
+            - generic [ref=f12e320]: Cost engine
+            - generic [ref=f12e321]: DOT BTS 2023 delay and cancellation rates, DOT compensation rules, EU-ETS carbon pricing — every dollar in a plan is decomposable.
+            - generic [ref=f12e322]: BTS 2023
+          - generic [ref=f12e324]:
+            - generic [ref=f12e325]: "04"
+            - generic [ref=f12e326]: Crew legality
+            - generic [ref=f12e327]: FAR Part 117 flight-duty-period tables and cumulative limits, evaluated per plan; violations surface as flags before you commit.
+            - generic [ref=f12e328]: Part 117
+          - generic [ref=f12e330]:
+            - generic [ref=f12e331]: "05"
+            - generic [ref=f12e332]: Live context
+            - generic [ref=f12e333]: FAA NAS status and NWS weather alerts stream in beside the synthetic network, so scenarios sit against real airspace conditions.
+            - generic [ref=f12e334]: FAA · NWS
+          - generic [ref=f12e336]:
+            - generic [ref=f12e337]: "06"
+            - generic [ref=f12e338]: Audit trail
+            - generic [ref=f12e339]: Every trigger, solve and commit is logged with its inputs and objective weights; any recovery plan can be replayed step by step.
+            - generic [ref=f12e340]: replayable
+        - link "Read the full methodology" [ref=f12e343] [cursor=pointer]:
+          - /url: /docs
+          - text: Read the full methodology
+          - img [ref=f12e344]
+    - region "Run a disruption" [ref=f12e346]:
+      - generic:
+        - img
+      - generic:
+        - img
+      - generic [ref=f12e347]:
+        - generic [ref=f12e348]: 04 — Your turn
+        - img "RUN A DISRUPTION." [ref=f12e350]:
+          - generic:
+            - generic:
+              - generic: RUN A DISRUPTION.
+          - generic [ref=f12e358]: RUN A DISRUPTION.
+        - generic [ref=f12e366]:
+          - generic [ref=f12e367]:
+            - paragraph [ref=f12e369]: No setup, no account. Pick an event, watch the delay cascade cross the network, and compare four recovery plans with full cost, crew and carbon detail.
+            - generic [ref=f12e371]:
+              - link "Launch simulator" [ref=f12e372] [cursor=pointer]:
+                - /url: /simulator
+                - text: Launch simulator
+                - img [ref=f12e373]
+              - link "Browse scenarios" [ref=f12e375] [cursor=pointer]:
+                - /url: /scenarios
+          - generic [ref=f12e378]:
+            - generic [ref=f12e380]:
+              - generic [ref=f12e381]: $
+              - generic [ref=f12e382]: aeolus trigger --event weather_closure --airport KORD --severity 4
+            - generic [ref=f12e384]:
+              - generic [ref=f12e385]: cascade 47 direct · 61 first-order · 39 second-order
+              - generic [ref=f12e386]: 2.1 ms
+            - generic [ref=f12e388]:
+              - generic [ref=f12e389]: solve plans A · B · C · D
+              - generic [ref=f12e390]: 8.4 ms
+            - generic [ref=f12e392]:
+              - generic [ref=f12e393]: ranked B — minimize pax impact
+              - generic [ref=f12e394]: $2.4M · 0 flags
+            - generic [ref=f12e396]:
+              - generic [ref=f12e397]: $
+              - generic [ref=f12e398]: aeolus apply B
+            - generic [ref=f12e400]:
+              - generic [ref=f12e401]: committed 118 actions · network recovering
+              - generic [ref=f12e402]: 14:33Z
+    - generic [ref=f12e404]:
+      - generic [ref=f12e405]:
+        - generic [ref=f12e406]:
+          - generic [ref=f12e407]:
+            - img "Aeolus" [ref=f12e408]:
+              - img [ref=f12e409]
+            - generic [ref=f12e413]:
+              - generic [ref=f12e414]: Aeolus
+              - generic [ref=f12e415]: Open-source OCC reference
+          - paragraph [ref=f12e416]: Built with FastAPI · Next.js · OR-Tools · GSAP. Open data — DOT BTS, FAA NAS, NWS NOAA. No proprietary lock-in.
+        - generic [ref=f12e417]:
+          - generic [ref=f12e418]: Product
+          - link "Simulator" [ref=f12e419] [cursor=pointer]:
+            - /url: /simulator
+          - link "Recovery plans" [ref=f12e420] [cursor=pointer]:
+            - /url: /simulator/plans
+          - link "Carbon dashboard" [ref=f12e421] [cursor=pointer]:
+            - /url: /simulator/carbon
+          - link "Stress test" [ref=f12e422] [cursor=pointer]:
+            - /url: /simulator/stress-test
+        - generic [ref=f12e423]:
+          - generic [ref=f12e424]: Reference
+          - link "Scenarios" [ref=f12e425] [cursor=pointer]:
+            - /url: /scenarios
+          - link "Methodology" [ref=f12e426] [cursor=pointer]:
+            - /url: /docs
+      - generic [ref=f12e427]:
+        - generic [ref=f12e428]: Aeolus is a research artifact. Not a substitute for production OCC software.
+        - generic [ref=f12e429]: v0.5.0 · Apache 2.0
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=f12e459] [cursor=pointer]:
+    - img [ref=f12e460]
+  - alert [ref=f12e463]

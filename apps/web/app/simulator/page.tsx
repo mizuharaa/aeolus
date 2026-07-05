@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import dynamic from "next/dynamic"
 import { motion, AnimatePresence } from "framer-motion"
 import { Loader2, Maximize2, Minimize2, AlertTriangle, Activity, Plane, Clock, X } from "lucide-react"
@@ -9,14 +9,17 @@ import { EventPanel } from "@/components/simulator/event-panel"
 import { CascadeTimeline } from "@/components/simulator/cascade-timeline"
 import { RecoveryPlans } from "@/components/simulator/recovery-plans"
 import { SimulatorNav } from "@/components/simulator/nav"
+import { AgentBubble } from "@/components/simulator/agent-bubble"
+import { DashboardLoader } from "@/components/simulator/dashboard-loader"
 import { FlightSearch } from "@/components/simulator/flight-search"
 import { MyFlights } from "@/components/simulator/my-flights"
 import { apiClient } from "@/lib/api"
 import { c, ff, r, sp, sh } from "@/lib/design-tokens"
 import { Eyebrow, Hairline } from "@/components/ds/primitives"
+import { useResizable, ResizeHandle, ReopenTab } from "@/components/simulator/workspace-chrome"
 import Link from "next/link"
 import type { Route } from "next"
-import { ArrowRight, Leaf, Network as NetworkIcon, Users as UsersIcon, GitCompareArrows, ShieldCheck } from "lucide-react"
+import { ArrowRight, Leaf, Network as NetworkIcon, Users as UsersIcon, GitCompareArrows, ShieldCheck, Zap, LineChart, PanelLeftClose, PanelRightClose, PanelBottomClose } from "lucide-react"
 
 const FlightMap = dynamic(() => import("@/components/simulator/flight-map"), {
   ssr: false,
@@ -48,36 +51,53 @@ const FlightMap = dynamic(() => import("@/components/simulator/flight-map"), {
 })
 
 const NAV_H   = 60   // top-bar height (see components/simulator/nav.tsx)
-const RAIL_L  = 308  // left control rail width
-const RAIL_R  = 340  // right decision rail width
 const STRIP_H = 192  // docked timeline height
 
-// Smooth motion preset shared by every collapse-driven element so the rails,
-// timeline, and overlay card all glide in unison rather than racing each other.
-const FOCUS_TRANSITION = { duration: 0.42, ease: [0.22, 0.9, 0.28, 1] as const }
+// Panel pigments — the color the dashboard borrows from the landing. Events =
+// amber/rust (disruption), Recovery = teal (identity).
+const EVENT_ACCENT = "#B8863C"
+const RECOVERY_ACCENT = "#0D9488"
 
 export default function SimulatorPage() {
   const {
     flightStates, schedule, setSchedule, setFleet, setSelectedLiveFlight,
-    appliedPlanId, recoveryPlans, cascadeSummary, activeEvents,
+    appliedPlanId, recoveryPlans, cascadeSummary, activeEvents, selectedLiveFlight,
   } = useSimulationStore()
   const { isConnected } = useWebSocket()
   const [selectedFlight, setSelectedFlight] = useState<string | null>(null)
-  const [mapFocused, setMapFocused] = useState(false)
 
-  // Persist the focus preference so users who like the wide-map view keep it
-  // across page reloads and across the inevitable disruption demo.
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem("aeolus-map-focused")
-      if (saved === "1") setMapFocused(true)
-    } catch {}
-  }, [])
-  useEffect(() => {
-    try { localStorage.setItem("aeolus-map-focused", mapFocused ? "1" : "0") } catch {}
+  // A flight detail panel owns the right/left map edges while it's open, so
+  // the reopen tabs are hidden then to avoid overlapping the panel.
+  const panelOpen = !!selectedFlight || !!selectedLiveFlight
+
+  // Independently collapsible panels + drag-resizable rails.
+  const [leftOpen, setLeftOpen]     = useState(true)
+  const [rightOpen, setRightOpen]   = useState(true)
+  const [bottomOpen, setBottomOpen] = useState(true)
+  const left   = useResizable("aeolus-rail-left",  308, 240, 460, "left")
+  const right  = useResizable("aeolus-rail-right", 340, 260, 480, "right")
+  const bottom = useResizable("aeolus-strip-h",    STRIP_H, 120, 340, "bottom")
+
+  // "focus map" = collapse everything; derived, not a separate mode.
+  const mapFocused = !leftOpen && !rightOpen && !bottomOpen
+  const setMapFocused = useCallback((v: boolean | ((p: boolean) => boolean)) => {
+    const next = typeof v === "function" ? (v as (p: boolean) => boolean)(mapFocused) : v
+    setLeftOpen(!next); setRightOpen(!next); setBottomOpen(!next)
   }, [mapFocused])
 
-  // Keyboard shortcut: F toggles focus mode. Ignored when typing in inputs.
+  // Restore collapse prefs.
+  useEffect(() => {
+    try {
+      if (localStorage.getItem("aeolus-left-open")   === "0") setLeftOpen(false)
+      if (localStorage.getItem("aeolus-right-open")  === "0") setRightOpen(false)
+      if (localStorage.getItem("aeolus-bottom-open") === "0") setBottomOpen(false)
+    } catch {}
+  }, [])
+  useEffect(() => { try { localStorage.setItem("aeolus-left-open",   leftOpen   ? "1" : "0") } catch {} }, [leftOpen])
+  useEffect(() => { try { localStorage.setItem("aeolus-right-open",  rightOpen  ? "1" : "0") } catch {} }, [rightOpen])
+  useEffect(() => { try { localStorage.setItem("aeolus-bottom-open", bottomOpen ? "1" : "0") } catch {} }, [bottomOpen])
+
+  // Keyboard shortcut: F toggles focus (collapse all). Ignored while typing.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "f" && e.key !== "F") return
@@ -88,16 +108,14 @@ export default function SimulatorPage() {
     }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
-  }, [])
+  }, [setMapFocused])
 
-  // Nudge any embedded Leaflet/canvas to recompute. The map already watches
-  // its parent via ResizeObserver, but firing a window resize nails the case
-  // where the rails finish their animation slightly after Leaflet's first tick.
+  // Nudge Leaflet to recompute after any panel open/close/resize.
   useEffect(() => {
     const t1 = window.setTimeout(() => window.dispatchEvent(new Event("resize")), 220)
     const t2 = window.setTimeout(() => window.dispatchEvent(new Event("resize")), 480)
     return () => { window.clearTimeout(t1); window.clearTimeout(t2) }
-  }, [mapFocused])
+  }, [leftOpen, rightOpen, bottomOpen, left.size, right.size, bottom.size])
 
   const handleFlightSelect = (id: string | null) => {
     setSelectedFlight(id)
@@ -135,13 +153,19 @@ export default function SimulatorPage() {
     // Light register — the simulator runs on the paper/teal/matcha palette.
     <div style={{ background: "var(--ae-bg)", minHeight: "100vh" }}>
 
+      {/* Boot overlay — lifts once the live fleet is on the map */}
+      <DashboardLoader />
+
       {/* ── Sticky top nav (see components/simulator/nav.tsx) ── */}
       <div className="sticky top-0 z-50">
         <SimulatorNav isConnected={isConnected} affectedCount={affectedCount} />
       </div>
 
+      {/* Future command layer — placeholder only, see agent-bubble.tsx */}
+      <AgentBubble />
+
       {/* ══════════════════════════════════════════════════════════
-          MAIN 3-ZONE WORKSPACE
+          MAIN 3-ZONE WORKSPACE — every panel drag-resizable + collapsible
           Left control rail | Center map hero | Right decision rail
           ══════════════════════════════════════════════════════════ */}
       <div
@@ -153,55 +177,58 @@ export default function SimulatorPage() {
         }}
       >
 
-        {/* LEFT: compact event control rail */}
-        <motion.aside
-          initial={false}
-          animate={{ width: mapFocused ? 0 : RAIL_L }}
-          transition={FOCUS_TRANSITION}
+        {/* LEFT: event control rail — amber accent, resizable + collapsible */}
+        <aside
           style={{
             flexShrink: 0,
-            borderRight: mapFocused ? "0px" : `1px solid ${c.hairline}`,
-            overflowY: "auto",
-            overflowX: "hidden",
+            width: leftOpen ? left.size : 0,
+            borderRight: leftOpen ? `1px solid ${c.hairline}` : "none",
+            borderTop: leftOpen ? `2px solid ${EVENT_ACCENT}` : "none",
+            overflow: "hidden",
             background: c.canvas,
-            display: "flex",
-            flexDirection: "column",
+            transition: left.dragging ? "none" : "width 240ms cubic-bezier(0.22,0.9,0.28,1)",
           }}
         >
-          <div style={{ width: RAIL_L }}>
+          <div className="ae-scroll-smooth" style={{ width: left.size, height: "100%", overflowY: "auto", overflowX: "hidden" }}>
+            <PanelBar accent={EVENT_ACCENT} icon={<Zap style={{ width: 13, height: 13 }} strokeWidth={2} />}
+              label="Events" onCollapse={() => setLeftOpen(false)} side="left" />
             <EventPanel />
           </div>
-        </motion.aside>
+        </aside>
+        {leftOpen && <ResizeHandle side="left" onPointerDown={left.onPointerDown} />}
 
         {/* CENTER: map + docked timeline */}
-        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", background: c.surfaceSoft }}>
+        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", background: c.surfaceSoft, position: "relative" }}>
+
+          {/* re-open tabs for collapsed side rails (hidden while a flight
+              panel owns the map edge, so they never overlap it) */}
+          {!leftOpen && !panelOpen && (
+            <ReopenTab label="Events" accent={EVENT_ACCENT} side="left"
+              icon={<Zap style={{ width: 13, height: 13 }} strokeWidth={2} />} onClick={() => setLeftOpen(true)} />
+          )}
+          {!rightOpen && !panelOpen && (
+            <ReopenTab label="Recovery" accent={RECOVERY_ACCENT} side="right"
+              icon={<LineChart style={{ width: 13, height: 13 }} strokeWidth={2} />} onClick={() => setRightOpen(true)} />
+          )}
 
           {/* Map — fills all available height above timeline */}
           <div style={{ flex: 1, position: "relative", minHeight: 0 }}>
 
-            {/* Compact search overlaid on map */}
-            <AnimatePresence>
-              {!mapFocused && (
-                <motion.div
-                  key="search-overlay"
-                  initial={{ opacity: 0, y: -6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -6 }}
-                  transition={{ duration: 0.2 }}
-                  style={{
-                    position: "absolute",
-                    top: appliedPlanId ? 76 : 12,
-                    left: 12,
-                    width: "min(420px, calc(100% - 200px))",
-                    zIndex: 500,
-                  }}
-                >
-                  <FlightSearch selectedFlight={selectedFlight} onSelect={handleFlightSelect} />
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {/* Compact search overlaid on map — the reopen tabs now sit at the
+                mid-edge, so the search bar can stay pinned left in every state. */}
+            <div
+              style={{
+                position: "absolute",
+                top: appliedPlanId ? 76 : 12,
+                left: 12,
+                width: "min(400px, calc(100% - 320px))",
+                zIndex: 500,
+              }}
+            >
+              <FlightSearch selectedFlight={selectedFlight} onSelect={handleFlightSelect} />
+            </div>
 
-            {/* Focus toggle — top-right of map. Near-black, white canvas, hairline. */}
+            {/* Focus toggle — top-right of map. */}
             <motion.button
               type="button"
               onClick={() => setMapFocused((v) => !v)}
@@ -227,6 +254,7 @@ export default function SimulatorPage() {
                 boxShadow: sh.cardElev,
                 backdropFilter: "blur(8px)",
                 cursor: "pointer",
+                transition: "right 240ms ease",
               }}
             >
               <AnimatePresence mode="wait" initial={false}>
@@ -243,7 +271,7 @@ export default function SimulatorPage() {
               </AnimatePresence>
             </motion.button>
 
-            {/* Floating overlay summary — only shown in focus mode. */}
+            {/* Floating overlay summary — only shown when everything collapsed. */}
             <AnimatePresence>
               {mapFocused && (
                 <FocusOverlay
@@ -265,43 +293,75 @@ export default function SimulatorPage() {
             <FlightMap selectedFlight={selectedFlight} onFlightSelect={handleFlightSelect} />
           </div>
 
-          {/* Docked cascade timeline strip — collapses to 0 in focus mode */}
-          <motion.div
-            initial={false}
-            animate={{ height: mapFocused ? 0 : STRIP_H }}
-            transition={FOCUS_TRANSITION}
+          {/* Docked cascade timeline — resizable height + collapsible */}
+          {bottomOpen && <ResizeHandle side="bottom" onPointerDown={bottom.onPointerDown} />}
+          <div
             style={{
               flexShrink: 0,
-              borderTop: mapFocused ? "0px" : `1px solid ${c.hairline}`,
+              height: bottomOpen ? bottom.size : 30,
+              borderTop: `1px solid ${c.hairline}`,
               background: c.canvas,
               overflow: "hidden",
+              transition: bottom.dragging ? "none" : "height 240ms cubic-bezier(0.22,0.9,0.28,1)",
             }}
           >
-            <div style={{ height: STRIP_H }}>
-              <CascadeTimeline selectedFlight={selectedFlight} onFlightSelect={handleFlightSelect} />
-            </div>
-          </motion.div>
+            {bottomOpen ? (
+              <div style={{ height: bottom.size, position: "relative" }}>
+                <button
+                  type="button"
+                  onClick={() => setBottomOpen(false)}
+                  aria-label="Collapse timeline"
+                  title="Collapse timeline"
+                  style={{
+                    position: "absolute", top: 8, right: 12, zIndex: 30,
+                    width: 26, height: 26, borderRadius: 7,
+                    border: `1px solid ${c.hairline}`, background: "var(--ae-surface)",
+                    color: c.muted, cursor: "pointer", display: "inline-flex",
+                    alignItems: "center", justifyContent: "center",
+                  }}
+                >
+                  <PanelBottomClose style={{ width: 14, height: 14 }} strokeWidth={1.9} />
+                </button>
+                <CascadeTimeline selectedFlight={selectedFlight} onFlightSelect={handleFlightSelect} />
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setBottomOpen(true)}
+                style={{
+                  width: "100%", height: 30, display: "flex", alignItems: "center", gap: 8,
+                  padding: "0 16px", border: "none", background: "transparent",
+                  color: c.muted, cursor: "pointer", fontFamily: ff.mono, fontSize: 10.5,
+                  letterSpacing: "0.1em", textTransform: "uppercase",
+                }}
+              >
+                <span style={{ width: 6, height: 6, borderRadius: 99, background: EVENT_ACCENT }} />
+                Cascade timeline — click to expand
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* RIGHT: recovery decision rail */}
-        <motion.aside
-          initial={false}
-          animate={{ width: mapFocused ? 0 : RAIL_R }}
-          transition={FOCUS_TRANSITION}
+        {rightOpen && <ResizeHandle side="right" onPointerDown={right.onPointerDown} />}
+
+        {/* RIGHT: recovery decision rail — teal accent, resizable + collapsible */}
+        <aside
           style={{
             flexShrink: 0,
-            borderLeft: mapFocused ? "0px" : `1px solid ${c.hairline}`,
-            overflowY: "auto",
-            overflowX: "hidden",
+            width: rightOpen ? right.size : 0,
+            borderLeft: rightOpen ? `1px solid ${c.hairline}` : "none",
+            borderTop: rightOpen ? `2px solid ${RECOVERY_ACCENT}` : "none",
+            overflow: "hidden",
             background: c.canvas,
-            display: "flex",
-            flexDirection: "column",
+            transition: right.dragging ? "none" : "width 240ms cubic-bezier(0.22,0.9,0.28,1)",
           }}
         >
-          <div style={{ width: RAIL_R }}>
+          <div className="ae-scroll-smooth" style={{ width: right.size, height: "100%", overflowY: "auto", overflowX: "hidden" }}>
+            <PanelBar accent={RECOVERY_ACCENT} icon={<LineChart style={{ width: 13, height: 13 }} strokeWidth={2} />}
+              label="Recovery" onCollapse={() => setRightOpen(false)} side="right" />
             <RecoveryPlans selectedFlight={selectedFlight} onFlightSelect={handleFlightSelect} />
           </div>
-        </motion.aside>
+        </aside>
 
       </div>
 
@@ -333,6 +393,63 @@ export default function SimulatorPage() {
         <DeepLinkStrip />
       </div>
 
+    </div>
+  )
+}
+
+// ─── Panel titlebar ──────────────────────────────────────────────────────
+// Slim window-titlebar atop each resizable rail: a pigment accent, a small
+// window label, and the collapse button. Sticky so it stays put while the
+// panel body scrolls. This is what makes each rail read as a real,
+// closeable window (matching the reference OCC dashboards).
+function PanelBar({
+  accent, icon, label, onCollapse, side,
+}: {
+  accent: string
+  icon: React.ReactNode
+  label: string
+  onCollapse: () => void
+  side: "left" | "right"
+}) {
+  return (
+    <div
+      style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 12,
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        height: 34,
+        padding: "0 8px 0 12px",
+        background: `linear-gradient(180deg, ${accent}1A, var(--ae-surface) 92%)`,
+        borderBottom: `1px solid ${c.hairline}`,
+        flexDirection: side === "right" ? "row-reverse" : "row",
+      }}
+    >
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 7, flex: 1, flexDirection: side === "right" ? "row-reverse" : "row" }}>
+        <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, borderRadius: 6, background: `${accent}22`, color: accent }}>
+          {icon}
+        </span>
+        <span style={{ fontFamily: ff.mono, fontSize: 10, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: c.muted }}>
+          {label}
+        </span>
+      </span>
+      <button
+        type="button"
+        onClick={onCollapse}
+        aria-label={`Collapse ${label}`}
+        title="Collapse panel"
+        style={{
+          display: "inline-flex", alignItems: "center", justifyContent: "center",
+          width: 24, height: 24, borderRadius: 6, border: `1px solid ${c.hairline}`,
+          background: "transparent", color: c.muted, cursor: "pointer", flexShrink: 0,
+        }}
+      >
+        {side === "left"
+          ? <PanelLeftClose style={{ width: 14, height: 14 }} strokeWidth={1.9} />
+          : <PanelRightClose style={{ width: 14, height: 14 }} strokeWidth={1.9} />}
+      </button>
     </div>
   )
 }

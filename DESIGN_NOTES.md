@@ -1,162 +1,177 @@
-# Aeolus — Design System (Daylight Sky)
+# Aeolus — Design System
 
-Rebuilt July 2026 (daylight revision). Replaces the dark five-pigment
-system; before that, teal/white/red and the Airtable-editorial pass.
-The product now lives in one bright, sky-blue world: the landing is an
-animation-first 3D page, the simulator a dense daylight console.
+Two worlds, one product (July 2026):
+
+- **Landing — "control-tower editorial"**: warm beige paper, near-black ink,
+  cobalt / violet / amber ribbon accents, huge editorial type with masked
+  ribbons (Hanoi-mask reference), and a pinned cinematic demo of one full
+  recovery loop. Animation-first, GSAP-staged.
+- **Simulator app — daylight sky**: the bright, dense operational console
+  (sky paper, white cards, teal identity) is unchanged. No theatrical motion
+  in app chrome.
 
 Source of truth in code:
-- `apps/web/lib/design-tokens.ts` — token objects every component imports
-- `apps/web/app/globals.css` — CSS custom properties, both registers
-- `apps/web/tailwind.config.ts` — Tailwind bridge + **palette clamp**
+- `apps/web/app/globals.css` — app registers **and** the `.lp` landing scope
+- `apps/web/lib/design-tokens.ts` — app token objects (simulator)
+- `apps/web/tailwind.config.ts` — Tailwind bridge + palette clamp (app)
 
 ---
 
-## 1. Palette — the sky vocabulary
+## 1. Landing palette — the beige editorial stage
 
-| Color | Hex | Role |
-|---|---|---|
-| **ink** | `#0B2434` | deep sea-blue ink — type, dark marks, primary CTA on light |
-| **paper** | `#F2F8FE` | sky-tinted white — page + surface floor |
-| **gray** | `#63808F` | sea-gray mid neutral — borders, dim text, cancelled |
-| **sky** | `#38BDF8` | the atmosphere — hero gradients, chrome accents, eyebrows |
-| **teal** | `#0D9488` | THE identity color — actions, links, recovery, active, hubs |
-| **pink** | `#EC4899` | the disruption accent — events, cascade energy (`--ae-rose*`) |
-| **amber** | `#B8863C` | THE ops status color — delayed / warning (simulator only) |
+Scoped under `.lp`; GSAP ScrollTrigger **tweens these custom properties
+between four registers as you scroll** (see `scroll-experience.tsx`):
 
-**Cancelled / not operating is not a hue.** Neutral gray plus a strike,
-dash, or ✕. Severity inside amber = opacity steps (`--ae-amber-soft/-soft2`),
-never a second status hue. Landing semantics: **pink = disruption,
-teal = recovery**. Legacy `--ae-rust*` aliases amber; don't use it.
+| Register | When | --bg | --ink |
+|---|---|---|---|
+| dawn  | wordmark + hero | `#EDE6D6` warm beige | `#1A1622` |
+| noon  | demo + methodology | `#F5F0E3` bright | `#141019` |
+| night | final CTA + footer | `#171320` deep ink | `#F0EBDF` |
 
-### Derived steps (not new colors)
+Constant accents: `--accent-blue #2C49E0` (cobalt) · `--accent-purple
+#6F3FE4` · `--accent-amber #EFAF1B` (yellow-amber) · `--accent-teal #0E7C6B`
+(sparing). Plus `--muted`, `--panel`, `--border` per register.
 
-Each chroma has a per-register AA text step (`--ae-*-ink`), a tint
-background (`--ae-*-bg`, 10–16 % alpha), and the raw pigment for marks:
-`--ae-sky-ink #0369A1` · `--ae-teal-ink #0B7065` · `--ae-amber-ink #7E5A20`
-· `--ae-rose-ink #BE185D`.
+Semantics on the landing: **violet/purple = disruption energy, amber =
+operational highlight/CTA, cobalt = intelligence/reference, teal = recovery**
+(teal stays THE identity color inside the simulator app).
 
-### Two registers, one token set — both DAYLIGHT
+The demo console has its own fixed **light** palette (`--dk-*` on
+`.demo-screen`) mirroring the real simulator — paper floor, white cards,
+teal identity, **pink** disruption — so the demo previews the actual
+product rather than a fictional dark cockpit.
 
-- `:root` — landing, docs, scenarios: bg `#F2F8FE`, white surfaces.
-- `.register-dark` — historical name, **bright values**: the simulator's
-  denser register (bg `#EAF4FC`, white cards, teal primary button). Kept
-  so no call site churns; both registers override the shadcn HSL bridge.
-- Hero/intro/CTA use the `.sky-gradient` / `.sky-gradient--deep` washes
-  (#4BA6EC → #E4F3FE band) with white punched type on top.
+### App registers (simulator — unchanged)
 
-### The palette clamp
-
-`tailwind.config.ts` overrides every default Tailwind hue family:
-red/rose/pink/fuchsia→pink · orange/amber/yellow→amber ·
-green/emerald/lime/teal→teal · sky/blue/cyan/indigo/violet/purple→sky ·
-slate/gray/zinc/stone→neutral. The rainbow stays structurally impossible.
-
-### Status vocabulary (same color = same meaning, everywhere)
-
-- nominal / on-time → quiet neutral (nominal doesn't shout)
-- delayed / warning / GDP / WX / ground stop / cascade → amber (+ opacity steps)
-- cancelled / not operating → neutral gray + ✕ / dash (never color-alone)
-- recovered / rerouted / applied plan / live-ok → teal
-- disruption events & cascade narrative on the landing → pink
-- Plans A–D have **no per-plan colors**; only the applied plan wears teal.
-- Map colors live as literal hex in `flight-map.tsx` (`MAP_COLORS`) —
-  Leaflet's canvas renderer can't read CSS vars. Tiles: Carto **voyager**
-  (light); `.leaflet-container` floor `#CBE3F5`.
+`:root` + `.register-dark` keep the daylight sky values (ink `#0B2434`,
+paper `#F2F8FE`, sky `#38BDF8`, teal `#0D9488`, pink `#EC4899` disruption,
+amber `#B8863C` ops status). Tailwind palette clamp still applies. Cancelled
+is never a hue (gray + ✕). Map = Carto voyager, `MAP_COLORS` literal hexes.
 
 ---
 
 ## 2. Typography
 
-**Inter / Inter Display** (rsms.me) + **JetBrains Mono** for code, flight
-IDs, timestamps, tabular ops data. Scale unchanged in `tokens.typography`.
+- **Inter / Inter Display** (rsms.me) everywhere; JetBrains Mono for code,
+  flight IDs, timestamps, tabular data.
+- Landing display voice: `.ed-display` — Inter Display **800**, −0.035em,
+  line-height 0.97, **mixed case** (the old all-caps `.punch` voice is gone).
+- `.ed-serif` — **Fraunces italic** (Google Fonts, italic axis only): the
+  editorial accent for one emphasized phrase per headline
+  ("*simulated live.*", "*Auditable.*"). Landing-only; never in the app.
+- `.lp-eyebrow` — JetBrains Mono 11px, 0.22em tracking, uppercase: the mono
+  technical label over big statements ("01 — The premise").
+- App registers keep the 11px `.section-badge` eyebrow as the one caps style.
 
-**The punched voice (landing only):** `.punch` — Inter Display 700,
-−0.028em, uppercase, line-height 0.98. Variants: `--white` (on sky),
-`--ink`, `--ghost` (transparent fill, 1.5px ink stroke — marquee strips).
-Hero headline runs ~7vw. In the app registers the old caps policy holds:
-`eyebrow` (11/550/0.14em) is the one uppercase style.
+## 3. The masked wordmark (brand moment)
 
----
+`components/landing/masked-wordmark.tsx` — huge ink letterforms stretched
+wall-to-wall (`textLength` + `spacingAndGlyphs`), with three sine ribbon
+bands (cobalt/violet/amber) traveling horizontally through the letters. One
+geometry renders twice: faint across the whole stage + vivid clipped inside
+a `<clipPath><text>` — so color slithers *through* the type. GSAP loops both
+copies from a single tween per ribbon (they can never drift). Used for
+"AEOLUS" (opening) and "RUN A DISRUPTION." (night CTA — letters flip to bone
+automatically because the fill is `var(--ink)`).
 
-## 3. Spacing, radius, elevation
+**Logo**: `ds/logo.tsx` `AeolusMark` — an abstract cyclone: three arcs of
+decreasing radius spiraling into a center; outer two take `currentColor`,
+the core arc is always amber. No airplane, no globe, no tile. Mirrored in
+`app/icon.svg` (beige tile). `AeolusLogo` is a compat alias.
 
-- Spacing 4/8/12/16/24/32/48; landing section rhythm 96–128 px.
-- Radius: 2/6/10/12/pill; landing CTAs are **pill** buttons.
-- Shadows are blue-cast (`rgba(11,36,52,…)`), flat-first; hero/CTA float
-  on `0 10px 36px rgba(10,48,82,0.28)`. No colored glows.
+## 4. Landing structure (page.tsx → scroll-experience.tsx)
 
----
+1. `OpeningWordmarkStage` — brand row, masked AEOLUS, and **paper planes**
+   (`planes.tsx` DriftPlane: two-tone folded darts that travel across the
+   section on scroll scrub + a gentle framer bob). No abstract shape
+   clutter, no airport-code strips. Scrubbed parallax exit, no pinning.
+2. `HeroStatementStage` — "Airline recovery, *simulated live.*" with an
+   **amber HighlightSwipe** panning left→right under the serif phrase,
+   replaying on every re-entry (`type-fx.tsx`, toggleActions restart) +
+   concrete copy (cost / passengers / crew legality / carbon) + pill CTAs.
+3. `StoryMarquee` — Hub closure · Delay cascade · Four plans · Recovery,
+   alternating solid/outline, scroll-scrubbed.
+4. `CinematicSimulatorDemo` (`landing/demo/`) — **the centerpiece**, below.
+5. `MethodologySection` — editorial systems ledger: mono amber indices,
+   display-weight names, cobalt tags, hard rules; six systems incl. audit
+   trail. High contrast on the noon register.
+6. `FinalCTAStage` — masked "RUN A DISRUPTION.", amber CTA, solve transcript
+   in `--panel`. + `LandingFooter`.
 
-## 4. Iconography
+## 5. The cinematic demo — played like a video
 
-`lucide-react` only, `strokeWidth={1.75}`. Landing chips may set the icon
-in a tinted circular well (`.sky-chip-icon`); app chrome stays monochrome
-with teal on active. No emoji in chrome.
+**No pinning, no scroll scrub.** A ~25s GSAP timeline (paused, repeat −1,
+repeatDelay 2.4) loops inside a normal section; a ScrollTrigger only
+plays/pauses it while on screen. The camera ends back at the start framing
+so the loop cuts cleanly. Caption steps auto-advance with playback;
+clicking one **seeks** the video (`tl.play(t)`). Sparse route work — 5+4
+pink cascade arcs, 4 teal reroutes, no graticule, no vignette.
 
-**Logo** (`components/ds/logo.tsx` + `app/icon.svg`): sky→teal gradient
-tile, white globe + orbiting jet — the hero motif in miniature. Static.
+The story on the light console: agent box **types** "Trigger weather
+closure at KORD, severity 4." → visible cursor opens the event selector
+and clicks → camera (translate/scale over a fixed 1500×860 world plane)
+flies to KORD → pink cascade arcs draw (`pathLength={1}` dash trick),
+airports tint amber, "departures held" counts → plan inspector slides in
+(A–D) → cursor commits Plan B (teal select) → metrics count down (16→3
+cancellations, −$1.7M), teal reroutes re-flow, toast lands, camera pulls
+back. Status walks Nominal→Disrupted→Recovering→Stable; the bottom ops
+strip doubles as the video progress bar (teal playhead).
 
----
+Mobile plays the same loop full-width; `prefers-reduced-motion` renders
+the final recovered frame as a static figure. AI behavior is a **frontend
+state machine only** — nothing talks to the backend. (Headless captures
+play slow — background-tab rAF throttling + GSAP lagSmoothing; real
+foreground browsers run 1:1.)
 
-## 5. Motion — the landing is animation-first
+### Hard-won gotchas (do not relearn)
 
-Stack: **GSAP ScrollTrigger + SplitText** (`components/landing/gsap.ts`,
-`punch.tsx`) for scrubbed/pinned sequences, **Framer Motion** for
-entrances/chips, **react-three-fiber** for the world.
+- **GSAP parses React inline `translateX(108%)` into a PIXEL `x` cache.** If
+  you then tween only `xPercent`, the leftover `x` keeps the element
+  offscreen. Set `x: 0` in both fromTo states (see `.dm-plans`).
+- **Fixed nav + retinting vars**: inline `var()` colors on a fixed element
+  don't reliably repaint in Chromium when the variables change. The nav gets
+  vars written inline by GSAP *and* colors via classes (`.lp-nav`,
+  `.lp-nav-link`), and its bar fill is a child span whose `backgroundColor`
+  is tweened as a literal. (Residual light-bar renders in *headless
+  screenshots* are a capture artifact — the DOM/computed values are correct
+  and real browsers paint fine; verify by un-fixing the element.)
+- **`1fr` grid tracks are `minmax(auto,1fr)`** — the mobile step strip's
+  min-content inflated the track past the viewport. Use `minmax(0,1fr)` +
+  `min-width: 0` on horizontal scrollers.
+- A theme-shift scrub tween chain on one target needs
+  `immediateRender: false` on each later tween.
+- Dev-server file watching under OneDrive is flaky: if SSR serves stale
+  components (hydration mismatch diffs that look like old code), restart
+  `next dev` with a fresh `.next`.
 
-- `LogoIntro` — 170vh brand curtain: full-screen mark + AEOLUS wordmark
-  (SplitText chars), scroll scrubs the stage smaller/away (sticky stage,
-  no GSAP pinning → no pin-spacer jank).
-- `SkyHero` — punched white headline (SplitText line slam), globe crests
-  from the bottom, glass chips float (gentle y-loop), scroll adds spin +
-  parallax via a mutable `phaseRef` (never re-renders React).
-- `GhostMarquee` — outlined display strip, x scrubbed by scroll.
-- `RecoveryLoop` — 480vh pinned story driving `phase 0..4` into the story
-  globe: rotate/zoom to US → KORD pink + flights ground (epicenter
-  ripples) → dashed ghost plans shimmer → network re-routes teal. DOM plan
-  chips sync at scene granularity (AnimatePresence). Mobile/reduced-motion
-  → tabbed variant, no pinning.
-- `CountUp` stats band; capability/methodology keep Framer `Rise`/stagger.
-- The simulator stays functional-motion-only; its connection indicator is
-  **text** ("LIVE"/"OFFLINE", mono, underlined teal/amber) — the status
-  dot-in-a-pill pattern is retired everywhere.
-- `prefers-reduced-motion` collapses all of it (GSAP skipped, spin frozen).
+## 6. Motion rules
 
----
+- GSAP ScrollTrigger + SplitText (registered once in `landing/gsap.ts`);
+  `SplitReveal`/`TickerNumber` in `type-fx.tsx`; framer for entrances/floats
+  (`motion.tsx`, `shapes.tsx`). gsap.context cleanup everywhere.
+- The simulator keeps functional motion only; connection state is text
+  ("LIVE"/"OFFLINE" underlined) — status dots stay banned everywhere.
+- `prefers-reduced-motion` collapses the whole landing to static dawn.
 
-## 6. The world (hero asset)
+## 7. Dashboard AI placeholder
 
-`components/landing/globe.tsx` — react-three-fiber. Dotted-land sphere
-(land points sampled client-side from `/textures/earth-mask.png`, polarity
-auto-detected), quadratic-bezier great-circle tube arcs, paper-jet meshes
-riding them (`up` = surface normal), ripple rings firing on every landing,
-KORD epicenter ripple during the disrupt beat. No additive "atmosphere"
-shell — over a transparent canvas it composites as a gray dome; the halo
-is CSS behind the canvas. Loaded via `next/dynamic({ ssr: false })`; two
-instances (hero + story) share the implementation via `mode` + `phaseRef`.
-
----
-
-## 7. Layout rules
-
-- Landing flow: curtain → hero → marquee → pinned loop → stats → 7/5 +
-  4/4/4 capability panels → methodology ledger → sky-gradient CTA with the
-  solve transcript → footer. Never the same card grid twice.
-- Filters/tabs are underline tabs (teal rule); simulator keeps the 3-zone
-  workspace (event rail / map+timeline / plans rail) on voyager tiles.
+`components/simulator/agent-bubble.tsx`, mounted once in
+`app/simulator/page.tsx`: an ink "Ask Aeolus" pill (bottom-right) expanding
+to a panel with example commands and a disabled input — honest copy ("Not
+connected yet — ships with the agent backend"). Landing identity (ink/bone/
+amber) so the brand reads across pages. One file + one mount line to remove
+or wire up later.
 
 ## 8. Copy rules
 
-Concrete nouns, mechanisms, numbers. The hero states the promise plainly
-("Put airline recovery on autopilot"); the loop narrates one incident in
-four beats without airport in-jokes. No negation-framed marketing, no
-adjective stacks.
+Concrete aviation nouns: disruption, delay cascade, hub closure, recovery
+plan, passenger impact, crew legality, cost delta, carbon, reroute, audit
+trail. Banned: AI-powered, seamless, revolutionary, next-gen, unlock,
+supercharge, status dots, fake "active" pills, emoji labels.
 
 ---
 
-## shadcn/ui
-
-Button, Card, Input, Select, Tabs, Badge, Dialog, Tooltip, Separator,
-Skeleton — themed through the CSS-variable bridge in both (daylight)
-registers.
+Retired components (dark sky landing: globe, sky-hero, intro, recovery-loop,
+plane, capability-sections, punch) live in `reference/retired-landing-sky/`.
+three.js / @react-three/* are uninstalled — the 3D feel is CSS perspective +
+GSAP camera transforms + SVG. No Spline (no real scene URL exists).

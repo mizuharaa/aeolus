@@ -1,40 +1,27 @@
 "use client"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { RotateCcw } from "lucide-react"
-import { AeolusLogo } from "@/components/ds/logo"
+import { RotateCcw, Plane } from "lucide-react"
 import { useSimulationStore } from "@/stores/simulation"
 import { apiClient } from "@/lib/api"
 import { toast } from "sonner"
 import { useMemo } from "react"
 import { c, ff } from "@/lib/design-tokens"
+import { NotificationBell } from "@/components/simulator/notification-bell"
 
 /**
- * Simulator top bar — dark register.
+ * Simulator top bar — daylight register.
  *
- * Flat ink surface, hairline bottom border. Routes are underline tabs
- * (teal rule on the active route), not boxed pills. Fleet status is plain
- * text with pigment dots. The connection indicator is THE one live dot in
- * the app: small, solid, static — teal connected, rust offline.
+ * Section navigation now lives in the collapsible left rail (see rail.tsx);
+ * this bar carries only context (Nimbus Air OCC), live fleet status, the
+ * connection state, and reset. Flat paper surface, hairline bottom border.
+ * The connection indicator is plain text (teal Live / amber Offline) — no
+ * status dot, no pulse.
  */
 interface SimulatorNavProps {
   isConnected: boolean
   affectedCount: number
 }
 
-const NAV_LINKS = [
-  { href: "/simulator",             label: "Simulator" },
-  { href: "/simulator/playtest",    label: "Playtest" },
-  { href: "/simulator/plans",       label: "Plans" },
-  { href: "/simulator/cascade",     label: "Cascade" },
-  { href: "/simulator/crew",        label: "Crew" },
-  { href: "/simulator/passengers",  label: "Passengers" },
-  { href: "/simulator/stress-test", label: "Stress test" },
-  { href: "/simulator/carbon",      label: "Carbon" },
-] as const
-
 export function SimulatorNav({ isConnected }: SimulatorNavProps) {
-  const pathname = usePathname() ?? "/simulator"
   const { reset, flightStates, schedule } = useSimulationStore()
 
   const stats = useMemo(() => {
@@ -58,111 +45,78 @@ export function SimulatorNav({ isConnected }: SimulatorNavProps) {
     }
   }
 
-  const isActiveLink = (href: string) => {
-    if (href === "/simulator") return pathname === "/simulator"
-    return pathname.startsWith(href)
-  }
-
   return (
     <nav
       style={{
         height: 60,
         display: "flex",
-        alignItems: "stretch",
+        alignItems: "center",
         gap: 20,
-        paddingLeft: 20,
+        paddingLeft: 22,
         paddingRight: 20,
-        background: "var(--ae-bg)",
+        // lively tinted gradient wash — sky→teal→amber at low alpha, so the
+        // ops bar reads warm/colorful rather than flat paper.
+        background:
+          "linear-gradient(90deg, rgba(56,189,248,0.10), rgba(13,148,136,0.06) 42%, rgba(184,134,60,0.05) 78%, var(--ae-bg))",
         borderBottom: `1px solid ${c.hairline}`,
+        boxShadow: "inset 0 -2px 0 -1px rgba(13,148,136,0.25)",
         flexShrink: 0,
         zIndex: 50,
         fontFamily: ff.body,
         minWidth: 0,
       }}
     >
-      {/* ── Wordmark ── */}
-      <Link
-        href="/"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          textDecoration: "none",
-          flexShrink: 0,
-        }}
-      >
-        <AeolusLogo size={26} />
+      {/* ── Context label (brand lives in the left rail) ── */}
+      <div style={{ display: "flex", alignItems: "center", gap: 11, flexShrink: 0 }}>
+        {/* colorful ops badge */}
+        <span
+          aria-hidden
+          style={{
+            display: "inline-flex", alignItems: "center", justifyContent: "center",
+            width: 26, height: 26, borderRadius: 8,
+            background: "linear-gradient(135deg, var(--ae-sky), var(--ae-teal))",
+            boxShadow: "0 2px 8px -3px var(--ae-teal)",
+          }}
+        >
+          <Plane style={{ width: 14, height: 14, color: "#fff" }} strokeWidth={2.25} />
+        </span>
         <span
           style={{
             fontFamily: ff.display,
-            fontWeight: 600,
-            fontSize: 16,
+            fontWeight: 700,
+            fontSize: 15.5,
             lineHeight: 1,
-            color: c.ink,
             letterSpacing: "-0.01em",
-          }}
-        >
-          Aeolus
-        </span>
-        <span
-          className="ae-nav-subtitle"
-          style={{
-            fontFamily: ff.body,
-            fontSize: 12.5,
-            fontWeight: 400,
-            color: c.muted,
-            borderLeft: `1px solid ${c.hairline}`,
-            paddingLeft: 10,
-            marginLeft: 2,
             whiteSpace: "nowrap",
+            background: "linear-gradient(90deg, var(--ae-text), var(--ae-teal-ink))",
+            WebkitBackgroundClip: "text",
+            backgroundClip: "text",
+            WebkitTextFillColor: "transparent",
           }}
         >
           Nimbus Air OCC
         </span>
-      </Link>
-
-      {/* ── Route menu — underline tabs, scrolls in its own lane ── */}
-      <div
-        className="ae-nav-routes"
-        style={{
-          flex: 1,
-          minWidth: 0,
-          display: "flex",
-          alignItems: "stretch",
-          gap: 2,
-          overflowX: "auto",
-          overflowY: "hidden",
-          scrollbarWidth: "none",
-          msOverflowStyle: "none",
-        }}
-      >
-        {NAV_LINKS.map((link) => {
-          const active = isActiveLink(link.href)
-          return (
-            <Link
-              key={link.href}
-              href={link.href}
-              style={{
-                fontFamily: ff.body,
-                fontSize: 13.5,
-                fontWeight: active ? 550 : 450,
-                color: active ? c.ink : c.muted,
-                textDecoration: "none",
-                padding: "0 12px",
-                display: "inline-flex",
-                alignItems: "center",
-                borderBottom: active ? "2px solid var(--ae-teal)" : "2px solid transparent",
-                marginBottom: -1,
-                transition: "color 150ms ease, border-color 150ms ease",
-                whiteSpace: "nowrap",
-                flexShrink: 0,
-              }}
-            >
-              {link.label}
-            </Link>
-          )
-        })}
+        <span
+          className="ae-nav-subtitle"
+          style={{
+            fontFamily: ff.mono,
+            fontSize: 10,
+            fontWeight: 600,
+            letterSpacing: "0.14em",
+            textTransform: "uppercase",
+            color: "var(--ae-teal-ink)",
+            padding: "3px 8px",
+            borderRadius: 999,
+            background: "var(--ae-teal-bg)",
+            whiteSpace: "nowrap",
+          }}
+        >
+          Operations control
+        </span>
       </div>
+
+      {/* flexible gutter — section nav is now in the left rail */}
+      <div style={{ flex: 1, minWidth: 0 }} />
 
       {/* ── Right cluster ── */}
       <div style={{ display: "flex", alignItems: "center", gap: 16, flexShrink: 0 }}>
@@ -180,6 +134,7 @@ export function SimulatorNav({ isConnected }: SimulatorNavProps) {
             }}
           >
             <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--ae-teal)" }} />
               <span style={{ fontFamily: ff.mono, fontWeight: 550, color: c.ink }}>{stats.onTime}</span>
               on time
             </span>
@@ -202,20 +157,30 @@ export function SimulatorNav({ isConnected }: SimulatorNavProps) {
 
         <div className="ae-nav-stats" style={{ width: 1, height: 18, background: c.hairline }} />
 
-        {/* Connection state — plain text, no dot, no pulse */}
+        {/* Live ops feed — imminent arrivals + active disruptions */}
+        <NotificationBell />
+
+        {/* Connection state — colored pill with a live pulse dot */}
         <span
           style={{
+            display: "inline-flex", alignItems: "center", gap: 7,
             fontFamily: ff.mono,
             fontSize: 10.5,
-            fontWeight: 600,
+            fontWeight: 700,
             letterSpacing: "0.14em",
             textTransform: "uppercase",
             lineHeight: 1,
-            color: isConnected ? c.tealInk : c.amberInk,
-            borderBottom: `2px solid ${isConnected ? "var(--ae-teal)" : "var(--ae-amber)"}`,
-            paddingBottom: 3,
+            padding: "5px 10px",
+            borderRadius: 999,
+            color: isConnected ? "var(--ae-teal-ink)" : "var(--ae-amber-ink)",
+            background: isConnected ? "var(--ae-teal-bg)" : "var(--ae-amber-bg)",
+            border: `1px solid ${isConnected ? "var(--ae-teal)" : "var(--ae-amber)"}`,
           }}
         >
+          <span
+            className="ae-live-dot"
+            style={{ width: 7, height: 7, borderRadius: "50%", background: isConnected ? "var(--ae-teal)" : "var(--ae-amber)" }}
+          />
           {isConnected ? "Live" : "Offline"}
         </span>
 

@@ -1,0 +1,86 @@
+- generic [active] [ref=f23e1]:
+  - generic [ref=f23e2]:
+    - navigation "Simulator sections" [ref=f23e3]:
+      - link "Aeolus Aeolus" [ref=f23e4] [cursor=pointer]:
+        - /url: /
+        - img "Aeolus" [ref=f23e5]:
+          - img [ref=f23e6]
+        - generic [ref=f23e10]: Aeolus
+      - generic [ref=f23e11]:
+        - generic [ref=f23e12]:
+          - generic [ref=f23e13]: Operations
+          - link "Live map" [ref=f23e14] [cursor=pointer]:
+            - /url: /simulator
+            - img [ref=f23e15]
+            - generic [ref=f23e20]: Live map
+          - link "Cascade" [ref=f23e21] [cursor=pointer]:
+            - /url: /simulator/cascade
+            - img [ref=f23e22]
+            - generic [ref=f23e29]: Cascade
+          - link "Playtest" [ref=f23e30] [cursor=pointer]:
+            - /url: /simulator/playtest
+            - img [ref=f23e31]
+            - generic [ref=f23e33]: Playtest
+        - generic [ref=f23e34]:
+          - generic [ref=f23e35]: Recovery
+          - link "Plans" [ref=f23e36] [cursor=pointer]:
+            - /url: /simulator/plans
+            - img [ref=f23e37]
+            - generic [ref=f23e44]: Plans
+          - link "Crew" [ref=f23e45] [cursor=pointer]:
+            - /url: /simulator/crew
+            - img [ref=f23e47]
+            - generic [ref=f23e52]: Crew
+          - link "Passengers" [ref=f23e53] [cursor=pointer]:
+            - /url: /simulator/passengers
+            - img [ref=f23e54]
+            - generic [ref=f23e57]: Passengers
+        - generic [ref=f23e58]:
+          - generic [ref=f23e59]: Analysis
+          - link "Stress test" [ref=f23e60] [cursor=pointer]:
+            - /url: /simulator/stress-test
+            - img [ref=f23e61]
+            - generic [ref=f23e64]: Stress test
+          - link "Carbon" [ref=f23e65] [cursor=pointer]:
+            - /url: /simulator/carbon
+            - img [ref=f23e66]
+            - generic [ref=f23e69]: Carbon
+      - button "Collapse navigation" [ref=f23e70] [cursor=pointer]:
+        - img [ref=f23e71]
+        - generic [ref=f23e74]: Collapse
+    - generic [ref=f23e76]:
+      - navigation [ref=f23e78]:
+        - generic [ref=f23e79]:
+          - generic [ref=f23e80]: Nimbus Air OCC
+          - generic [ref=f23e81]: Operations control
+        - generic [ref=f23e82]:
+          - generic [ref=f23e84]: Offline
+          - button "Reset simulation" [ref=f23e85] [cursor=pointer]:
+            - img [ref=f23e86]
+            - generic [ref=f23e89]: Reset
+      - generic [ref=f23e91]:
+        - generic [ref=f23e92]:
+          - generic [ref=f23e93]:
+            - link "Simulator" [ref=f23e94] [cursor=pointer]:
+              - /url: /simulator
+            - img [ref=f23e95]
+          - generic [ref=f23e98]: Crew
+        - generic [ref=f23e100]:
+          - heading "Crew shortage analysis" [level=1] [ref=f23e101]
+          - paragraph [ref=f23e102]: FAR Part 117 legal-crew coverage MILP. Trigger a crew sickout and see the maximum-coverage reassignment, plus DOT 261 compensation cost on every uncovered flight.
+      - generic [ref=f23e107]:
+        - generic [ref=f23e108]:
+          - img [ref=f23e110]
+          - generic [ref=f23e115]:
+            - generic [ref=f23e116]:
+              - heading "Crew Coverage Optimizer" [level=2] [ref=f23e117]
+              - generic [ref=f23e118]: CP-SAT MILP
+            - paragraph [ref=f23e119]: Maximize legal crew assignment under disruption
+          - button "Re-solve" [disabled] [ref=f23e120]:
+            - img [ref=f23e121]
+            - text: Re-solve
+        - generic [ref=f23e127]:
+          - generic [ref=f23e128]: Awaiting Disruption
+          - generic [ref=f23e129]: All crew assignments holding FAR 117 compliance.
+          - paragraph [ref=f23e130]: Trigger an event to analyze crew coverage. The CP-SAT solver maximizes legal pairings against the disrupted schedule and surfaces compensation obligations under DOT 14 CFR §250.
+  - region "Notifications alt+T"

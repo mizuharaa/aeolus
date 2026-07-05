@@ -1,0 +1,1323 @@
+- generic [ref=f10e1]:
+  - generic [ref=f10e2]:
+    - navigation [ref=f10e4]:
+      - link "Aeolus Aeolus Nimbus Air OCC" [ref=f10e5] [cursor=pointer]:
+        - /url: /
+        - img "Aeolus" [ref=f10e6]:
+          - img [ref=f10e7]
+        - generic [ref=f10e11]: Aeolus
+        - generic [ref=f10e12]: Nimbus Air OCC
+      - generic [ref=f10e13]:
+        - link "Simulator" [ref=f10e14] [cursor=pointer]:
+          - /url: /simulator
+        - link "Playtest" [ref=f10e15] [cursor=pointer]:
+          - /url: /simulator/playtest
+        - link "Plans" [ref=f10e16] [cursor=pointer]:
+          - /url: /simulator/plans
+        - link "Cascade" [ref=f10e17] [cursor=pointer]:
+          - /url: /simulator/cascade
+        - link "Crew" [ref=f10e18] [cursor=pointer]:
+          - /url: /simulator/crew
+        - link "Passengers" [ref=f10e19] [cursor=pointer]:
+          - /url: /simulator/passengers
+        - link "Stress test" [ref=f10e20] [cursor=pointer]:
+          - /url: /simulator/stress-test
+        - link "Carbon" [ref=f10e21] [cursor=pointer]:
+          - /url: /simulator/carbon
+      - generic [ref=f10e22]:
+        - generic [ref=f10e24]:
+          - generic [ref=f10e25]: "142"
+          - text: on time
+        - generic [ref=f10e27]: Live
+        - button "Reset simulation" [ref=f10e28] [cursor=pointer]:
+          - img [ref=f10e29]
+          - generic [ref=f10e32]: Reset
+    - generic [ref=f10e33]:
+      - generic [ref=f10e2343]:
+        - generic [ref=f10e2344]:
+          - img "Aeolus" [ref=f10e2345]:
+            - img [ref=f10e2346]
+          - generic [ref=f10e2350]: Aeolus agent
+          - generic [ref=f10e2351]: Preview
+          - button "Close agent panel" [ref=f10e2352] [cursor=pointer]:
+            - img [ref=f10e2353]
+        - generic [ref=f10e2356]:
+          - generic [ref=f10e2357]: "The command layer will drive the console from plain language. Examples of what it will take:"
+          - generic [ref=f10e2358]: Trigger a weather closure at KORD, severity 4
+          - generic [ref=f10e2359]: Compare plans B and C by passenger impact
+          - generic [ref=f10e2360]: Why was NB204 cancelled?
+        - generic [ref=f10e2361]:
+          - generic [ref=f10e2362]:
+            - textbox "Ask Aeolus to trigger a disruption…" [disabled] [ref=f10e2363]
+            - img [ref=f10e2364]
+          - generic [ref=f10e2367]: Not connected yet — ships with the agent backend.
+      - button "Aeolus Ask Aeolus" [expanded] [active] [ref=f10e34] [cursor=pointer]:
+        - img "Aeolus" [ref=f10e35]:
+          - img [ref=f10e36]
+        - text: Ask Aeolus
+    - generic [ref=f10e40]:
+      - complementary [ref=f10e41]:
+        - generic [ref=f10e43]:
+          - generic [ref=f10e44]:
+            - img [ref=f10e46]
+            - generic [ref=f10e48]:
+              - generic [ref=f10e49]: Event Control
+              - generic [ref=f10e50]: 21 disruption types · live NAS feed
+          - generic [ref=f10e51]:
+            - tablist [ref=f10e53]:
+              - tab "Events" [selected] [ref=f10e54] [cursor=pointer]
+              - tab "Live" [ref=f10e55] [cursor=pointer]
+              - tab "Active" [ref=f10e56] [cursor=pointer]
+            - tabpanel "Events" [ref=f10e57]:
+              - generic [ref=f10e58]:
+                - generic [ref=f10e59]:
+                  - text: Weather
+                  - generic [ref=f10e60]:
+                    - button "Weather Closure" [ref=f10e61] [cursor=pointer]:
+                      - img [ref=f10e62]
+                      - generic [ref=f10e64]: Weather Closure
+                    - button "Thunderstorm Cell" [ref=f10e65] [cursor=pointer]:
+                      - img [ref=f10e66]
+                      - generic [ref=f10e69]: Thunderstorm Cell
+                    - button "Winter Storm" [ref=f10e70] [cursor=pointer]:
+                      - img [ref=f10e71]
+                      - generic [ref=f10e73]: Winter Storm
+                    - button "Sandstorm / Haboob" [ref=f10e74] [cursor=pointer]:
+                      - img [ref=f10e75]
+                      - generic [ref=f10e79]: Sandstorm / Haboob
+                    - button "Dense Fog" [ref=f10e80] [cursor=pointer]:
+                      - img [ref=f10e81]
+                      - generic [ref=f10e84]: Dense Fog
+                    - button "Wind Shear" [ref=f10e85] [cursor=pointer]:
+                      - img [ref=f10e86]
+                      - generic [ref=f10e89]: Wind Shear
+                    - button "Hurricane / Cyclone" [ref=f10e90] [cursor=pointer]:
+                      - img [ref=f10e91]
+                      - generic [ref=f10e92]: Hurricane / Cyclone
+                    - button "Volcanic Ash" [ref=f10e93] [cursor=pointer]:
+                      - img [ref=f10e94]
+                      - generic [ref=f10e96]: Volcanic Ash
+                - generic [ref=f10e97]:
+                  - text: Air Traffic Control
+                  - generic [ref=f10e98]:
+                    - button "Ground Stop" [ref=f10e99] [cursor=pointer]:
+                      - img [ref=f10e100]
+                      - generic [ref=f10e102]: Ground Stop
+                    - button "Airspace Closure" [ref=f10e103] [cursor=pointer]:
+                      - img [ref=f10e104]
+                      - generic [ref=f10e107]: Airspace Closure
+                    - button "ATC Shortage" [ref=f10e108] [cursor=pointer]:
+                      - img [ref=f10e109]
+                      - generic [ref=f10e115]: ATC Shortage
+                - generic [ref=f10e116]:
+                  - text: Aircraft & Operations
+                  - generic [ref=f10e117]:
+                    - button "Mechanical AOG" [ref=f10e118] [cursor=pointer]:
+                      - img [ref=f10e119]
+                      - generic [ref=f10e121]: Mechanical AOG
+                    - button "Bird Strike / FOD" [ref=f10e122] [cursor=pointer]:
+                      - img [ref=f10e123]
+                      - generic [ref=f10e127]: Bird Strike / FOD
+                    - button "Deicing Shortage" [ref=f10e128] [cursor=pointer]:
+                      - img [ref=f10e129]
+                      - generic [ref=f10e134]: Deicing Shortage
+                    - button "Runway Closure" [ref=f10e135] [cursor=pointer]:
+                      - img [ref=f10e136]
+                      - generic [ref=f10e138]: Runway Closure
+                    - button "Fuel Contamination" [ref=f10e139] [cursor=pointer]:
+                      - img [ref=f10e140]
+                      - generic [ref=f10e143]: Fuel Contamination
+                - generic [ref=f10e144]:
+                  - text: Crew & Personnel
+                  - generic [ref=f10e145]:
+                    - button "Crew Sick-out" [ref=f10e146] [cursor=pointer]:
+                      - img [ref=f10e147]
+                      - generic [ref=f10e150]: Crew Sick-out
+                    - button "Labor Slowdown" [ref=f10e151] [cursor=pointer]:
+                      - img [ref=f10e152]
+                      - generic [ref=f10e157]: Labor Slowdown
+                - generic [ref=f10e158]:
+                  - text: Security & Emergency
+                  - generic [ref=f10e159]:
+                    - button "Security Event" [ref=f10e160] [cursor=pointer]:
+                      - img [ref=f10e161]
+                      - generic [ref=f10e163]: Security Event
+                    - button "Airport Emergency" [ref=f10e164] [cursor=pointer]:
+                      - img [ref=f10e165]
+                      - generic [ref=f10e167]: Airport Emergency
+                    - button "Cyber Incident" [ref=f10e168] [cursor=pointer]:
+                      - img [ref=f10e169]
+                      - generic [ref=f10e173]: Cyber Incident
+              - generic [ref=f10e174]:
+                - generic [ref=f10e175]:
+                  - generic [ref=f10e176]:
+                    - img [ref=f10e178]
+                    - generic [ref=f10e180]: Weather Closure
+                  - button "Info" [ref=f10e181] [cursor=pointer]:
+                    - text: Info
+                    - img [ref=f10e182]
+                - generic [ref=f10e184]:
+                  - generic [ref=f10e185]:
+                    - generic [ref=f10e186]:
+                      - generic [ref=f10e187]: Airport
+                      - combobox [ref=f10e188]:
+                        - option "KORD — Chicago O'Hare" [selected]
+                        - option "KATL — Atlanta Hartsfield"
+                        - option "KDFW — Dallas Dallas/Ft Worth"
+                        - option "KLAX — Los Angeles Los Angeles"
+                        - option "KDEN — Denver Denver"
+                        - option "KJFK — New York JFK"
+                        - option "KSEA — Seattle Sea-Tac"
+                        - option "KMIA — Miami Miami"
+                        - option "KPHX — Phoenix Sky Harbor"
+                        - option "KLAS — Las Vegas Las Vegas"
+                        - option "KBOS — Boston Logan"
+                        - option "KSFO — San Francisco San Francisco"
+                        - option "KIAH — Houston Bush IAH"
+                        - option "KDTW — Detroit Detroit Metro"
+                        - option "KMSP — Minneapolis MSP"
+                    - generic [ref=f10e189]:
+                      - generic [ref=f10e190]: Severity
+                      - combobox [ref=f10e191]:
+                        - option "mild"
+                        - option "moderate"
+                        - option "severe" [selected]
+                        - option "extreme"
+                    - generic [ref=f10e192]:
+                      - generic [ref=f10e193]: Duration (hrs)
+                      - spinbutton [ref=f10e194]: "4"
+                  - button "Trigger Weather Closure" [ref=f10e195] [cursor=pointer]:
+                    - img [ref=f10e196]
+                    - text: Trigger Weather Closure
+      - generic [ref=f10e198]:
+        - generic [ref=f10e199]:
+          - generic [ref=f10e202]:
+            - img [ref=f10e203]
+            - textbox "Search any flight — AA123, UAL456, N12345, or airport code…" [ref=f10e206]
+          - button "Enter map focus mode" [ref=f10e207] [cursor=pointer]:
+            - img [ref=f10e209]
+          - generic [ref=f10e214]:
+            - generic [ref=f10e215]:
+              - generic:
+                - generic:
+                  - button [ref=f10e216] [cursor=pointer]
+                  - button [ref=f10e219] [cursor=pointer]
+                  - button [ref=f10e222] [cursor=pointer]
+                  - button [ref=f10e225] [cursor=pointer]
+                  - button [ref=f10e228] [cursor=pointer]
+                  - button [ref=f10e231] [cursor=pointer]
+                  - button [ref=f10e234] [cursor=pointer]
+                  - button [ref=f10e237] [cursor=pointer]
+                  - button [ref=f10e240] [cursor=pointer]
+                  - button [ref=f10e243] [cursor=pointer]
+                  - button [ref=f10e246] [cursor=pointer]
+                  - button [ref=f10e249] [cursor=pointer]
+                  - button [ref=f10e252] [cursor=pointer]
+                  - button [ref=f10e255] [cursor=pointer]
+                  - button [ref=f10e258] [cursor=pointer]
+                  - button [ref=f10e539] [cursor=pointer]:
+                    - img [ref=f10e541]
+                  - button [ref=f10e543] [cursor=pointer]:
+                    - img [ref=f10e545]
+                  - button [ref=f10e547] [cursor=pointer]:
+                    - img [ref=f10e549]
+                  - button [ref=f10e551] [cursor=pointer]:
+                    - img [ref=f10e553]
+                  - button [ref=f10e555] [cursor=pointer]:
+                    - img [ref=f10e557]
+                  - button [ref=f10e559] [cursor=pointer]:
+                    - img [ref=f10e561]
+                  - button [ref=f10e563] [cursor=pointer]:
+                    - img [ref=f10e565]
+                  - button [ref=f10e567] [cursor=pointer]:
+                    - img [ref=f10e569]
+                  - button [ref=f10e571] [cursor=pointer]:
+                    - img [ref=f10e573]
+                  - button [ref=f10e575] [cursor=pointer]:
+                    - img [ref=f10e577]
+                  - button [ref=f10e579] [cursor=pointer]:
+                    - img [ref=f10e581]
+                  - button [ref=f10e583] [cursor=pointer]:
+                    - img [ref=f10e585]
+                  - button [ref=f10e587] [cursor=pointer]:
+                    - img [ref=f10e589]
+                  - button [ref=f10e591] [cursor=pointer]:
+                    - img [ref=f10e593]
+                  - button [ref=f10e595] [cursor=pointer]:
+                    - img [ref=f10e597]
+                  - button [ref=f10e599] [cursor=pointer]:
+                    - img [ref=f10e2369]
+                  - button [ref=f10e603] [cursor=pointer]:
+                    - img [ref=f10e605]
+                  - button [ref=f10e607] [cursor=pointer]:
+                    - img [ref=f10e609]
+                  - button [ref=f10e611] [cursor=pointer]:
+                    - img [ref=f10e613]
+                  - button [ref=f10e615] [cursor=pointer]:
+                    - img [ref=f10e2372]
+                  - button [ref=f10e619] [cursor=pointer]:
+                    - img [ref=f10e2375]
+                  - button [ref=f10e623] [cursor=pointer]:
+                    - img [ref=f10e625]
+                  - button [ref=f10e627] [cursor=pointer]:
+                    - img [ref=f10e629]
+                  - button [ref=f10e631] [cursor=pointer]:
+                    - img [ref=f10e2378]
+                  - button [ref=f10e635] [cursor=pointer]:
+                    - img [ref=f10e637]
+                  - button [ref=f10e639] [cursor=pointer]:
+                    - img [ref=f10e641]
+                  - button [ref=f10e643] [cursor=pointer]:
+                    - img [ref=f10e645]
+                  - button [ref=f10e647] [cursor=pointer]:
+                    - img [ref=f10e649]
+                  - button [ref=f10e651] [cursor=pointer]:
+                    - img [ref=f10e653]
+                  - button [ref=f10e655] [cursor=pointer]:
+                    - img [ref=f10e657]
+                  - button [ref=f10e659] [cursor=pointer]:
+                    - img [ref=f10e661]
+                  - button [ref=f10e663] [cursor=pointer]:
+                    - img [ref=f10e665]
+                  - button [ref=f10e667] [cursor=pointer]:
+                    - img [ref=f10e669]
+                  - button [ref=f10e671] [cursor=pointer]:
+                    - img [ref=f10e2381]
+                  - button [ref=f10e675] [cursor=pointer]:
+                    - img [ref=f10e677]
+                  - button [ref=f10e679] [cursor=pointer]:
+                    - img [ref=f10e681]
+                  - button [ref=f10e683] [cursor=pointer]:
+                    - img [ref=f10e685]
+                  - button [ref=f10e687] [cursor=pointer]:
+                    - img [ref=f10e689]
+                  - button [ref=f10e691] [cursor=pointer]:
+                    - img [ref=f10e693]
+                  - button [ref=f10e695] [cursor=pointer]:
+                    - img [ref=f10e697]
+                  - button [ref=f10e699] [cursor=pointer]:
+                    - img [ref=f10e701]
+                  - button [ref=f10e703] [cursor=pointer]:
+                    - img [ref=f10e705]
+                  - button [ref=f10e707] [cursor=pointer]:
+                    - img [ref=f10e709]
+                  - button [ref=f10e711] [cursor=pointer]:
+                    - img [ref=f10e713]
+                  - button [ref=f10e715] [cursor=pointer]:
+                    - img [ref=f10e717]
+                  - button [ref=f10e719] [cursor=pointer]:
+                    - img [ref=f10e721]
+                  - button [ref=f10e723] [cursor=pointer]:
+                    - img [ref=f10e725]
+                  - button [ref=f10e727] [cursor=pointer]:
+                    - img [ref=f10e729]
+                  - button [ref=f10e731] [cursor=pointer]:
+                    - img [ref=f10e733]
+                  - button [ref=f10e735] [cursor=pointer]:
+                    - img [ref=f10e737]
+                  - button [ref=f10e739] [cursor=pointer]:
+                    - img [ref=f10e741]
+                  - button [ref=f10e743] [cursor=pointer]:
+                    - img [ref=f10e745]
+                  - button [ref=f10e747] [cursor=pointer]:
+                    - img [ref=f10e749]
+                  - button [ref=f10e751] [cursor=pointer]:
+                    - img [ref=f10e753]
+                  - button [ref=f10e755] [cursor=pointer]:
+                    - img [ref=f10e757]
+                  - button [ref=f10e759] [cursor=pointer]:
+                    - img [ref=f10e761]
+                  - button [ref=f10e763] [cursor=pointer]:
+                    - img [ref=f10e765]
+                  - button [ref=f10e767] [cursor=pointer]:
+                    - img [ref=f10e769]
+                  - button [ref=f10e771] [cursor=pointer]:
+                    - img [ref=f10e773]
+                  - button [ref=f10e775] [cursor=pointer]:
+                    - img [ref=f10e777]
+                  - button [ref=f10e779] [cursor=pointer]:
+                    - img [ref=f10e781]
+                  - button [ref=f10e783] [cursor=pointer]:
+                    - img [ref=f10e785]
+                  - button [ref=f10e787] [cursor=pointer]:
+                    - img [ref=f10e789]
+                  - button [ref=f10e791] [cursor=pointer]:
+                    - img [ref=f10e793]
+                  - button [ref=f10e795] [cursor=pointer]:
+                    - img [ref=f10e797]
+                  - button [ref=f10e799] [cursor=pointer]:
+                    - img [ref=f10e801]
+                  - button [ref=f10e803] [cursor=pointer]:
+                    - img [ref=f10e805]
+                  - button [ref=f10e807] [cursor=pointer]:
+                    - img [ref=f10e809]
+                  - button [ref=f10e811] [cursor=pointer]:
+                    - img [ref=f10e813]
+                  - button [ref=f10e815] [cursor=pointer]:
+                    - img [ref=f10e817]
+                  - button [ref=f10e819] [cursor=pointer]:
+                    - img [ref=f10e821]
+                  - button [ref=f10e823] [cursor=pointer]:
+                    - img [ref=f10e825]
+                  - button [ref=f10e827] [cursor=pointer]:
+                    - img [ref=f10e829]
+                  - button [ref=f10e831] [cursor=pointer]:
+                    - img [ref=f10e833]
+                  - button [ref=f10e835] [cursor=pointer]:
+                    - img [ref=f10e837]
+                  - button [ref=f10e839] [cursor=pointer]:
+                    - img [ref=f10e841]
+                  - button [ref=f10e843] [cursor=pointer]:
+                    - img [ref=f10e845]
+                  - button [ref=f10e847] [cursor=pointer]:
+                    - img [ref=f10e849]
+                  - button [ref=f10e851] [cursor=pointer]:
+                    - img [ref=f10e853]
+                  - button [ref=f10e855] [cursor=pointer]:
+                    - img [ref=f10e2384]
+                  - button [ref=f10e859] [cursor=pointer]:
+                    - img [ref=f10e861]
+                  - button [ref=f10e863] [cursor=pointer]:
+                    - img [ref=f10e865]
+                  - button [ref=f10e867] [cursor=pointer]:
+                    - img [ref=f10e869]
+                  - button [ref=f10e871] [cursor=pointer]:
+                    - img [ref=f10e873]
+                  - button [ref=f10e875] [cursor=pointer]:
+                    - img [ref=f10e877]
+                  - button [ref=f10e879] [cursor=pointer]:
+                    - img [ref=f10e881]
+                  - button [ref=f10e883] [cursor=pointer]:
+                    - img [ref=f10e885]
+                  - button [ref=f10e887] [cursor=pointer]:
+                    - img [ref=f10e889]
+                  - button [ref=f10e891] [cursor=pointer]:
+                    - img [ref=f10e893]
+                  - button [ref=f10e895] [cursor=pointer]:
+                    - img [ref=f10e897]
+                  - button [ref=f10e899] [cursor=pointer]:
+                    - img [ref=f10e901]
+                  - button [ref=f10e903] [cursor=pointer]:
+                    - img [ref=f10e905]
+                  - button [ref=f10e907] [cursor=pointer]:
+                    - img [ref=f10e909]
+                  - button [ref=f10e911] [cursor=pointer]:
+                    - img [ref=f10e913]
+                  - button [ref=f10e915] [cursor=pointer]:
+                    - img [ref=f10e917]
+                  - button [ref=f10e919] [cursor=pointer]:
+                    - img [ref=f10e921]
+                  - button [ref=f10e923] [cursor=pointer]:
+                    - img [ref=f10e925]
+                  - button [ref=f10e927] [cursor=pointer]:
+                    - img [ref=f10e929]
+                  - button [ref=f10e931] [cursor=pointer]:
+                    - img [ref=f10e2387]
+                  - button [ref=f10e935] [cursor=pointer]:
+                    - img [ref=f10e937]
+                  - button [ref=f10e939] [cursor=pointer]:
+                    - img [ref=f10e941]
+                  - button [ref=f10e943] [cursor=pointer]:
+                    - img [ref=f10e945]
+                  - button [ref=f10e947] [cursor=pointer]:
+                    - img [ref=f10e949]
+                  - button [ref=f10e951] [cursor=pointer]:
+                    - img [ref=f10e2390]
+                  - button [ref=f10e955] [cursor=pointer]:
+                    - img [ref=f10e957]
+                  - button [ref=f10e959] [cursor=pointer]:
+                    - img [ref=f10e961]
+                  - button [ref=f10e963] [cursor=pointer]:
+                    - img [ref=f10e965]
+                  - button [ref=f10e967] [cursor=pointer]:
+                    - img [ref=f10e969]
+                  - button [ref=f10e971] [cursor=pointer]:
+                    - img [ref=f10e973]
+                  - button [ref=f10e975] [cursor=pointer]:
+                    - img [ref=f10e2393]
+                  - button [ref=f10e979] [cursor=pointer]:
+                    - img [ref=f10e981]
+                  - button [ref=f10e983] [cursor=pointer]:
+                    - img [ref=f10e985]
+                  - button [ref=f10e987] [cursor=pointer]:
+                    - img [ref=f10e989]
+                  - button [ref=f10e991] [cursor=pointer]:
+                    - img [ref=f10e993]
+                  - button [ref=f10e995] [cursor=pointer]:
+                    - img [ref=f10e2396]
+                  - button [ref=f10e999] [cursor=pointer]:
+                    - img [ref=f10e1001]
+                  - button [ref=f10e1003] [cursor=pointer]:
+                    - img [ref=f10e1005]
+                  - button [ref=f10e1007] [cursor=pointer]:
+                    - img [ref=f10e1009]
+                  - button [ref=f10e1011] [cursor=pointer]:
+                    - img [ref=f10e1013]
+                  - button [ref=f10e1015] [cursor=pointer]:
+                    - img [ref=f10e1017]
+                  - button [ref=f10e1019] [cursor=pointer]:
+                    - img [ref=f10e1021]
+                  - button [ref=f10e1023] [cursor=pointer]:
+                    - img [ref=f10e1025]
+                  - button [ref=f10e1027] [cursor=pointer]:
+                    - img [ref=f10e1029]
+                  - button [ref=f10e1031] [cursor=pointer]:
+                    - img [ref=f10e1033]
+                  - button [ref=f10e1035] [cursor=pointer]:
+                    - img [ref=f10e1037]
+                  - button [ref=f10e1039] [cursor=pointer]:
+                    - img [ref=f10e1041]
+                  - button [ref=f10e1043] [cursor=pointer]:
+                    - img [ref=f10e1045]
+                  - button [ref=f10e1047] [cursor=pointer]:
+                    - img [ref=f10e1049]
+                  - button [ref=f10e1051] [cursor=pointer]:
+                    - img [ref=f10e1053]
+                  - button [ref=f10e1055] [cursor=pointer]:
+                    - img [ref=f10e1057]
+                  - button [ref=f10e1059] [cursor=pointer]:
+                    - img [ref=f10e1061]
+                  - button [ref=f10e1063] [cursor=pointer]:
+                    - img [ref=f10e1065]
+                  - button [ref=f10e1067] [cursor=pointer]:
+                    - img [ref=f10e1069]
+                  - button [ref=f10e1071] [cursor=pointer]:
+                    - img [ref=f10e1073]
+                  - button [ref=f10e1075] [cursor=pointer]:
+                    - img [ref=f10e1077]
+                  - button [ref=f10e1079] [cursor=pointer]:
+                    - img [ref=f10e1081]
+                  - button [ref=f10e1083] [cursor=pointer]:
+                    - img [ref=f10e1085]
+                  - button [ref=f10e1087] [cursor=pointer]:
+                    - img [ref=f10e1089]
+                  - button [ref=f10e1091] [cursor=pointer]:
+                    - img [ref=f10e1093]
+                  - button [ref=f10e1095] [cursor=pointer]:
+                    - img [ref=f10e1097]
+                  - button [ref=f10e1099] [cursor=pointer]:
+                    - img [ref=f10e1101]
+                  - button [ref=f10e1103] [cursor=pointer]:
+                    - img [ref=f10e1105]
+                  - button [ref=f10e1107] [cursor=pointer]:
+                    - img [ref=f10e1109]
+                  - button [ref=f10e1111] [cursor=pointer]:
+                    - img [ref=f10e1113]
+                  - button [ref=f10e1115] [cursor=pointer]:
+                    - img [ref=f10e1117]
+                  - button [ref=f10e1119] [cursor=pointer]:
+                    - img [ref=f10e1121]
+                  - button [ref=f10e1123] [cursor=pointer]:
+                    - img [ref=f10e1125]
+                  - button [ref=f10e1127] [cursor=pointer]:
+                    - img [ref=f10e1129]
+                  - button [ref=f10e1131] [cursor=pointer]:
+                    - img [ref=f10e1133]
+                  - button [ref=f10e1135] [cursor=pointer]:
+                    - img [ref=f10e1137]
+                  - button [ref=f10e1139] [cursor=pointer]:
+                    - img [ref=f10e1141]
+                  - button [ref=f10e1143] [cursor=pointer]:
+                    - img [ref=f10e1145]
+                  - button [ref=f10e1147] [cursor=pointer]:
+                    - img [ref=f10e1149]
+                  - button [ref=f10e1151] [cursor=pointer]:
+                    - img [ref=f10e1153]
+                  - button [ref=f10e1155] [cursor=pointer]:
+                    - img [ref=f10e1157]
+                  - button [ref=f10e1159] [cursor=pointer]:
+                    - img [ref=f10e1161]
+                  - button [ref=f10e1163] [cursor=pointer]:
+                    - img [ref=f10e1165]
+                  - button [ref=f10e1167] [cursor=pointer]:
+                    - img [ref=f10e2399]
+                  - button [ref=f10e1171] [cursor=pointer]:
+                    - img [ref=f10e1173]
+                  - button [ref=f10e1175] [cursor=pointer]:
+                    - img [ref=f10e1177]
+                  - button [ref=f10e1179] [cursor=pointer]:
+                    - img [ref=f10e1181]
+                  - button [ref=f10e1183] [cursor=pointer]:
+                    - img [ref=f10e1185]
+                  - button [ref=f10e1187] [cursor=pointer]:
+                    - img [ref=f10e1189]
+                  - button [ref=f10e1191] [cursor=pointer]:
+                    - img [ref=f10e1193]
+                  - button [ref=f10e1195] [cursor=pointer]:
+                    - img [ref=f10e1197]
+                  - button [ref=f10e1199] [cursor=pointer]:
+                    - img [ref=f10e1201]
+                  - button [ref=f10e1203] [cursor=pointer]:
+                    - img [ref=f10e1205]
+                  - button [ref=f10e1207] [cursor=pointer]:
+                    - img [ref=f10e1209]
+                  - button [ref=f10e1211] [cursor=pointer]:
+                    - img [ref=f10e1213]
+                  - button [ref=f10e1215] [cursor=pointer]:
+                    - img [ref=f10e1217]
+                  - button [ref=f10e1219] [cursor=pointer]:
+                    - img [ref=f10e1221]
+                  - button [ref=f10e1223] [cursor=pointer]:
+                    - img [ref=f10e1225]
+                  - button [ref=f10e1227] [cursor=pointer]:
+                    - img [ref=f10e1229]
+                  - button [ref=f10e1231] [cursor=pointer]:
+                    - img [ref=f10e1233]
+                  - button [ref=f10e1235] [cursor=pointer]:
+                    - img [ref=f10e1237]
+                  - button [ref=f10e1239] [cursor=pointer]:
+                    - img [ref=f10e1241]
+                  - button [ref=f10e1243] [cursor=pointer]:
+                    - img [ref=f10e1245]
+                  - button [ref=f10e1247] [cursor=pointer]:
+                    - img [ref=f10e1249]
+                  - button [ref=f10e1251] [cursor=pointer]:
+                    - img [ref=f10e1253]
+                  - button [ref=f10e1255] [cursor=pointer]:
+                    - img [ref=f10e1257]
+                  - button [ref=f10e1259] [cursor=pointer]:
+                    - img [ref=f10e1261]
+                  - button [ref=f10e1263] [cursor=pointer]:
+                    - img [ref=f10e1265]
+                  - button [ref=f10e1267] [cursor=pointer]:
+                    - img [ref=f10e1269]
+                  - button [ref=f10e1271] [cursor=pointer]:
+                    - img [ref=f10e1273]
+                  - button [ref=f10e1275] [cursor=pointer]:
+                    - img [ref=f10e1277]
+                  - button [ref=f10e1279] [cursor=pointer]:
+                    - img [ref=f10e1281]
+                  - button [ref=f10e1283] [cursor=pointer]:
+                    - img [ref=f10e1285]
+                  - button [ref=f10e1287] [cursor=pointer]:
+                    - img [ref=f10e1289]
+                  - button [ref=f10e1291] [cursor=pointer]:
+                    - img [ref=f10e1293]
+                  - button [ref=f10e1295] [cursor=pointer]:
+                    - img [ref=f10e1297]
+                  - button [ref=f10e1299] [cursor=pointer]:
+                    - img [ref=f10e1301]
+                  - button [ref=f10e1303] [cursor=pointer]:
+                    - img [ref=f10e1305]
+                  - button [ref=f10e1307] [cursor=pointer]:
+                    - img [ref=f10e1309]
+                  - button [ref=f10e1311] [cursor=pointer]:
+                    - img [ref=f10e1313]
+                  - button [ref=f10e1315] [cursor=pointer]:
+                    - img [ref=f10e1317]
+                  - button [ref=f10e1319] [cursor=pointer]:
+                    - img [ref=f10e1321]
+                  - button [ref=f10e1323] [cursor=pointer]:
+                    - img [ref=f10e1325]
+                  - button [ref=f10e1327] [cursor=pointer]:
+                    - img [ref=f10e1329]
+                  - button [ref=f10e1331] [cursor=pointer]:
+                    - img [ref=f10e1333]
+                  - button [ref=f10e1335] [cursor=pointer]:
+                    - img [ref=f10e1337]
+                  - button [ref=f10e1339] [cursor=pointer]:
+                    - img [ref=f10e1341]
+                  - button [ref=f10e1343] [cursor=pointer]:
+                    - img [ref=f10e1345]
+                  - button [ref=f10e1347] [cursor=pointer]:
+                    - img [ref=f10e1349]
+                  - button [ref=f10e1351] [cursor=pointer]:
+                    - img [ref=f10e1353]
+                  - button [ref=f10e1355] [cursor=pointer]:
+                    - img [ref=f10e1357]
+                  - button [ref=f10e1359] [cursor=pointer]:
+                    - img [ref=f10e1361]
+                  - button [ref=f10e1363] [cursor=pointer]:
+                    - img [ref=f10e1365]
+                  - button [ref=f10e1367] [cursor=pointer]:
+                    - img [ref=f10e1369]
+                  - button [ref=f10e1371] [cursor=pointer]:
+                    - img [ref=f10e1373]
+                  - button [ref=f10e1375] [cursor=pointer]:
+                    - img [ref=f10e1377]
+                  - button [ref=f10e1379] [cursor=pointer]:
+                    - img [ref=f10e1381]
+                  - button [ref=f10e1383] [cursor=pointer]:
+                    - img [ref=f10e1385]
+                  - button [ref=f10e1387] [cursor=pointer]:
+                    - img [ref=f10e1389]
+                  - button [ref=f10e1391] [cursor=pointer]:
+                    - img [ref=f10e1393]
+                  - button [ref=f10e1395] [cursor=pointer]:
+                    - img [ref=f10e1397]
+                  - button [ref=f10e1399] [cursor=pointer]:
+                    - img [ref=f10e1401]
+                  - button [ref=f10e1403] [cursor=pointer]:
+                    - img [ref=f10e1405]
+                  - button [ref=f10e1407] [cursor=pointer]:
+                    - img [ref=f10e1409]
+                  - button [ref=f10e1411] [cursor=pointer]:
+                    - img [ref=f10e1413]
+                  - button [ref=f10e1415] [cursor=pointer]:
+                    - img [ref=f10e1417]
+                  - button [ref=f10e1419] [cursor=pointer]:
+                    - img [ref=f10e1421]
+                  - button [ref=f10e1423] [cursor=pointer]:
+                    - img [ref=f10e1425]
+                  - button [ref=f10e1427] [cursor=pointer]:
+                    - img [ref=f10e1429]
+                  - button [ref=f10e1431] [cursor=pointer]:
+                    - img [ref=f10e1433]
+                  - button [ref=f10e1435] [cursor=pointer]:
+                    - img [ref=f10e1437]
+                  - button [ref=f10e1439] [cursor=pointer]:
+                    - img [ref=f10e1441]
+                  - button [ref=f10e1443] [cursor=pointer]:
+                    - img [ref=f10e2402]
+                  - button [ref=f10e1447] [cursor=pointer]:
+                    - img [ref=f10e1449]
+                  - button [ref=f10e1451] [cursor=pointer]:
+                    - img [ref=f10e1453]
+                  - button [ref=f10e1455] [cursor=pointer]:
+                    - img [ref=f10e1457]
+                  - button [ref=f10e1459] [cursor=pointer]:
+                    - img [ref=f10e1461]
+                  - button [ref=f10e1463] [cursor=pointer]:
+                    - img [ref=f10e1465]
+                  - button [ref=f10e1467] [cursor=pointer]:
+                    - img [ref=f10e1469]
+                  - button [ref=f10e1471] [cursor=pointer]:
+                    - img [ref=f10e1473]
+                  - button [ref=f10e1475] [cursor=pointer]:
+                    - img [ref=f10e1477]
+                  - button [ref=f10e1479] [cursor=pointer]:
+                    - img [ref=f10e1481]
+                  - button [ref=f10e1483] [cursor=pointer]:
+                    - img [ref=f10e1485]
+                  - button [ref=f10e1487] [cursor=pointer]:
+                    - img [ref=f10e2405]
+                  - button [ref=f10e1491] [cursor=pointer]:
+                    - img [ref=f10e1493]
+                  - button [ref=f10e1495] [cursor=pointer]:
+                    - img [ref=f10e1497]
+                  - button [ref=f10e1499] [cursor=pointer]:
+                    - img [ref=f10e1501]
+                  - button [ref=f10e1503] [cursor=pointer]:
+                    - img [ref=f10e1505]
+                  - button [ref=f10e1507] [cursor=pointer]:
+                    - img [ref=f10e1509]
+                  - button [ref=f10e1511] [cursor=pointer]:
+                    - img [ref=f10e1513]
+                  - button [ref=f10e1519] [cursor=pointer]:
+                    - img [ref=f10e1521]
+                  - button [ref=f10e1523] [cursor=pointer]:
+                    - img [ref=f10e1525]
+                  - button [ref=f10e1527] [cursor=pointer]:
+                    - img [ref=f10e1529]
+                  - button [ref=f10e1531] [cursor=pointer]:
+                    - img [ref=f10e1533]
+                  - button [ref=f10e1535] [cursor=pointer]:
+                    - img [ref=f10e1537]
+                  - button [ref=f10e1539] [cursor=pointer]:
+                    - img [ref=f10e1541]
+                  - button [ref=f10e1543] [cursor=pointer]:
+                    - img [ref=f10e1545]
+                  - button [ref=f10e1547] [cursor=pointer]:
+                    - img [ref=f10e1549]
+                  - button [ref=f10e1555] [cursor=pointer]:
+                    - img [ref=f10e1557]
+                  - button [ref=f10e1559] [cursor=pointer]:
+                    - img [ref=f10e1561]
+                  - button [ref=f10e1563] [cursor=pointer]:
+                    - img [ref=f10e1565]
+                  - button [ref=f10e1567] [cursor=pointer]:
+                    - img [ref=f10e1569]
+                  - button [ref=f10e1571] [cursor=pointer]:
+                    - img [ref=f10e1573]
+                  - button [ref=f10e1575] [cursor=pointer]:
+                    - img [ref=f10e1577]
+                  - button [ref=f10e1579] [cursor=pointer]:
+                    - img [ref=f10e1581]
+                  - button [ref=f10e1583] [cursor=pointer]:
+                    - img [ref=f10e1585]
+                  - button [ref=f10e1587] [cursor=pointer]:
+                    - img [ref=f10e1589]
+                  - button [ref=f10e1591] [cursor=pointer]:
+                    - img [ref=f10e1593]
+                  - button [ref=f10e1595] [cursor=pointer]:
+                    - img [ref=f10e1597]
+                  - button [ref=f10e1599] [cursor=pointer]:
+                    - img [ref=f10e1601]
+                  - button [ref=f10e1603] [cursor=pointer]:
+                    - img [ref=f10e1605]
+                  - button [ref=f10e1607] [cursor=pointer]:
+                    - img [ref=f10e1609]
+                  - button [ref=f10e1611] [cursor=pointer]:
+                    - img [ref=f10e1613]
+                  - button [ref=f10e1615] [cursor=pointer]:
+                    - img [ref=f10e1617]
+                  - button [ref=f10e1619] [cursor=pointer]:
+                    - img [ref=f10e1621]
+                  - button [ref=f10e1623] [cursor=pointer]:
+                    - img [ref=f10e1625]
+                  - button [ref=f10e1627] [cursor=pointer]:
+                    - img [ref=f10e1629]
+                  - button [ref=f10e1631] [cursor=pointer]:
+                    - img [ref=f10e1633]
+                  - button [ref=f10e1635] [cursor=pointer]:
+                    - img [ref=f10e1637]
+                  - button [ref=f10e1639] [cursor=pointer]:
+                    - img [ref=f10e1641]
+                  - button [ref=f10e1643] [cursor=pointer]:
+                    - img [ref=f10e1645]
+                  - button [ref=f10e1647] [cursor=pointer]:
+                    - img [ref=f10e1649]
+                  - button [ref=f10e1651] [cursor=pointer]:
+                    - img [ref=f10e1653]
+                  - button [ref=f10e1655] [cursor=pointer]:
+                    - img [ref=f10e1657]
+                  - button [ref=f10e1659] [cursor=pointer]:
+                    - img [ref=f10e1661]
+                  - button [ref=f10e1663] [cursor=pointer]:
+                    - img [ref=f10e1665]
+                  - button [ref=f10e1667] [cursor=pointer]:
+                    - img [ref=f10e1669]
+                  - button [ref=f10e1671] [cursor=pointer]:
+                    - img [ref=f10e1673]
+                  - button [ref=f10e1675] [cursor=pointer]:
+                    - img [ref=f10e1677]
+                  - button [ref=f10e1679] [cursor=pointer]:
+                    - img [ref=f10e1681]
+                  - button [ref=f10e1683] [cursor=pointer]:
+                    - img [ref=f10e1685]
+                  - button [ref=f10e1687] [cursor=pointer]:
+                    - img [ref=f10e1689]
+                  - button [ref=f10e1691] [cursor=pointer]:
+                    - img [ref=f10e1693]
+                  - button [ref=f10e1695] [cursor=pointer]:
+                    - img [ref=f10e1697]
+                  - button [ref=f10e1699] [cursor=pointer]:
+                    - img [ref=f10e1701]
+                  - button [ref=f10e1703] [cursor=pointer]:
+                    - img [ref=f10e1705]
+                  - button [ref=f10e1707] [cursor=pointer]:
+                    - img [ref=f10e1709]
+                  - button [ref=f10e1711] [cursor=pointer]:
+                    - img [ref=f10e1713]
+                  - button [ref=f10e1715] [cursor=pointer]:
+                    - img [ref=f10e1717]
+                  - button [ref=f10e1719] [cursor=pointer]:
+                    - img [ref=f10e1721]
+                  - button [ref=f10e1723] [cursor=pointer]:
+                    - img [ref=f10e1725]
+                  - button [ref=f10e1727] [cursor=pointer]:
+                    - img [ref=f10e1729]
+                  - button [ref=f10e1731] [cursor=pointer]:
+                    - img [ref=f10e1733]
+                  - button [ref=f10e1735] [cursor=pointer]:
+                    - img [ref=f10e1737]
+                  - button [ref=f10e1739] [cursor=pointer]:
+                    - img [ref=f10e1741]
+                  - button [ref=f10e1743] [cursor=pointer]:
+                    - img [ref=f10e1745]
+                  - button [ref=f10e1747] [cursor=pointer]:
+                    - img [ref=f10e1749]
+                  - button [ref=f10e1751] [cursor=pointer]:
+                    - img [ref=f10e1753]
+                  - button [ref=f10e1755] [cursor=pointer]:
+                    - img [ref=f10e1757]
+                  - button [ref=f10e1759] [cursor=pointer]:
+                    - img [ref=f10e2408]
+                  - button [ref=f10e1763] [cursor=pointer]:
+                    - img [ref=f10e1765]
+                  - button [ref=f10e1767] [cursor=pointer]:
+                    - img [ref=f10e1769]
+                  - button [ref=f10e1771] [cursor=pointer]:
+                    - img [ref=f10e1773]
+                  - button [ref=f10e1775] [cursor=pointer]:
+                    - img [ref=f10e1777]
+                  - button [ref=f10e1779] [cursor=pointer]:
+                    - img [ref=f10e1781]
+                  - button [ref=f10e1783] [cursor=pointer]:
+                    - img [ref=f10e1785]
+                  - button [ref=f10e1787] [cursor=pointer]:
+                    - img [ref=f10e1789]
+                  - button [ref=f10e1791] [cursor=pointer]:
+                    - img [ref=f10e1793]
+                  - button [ref=f10e1795] [cursor=pointer]:
+                    - img [ref=f10e1797]
+                  - button [ref=f10e1799] [cursor=pointer]:
+                    - img [ref=f10e1801]
+                  - button [ref=f10e1803] [cursor=pointer]:
+                    - img [ref=f10e1805]
+                  - button [ref=f10e1807] [cursor=pointer]:
+                    - img [ref=f10e1809]
+                  - button [ref=f10e1811] [cursor=pointer]:
+                    - img [ref=f10e1813]
+                  - button [ref=f10e1815] [cursor=pointer]:
+                    - img [ref=f10e1817]
+                  - button [ref=f10e1819] [cursor=pointer]:
+                    - img [ref=f10e1821]
+                  - button [ref=f10e1823] [cursor=pointer]:
+                    - img [ref=f10e1825]
+                  - button [ref=f10e1827] [cursor=pointer]:
+                    - img [ref=f10e1829]
+                  - button [ref=f10e1831] [cursor=pointer]:
+                    - img [ref=f10e1833]
+                  - button [ref=f10e1835] [cursor=pointer]:
+                    - img [ref=f10e1837]
+                  - button [ref=f10e1839] [cursor=pointer]:
+                    - img [ref=f10e1841]
+                  - button [ref=f10e1843] [cursor=pointer]:
+                    - img [ref=f10e1845]
+                  - button [ref=f10e1847] [cursor=pointer]:
+                    - img [ref=f10e1849]
+                  - button [ref=f10e1851] [cursor=pointer]:
+                    - img [ref=f10e1853]
+                  - button [ref=f10e1855] [cursor=pointer]:
+                    - img [ref=f10e1857]
+                  - button [ref=f10e1859] [cursor=pointer]:
+                    - img [ref=f10e2411]
+                  - button [ref=f10e1863] [cursor=pointer]:
+                    - img [ref=f10e1865]
+                  - button [ref=f10e1867] [cursor=pointer]:
+                    - img [ref=f10e1869]
+                  - button [ref=f10e1871] [cursor=pointer]:
+                    - img [ref=f10e1873]
+                  - button [ref=f10e1875] [cursor=pointer]:
+                    - img [ref=f10e1877]
+                  - button [ref=f10e1879] [cursor=pointer]:
+                    - img [ref=f10e2414]
+                  - button [ref=f10e1883] [cursor=pointer]:
+                    - img [ref=f10e1885]
+                  - button [ref=f10e1887] [cursor=pointer]:
+                    - img [ref=f10e1889]
+                  - button [ref=f10e1891] [cursor=pointer]:
+                    - img [ref=f10e1893]
+                  - button [ref=f10e1895] [cursor=pointer]:
+                    - img [ref=f10e1897]
+                  - button [ref=f10e1899] [cursor=pointer]:
+                    - img [ref=f10e1901]
+                  - button [ref=f10e1903] [cursor=pointer]:
+                    - img [ref=f10e2417]
+                  - button [ref=f10e1907] [cursor=pointer]:
+                    - img [ref=f10e1909]
+                  - button [ref=f10e1911] [cursor=pointer]:
+                    - img [ref=f10e1913]
+                  - button [ref=f10e1915] [cursor=pointer]:
+                    - img [ref=f10e1917]
+                  - button [ref=f10e1919] [cursor=pointer]:
+                    - img [ref=f10e1921]
+                  - button [ref=f10e1923] [cursor=pointer]:
+                    - img [ref=f10e1925]
+                  - button [ref=f10e1927] [cursor=pointer]:
+                    - img [ref=f10e1929]
+                  - button [ref=f10e1931] [cursor=pointer]:
+                    - img [ref=f10e1933]
+                  - button [ref=f10e1935] [cursor=pointer]:
+                    - img [ref=f10e1937]
+                  - button [ref=f10e1939] [cursor=pointer]:
+                    - img [ref=f10e1941]
+                  - button [ref=f10e1943] [cursor=pointer]:
+                    - img [ref=f10e1945]
+                  - button [ref=f10e1947] [cursor=pointer]:
+                    - img [ref=f10e1949]
+                  - button [ref=f10e1951] [cursor=pointer]:
+                    - img [ref=f10e1953]
+                  - button [ref=f10e1955] [cursor=pointer]:
+                    - img [ref=f10e1957]
+                  - button [ref=f10e1959] [cursor=pointer]:
+                    - img [ref=f10e1961]
+                  - button [ref=f10e1963] [cursor=pointer]:
+                    - img [ref=f10e1965]
+                  - button [ref=f10e1967] [cursor=pointer]:
+                    - img [ref=f10e1969]
+                  - button [ref=f10e1971] [cursor=pointer]:
+                    - img [ref=f10e1973]
+                  - button [ref=f10e1975] [cursor=pointer]:
+                    - img [ref=f10e1977]
+                  - button [ref=f10e1979] [cursor=pointer]:
+                    - img [ref=f10e2420]
+                  - button [ref=f10e1983] [cursor=pointer]:
+                    - img [ref=f10e1985]
+                  - button [ref=f10e1987] [cursor=pointer]:
+                    - img [ref=f10e1989]
+                  - button [ref=f10e1991] [cursor=pointer]:
+                    - img [ref=f10e1993]
+                  - button [ref=f10e1995] [cursor=pointer]:
+                    - img [ref=f10e1997]
+                  - button [ref=f10e1999] [cursor=pointer]:
+                    - img [ref=f10e2001]
+                  - button [ref=f10e2003] [cursor=pointer]:
+                    - img [ref=f10e2005]
+                  - button [ref=f10e2007] [cursor=pointer]:
+                    - img [ref=f10e2009]
+                  - button [ref=f10e2011] [cursor=pointer]:
+                    - img [ref=f10e2013]
+                  - button [ref=f10e2015] [cursor=pointer]:
+                    - img [ref=f10e2017]
+                  - button [ref=f10e2019] [cursor=pointer]:
+                    - img [ref=f10e2021]
+                  - button [ref=f10e2023] [cursor=pointer]:
+                    - img [ref=f10e2025]
+                  - button [ref=f10e2027] [cursor=pointer]:
+                    - img [ref=f10e2029]
+                  - button [ref=f10e2031] [cursor=pointer]:
+                    - img [ref=f10e2033]
+                  - button [ref=f10e2035] [cursor=pointer]:
+                    - img [ref=f10e2037]
+                  - button [ref=f10e2039] [cursor=pointer]:
+                    - img [ref=f10e2041]
+                  - button [ref=f10e2043] [cursor=pointer]:
+                    - img [ref=f10e2045]
+                  - button [ref=f10e2047] [cursor=pointer]:
+                    - img [ref=f10e2049]
+                  - button [ref=f10e2051] [cursor=pointer]:
+                    - img [ref=f10e2053]
+                  - button [ref=f10e2055] [cursor=pointer]:
+                    - img [ref=f10e2423]
+                  - button [ref=f10e2059] [cursor=pointer]:
+                    - img [ref=f10e2061]
+                  - button [ref=f10e2063] [cursor=pointer]:
+                    - img [ref=f10e2065]
+                  - button [ref=f10e2067] [cursor=pointer]:
+                    - img [ref=f10e2069]
+                  - button [ref=f10e2071] [cursor=pointer]:
+                    - img [ref=f10e2073]
+                  - button [ref=f10e2075] [cursor=pointer]:
+                    - img [ref=f10e2077]
+                  - button [ref=f10e2079] [cursor=pointer]:
+                    - img [ref=f10e2081]
+                  - button [ref=f10e2083] [cursor=pointer]:
+                    - img [ref=f10e2085]
+                  - button [ref=f10e2087] [cursor=pointer]:
+                    - img [ref=f10e2089]
+                  - button [ref=f10e2091] [cursor=pointer]:
+                    - img [ref=f10e2093]
+                  - button [ref=f10e2095] [cursor=pointer]:
+                    - img [ref=f10e2097]
+                  - button [ref=f10e2099] [cursor=pointer]:
+                    - img [ref=f10e2101]
+                  - button [ref=f10e2103] [cursor=pointer]:
+                    - img [ref=f10e2105]
+                  - button [ref=f10e2107] [cursor=pointer]:
+                    - img [ref=f10e2109]
+                  - button [ref=f10e2111] [cursor=pointer]:
+                    - img [ref=f10e2113]
+                  - button [ref=f10e2115] [cursor=pointer]:
+                    - img [ref=f10e2117]
+                  - button [ref=f10e2119] [cursor=pointer]:
+                    - img [ref=f10e2121]
+                  - button [ref=f10e2123] [cursor=pointer]:
+                    - img [ref=f10e2125]
+                  - button [ref=f10e2127] [cursor=pointer]:
+                    - img [ref=f10e2129]
+                  - button [ref=f10e2131] [cursor=pointer]:
+                    - img [ref=f10e2133]
+                  - button [ref=f10e2135] [cursor=pointer]:
+                    - img [ref=f10e2137]
+                  - button [ref=f10e2139] [cursor=pointer]:
+                    - img [ref=f10e2141]
+                  - button [ref=f10e2143] [cursor=pointer]:
+                    - img [ref=f10e2145]
+                  - button [ref=f10e2147] [cursor=pointer]:
+                    - img [ref=f10e2149]
+                  - button [ref=f10e2151] [cursor=pointer]:
+                    - img [ref=f10e2153]
+                  - button [ref=f10e2155] [cursor=pointer]:
+                    - img [ref=f10e2157]
+                  - button [ref=f10e2159] [cursor=pointer]:
+                    - img [ref=f10e2161]
+                  - button [ref=f10e2163] [cursor=pointer]:
+                    - img [ref=f10e2165]
+                  - button [ref=f10e2167] [cursor=pointer]:
+                    - img [ref=f10e2169]
+                  - button [ref=f10e2171] [cursor=pointer]:
+                    - img [ref=f10e2173]
+                  - button [ref=f10e2175] [cursor=pointer]:
+                    - img [ref=f10e2177]
+                  - button [ref=f10e2179] [cursor=pointer]:
+                    - img [ref=f10e2181]
+                  - button [ref=f10e2183] [cursor=pointer]:
+                    - img [ref=f10e2185]
+                  - button [ref=f10e2187] [cursor=pointer]:
+                    - img [ref=f10e2189]
+                  - button [ref=f10e2191] [cursor=pointer]:
+                    - img [ref=f10e2193]
+                  - button [ref=f10e2195] [cursor=pointer]:
+                    - img [ref=f10e2197]
+                  - button [ref=f10e2199] [cursor=pointer]:
+                    - img [ref=f10e2426]
+                  - button [ref=f10e2203] [cursor=pointer]:
+                    - img [ref=f10e2205]
+                  - button [ref=f10e2207] [cursor=pointer]:
+                    - img [ref=f10e2209]
+                  - button [ref=f10e2211] [cursor=pointer]:
+                    - img [ref=f10e2213]
+                  - button [ref=f10e2215] [cursor=pointer]:
+                    - img [ref=f10e2217]
+                  - button [ref=f10e2219] [cursor=pointer]:
+                    - img [ref=f10e2221]
+                  - button [ref=f10e2223] [cursor=pointer]:
+                    - img [ref=f10e2225]
+                  - button [ref=f10e2227] [cursor=pointer]:
+                    - img [ref=f10e2229]
+                  - button [ref=f10e2231] [cursor=pointer]:
+                    - img [ref=f10e2233]
+                  - button [ref=f10e2235] [cursor=pointer]:
+                    - img [ref=f10e2237]
+                  - button [ref=f10e2239] [cursor=pointer]:
+                    - img [ref=f10e2241]
+                  - button [ref=f10e2243] [cursor=pointer]:
+                    - img [ref=f10e2245]
+                  - button [ref=f10e2247] [cursor=pointer]:
+                    - img [ref=f10e2249]
+                  - button [ref=f10e2251] [cursor=pointer]:
+                    - img [ref=f10e2253]
+                  - button [ref=f10e2255] [cursor=pointer]:
+                    - img [ref=f10e2257]
+                  - button [ref=f10e2259] [cursor=pointer]:
+                    - img [ref=f10e2261]
+                  - button [ref=f10e2263] [cursor=pointer]:
+                    - img [ref=f10e2265]
+                  - button [ref=f10e2267] [cursor=pointer]:
+                    - img [ref=f10e2269]
+                  - button [ref=f10e2271] [cursor=pointer]:
+                    - img [ref=f10e2273]
+                  - button [ref=f10e2275] [cursor=pointer]:
+                    - img [ref=f10e2277]
+                  - button [ref=f10e2279] [cursor=pointer]:
+                    - img [ref=f10e2281]
+                  - button [ref=f10e2283] [cursor=pointer]:
+                    - img [ref=f10e2285]
+                  - button [ref=f10e2287] [cursor=pointer]:
+                    - img [ref=f10e2289]
+                  - button [ref=f10e2291] [cursor=pointer]:
+                    - img [ref=f10e2293]
+                  - button [ref=f10e2295] [cursor=pointer]:
+                    - img [ref=f10e2297]
+                  - button [ref=f10e2299] [cursor=pointer]:
+                    - img [ref=f10e2301]
+                  - button [ref=f10e2303] [cursor=pointer]:
+                    - img [ref=f10e2305]
+                  - button [ref=f10e2307] [cursor=pointer]:
+                    - img [ref=f10e2309]
+                  - button [ref=f10e2311] [cursor=pointer]:
+                    - img [ref=f10e2313]
+                  - button [ref=f10e2315] [cursor=pointer]:
+                    - img [ref=f10e2317]
+                  - button [ref=f10e2319] [cursor=pointer]:
+                    - img [ref=f10e2321]
+                  - button [ref=f10e2327] [cursor=pointer]:
+                    - img [ref=f10e2329]
+                  - button [ref=f10e2331] [cursor=pointer]:
+                    - img [ref=f10e2333]
+                  - button [ref=f10e2335] [cursor=pointer]:
+                    - img [ref=f10e2429]
+                  - button [ref=f10e2431] [cursor=pointer]:
+                    - img [ref=f10e2433]
+                  - button [ref=f10e2435] [cursor=pointer]:
+                    - img [ref=f10e2437]
+                  - button [ref=f10e2439] [cursor=pointer]:
+                    - img [ref=f10e2441]
+              - generic:
+                - generic [ref=f10e261]:
+                  - button "Zoom in" [ref=f10e262] [cursor=pointer]: +
+                  - button "Zoom out" [ref=f10e263] [cursor=pointer]: −
+                - generic [ref=f10e264]:
+                  - link "Leaflet" [ref=f10e265] [cursor=pointer]:
+                    - /url: https://leafletjs.com
+                    - img [ref=f10e266]
+                    - text: Leaflet
+                  - text: "| ©"
+                  - link "CARTO" [ref=f10e270] [cursor=pointer]:
+                    - /url: https://carto.com/attributions
+            - generic [ref=f10e271]:
+              - generic [ref=f10e272]:
+                - button "Real flights (ADS-B) 580" [ref=f10e2443] [cursor=pointer]:
+                  - generic [ref=f10e275]: Real flights (ADS-B)
+                  - generic [ref=f10e2340]: "580"
+                - button "Nimbus Air sim" [ref=f10e276] [cursor=pointer]:
+                  - generic [ref=f10e278]: Nimbus Air sim
+              - generic [ref=f10e2341]: ADS-B · -1s ago
+            - generic [ref=f10e281]:
+              - generic [ref=f10e284]: Live ADS-B
+              - generic [ref=f10e287]: GS
+              - generic [ref=f10e290]: GDP
+              - generic [ref=f10e293]: WX
+        - generic [ref=f10e296]:
+          - generic [ref=f10e298]:
+            - generic [ref=f10e299]:
+              - generic [ref=f10e300]: Cascade Timeline
+              - generic [ref=f10e301]: 18-hour window · UTC
+            - generic [ref=f10e302]:
+              - generic [ref=f10e303]: Direct
+              - generic [ref=f10e305]: Cascade
+              - generic [ref=f10e307]: Cancelled
+              - generic [ref=f10e309]: On time
+          - generic [ref=f10e311]:
+            - generic [ref=f10e313]: Flight
+            - generic [ref=f10e314]:
+              - generic [ref=f10e315]: 06:00
+              - generic [ref=f10e316]: 09:00
+              - generic [ref=f10e317]: 12:00
+              - generic [ref=f10e318]: 15:00
+              - generic [ref=f10e319]: 18:00
+              - generic [ref=f10e320]: 21:00
+          - generic [ref=f10e321]:
+            - generic [ref=f10e322] [cursor=pointer]:
+              - generic [ref=f10e323]:
+                - generic [ref=f10e324]: NB101
+                - generic [ref=f10e325]: KORD→KATL
+              - generic "NB101 KORD→KATL" [ref=f10e327]
+            - generic [ref=f10e328] [cursor=pointer]:
+              - generic [ref=f10e329]:
+                - generic [ref=f10e330]: NB102
+                - generic [ref=f10e331]: KATL→KMIA
+              - generic "NB102 KATL→KMIA" [ref=f10e333]
+            - generic [ref=f10e334] [cursor=pointer]:
+              - generic [ref=f10e335]:
+                - generic [ref=f10e336]: NB103
+                - generic [ref=f10e337]: KMIA→KATL
+              - generic "NB103 KMIA→KATL" [ref=f10e339]
+            - generic [ref=f10e340] [cursor=pointer]:
+              - generic [ref=f10e341]:
+                - generic [ref=f10e342]: NB104
+                - generic [ref=f10e343]: KATL→KORD
+              - generic "NB104 KATL→KORD" [ref=f10e345]
+            - generic [ref=f10e346] [cursor=pointer]:
+              - generic [ref=f10e347]:
+                - generic [ref=f10e348]: NB105
+                - generic [ref=f10e349]: KORD→KDFW
+              - generic "NB105 KORD→KDFW" [ref=f10e351]
+            - generic [ref=f10e352] [cursor=pointer]:
+              - generic [ref=f10e353]:
+                - generic [ref=f10e354]: NB106
+                - generic [ref=f10e355]: KDFW→KLAX
+              - generic "NB106 KDFW→KLAX" [ref=f10e357]
+            - generic [ref=f10e358] [cursor=pointer]:
+              - generic [ref=f10e359]:
+                - generic [ref=f10e360]: NB107
+                - generic [ref=f10e361]: KLAX→KDFW
+              - generic "NB107 KLAX→KDFW" [ref=f10e363]
+            - generic [ref=f10e364] [cursor=pointer]:
+              - generic [ref=f10e365]:
+                - generic [ref=f10e366]: NB108
+                - generic [ref=f10e367]: KORD→KDEN
+              - generic "NB108 KORD→KDEN" [ref=f10e369]
+            - generic [ref=f10e370] [cursor=pointer]:
+              - generic [ref=f10e371]:
+                - generic [ref=f10e372]: NB109
+                - generic [ref=f10e373]: KDEN→KPHX
+              - generic "NB109 KDEN→KPHX" [ref=f10e375]
+            - generic [ref=f10e376] [cursor=pointer]:
+              - generic [ref=f10e377]:
+                - generic [ref=f10e378]: NB110
+                - generic [ref=f10e379]: KPHX→KDEN
+              - generic "NB110 KPHX→KDEN" [ref=f10e381]
+            - generic [ref=f10e382] [cursor=pointer]:
+              - generic [ref=f10e383]:
+                - generic [ref=f10e384]: NB111
+                - generic [ref=f10e385]: KDEN→KORD
+              - generic "NB111 KDEN→KORD" [ref=f10e387]
+            - generic [ref=f10e388] [cursor=pointer]:
+              - generic [ref=f10e389]:
+                - generic [ref=f10e390]: NB112
+                - generic [ref=f10e391]: KORD→KJFK
+              - generic "NB112 KORD→KJFK" [ref=f10e393]
+            - generic [ref=f10e394] [cursor=pointer]:
+              - generic [ref=f10e395]:
+                - generic [ref=f10e396]: NB113
+                - generic [ref=f10e397]: KJFK→KBOS
+              - generic "NB113 KJFK→KBOS" [ref=f10e399]
+            - generic [ref=f10e400] [cursor=pointer]:
+              - generic [ref=f10e401]:
+                - generic [ref=f10e402]: NB114
+                - generic [ref=f10e403]: KBOS→KJFK
+              - generic "NB114 KBOS→KJFK" [ref=f10e405]
+            - generic [ref=f10e406] [cursor=pointer]:
+              - generic [ref=f10e407]:
+                - generic [ref=f10e408]: NB115
+                - generic [ref=f10e409]: KJFK→KORD
+              - generic "NB115 KJFK→KORD" [ref=f10e411]
+            - generic [ref=f10e412] [cursor=pointer]:
+              - generic [ref=f10e413]:
+                - generic [ref=f10e414]: NB116
+                - generic [ref=f10e415]: KORD→KLAX
+              - generic "NB116 KORD→KLAX" [ref=f10e417]
+            - generic [ref=f10e418] [cursor=pointer]:
+              - generic [ref=f10e419]:
+                - generic [ref=f10e420]: NB117
+                - generic [ref=f10e421]: KLAX→KSFO
+              - generic "NB117 KLAX→KSFO" [ref=f10e423]
+            - generic [ref=f10e424] [cursor=pointer]:
+              - generic [ref=f10e425]:
+                - generic [ref=f10e426]: NB118
+                - generic [ref=f10e427]: KSFO→KLAX
+              - generic "NB118 KSFO→KLAX" [ref=f10e429]
+      - complementary [ref=f10e430]:
+        - generic [ref=f10e432]:
+          - generic [ref=f10e433]:
+            - img [ref=f10e435]
+            - generic [ref=f10e437]:
+              - generic [ref=f10e438]: Recovery Plans
+              - generic [ref=f10e439]: Plans A–D · cost / pax / tomorrow / carbon
+          - generic [ref=f10e441]:
+            - generic [ref=f10e442]: Awaiting disruption
+            - generic [ref=f10e443]: All flights operating nominally.
+            - paragraph [ref=f10e444]: Trigger an event from the left rail to receive ranked recovery plans with cost breakdowns and counterfactual rationale.
+            - generic [ref=f10e445]: CP-SAT solve typically < 10 ms · cost engine deterministic
+    - generic [ref=f10e446]:
+      - generic [ref=f10e449]: Continuing Context
+      - generic [ref=f10e451]:
+        - generic [ref=f10e452]:
+          - generic [ref=f10e453]:
+            - img [ref=f10e455]
+            - generic [ref=f10e458]:
+              - generic [ref=f10e459]: My Flights
+              - generic [ref=f10e460]: Track flights from the Nimbus schedule
+          - generic [ref=f10e461]:
+            - button "Add flight" [ref=f10e462] [cursor=pointer]:
+              - img [ref=f10e463]
+              - text: Add flight
+            - button [ref=f10e466] [cursor=pointer]:
+              - img [ref=f10e467]
+        - generic [ref=f10e471]:
+          - generic [ref=f10e472]: No Flights Tracked
+          - generic [ref=f10e473]: Pin Nimbus flights to monitor in real time.
+          - paragraph [ref=f10e474]: Click Add flight to watch any tail in the Nimbus schedule and receive disruption alerts the moment cascade order changes.
+      - generic [ref=f10e475]:
+        - link "Compare plans Side-by-side cost / pax / FAR 117 / carbon" [ref=f10e476] [cursor=pointer]:
+          - /url: /simulator/plans/compare
+          - generic [ref=f10e477]:
+            - img [ref=f10e478]
+            - img [ref=f10e485]
+          - generic [ref=f10e487]: Compare plans
+          - generic [ref=f10e488]: Side-by-side cost / pax / FAR 117 / carbon
+        - link "Crew shortage FAR 117 legality + max-coverage MILP" [ref=f10e489] [cursor=pointer]:
+          - /url: /simulator/crew
+          - generic [ref=f10e490]:
+            - img [ref=f10e491]
+            - img [ref=f10e494]
+          - generic [ref=f10e496]: Crew shortage
+          - generic [ref=f10e497]: FAR 117 legality + max-coverage MILP
+        - link "Passenger solutions Rebooking · hotel · DOT 261 vouchers" [ref=f10e498] [cursor=pointer]:
+          - /url: /simulator/passengers
+          - generic [ref=f10e499]:
+            - img [ref=f10e500]
+            - img [ref=f10e505]
+          - generic [ref=f10e507]: Passenger solutions
+          - generic [ref=f10e508]: Rebooking · hotel · DOT 261 vouchers
+        - link "Carbon dashboard Net CO₂ ledger priced under EU ETS" [ref=f10e509] [cursor=pointer]:
+          - /url: /simulator/carbon
+          - generic [ref=f10e510]:
+            - img [ref=f10e511]
+            - img [ref=f10e514]
+          - generic [ref=f10e516]: Carbon dashboard
+          - generic [ref=f10e517]: Net CO₂ ledger priced under EU ETS
+        - link "Stress test Monte-Carlo network vulnerability sweep" [ref=f10e518] [cursor=pointer]:
+          - /url: /simulator/stress-test
+          - generic [ref=f10e519]:
+            - img [ref=f10e520]
+            - img [ref=f10e525]
+          - generic [ref=f10e527]: Stress test
+          - generic [ref=f10e528]: Monte-Carlo network vulnerability sweep
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=f10e534] [cursor=pointer]:
+    - img [ref=f10e535]
+  - alert [ref=f10e538]

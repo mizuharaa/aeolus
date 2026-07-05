@@ -1,4 +1,8 @@
 import type { Config } from "tailwindcss"
+// ESM import (not require()) so the config loads under both CJS and ESM —
+// an inline require() here intermittently crashed the dev server with
+// "require is not defined" when the config was evaluated as an ES module.
+import tailwindcssAnimate from "tailwindcss-animate"
 
 /**
  * Tailwind config — Aeolus daylight sky system.
@@ -252,7 +256,7 @@ const config: Config = {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [tailwindcssAnimate],
 }
 
 export default config

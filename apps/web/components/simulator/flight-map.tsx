@@ -88,6 +88,68 @@ function bearing(lat1: number, lon1: number, lat2: number, lon2: number): number
   return (((Math.atan2(Math.sin(Δλ) * Math.cos(φ2), Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ)) * 180) / Math.PI) + 360) % 360
 }
 
+/** Great-circle distance in nautical miles. */
+function distanceNm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 3440.065
+  const dLat = ((lat2 - lat1) * Math.PI) / 180
+  const dLon = ((lon2 - lon1) * Math.PI) / 180
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(a)))
+}
+
+const CARDINALS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"]
+function cardinal(deg: number): string {
+  return CARDINALS[Math.round(((deg % 360) / 22.5)) % 16]
+}
+
+/** Approximate speed of sound (kt) at a given pressure altitude (ft). */
+function machFor(gsKt: number, altFt: number): number | null {
+  if (!gsKt || gsKt <= 0) return null
+  const h = Math.min(altFt, 36089)
+  const a = 661.5 * Math.sqrt(Math.max(0.55, 1 - 6.8756e-6 * h))
+  return gsKt / a
+}
+
+/**
+ * Rich derived state for a live ADS-B contact: phase of flight, nearest
+ * Nimbus airport (behind = likely origin, ahead-in-track = likely arrival with
+ * a rough ETA), signal age. Everything here is computed from the ADS-B fields
+ * we actually have — no invented route/pax data.
+ */
+function deriveLive(f: LiveFlight) {
+  const alt = f.altitude_ft ?? 0
+  const vs = f.vertical_fpm ?? 0
+  const gs = f.velocity_kt ?? 0
+  const phase = f.on_ground
+    ? { label: "On ground", tone: "#63808F", pct: 0 }
+    : vs > 350
+      ? { label: "Climbing", tone: "#0369A1", pct: Math.min(1, alt / 38000) }
+      : vs < -400
+        ? { label: alt < 10000 ? "Approach" : "Descending", tone: "#B8863C", pct: Math.min(1, alt / 38000) }
+        : alt > 18000
+          ? { label: "Cruise", tone: "#0D9488", pct: Math.min(1, alt / 38000) }
+          : { label: "Level", tone: "#0D9488", pct: Math.min(1, alt / 38000) }
+
+  // nearest airport overall, and nearest airport within ±55° of the track
+  let nearest: { icao: string; nm: number } | null = null
+  let ahead: { icao: string; nm: number; etaMin: number } | null = null
+  const hdg = f.heading ?? 0
+  for (const icao in NIMBUS_AIRPORTS) {
+    const ap = NIMBUS_AIRPORTS[icao]
+    const nm = distanceNm(f.lat, f.lon, ap.lat, ap.lon)
+    if (!nearest || nm < nearest.nm) nearest = { icao, nm }
+    const brg = bearing(f.lat, f.lon, ap.lat, ap.lon)
+    let diff = Math.abs(((brg - hdg + 540) % 360) - 180)
+    if (diff < 55 && gs > 60) {
+      const etaMin = (nm / gs) * 60
+      if (!ahead || nm < ahead.nm) ahead = { icao, nm, etaMin }
+    }
+  }
+  const ageSec = Math.max(0, Math.round(Date.now() / 1000 - f.last_contact))
+  const mach = machFor(gs, alt)
+  return { phase, nearest, ahead, ageSec, mach, alt, vs, gs, hdg }
+}
+
 function interp(lat1: number, lon1: number, lat2: number, lon2: number, t: number): [number, number] {
   return [lat1 + (lat2 - lat1) * t, lon1 + (lon2 - lon1) * t]
 }
@@ -114,6 +176,24 @@ const _cache = new Map<string, L.DivIcon>()
 function icon(key: string, factory: () => L.DivIcon): L.DivIcon {
   if (!_cache.has(key)) _cache.set(key, factory())
   return _cache.get(key)!
+}
+
+/** Selected live flight — teal plane with an expanding radar ring + blink,
+ *  rendered crisp in the focus pane while the rest of the map dims. */
+function liveSelIcon(heading: number | null): L.DivIcon {
+  const hdg = Math.round((heading ?? 0) / 10) * 10
+  return icon(`lvsel|${hdg}`, () =>
+    L.divIcon({
+      className: "",
+      iconSize: [34, 34],
+      iconAnchor: [17, 17],
+      html: `<div class="ae-livesel" style="width:34px;height:34px;display:flex;align-items:center;justify-content:center">
+        <span class="ae-livesel-ring"></span>
+        <span class="ae-livesel-ring delay"></span>
+        <span style="width:22px;height:22px;transform:rotate(${hdg}deg);transform-origin:center;filter:drop-shadow(0 1px 4px rgba(13,148,136,0.6))"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="#0D9488" stroke="#FFFFFF" stroke-width="1"/></svg></span>
+      </div>`,
+    })
+  )
 }
 
 function liveIcon(heading: number | null, sel: boolean, velKt: number | null): L.DivIcon {
@@ -562,15 +642,16 @@ function FlightDetailCard({
   return (
     <div
       className="absolute z-[450] w-72"
-      style={{ top: appliedPlan ? 72 : 12, right: 12 }}
+      style={{ top: appliedPlan ? 72 : 12, right: 56, maxHeight: "calc(100% - 202px)", display: "flex", flexDirection: "column" }}
     >
       <div
-        className="rounded-xl overflow-hidden"
+        className="rounded-xl overflow-hidden ae-scroll-smooth"
         style={{
           background: GLASS_STRONG,
           backdropFilter: "blur(16px)",
           border: "1px solid var(--ae-line)",
           boxShadow: "var(--ae-shadow-overlay)",
+          overflowY: "auto",
         }}
       >
         {/* Header */}
@@ -748,63 +829,113 @@ function FlightDetailCard({
   )
 }
 
+function StatCell({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: string }) {
+  return (
+    <div className="rounded-lg px-2.5 py-2" style={{ background: "var(--ae-surface)", border: "1px solid var(--ae-line)" }}>
+      <div className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: "var(--ae-text-3)", fontWeight: 600 }}>{label}</div>
+      <div className="font-mono font-semibold text-[15px] leading-none" style={{ color: tone ?? "var(--ae-text)" }}>{value}</div>
+      {sub && <div className="text-[9px] mt-0.5" style={{ color: "var(--ae-text-3)" }}>{sub}</div>}
+    </div>
+  )
+}
+
 function LivePanel({ flight, onClose }: { flight: LiveFlight; onClose: () => void }) {
-  const alt = flight.altitude_ft != null ? `${flight.altitude_ft.toLocaleString()} ft` : "—"
-  const spd = flight.velocity_kt  != null ? `${flight.velocity_kt} kt` : "—"
-  const vs  = flight.vertical_fpm != null
-    ? `${flight.vertical_fpm > 100 ? "▲" : flight.vertical_fpm < -100 ? "▼" : "→"} ${Math.abs(flight.vertical_fpm).toLocaleString()} fpm`
-    : "—"
-  const hdg = flight.heading != null ? `${Math.round(flight.heading)}°` : "—"
+  const d = deriveLive(flight)
+  const emergency = flight.squawk === "7500" || flight.squawk === "7600" || flight.squawk === "7700"
+  const nearAp = d.nearest ? NIMBUS_AIRPORTS[d.nearest.icao] : null
+  const aheadAp = d.ahead ? NIMBUS_AIRPORTS[d.ahead.icao] : null
+  const fl = flight.altitude_ft != null ? `FL${String(Math.round(flight.altitude_ft / 100)).padStart(3, "0")}` : "—"
+
   return (
     <div
-      className="absolute top-12 right-3 left-3 sm:left-auto z-[450] w-72 rounded-xl overflow-hidden"
-      style={{
-        background: GLASS_STRONG,
-        backdropFilter: "blur(16px)",
-        border: "1px solid var(--ae-line)",
-        boxShadow: "var(--ae-shadow-overlay)",
-      }}
+      className="absolute top-12 right-14 left-3 sm:left-auto z-[450] w-[19rem] rounded-2xl overflow-hidden flex flex-col"
+      style={{ background: GLASS_STRONG, backdropFilter: "blur(18px)", border: "1px solid var(--ae-line)", boxShadow: "var(--ae-shadow-overlay)", maxHeight: "calc(100% - 202px)" }}
     >
+      {/* gradient header, tinted by flight phase */}
       <div
-        className="px-4 py-3 flex items-center justify-between"
-        style={{ background: "var(--ae-surface-2)", borderBottom: "1px solid var(--ae-line)" }}
+        className="px-4 py-3.5 relative overflow-hidden shrink-0"
+        style={{ background: `linear-gradient(135deg, ${d.phase.tone}22, ${d.phase.tone}08 60%, transparent)`, borderBottom: "1px solid var(--ae-line)" }}
       >
-        <div>
-          <div className="flex items-center gap-2 mb-0.5">
-            <span className="font-mono font-semibold text-sm" style={{ color: "var(--ae-text)" }}>{flight.flight_icao}</span>
-            {flight.flight_iata && flight.flight_iata !== flight.flight_icao && (
-              <span className="font-mono text-xs text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">{flight.flight_iata}</span>
-            )}
-            <span
-              className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold"
-              style={{ background: "var(--ae-neutral-bg)", border: "1px solid var(--ae-line)", color: "var(--ae-text-3)" }}
-            >ADS-B</span>
-          </div>
-          <div className="text-[10px] text-muted-foreground">{flight.airline_name}</div>
-        </div>
-        <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center text-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-all">×</button>
-      </div>
-      <div className="px-4 py-3">
-        <div className="grid grid-cols-2 gap-2 mb-3">
-          {([["Alt", alt], ["Speed", spd], ["V/S", vs], ["Hdg", hdg]] as [string, string][]).map(([label, val]) => (
-            <div key={label} className="rounded-lg p-2.5" style={{ background: "var(--ae-surface)", border: "1px solid var(--ae-line)" }}>
-              <div className="text-[10px] text-muted-foreground mb-0.5">{label}</div>
-              <div className="font-mono font-medium text-xs" style={{ color: "var(--ae-text)" }}>{val}</div>
+        <span aria-hidden style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: d.phase.tone }} />
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="font-mono font-bold text-[17px] leading-none" style={{ color: "var(--ae-text)" }}>{flight.flight_icao}</span>
+              {flight.flight_iata && flight.flight_iata !== flight.flight_icao && (
+                <span className="font-mono text-[10px] px-1.5 py-0.5 rounded" style={{ background: "var(--ae-surface-2)", color: "var(--ae-text-2)" }}>{flight.flight_iata}</span>
+              )}
             </div>
-          ))}
+            <div className="text-[11px] font-medium truncate" style={{ color: "var(--ae-text-2)" }}>{flight.airline_name}</div>
+          </div>
+          <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center text-lg shrink-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-all">×</button>
         </div>
+        {/* phase chip + live pulse */}
+        <div className="flex items-center gap-2 mt-2.5 flex-wrap">
+          <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold px-2 py-1 rounded-full" style={{ background: `${d.phase.tone}1E`, color: d.phase.tone }}>
+            <span className="w-1.5 h-1.5 rounded-full ae-live-dot" style={{ background: d.phase.tone }} />
+            {d.phase.label}
+          </span>
+          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-full" style={{ background: "var(--ae-teal-bg)", color: "var(--ae-teal-ink)" }}>ADS-B LIVE</span>
+          {emergency && (
+            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: "var(--ae-rust-bg)", color: "var(--ae-rust-ink)" }}>SQUAWK {flight.squawk}</span>
+          )}
+        </div>
+      </div>
+
+      <div className="px-4 py-3.5 ae-scroll-smooth flex-1 min-h-0" style={{ overflowY: "auto" }}>
+        {/* route strip — nearest behind → nearest ahead in track */}
+        <div className="flex items-center gap-2 mb-3">
+          <div className="text-center shrink-0" style={{ minWidth: 46 }}>
+            <div className="font-mono font-bold text-lg leading-none" style={{ color: "var(--ae-text)" }}>{nearAp?.iata ?? "—"}</div>
+            <div className="text-[8px] mt-0.5" style={{ color: "var(--ae-text-3)" }}>nearest</div>
+          </div>
+          <div className="flex-1 flex items-center relative" style={{ height: 22 }}>
+            <div className="flex-1 h-0.5 rounded" style={{ background: `linear-gradient(90deg, ${d.phase.tone}, var(--ae-teal))` }} />
+            <span className="mx-1" style={{ color: d.phase.tone, fontSize: 12 }}>✈</span>
+            <div className="flex-1 h-0.5 rounded" style={{ background: aheadAp ? "var(--ae-teal)" : "var(--ae-line-strong)" }} />
+          </div>
+          <div className="text-center shrink-0" style={{ minWidth: 46 }}>
+            <div className="font-mono font-bold text-lg leading-none" style={{ color: aheadAp ? "var(--ae-teal-ink)" : "var(--ae-text-3)" }}>{aheadAp?.iata ?? "—"}</div>
+            <div className="text-[8px] mt-0.5" style={{ color: "var(--ae-text-3)" }}>heading to</div>
+          </div>
+        </div>
+
+        {/* ETA banner when a plausible arrival is in track */}
+        {d.ahead && aheadAp && (
+          <div className="rounded-lg px-3 py-2 mb-3 flex items-center justify-between" style={{ background: "var(--ae-teal-bg)", border: "1px solid var(--ae-teal)" }}>
+            <div>
+              <div className="text-[9px] uppercase tracking-wider font-semibold" style={{ color: "var(--ae-teal-ink)" }}>Est. arrival · {aheadAp.city}</div>
+              <div className="font-mono text-[13px] font-semibold" style={{ color: "var(--ae-text)" }}>
+                {d.ahead.etaMin < 60 ? `${Math.round(d.ahead.etaMin)} min` : `${(d.ahead.etaMin / 60).toFixed(1)} h`} · {Math.round(d.ahead.nm)} nm
+              </div>
+            </div>
+            <span className="text-2xl">🛬</span>
+          </div>
+        )}
+
+        {/* core telemetry grid */}
+        <div className="grid grid-cols-2 gap-2 mb-3">
+          <StatCell label="Altitude" value={flight.altitude_ft != null ? `${flight.altitude_ft.toLocaleString()} ft` : "—"} sub={fl} tone={d.phase.tone} />
+          <StatCell label="Ground speed" value={d.gs ? `${d.gs} kt` : "—"} sub={d.gs ? `${Math.round(d.gs * 1.15078)} mph` : undefined} />
+          <StatCell label="Vertical rate" value={d.vs ? `${d.vs > 0 ? "▲" : d.vs < 0 ? "▼" : "→"} ${Math.abs(d.vs).toLocaleString()}` : "0"} sub="fpm" tone={d.vs > 200 ? "#0369A1" : d.vs < -200 ? "#B8863C" : undefined} />
+          <StatCell label="Heading" value={`${Math.round(d.hdg)}°`} sub={cardinal(d.hdg)} />
+          <StatCell label="Mach" value={d.mach ? `M ${d.mach.toFixed(2)}` : "—"} />
+          <StatCell label="Distance to hub" value={d.nearest ? `${Math.round(d.nearest.nm)} nm` : "—"} sub={nearAp ? `${cardinal(bearing(flight.lat, flight.lon, nearAp.lat, nearAp.lon))} of ${nearAp.iata}` : undefined} />
+        </div>
+
+        {/* position + signal */}
+        <div className="rounded-lg px-3 py-2 mb-3 flex items-center justify-between text-[10px] font-mono" style={{ background: "var(--ae-surface-2)", border: "1px solid var(--ae-line)", color: "var(--ae-text-2)" }}>
+          <span>{flight.lat.toFixed(3)}, {flight.lon.toFixed(3)}</span>
+          <span style={{ color: d.ageSec > 60 ? "var(--ae-amber-ink)" : "var(--ae-teal-ink)" }}>◉ {d.ageSec}s ago</span>
+        </div>
+
+        {/* external trackers */}
         <div className="flex flex-wrap gap-1.5">
           {flight.tracking.flightaware && (
-            <a href={flight.tracking.flightaware} target="_blank" rel="noopener noreferrer"
-              className="text-[10px] px-2 py-0.5 rounded-md font-medium"
-              style={{ background: "var(--ae-neutral-bg)", border: "1px solid var(--ae-line)", color: "var(--ae-text-2)" }}>FA ↗</a>
+            <a href={flight.tracking.flightaware} target="_blank" rel="noopener noreferrer" className="text-[10px] px-2.5 py-1 rounded-md font-semibold transition-colors" style={{ background: "var(--ae-neutral-bg)", border: "1px solid var(--ae-line)", color: "var(--ae-text-2)" }}>FlightAware ↗</a>
           )}
-          <a href={flight.tracking.flightradar24} target="_blank" rel="noopener noreferrer"
-            className="text-[10px] px-2 py-0.5 rounded-md font-medium"
-            style={{ background: "var(--ae-neutral-bg)", border: "1px solid var(--ae-line)", color: "var(--ae-text-2)" }}>FR24 ↗</a>
-          <a href={flight.tracking.adsbexchange} target="_blank" rel="noopener noreferrer"
-            className="text-[10px] px-2 py-0.5 rounded-md font-medium"
-            style={{ background: "var(--ae-neutral-bg)", border: "1px solid var(--ae-line)", color: "var(--ae-text-2)" }}>ADS-B ↗</a>
+          <a href={flight.tracking.flightradar24} target="_blank" rel="noopener noreferrer" className="text-[10px] px-2.5 py-1 rounded-md font-semibold transition-colors" style={{ background: "var(--ae-neutral-bg)", border: "1px solid var(--ae-line)", color: "var(--ae-text-2)" }}>FR24 ↗</a>
+          <a href={flight.tracking.adsbexchange} target="_blank" rel="noopener noreferrer" className="text-[10px] px-2.5 py-1 rounded-md font-semibold transition-colors" style={{ background: "var(--ae-neutral-bg)", border: "1px solid var(--ae-line)", color: "var(--ae-text-2)" }}>ADS-B ↗</a>
         </div>
       </div>
     </div>
@@ -818,7 +949,7 @@ function AirportPanel({ icao, faa, hasWx, wxText, simAffected, onClose }: {
   if (!ap) return null
   return (
     <div
-      className="absolute bottom-20 left-3 z-[450] w-64 rounded-xl overflow-hidden"
+      className="absolute top-12 right-14 z-[450] w-64 rounded-xl overflow-hidden"
       style={{
         background: GLASS_STRONG,
         backdropFilter: "blur(16px)",
@@ -926,6 +1057,9 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
   }, [setLiveFlights])
 
   useEffect(() => {
+    // Paint cached planes immediately (if fresh) so the map isn't empty while
+    // the first live fetch runs, then refresh + poll.
+    useSimulationStore.getState().hydrateLiveFromCache()
     fetchLive()
     const t = setInterval(fetchLive, 15_000)
     return () => clearInterval(t)
@@ -1215,29 +1349,49 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
     : MAP_COLORS.liveSelected
     : MAP_COLORS.liveSelected
 
-  const selTrail = useMemo(() => {
+  // Projected path for the selected live flight: a curved leg from the
+  // nearest airport behind it (likely origin) through its current position,
+  // and a forward leg to the airport it is tracking toward (likely arrival).
+  // Both endpoints + the dead-reckoned position are computed from ADS-B only.
+  const selLivePath = useMemo(() => {
     const lf = selectedLiveFlight
-    if (!lf || mapZoom < 6 || !lf.heading || (lf.velocity_kt ?? 0) < 80) return null
+    if (!lf) return null
     const nowSec = nowMs / 1000
     const elapsed = nowSec - lf.last_contact
-    const [cLat, cLon] = elapsed > 0 && elapsed < 300 ? deadReckon(lf.lat, lf.lon, lf.heading, lf.velocity_kt!, elapsed) : [lf.lat, lf.lon]
-    const [tLat, tLon] = deadReckon(cLat, cLon, (lf.heading + 180) % 360, lf.velocity_kt!, 90)
-    return { from: [tLat, tLon] as [number, number], to: [cLat, cLon] as [number, number] }
-  }, [selectedLiveFlight, nowMs, mapZoom])
+    const [cLat, cLon] =
+      lf.heading != null && (lf.velocity_kt ?? 0) > 40 && elapsed > 0 && elapsed < 300
+        ? deadReckon(lf.lat, lf.lon, lf.heading, lf.velocity_kt!, elapsed)
+        : [lf.lat, lf.lon]
+
+    const d = deriveLive(lf)
+    const originAp = d.nearest ? NIMBUS_AIRPORTS[d.nearest.icao] : null
+    const arrAp = d.ahead ? NIMBUS_AIRPORTS[d.ahead.icao] : null
+    // only draw the "behind" leg when the plane has actually left that airport
+    const behind =
+      originAp && (d.nearest?.nm ?? 0) > 12
+        ? arcPoints(originAp.lat, originAp.lon, cLat, cLon, 24)
+        : null
+    const ahead = arrAp ? arcPoints(cLat, cLon, arrAp.lat, arrAp.lon, 24) : null
+    return { pos: [cLat, cLon] as [number, number], originAp, arrAp, behind, ahead, hdg: lf.heading }
+  }, [selectedLiveFlight, nowMs])
 
   const focusTarget: ScheduledFlight | LiveFlight | null = selectedSched || selectedLiveFlight
   const ageSec = lastFetch ? Math.round((nowMs - lastFetch) / 1000) : null
 
-  // Focus mode — selecting a scheduled flight blurs the basemap and dims
-  // every other layer; the selected route + endpoints re-render into the
+  // Focus mode — selecting a scheduled OR live flight blurs the basemap and
+  // dims every other layer; the selected route + endpoints re-render into the
   // ae-focus panes so they stay crisp. Reverts on deselect.
-  const focusMode = !!selectedSched
+  const focusMode = !!selectedSched || !!selectedLiveFlight
   const selPlane = selectedSched ? simPlanes.find((p) => p.id === selectedSched.id) ?? null : null
   const [showAircraft, setShowAircraft] = useState(false)
   useEffect(() => { setShowAircraft(false) }, [selectedFlight])
 
+  // Live selection gets the LIGHT focus (no basemap blur, others just recede);
+  // a scheduled-flight selection keeps the fuller blur-focus treatment.
+  const focusClass = selectedLiveFlight ? " map-focus-live" : selectedSched ? " map-focus" : ""
+
   return (
-    <div className={`simulator-map-shell w-full h-full min-h-0 relative overflow-hidden isolate${focusMode ? " map-focus" : ""}`}>
+    <div className={`simulator-map-shell w-full h-full min-h-0 relative overflow-hidden isolate${focusClass}`}>
       <MapContainer
         center={[39.5, -98.0]} zoom={4} minZoom={2} maxZoom={14}
         zoomControl={false} scrollWheelZoom worldCopyJump={false}
@@ -1392,10 +1546,50 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
           />
         )}
 
-        {/* Live trail for selected live flight */}
-        {selTrail && (
-          <Polyline positions={[selTrail.from, selTrail.to]}
-            pathOptions={{ color: MAP_COLORS.liveSelected, weight: 2.5, opacity: 0.60 }} />
+        {/* Selected live flight — colorful projected path + crisp blinking
+            marker in the focus panes, above the dimmed map. */}
+        {selLivePath && (
+          <>
+            {/* behind leg (origin → position): dashed teal, glow underlay */}
+            {selLivePath.behind && (
+              <>
+                <Polyline pane="ae-focus-line" positions={selLivePath.behind}
+                  pathOptions={{ color: MAP_COLORS.liveSelected, weight: 8, opacity: 0.10 }} />
+                <Polyline pane="ae-focus-line" positions={selLivePath.behind}
+                  pathOptions={{ color: MAP_COLORS.liveSelected, weight: 2, opacity: 0.55, dashArray: "3 7" }} />
+              </>
+            )}
+            {/* forward leg (position → arrival): solid glowing teal beam */}
+            {selLivePath.ahead && (
+              <>
+                <Polyline pane="ae-focus-line" positions={selLivePath.ahead}
+                  pathOptions={{ color: MAP_COLORS.liveSelected, weight: 10, opacity: 0.16 }} />
+                <Polyline pane="ae-focus-line" positions={selLivePath.ahead}
+                  pathOptions={{ color: MAP_COLORS.liveSelected, weight: 3.5, opacity: 0.95, className: "ae-route-flow", dashArray: "10 7" }} />
+              </>
+            )}
+            {/* origin + arrival airports, crisp with labels */}
+            {selLivePath.originAp && (
+              <Marker pane="ae-focus-marker" position={[selLivePath.originAp.lat, selLivePath.originAp.lon]}
+                icon={airportIcon(HUB_AIRPORTS.has(`K${selLivePath.originAp.iata}`), undefined, false, false, false)} interactive={false}>
+                <Tooltip direction="top" offset={[0, -12]} opacity={1} permanent>
+                  <span className="font-mono font-bold text-[10px]">{selLivePath.originAp.iata} · nearest</span>
+                </Tooltip>
+              </Marker>
+            )}
+            {selLivePath.arrAp && (
+              <Marker pane="ae-focus-marker" position={[selLivePath.arrAp.lat, selLivePath.arrAp.lon]}
+                icon={airportIcon(HUB_AIRPORTS.has(`K${selLivePath.arrAp.iata}`), undefined, false, false, true)} interactive={false}>
+                <Tooltip direction="top" offset={[0, -12]} opacity={1} permanent>
+                  <span className="font-mono font-bold text-[10px]">{selLivePath.arrAp.iata} · heading to</span>
+                </Tooltip>
+              </Marker>
+            )}
+            {/* the selected plane — blinking radar marker */}
+            <Marker pane="ae-focus-marker" position={selLivePath.pos}
+              icon={liveSelIcon(selLivePath.hdg)}
+              eventHandlers={{ click: () => setSelectedLiveFlight(null) }} />
+          </>
         )}
 
         {/* Airport nodes */}
@@ -1567,8 +1761,9 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
         />
       )}
 
-      {/* Layer toggles — bottom-right */}
-      <div className="absolute bottom-3 right-3 z-[400] flex flex-col gap-2 items-end">
+      {/* Layer toggles — bottom-LEFT (the bottom-right is owned by the fixed
+          Ask-Aeolus bubble; keeping them apart avoids the overlap). */}
+      <div className="absolute bottom-3 left-3 z-[400] flex flex-col gap-2 items-start">
         <div
           className="rounded-lg px-3 py-2 flex flex-col gap-1.5 text-[11px]"
           style={{ background: GLASS, backdropFilter: "blur(12px)", border: "1px solid var(--ae-line)" }}
@@ -1627,8 +1822,8 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
         )}
       </div>
 
-      {/* Legend — bottom-left */}
-      <div className="absolute bottom-3 left-3 z-[400]">
+      {/* Legend — bottom-left, stacked ABOVE the layer toggles */}
+      <div className="absolute left-3 z-[400]" style={{ bottom: 104 }}>
         <div
           className="px-3 py-2 rounded-lg text-[10px]"
           style={{ background: GLASS, backdropFilter: "blur(12px)", border: "1px solid var(--ae-line)" }}

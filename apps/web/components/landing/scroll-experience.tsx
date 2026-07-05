@@ -1,0 +1,125 @@
+"use client"
+/**
+ * LandingScrollExperience — the whole landing page as one staged scroll.
+ *
+ *   dawn   OpeningWordmarkStage + HeroStatementStage   warm beige
+ *   noon   CinematicSimulatorDemo + MethodologySection bright, hard contrast
+ *   night  FinalCTAStage + footer                      deep ink
+ *
+ * The stage registers are sets of the .lp custom properties; GSAP
+ * scrub-tweens them on the wrapper as each section approaches, so type,
+ * rules, buttons, ribbons and the nav re-ink themselves in sync. Under
+ * prefers-reduced-motion the page stays on the dawn register end to end.
+ */
+
+import { useLayoutEffect, useRef } from "react"
+import dynamic from "next/dynamic"
+import { gsap } from "@/components/landing/gsap"
+import { LandingNav } from "@/components/landing/landing-nav"
+import { LandingAtmosphere } from "@/components/landing/atmosphere"
+import { OpeningWordmarkStage } from "@/components/landing/opening-stage"
+import { HeroStatementStage } from "@/components/landing/hero-stage"
+import { StoryMarquee } from "@/components/landing/marquee"
+import { CinematicSimulatorDemo } from "@/components/landing/demo/cinematic-simulator-demo"
+import { FourPlansSection } from "@/components/landing/four-plans"
+import { MethodologySection } from "@/components/landing/methodology-section"
+import { TrustedBy } from "@/components/landing/trusted-by"
+import { FinalCTAStage } from "@/components/landing/final-cta-stage"
+import { LandingFooter } from "@/components/landing/footer"
+
+// three.js only on the client, and only when the hero is in play
+const HeroPlane3D = dynamic(
+  () => import("@/components/landing/hero-plane-3d").then((m) => m.HeroPlane3D),
+  { ssr: false },
+)
+
+const NOON = {
+  "--bg": "#F5F0E3",
+  "--ink": "#141019",
+  "--muted": "#6A6250",
+  "--panel": "#FFFDF6",
+  "--border": "rgba(20, 16, 25, 0.20)",
+  navBg: "rgba(245, 240, 227, 0.94)",
+}
+const NIGHT = {
+  "--bg": "#171320",
+  "--ink": "#F0EBDF",
+  "--muted": "#9A93AC",
+  "--panel": "#211B36",
+  "--border": "rgba(240, 235, 223, 0.16)",
+  navBg: "rgba(23, 19, 32, 0.92)",
+}
+
+export function LandingScrollExperience() {
+  const wrapRef = useRef<HTMLElement>(null)
+
+  useLayoutEffect(() => {
+    const wrap = wrapRef.current
+    if (!wrap) return
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
+
+    const ctx = gsap.context(() => {
+      // The fixed nav gets the vars written directly onto it as well:
+      // Chromium fails to repaint a fixed + backdrop-filter layer when an
+      // INHERITED custom property changes, so inheriting from the wrapper
+      // leaves the nav frozen on the previous register. Inline writes on
+      // the nav itself always invalidate its paint.
+      const nav = wrap.querySelector("nav")
+      const navFill = wrap.querySelector(".lp-nav-fill")
+      const shift = (
+        trigger: string,
+        theme: Record<string, string>,
+        start = "top 78%",
+        end = "top 22%",
+      ) => {
+        const { navBg, ...vars } = theme
+        // Vars are written inline on the nav too (not only inherited from
+        // the wrapper) and the bar fill is tweened as a real backgroundColor
+        // on a CHILD of the fixed nav — both are workarounds for Chromium
+        // refusing to repaint a fixed element's own background when an
+        // inherited custom property changes.
+        const targets = nav ? [wrap, nav] : [wrap]
+        gsap.to(targets, {
+          ...vars,
+          ease: "none",
+          immediateRender: false,
+          scrollTrigger: { trigger, start, end, scrub: true },
+        })
+        if (navFill)
+          gsap.to(navFill, {
+            backgroundColor: navBg,
+            ease: "none",
+            immediateRender: false,
+            scrollTrigger: { trigger, start, end, scrub: true },
+          })
+      }
+
+      // The demo console is light now, so the page stays on the beige
+      // family until the night CTA: dawn → noon (demo + methodology) → night.
+      shift("#demo", NOON)
+      shift("#cta", NIGHT)
+    }, wrap)
+
+    return () => ctx.revert()
+  }, [])
+
+  return (
+    <main ref={wrapRef} className="lp" style={{ position: "relative" }}>
+      <LandingAtmosphere />
+      <HeroPlane3D />
+      <LandingNav />
+      {/* content sits above the fixed atmosphere/plane layers */}
+      <div style={{ position: "relative", zIndex: 2 }}>
+        <OpeningWordmarkStage />
+        <HeroStatementStage />
+        <StoryMarquee />
+        <CinematicSimulatorDemo />
+        <FourPlansSection />
+        <MethodologySection />
+        <TrustedBy />
+        <FinalCTAStage />
+        <LandingFooter />
+      </div>
+    </main>
+  )
+}

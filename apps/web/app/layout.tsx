@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import "./globals.css"
 import { Providers } from "@/components/providers"
 import { Toaster } from "sonner"
+import { CookieConsent } from "@/components/legal/cookie-consent"
 
 export const metadata: Metadata = {
   title: "Aeolus — Nimbus Air OCC",
@@ -68,14 +69,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           data — it is not a display font.
         */}
         <link href="https://rsms.me/inter/inter.css" rel="stylesheet" />
+        {/*
+          JetBrains Mono — code, flight IDs, tabular ops data.
+          Fraunces (italic only) — the landing's editorial serif accent;
+          used nowhere inside the simulator app.
+        */}
         <link
-          href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap"
+          href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Fraunces:ital,opsz,wght@1,9..144,400..600&display=swap"
           rel="stylesheet"
         />
       </head>
       <body suppressHydrationWarning className="min-h-screen">
         <Providers>
           {children}
+          <CookieConsent />
           <Toaster
             position="top-right"
             closeButton

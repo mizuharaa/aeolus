@@ -1,0 +1,77 @@
+- generic [active] [ref=f44e1]:
+  - main [ref=f44e2]:
+    - generic [ref=f44e3]:
+      - generic [ref=f44e4]:
+        - link "Aeolus Aeolus" [ref=f44e5] [cursor=pointer]:
+          - /url: /
+          - img "Aeolus" [ref=f44e6]:
+            - img [ref=f44e7]
+          - generic [ref=f44e13]: Aeolus
+        - link "← Back to home" [ref=f44e14] [cursor=pointer]:
+          - /url: /
+      - heading "Privacy Policy" [level=1] [ref=f44e15]
+      - paragraph [ref=f44e16]: Last updated · July 4, 2026
+      - generic [ref=f44e17]:
+        - paragraph [ref=f44e18]: Aeolus is an open-source airline-disruption simulation and recovery engine, published as a research and demonstration artifact. This policy explains what data the Aeolus web application handles and why. It is written to be plain and honest — Aeolus is deliberately built to collect as little as possible.
+        - heading "1. Who we are" [level=2] [ref=f44e19]
+        - paragraph [ref=f44e20]: "\"Aeolus\", \"we\", and \"our\" refer to the maintainers of the Aeolus project. The simulator models a fictional carrier, \"Nimbus Air\", and does not process real passenger, booking, or ticketing data."
+        - heading "2. What we collect" [level=2] [ref=f44e21]
+        - paragraph [ref=f44e22]: "Aeolus is designed to run without accounts and without a tracking backend. The application stores:"
+        - list [ref=f44e23]:
+          - listitem [ref=f44e24]:
+            - strong [ref=f44e25]: Functional preferences
+            - text: kept in your browser's local storage on your device — for example your theme, whether the map is in focus mode, whether the simulator side rail is collapsed, and your cookie choice. These never leave your browser.
+          - listitem [ref=f44e26]:
+            - strong [ref=f44e27]: Simulation state
+            - text: you generate while using the tool (events you trigger, recovery plans you inspect). This is synthetic and is held in memory / your session only.
+          - listitem [ref=f44e28]:
+            - strong [ref=f44e29]: Standard server logs
+            - text: if you use a hosted deployment — such as IP address, timestamp, and requested URL — retained transiently for security and to keep the service running. We do not build profiles from these.
+        - paragraph [ref=f44e30]:
+          - text: We do
+          - strong [ref=f44e31]: not
+          - text: collect names, email addresses, payment details, or precise location, and we do not sell data to anyone.
+        - heading "3. Third-party services" [level=2] [ref=f44e32]
+        - paragraph [ref=f44e33]: "To render the experience, Aeolus may request assets and public data from third parties, subject to their own privacy terms:"
+        - list [ref=f44e34]:
+          - listitem [ref=f44e35]:
+            - strong [ref=f44e36]: Fonts
+            - text: — Google Fonts and rsms.me deliver the typefaces.
+          - listitem [ref=f44e37]:
+            - strong [ref=f44e38]: Map tiles
+            - text: — CARTO / OpenStreetMap serve the base map in the simulator.
+          - listitem [ref=f44e39]:
+            - strong [ref=f44e40]: Public aviation data
+            - text: — FAA NAS status, NWS/NOAA weather, and open ADS-B feeds provide live context. These are public, non-personal datasets.
+        - heading "4. Legal bases (GDPR)" [level=2] [ref=f44e41]
+        - paragraph [ref=f44e42]:
+          - text: Where the EU/UK GDPR applies, our processing of functional storage rests on your
+          - strong [ref=f44e43]: consent
+          - text: (which you may withdraw at any time by clearing your browser storage) and, for transient security logs, on our
+          - strong [ref=f44e44]: legitimate interest
+          - text: in operating a secure service.
+        - heading "5. Your rights" [level=2] [ref=f44e45]
+        - paragraph [ref=f44e46]: Because Aeolus does not maintain user accounts or personal records, there is generally no personal profile to access, correct, or delete. You can clear all locally stored preferences at any time from your browser settings. If a specific hosted deployment holds data about you, contact that deployment's operator to exercise your access, rectification, erasure, restriction, portability, and objection rights.
+        - heading "6. Data retention & security" [level=2] [ref=f44e47]
+        - paragraph [ref=f44e48]: Local preferences persist on your device until you clear them. Transient server logs are kept only as long as needed for security and diagnostics. We take reasonable technical measures to protect the service, but no internet transmission is ever perfectly secure.
+        - heading "7. Children" [level=2] [ref=f44e49]
+        - paragraph [ref=f44e50]: Aeolus is a technical tool not directed to children under 16, and we do not knowingly collect their data.
+        - heading "8. Changes" [level=2] [ref=f44e51]
+        - paragraph [ref=f44e52]: We may update this policy as the project evolves; the "last updated" date above always reflects the current version.
+        - heading "9. Contact" [level=2] [ref=f44e53]
+        - paragraph [ref=f44e54]:
+          - text: Questions about this policy can be raised through the project's public repository issue tracker. See also our
+          - link "Cookie Policy" [ref=f44e55] [cursor=pointer]:
+            - /url: /cookies
+          - text: and
+          - link "Terms of Service" [ref=f44e56] [cursor=pointer]:
+            - /url: /terms
+          - text: .
+      - generic [ref=f44e57]:
+        - link "Privacy" [ref=f44e58] [cursor=pointer]:
+          - /url: /privacy
+        - link "Cookies" [ref=f44e59] [cursor=pointer]:
+          - /url: /cookies
+        - link "Terms" [ref=f44e60] [cursor=pointer]:
+          - /url: /terms
+  - region "Notifications alt+T"

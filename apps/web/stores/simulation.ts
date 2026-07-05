@@ -163,6 +163,7 @@ interface SimulationStore {
   setLoading: (loading: boolean) => void
   applyPlan: (planId: string | null) => void
   setLiveFlights: (flights: LiveFlight[], ts?: number) => void
+  hydrateLiveFromCache: () => void
   setShowLiveFlights: (show: boolean) => void
   setShowSimulation: (show: boolean) => void
   setSelectedLiveFlight: (flight: LiveFlight | null) => void
@@ -236,7 +237,7 @@ function pickRecord<V>(
   return incoming
 }
 
-export const useSimulationStore = create<SimulationStore>((set) => ({
+export const useSimulationStore = create<SimulationStore>((set, get) => ({
   flightStates: {},
   activeEvents: [],
   recoveryPlans: [],
@@ -342,7 +343,6 @@ export const useSimulationStore = create<SimulationStore>((set) => ({
     // snappy even if the API roundtrip takes a moment.
     try {
       // Late import avoids a circular dep with the api client during HMR.
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { apiClient } = require("@/lib/api")
       apiClient
         .post("/recovery/apply", { plan_id: planId })
@@ -356,8 +356,31 @@ export const useSimulationStore = create<SimulationStore>((set) => ({
     }
   },
 
-  setLiveFlights: (flights, ts) =>
-    set({ liveFlights: flights, liveFlightsTs: ts ?? Date.now() }),
+  setLiveFlights: (flights, ts) => {
+    const stamp = ts ?? Date.now()
+    // Cache the fleet in sessionStorage so a reload / re-navigation to the
+    // dashboard paints the last-known planes instantly instead of showing an
+    // empty map while the next ADS-B fetch is in flight (stops the "constant
+    // loading" feel). Read back by hydrateLiveFromCache().
+    try {
+      sessionStorage.setItem("aeolus-live-cache", JSON.stringify({ flights, ts: stamp }))
+    } catch {}
+    set({ liveFlights: flights, liveFlightsTs: stamp })
+  },
+
+  hydrateLiveFromCache: () => {
+    if (get().liveFlights.length > 0) return
+    try {
+      const raw = sessionStorage.getItem("aeolus-live-cache")
+      if (!raw) return
+      const { flights, ts } = JSON.parse(raw) as { flights: LiveFlight[]; ts: number }
+      // Only trust a recent cache (90s) — older than that and the positions
+      // are stale enough that a fresh fetch is worth waiting for.
+      if (Array.isArray(flights) && flights.length > 0 && Date.now() - ts < 90_000) {
+        set({ liveFlights: flights, liveFlightsTs: ts })
+      }
+    } catch {}
+  },
 
   setShowLiveFlights: (show) => set({ showLiveFlights: show }),
 

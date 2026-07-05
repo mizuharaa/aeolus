@@ -11,7 +11,6 @@ import {
 import { apiClient } from "@/lib/api"
 import { useSimulationStore } from "@/stores/simulation"
 import { toast } from "sonner"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { airportLabel } from "@/lib/labels"
 import { AirportCode } from "./airport-code"
 import { c, ff, r } from "@/lib/design-tokens"
@@ -90,6 +89,17 @@ const EVENT_TYPES = [
 ] as const
 
 type EventKind = typeof EVENT_TYPES[number]["value"]
+
+// Per-category pigment — the dashboard now reads as 5 colour-coded clusters
+// (weather=sky, ATC=amber, ops=violet, crew=pink, security=rust) rather than
+// one flat neutral grid. Drives the event-tile accent + hover glow.
+const CATEGORY_ACCENT: Record<string, string> = {
+  "Weather": "#0EA5C4",
+  "Air Traffic Control": "#B8863C",
+  "Aircraft & Operations": "#6F3FE4",
+  "Crew & Personnel": "#EC4899",
+  "Security & Emergency": "#E1554E",
+}
 
 const EVENT_CATEGORIES: { label: string; events: EventKind[] }[] = [
   { label: "Weather", events: ["weather_closure","thunderstorm","blizzard","sandstorm","dense_fog","wind_shear","hurricane","volcanic_ash"] },
@@ -566,22 +576,28 @@ function LiveFeed({
   const fetchAll = useCallback(async () => {
     setFetching(true)
     try {
-      const snap = await apiClient.get<{
-        refreshed_at: string
-        faa: FaaLivePayload
-        nws: NwsLivePayload
-      }>("/live/national-snapshot")
-      setFaaData(snap.data.faa)
-      setAlertsData(snap.data.nws)
-      setLastFetch(new Date(snap.data.refreshed_at))
+      // Primary: the Vercel-native /api/live-status route (FAA + NWS fetched
+      // directly). This works even when the Railway backend is down — which is
+      // why the weather/delay feed used to look empty.
+      const res = await fetch("/api/live-status")
+      if (res.ok) {
+        const snap = (await res.json()) as { refreshed_at: string; faa: FaaLivePayload; nws: NwsLivePayload }
+        setFaaData(snap.faa)
+        setAlertsData(snap.nws)
+        setLastFetch(new Date(snap.refreshed_at))
+        return
+      }
+      throw new Error(`live-status ${res.status}`)
     } catch {
-      const [faaRes, alertsRes] = await Promise.allSettled([
-        apiClient.get<FaaLivePayload>("/live/faa-status"),
-        apiClient.get<NwsLivePayload>("/live/weather-alerts"),
-      ])
-      if (faaRes.status === "fulfilled") setFaaData(faaRes.value.data)
-      if (alertsRes.status === "fulfilled") setAlertsData(alertsRes.value.data)
-      setLastFetch(new Date())
+      // Fallback: the backend proxy, if it happens to be reachable.
+      try {
+        const snap = await apiClient.get<{ refreshed_at: string; faa: FaaLivePayload; nws: NwsLivePayload }>("/live/national-snapshot")
+        setFaaData(snap.data.faa)
+        setAlertsData(snap.data.nws)
+        setLastFetch(new Date(snap.data.refreshed_at))
+      } catch {
+        setLastFetch(new Date())
+      }
     } finally {
       setFetching(false)
     }
@@ -1007,6 +1023,7 @@ export function EventPanel() {
   const [values, setValues]                   = useState<Record<string, string>>(FORM_SCHEMA.weather_closure.defaults)
   const [isLoading, setIsLoading]             = useState(false)
   const [showDescription, setShowDescription] = useState(false)
+  const [tab, setTab]                         = useState<"trigger" | "live" | "active">("trigger")
   const { activeEvents, setUpdate }           = useSimulationStore()
 
   const selectKind = (kind: EventKind) => {
@@ -1073,44 +1090,57 @@ export function EventPanel() {
         </div>
       </div>
 
-      <Tabs defaultValue="trigger" className="flex-1 flex flex-col min-h-0">
+      <div className="flex-1 flex flex-col min-h-0">
 
-        {/* Tab bar — underline tabs, no boxed pills */}
-        <div className="px-3 pt-1 pb-0 shrink-0" style={{ borderBottom: `1px solid ${c.hairline}` }}>
-          <TabsList
-            className="w-full h-9 rounded-none p-0 justify-start gap-1 bg-transparent"
+        {/* Tab bar — clean segmented control (replaces the shadcn Tabs whose
+            default pill outline rendered broken). Active tab: teal fill. */}
+        <div className="px-3 py-2 shrink-0" style={{ borderBottom: `1px solid ${c.hairline}` }}>
+          <div
+            style={{
+              display: "flex", gap: 4, padding: 3, borderRadius: 10,
+              background: "var(--ae-surface-2)", border: `1px solid ${c.hairline}`,
+            }}
           >
-            <TabsTrigger
-              value="trigger"
-              className="flex-none px-3 text-[12px] h-9 rounded-none font-medium border-b-2 border-transparent data-[state=active]:border-[var(--ae-teal)] data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-foreground text-muted-foreground"
-            >
-              Events
-            </TabsTrigger>
-            <TabsTrigger
-              value="live"
-              className="flex-none px-3 text-[12px] h-9 rounded-none font-medium border-b-2 border-transparent data-[state=active]:border-[var(--ae-teal)] data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-foreground text-muted-foreground"
-            >
-              Live
-            </TabsTrigger>
-            <TabsTrigger
-              value="active"
-              className="flex-none px-3 text-[12px] h-9 rounded-none font-medium border-b-2 border-transparent data-[state=active]:border-[var(--ae-teal)] data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-foreground text-muted-foreground"
-            >
-              Active
-              {activeEvents.length > 0 && (
-                <span
-                  className="ml-1.5 text-[9px] font-semibold rounded-full w-4 h-4 inline-flex items-center justify-center shrink-0"
-                  style={{ background: "var(--ae-teal)", color: "#FFFFFF" }}
+            {([
+              { key: "trigger", label: "Events" },
+              { key: "live", label: "Live" },
+              { key: "active", label: "Active" },
+            ] as const).map((t) => {
+              const on = tab === t.key
+              return (
+                <button
+                  key={t.key}
+                  onClick={() => setTab(t.key)}
+                  className="ae-tab-btn"
+                  data-on={on}
+                  style={{
+                    flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
+                    height: 30, borderRadius: 8, border: "none", cursor: "pointer",
+                    fontFamily: ff.body, fontSize: 12.5, fontWeight: on ? 650 : 500,
+                    background: on ? "var(--ae-teal)" : "transparent",
+                    color: on ? "#FFFFFF" : c.muted,
+                    boxShadow: on ? "0 2px 8px -3px var(--ae-teal)" : "none",
+                    transition: "background 160ms ease, color 160ms ease, box-shadow 160ms ease",
+                  }}
                 >
-                  {activeEvents.length}
-                </span>
-              )}
-            </TabsTrigger>
-          </TabsList>
+                  {t.label}
+                  {t.key === "active" && activeEvents.length > 0 && (
+                    <span
+                      className="text-[9px] font-bold rounded-full w-4 h-4 inline-flex items-center justify-center shrink-0"
+                      style={{ background: on ? "rgba(255,255,255,0.28)" : "var(--ae-teal)", color: "#FFFFFF" }}
+                    >
+                      {activeEvents.length}
+                    </span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
         </div>
 
         {/* ── Trigger tab ── */}
-        <TabsContent value="trigger" className="flex-1 overflow-y-auto px-3 py-3 space-y-4 mt-0">
+        {tab === "trigger" && (
+        <div className="flex-1 overflow-y-auto ae-scroll-smooth px-3 py-3 space-y-4 mt-0">
 
           {/* Categorized event grid — every category gets one brand voltage tone
               (mint / coral / mustard / peach / forest-on-cream) so the panel
@@ -1119,31 +1149,48 @@ export function EventPanel() {
           <div className="space-y-3.5">
             {EVENT_CATEGORIES.map((cat) => {
               const catEvents = cat.events.map((v) => EVENT_TYPES.find((e) => e.value === v)!).filter(Boolean)
+              const accent = CATEGORY_ACCENT[cat.label] ?? "#0D9488"
               return (
                 <div key={cat.label}>
-                  <Eyebrow>{cat.label}</Eyebrow>
-                  <div className="grid grid-cols-2 gap-1.5 mt-2">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span style={{ width: 8, height: 8, borderRadius: 3, background: accent, flexShrink: 0 }} />
+                    <span
+                      className="text-[10px] font-bold uppercase"
+                      style={{ letterSpacing: "0.1em", color: c.ink }}
+                    >
+                      {cat.label}
+                    </span>
+                    <span style={{ flex: 1, height: 1, background: c.hairline }} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
                     {catEvents.map((et) => {
                       const isSel = selectedKind === et.value
                       return (
                         <button
                           key={et.value}
                           onClick={() => selectKind(et.value)}
-                          className="flex items-center gap-2 px-2.5 py-2 text-left transition-all"
-                          style={{
-                            borderRadius: r.sm,
-                            border: `1px solid ${isSel ? "var(--ae-teal)" : c.hairline}`,
-                            background: isSel ? "var(--ae-teal-bg)" : c.canvas,
-                            color: isSel ? c.ink : c.body,
-                            fontFamily: ff.body,
-                          }}
+                          className="ae-event-tile flex items-center gap-2.5 px-2.5 py-2.5 text-left"
+                          data-selected={isSel}
+                          style={{ ["--tile-accent" as string]: accent, fontFamily: ff.body }}
                         >
-                          <et.Icon
-                            className="w-3.5 h-3.5 shrink-0"
-                            strokeWidth={1.75}
-                            style={{ color: isSel ? "var(--ae-teal-ink)" : c.muted }}
-                          />
-                          <span className="text-[11px] font-medium leading-tight">{et.label}</span>
+                          <span
+                            className="ae-tile-chip flex items-center justify-center shrink-0"
+                            style={{
+                              width: 26, height: 26, borderRadius: 8,
+                              background: isSel
+                                ? accent
+                                : `color-mix(in srgb, ${accent} 14%, transparent)`,
+                              color: isSel ? "#FFFFFF" : accent,
+                            }}
+                          >
+                            <et.Icon className="w-3.5 h-3.5" strokeWidth={2} />
+                          </span>
+                          <span
+                            className="text-[11.5px] leading-tight"
+                            style={{ fontWeight: isSel ? 700 : 600, color: c.ink }}
+                          >
+                            {et.label}
+                          </span>
                         </button>
                       )
                     })}
@@ -1266,15 +1313,19 @@ export function EventPanel() {
               </div>
             </motion.div>
           </AnimatePresence>
-        </TabsContent>
+        </div>
+        )}
 
         {/* ── Live Feed tab ── */}
-        <TabsContent value="live" className="flex-1 overflow-y-auto px-3 py-3 mt-0">
+        {tab === "live" && (
+        <div className="flex-1 overflow-y-auto ae-scroll-smooth px-3 py-3 mt-0">
           <LiveFeed onLoadToSim={triggerEvent} isLoadingEvent={isLoading} />
-        </TabsContent>
+        </div>
+        )}
 
         {/* ── Active tab ── */}
-        <TabsContent value="active" className="flex-1 overflow-y-auto px-3 py-3 mt-0">
+        {tab === "active" && (
+        <div className="flex-1 overflow-y-auto ae-scroll-smooth px-3 py-3 mt-0">
           {activeEvents.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-36 text-center">
               <div
@@ -1357,8 +1408,9 @@ export function EventPanel() {
               })}
             </div>
           )}
-        </TabsContent>
-      </Tabs>
+        </div>
+        )}
+      </div>
     </div>
   )
 }

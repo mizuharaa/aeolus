@@ -1,0 +1,318 @@
+- generic [active] [ref=f65e1]:
+  - generic [ref=f65e2]:
+    - navigation "Simulator sections" [ref=f65e3]:
+      - link "Aeolus Aeolus" [ref=f65e4] [cursor=pointer]:
+        - /url: /
+        - img "Aeolus" [ref=f65e5]:
+          - img [ref=f65e6]
+        - generic [ref=f65e16]: Aeolus
+      - generic [ref=f65e17]:
+        - generic [ref=f65e18]:
+          - generic [ref=f65e19]: Operations
+          - link "Live map" [ref=f65e20] [cursor=pointer]:
+            - /url: /simulator
+            - img [ref=f65e22]
+            - generic [ref=f65e27]: Live map
+          - link "Cascade" [ref=f65e28] [cursor=pointer]:
+            - /url: /simulator/cascade
+            - img [ref=f65e29]
+            - generic [ref=f65e36]: Cascade
+          - link "Playtest" [ref=f65e37] [cursor=pointer]:
+            - /url: /simulator/playtest
+            - img [ref=f65e38]
+            - generic [ref=f65e40]: Playtest
+        - generic [ref=f65e41]:
+          - generic [ref=f65e42]: Recovery
+          - link "Plans" [ref=f65e43] [cursor=pointer]:
+            - /url: /simulator/plans
+            - img [ref=f65e44]
+            - generic [ref=f65e51]: Plans
+          - link "Crew" [ref=f65e52] [cursor=pointer]:
+            - /url: /simulator/crew
+            - img [ref=f65e53]
+            - generic [ref=f65e58]: Crew
+          - link "Passengers" [ref=f65e59] [cursor=pointer]:
+            - /url: /simulator/passengers
+            - img [ref=f65e60]
+            - generic [ref=f65e63]: Passengers
+        - generic [ref=f65e64]:
+          - generic [ref=f65e65]: Analysis
+          - link "Stress test" [ref=f65e66] [cursor=pointer]:
+            - /url: /simulator/stress-test
+            - img [ref=f65e67]
+            - generic [ref=f65e70]: Stress test
+          - link "Carbon" [ref=f65e71] [cursor=pointer]:
+            - /url: /simulator/carbon
+            - img [ref=f65e72]
+            - generic [ref=f65e75]: Carbon
+      - button "Collapse navigation" [ref=f65e76] [cursor=pointer]:
+        - img [ref=f65e77]
+        - generic [ref=f65e80]: Collapse
+    - generic [ref=f65e82]:
+      - navigation [ref=f65e84]:
+        - generic [ref=f65e85]:
+          - generic [ref=f65e86]: Nimbus Air OCC
+          - generic [ref=f65e87]: Operations control
+        - generic [ref=f65e88]:
+          - generic [ref=f65e90]: Offline
+          - button "Reset simulation" [ref=f65e91] [cursor=pointer]:
+            - img [ref=f65e92]
+            - generic [ref=f65e95]: Reset
+      - button "Aeolus Ask Aeolus" [ref=f65e97] [cursor=pointer]:
+        - img "Aeolus" [ref=f65e98]:
+          - img [ref=f65e99]
+        - text: Ask Aeolus
+      - generic [ref=f65e109]:
+        - complementary [ref=f65e110]:
+          - generic [ref=f65e111]:
+            - generic [ref=f65e112]:
+              - generic [ref=f65e113]:
+                - img [ref=f65e115]
+                - generic [ref=f65e117]: Events
+              - button "Collapse Events" [ref=f65e118] [cursor=pointer]:
+                - img [ref=f65e119]
+            - generic [ref=f65e122]:
+              - generic [ref=f65e123]:
+                - img [ref=f65e125]
+                - generic [ref=f65e127]:
+                  - generic [ref=f65e128]: Event Control
+                  - generic [ref=f65e129]: 21 disruption types · live NAS feed
+              - generic [ref=f65e130]:
+                - tablist [ref=f65e132]:
+                  - tab "Events" [selected] [ref=f65e133] [cursor=pointer]
+                  - tab "Live" [ref=f65e134] [cursor=pointer]
+                  - tab "Active" [ref=f65e135] [cursor=pointer]
+                - tabpanel "Events" [ref=f65e136]:
+                  - generic [ref=f65e137]:
+                    - generic [ref=f65e138]:
+                      - generic [ref=f65e141]: Weather
+                      - generic [ref=f65e143]:
+                        - button "Weather Closure" [ref=f65e144] [cursor=pointer]:
+                          - img [ref=f65e146]
+                          - generic [ref=f65e148]: Weather Closure
+                        - button "Thunderstorm Cell" [ref=f65e149] [cursor=pointer]:
+                          - img [ref=f65e151]
+                          - generic [ref=f65e154]: Thunderstorm Cell
+                        - button "Winter Storm" [ref=f65e155] [cursor=pointer]:
+                          - img [ref=f65e157]
+                          - generic [ref=f65e159]: Winter Storm
+                        - button "Sandstorm / Haboob" [ref=f65e160] [cursor=pointer]:
+                          - img [ref=f65e162]
+                          - generic [ref=f65e166]: Sandstorm / Haboob
+                        - button "Dense Fog" [ref=f65e167] [cursor=pointer]:
+                          - img [ref=f65e169]
+                          - generic [ref=f65e172]: Dense Fog
+                        - button "Wind Shear" [ref=f65e173] [cursor=pointer]:
+                          - img [ref=f65e175]
+                          - generic [ref=f65e178]: Wind Shear
+                        - button "Hurricane / Cyclone" [ref=f65e179] [cursor=pointer]:
+                          - img [ref=f65e181]
+                          - generic [ref=f65e182]: Hurricane / Cyclone
+                        - button "Volcanic Ash" [ref=f65e183] [cursor=pointer]:
+                          - img [ref=f65e185]
+                          - generic [ref=f65e187]: Volcanic Ash
+                    - generic [ref=f65e188]:
+                      - generic [ref=f65e191]: Air Traffic Control
+                      - generic [ref=f65e193]:
+                        - button "Ground Stop" [ref=f65e194] [cursor=pointer]:
+                          - img [ref=f65e196]
+                          - generic [ref=f65e198]: Ground Stop
+                        - button "Airspace Closure" [ref=f65e199] [cursor=pointer]:
+                          - img [ref=f65e201]
+                          - generic [ref=f65e204]: Airspace Closure
+                        - button "ATC Shortage" [ref=f65e205] [cursor=pointer]:
+                          - img [ref=f65e207]
+                          - generic [ref=f65e213]: ATC Shortage
+                    - generic [ref=f65e214]:
+                      - generic [ref=f65e217]: Aircraft & Operations
+                      - generic [ref=f65e219]:
+                        - button "Mechanical AOG" [ref=f65e220] [cursor=pointer]:
+                          - img [ref=f65e222]
+                          - generic [ref=f65e224]: Mechanical AOG
+                        - button "Bird Strike / FOD" [ref=f65e225] [cursor=pointer]:
+                          - img [ref=f65e227]
+                          - generic [ref=f65e231]: Bird Strike / FOD
+                        - button "Deicing Shortage" [ref=f65e232] [cursor=pointer]:
+                          - img [ref=f65e234]
+                          - generic [ref=f65e239]: Deicing Shortage
+                        - button "Runway Closure" [ref=f65e240] [cursor=pointer]:
+                          - img [ref=f65e242]
+                          - generic [ref=f65e244]: Runway Closure
+                        - button "Fuel Contamination" [ref=f65e245] [cursor=pointer]:
+                          - img [ref=f65e247]
+                          - generic [ref=f65e250]: Fuel Contamination
+                    - generic [ref=f65e251]:
+                      - generic [ref=f65e254]: Crew & Personnel
+                      - generic [ref=f65e256]:
+                        - button "Crew Sick-out" [ref=f65e257] [cursor=pointer]:
+                          - img [ref=f65e259]
+                          - generic [ref=f65e262]: Crew Sick-out
+                        - button "Labor Slowdown" [ref=f65e263] [cursor=pointer]:
+                          - img [ref=f65e265]
+                          - generic [ref=f65e270]: Labor Slowdown
+                    - generic [ref=f65e271]:
+                      - generic [ref=f65e274]: Security & Emergency
+                      - generic [ref=f65e276]:
+                        - button "Security Event" [ref=f65e277] [cursor=pointer]:
+                          - img [ref=f65e279]
+                          - generic [ref=f65e281]: Security Event
+                        - button "Airport Emergency" [ref=f65e282] [cursor=pointer]:
+                          - img [ref=f65e284]
+                          - generic [ref=f65e286]: Airport Emergency
+                        - button "Cyber Incident" [ref=f65e287] [cursor=pointer]:
+                          - img [ref=f65e289]
+                          - generic [ref=f65e293]: Cyber Incident
+                  - generic [ref=f65e294]:
+                    - generic [ref=f65e295]:
+                      - generic [ref=f65e296]:
+                        - img [ref=f65e298]
+                        - generic [ref=f65e300]: Weather Closure
+                      - button "Info" [ref=f65e301] [cursor=pointer]:
+                        - text: Info
+                        - img [ref=f65e302]
+                    - generic [ref=f65e304]:
+                      - generic [ref=f65e305]:
+                        - generic [ref=f65e306]:
+                          - generic [ref=f65e307]: Airport
+                          - combobox [ref=f65e308]:
+                            - option "KORD — Chicago O'Hare" [selected]
+                            - option "KATL — Atlanta Hartsfield"
+                            - option "KDFW — Dallas Dallas/Ft Worth"
+                            - option "KLAX — Los Angeles Los Angeles"
+                            - option "KDEN — Denver Denver"
+                            - option "KJFK — New York JFK"
+                            - option "KSEA — Seattle Sea-Tac"
+                            - option "KMIA — Miami Miami"
+                            - option "KPHX — Phoenix Sky Harbor"
+                            - option "KLAS — Las Vegas Las Vegas"
+                            - option "KBOS — Boston Logan"
+                            - option "KSFO — San Francisco San Francisco"
+                            - option "KIAH — Houston Bush IAH"
+                            - option "KDTW — Detroit Detroit Metro"
+                            - option "KMSP — Minneapolis MSP"
+                        - generic [ref=f65e309]:
+                          - generic [ref=f65e310]: Severity
+                          - combobox [ref=f65e311]:
+                            - option "mild"
+                            - option "moderate"
+                            - option "severe" [selected]
+                            - option "extreme"
+                        - generic [ref=f65e312]:
+                          - generic [ref=f65e313]: Duration (hrs)
+                          - spinbutton [ref=f65e314]: "4"
+                      - button "Trigger Weather Closure" [ref=f65e315] [cursor=pointer]:
+                        - img [ref=f65e316]
+                        - text: Trigger Weather Closure
+        - separator "Drag to resize" [ref=f65e318]
+        - generic [ref=f65e323]:
+          - generic [ref=f65e324]:
+            - generic [ref=f65e327]:
+              - img [ref=f65e328]
+              - textbox "Search any flight — AA123, UAL456, N12345, or airport code…" [ref=f65e331]
+            - button "Enter map focus mode" [ref=f65e332] [cursor=pointer]:
+              - img [ref=f65e334]
+            - generic [ref=f65e340]:
+              - img [ref=f65e342]
+              - generic [ref=f65e344]: Loading map…
+          - separator "Drag to resize" [ref=f65e345]
+          - generic [ref=f65e351]:
+            - button "Collapse timeline" [ref=f65e352] [cursor=pointer]:
+              - img [ref=f65e353]
+            - generic [ref=f65e356]:
+              - generic [ref=f65e358]:
+                - generic [ref=f65e359]:
+                  - generic [ref=f65e360]: Cascade Timeline
+                  - generic [ref=f65e361]: 18-hour window · UTC
+                - generic [ref=f65e362]:
+                  - generic [ref=f65e363]: Direct
+                  - generic [ref=f65e365]: Cascade
+                  - generic [ref=f65e367]: Cancelled
+                  - generic [ref=f65e369]: On time
+              - generic [ref=f65e371]:
+                - generic [ref=f65e373]: Flight
+                - generic [ref=f65e374]:
+                  - generic [ref=f65e375]: 06:00
+                  - generic [ref=f65e376]: 09:00
+                  - generic [ref=f65e377]: 12:00
+                  - generic [ref=f65e378]: 15:00
+                  - generic [ref=f65e379]: 18:00
+                  - generic [ref=f65e380]: 21:00
+              - generic [ref=f65e382]:
+                - generic [ref=f65e383]: No schedule rows yet
+                - generic [ref=f65e384]: Load the simulator or trigger a disruption — affected flights appear here with direct vs cascade coloring.
+        - separator "Drag to resize" [ref=f65e385]
+        - complementary [ref=f65e390]:
+          - generic [ref=f65e391]:
+            - generic [ref=f65e392]:
+              - generic [ref=f65e393]:
+                - img [ref=f65e395]
+                - generic [ref=f65e398]: Recovery
+              - button "Collapse Recovery" [ref=f65e399] [cursor=pointer]:
+                - img [ref=f65e400]
+            - generic [ref=f65e403]:
+              - generic [ref=f65e404]:
+                - img [ref=f65e406]
+                - generic [ref=f65e408]:
+                  - generic [ref=f65e409]: Recovery Plans
+                  - generic [ref=f65e410]: Plans A–D · cost / pax / tomorrow / carbon
+              - generic [ref=f65e412]:
+                - generic [ref=f65e413]: Awaiting disruption
+                - generic [ref=f65e414]: All flights operating nominally.
+                - paragraph [ref=f65e415]: Trigger an event from the left rail to receive ranked recovery plans with cost breakdowns and counterfactual rationale.
+                - generic [ref=f65e416]: CP-SAT solve typically < 10 ms · cost engine deterministic
+      - generic [ref=f65e417]:
+        - generic [ref=f65e420]: Continuing Context
+        - generic [ref=f65e422]:
+          - generic [ref=f65e423]:
+            - generic [ref=f65e424]:
+              - img [ref=f65e426]
+              - generic [ref=f65e429]:
+                - generic [ref=f65e430]: My Flights
+                - generic [ref=f65e431]: Track flights from the Nimbus schedule
+            - generic [ref=f65e432]:
+              - button "Add flight" [ref=f65e433] [cursor=pointer]:
+                - img [ref=f65e434]
+                - text: Add flight
+              - button [ref=f65e437] [cursor=pointer]:
+                - img [ref=f65e438]
+          - generic [ref=f65e442]:
+            - generic [ref=f65e443]: No Flights Tracked
+            - generic [ref=f65e444]: Pin Nimbus flights to monitor in real time.
+            - paragraph [ref=f65e445]: Click Add flight to watch any tail in the Nimbus schedule and receive disruption alerts the moment cascade order changes.
+        - generic [ref=f65e446]:
+          - link "Compare plans Side-by-side cost / pax / FAR 117 / carbon" [ref=f65e447] [cursor=pointer]:
+            - /url: /simulator/plans/compare
+            - generic [ref=f65e448]:
+              - img [ref=f65e449]
+              - img [ref=f65e456]
+            - generic [ref=f65e458]: Compare plans
+            - generic [ref=f65e459]: Side-by-side cost / pax / FAR 117 / carbon
+          - link "Crew shortage FAR 117 legality + max-coverage MILP" [ref=f65e460] [cursor=pointer]:
+            - /url: /simulator/crew
+            - generic [ref=f65e461]:
+              - img [ref=f65e462]
+              - img [ref=f65e465]
+            - generic [ref=f65e467]: Crew shortage
+            - generic [ref=f65e468]: FAR 117 legality + max-coverage MILP
+          - link "Passenger solutions Rebooking · hotel · DOT 261 vouchers" [ref=f65e469] [cursor=pointer]:
+            - /url: /simulator/passengers
+            - generic [ref=f65e470]:
+              - img [ref=f65e471]
+              - img [ref=f65e476]
+            - generic [ref=f65e478]: Passenger solutions
+            - generic [ref=f65e479]: Rebooking · hotel · DOT 261 vouchers
+          - link "Carbon dashboard Net CO₂ ledger priced under EU ETS" [ref=f65e480] [cursor=pointer]:
+            - /url: /simulator/carbon
+            - generic [ref=f65e481]:
+              - img [ref=f65e482]
+              - img [ref=f65e485]
+            - generic [ref=f65e487]: Carbon dashboard
+            - generic [ref=f65e488]: Net CO₂ ledger priced under EU ETS
+          - link "Stress test Monte-Carlo network vulnerability sweep" [ref=f65e489] [cursor=pointer]:
+            - /url: /simulator/stress-test
+            - generic [ref=f65e490]:
+              - img [ref=f65e491]
+              - img [ref=f65e496]
+            - generic [ref=f65e498]: Stress test
+            - generic [ref=f65e499]: Monte-Carlo network vulnerability sweep
+  - region "Notifications alt+T"
