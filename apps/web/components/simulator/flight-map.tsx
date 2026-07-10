@@ -39,29 +39,29 @@ const MAP_COLORS = {
   // LIGHT REGISTER: the map runs on Carto voyager tiles; darker = stronger.
   planCancelled: "#98A29B",
   planCancelledInk: "#6A716D",
-  planSwap:      "#0D9488",
-  planSwapFlow:  "#0D9488",
-  planDelayed:   "#B8863C",
+  planSwap:      "#2C49E0",
+  planSwapFlow:  "#2C49E0",
+  planDelayed:   "#EFAF1B",
 
   // Cascade severity: one amber family; on the light floor the DIRECT hit
   // is the darkest step and later generations lighten.
   cascadeDirect: "#9A6420",
-  cascadeOrder1: "#B8863C",
+  cascadeOrder1: "#EFAF1B",
   cascadeOrder2: "#CFA96A",
   unaffected:    "#8CA096",
 
   // Live ADS-B — quiet sage traffic beneath the sim layer
   live:          "#93A29A",
-  liveSelected:  "#0D9488",
+  liveSelected:  "#2C49E0",
 
   // Airport state
   airportHub:    "#0B7065",
   airportNormal: "#7B8A80",
   groundStop:    "#9A6420",
-  gdp:           "#B8863C",
-  depDelay:      "#B8863C",
+  gdp:           "#EFAF1B",
+  depDelay:      "#EFAF1B",
   eventEpicenter: "#9A6420",
-  weather:       "#B8863C",
+  weather:       "#EFAF1B",
 } as const
 
 // Overlay glass — light register (paper at high alpha over the map).
@@ -121,14 +121,14 @@ function deriveLive(f: LiveFlight) {
   const vs = f.vertical_fpm ?? 0
   const gs = f.velocity_kt ?? 0
   const phase = f.on_ground
-    ? { label: "On ground", tone: "#63808F", pct: 0 }
+    ? { label: "On ground", tone: "#8A8270", pct: 0 }
     : vs > 350
-      ? { label: "Climbing", tone: "#0369A1", pct: Math.min(1, alt / 38000) }
+      ? { label: "Climbing", tone: "#4C28A8", pct: Math.min(1, alt / 38000) }
       : vs < -400
-        ? { label: alt < 10000 ? "Approach" : "Descending", tone: "#B8863C", pct: Math.min(1, alt / 38000) }
+        ? { label: alt < 10000 ? "Approach" : "Descending", tone: "#EFAF1B", pct: Math.min(1, alt / 38000) }
         : alt > 18000
-          ? { label: "Cruise", tone: "#0D9488", pct: Math.min(1, alt / 38000) }
-          : { label: "Level", tone: "#0D9488", pct: Math.min(1, alt / 38000) }
+          ? { label: "Cruise", tone: "#2C49E0", pct: Math.min(1, alt / 38000) }
+          : { label: "Level", tone: "#2C49E0", pct: Math.min(1, alt / 38000) }
 
   // nearest airport overall, and nearest airport within ±55° of the track
   let nearest: { icao: string; nm: number } | null = null
@@ -190,7 +190,7 @@ function liveSelIcon(heading: number | null): L.DivIcon {
       html: `<div class="ae-livesel" style="width:34px;height:34px;display:flex;align-items:center;justify-content:center">
         <span class="ae-livesel-ring"></span>
         <span class="ae-livesel-ring delay"></span>
-        <span style="width:22px;height:22px;transform:rotate(${hdg}deg);transform-origin:center;filter:drop-shadow(0 1px 4px rgba(13,148,136,0.6))"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="#0D9488" stroke="#FFFFFF" stroke-width="1"/></svg></span>
+        <span style="width:22px;height:22px;transform:rotate(${hdg}deg);transform-origin:center;filter:drop-shadow(0 1px 4px rgba(44,73,224,0.6))"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="#2C49E0" stroke="#FFFFFF" stroke-width="1"/></svg></span>
       </div>`,
     })
   )
@@ -629,7 +629,7 @@ function FlightDetailCard({
   const oAp = NIMBUS_AIRPORTS[flight.origin]
   const dAp = NIMBUS_AIRPORTS[flight.destination]
 
-  let actionLabel = "", actionColor = "#0D9488", actionIcon = ""
+  let actionLabel = "", actionColor = "#2C49E0", actionIcon = ""
   // Colours mirror the map's MAP_COLORS palette so the inspector card and the
   // line/marker on the map read as the same semantic state at a glance.
   if (isPlanCancelled)     { actionLabel = "Cancelled by recovery plan"; actionColor = MAP_COLORS.planCancelledInk; actionIcon = "✕" }
@@ -641,146 +641,80 @@ function FlightDetailCard({
 
   return (
     <div
-      className="absolute z-[450] w-72"
+      className="absolute z-[450] w-[19.5rem]"
       style={{ top: appliedPlan ? 72 : 12, right: 56, maxHeight: "calc(100% - 202px)", display: "flex", flexDirection: "column" }}
     >
-      <div
-        className="rounded-xl overflow-hidden ae-scroll-smooth"
-        style={{
-          background: GLASS_STRONG,
-          backdropFilter: "blur(16px)",
-          border: "1px solid var(--ae-line)",
-          boxShadow: "var(--ae-shadow-overlay)",
-          overflowY: "auto",
-        }}
-      >
-        {/* Header */}
-        <div
-          className="px-4 py-3 flex items-center justify-between"
-          style={{ background: "var(--ae-surface-2)", borderBottom: "1px solid var(--ae-line)" }}
-        >
-          <div>
-            <div className="flex items-center gap-2 mb-0.5">
-              <span
-                className="text-[9px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded-full"
-                style={{ background: "var(--ae-neutral-bg)", color: "var(--ae-text-3)", border: "1px solid var(--ae-line)" }}
-              >SIM</span>
-              <span className="font-mono font-semibold text-sm" style={{ color: "var(--ae-text)" }}>{flight.id}</span>
-            </div>
-            <div className="text-[10px] text-muted-foreground">
+      <div className="ae-ticket ae-scroll-smooth" style={{ overflowY: "auto" }}>
+        {/* header — flight number, aircraft, SIM chip */}
+        <div className="px-5 pt-4 pb-3 flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <div className="font-mono font-bold text-[18px] leading-none mb-1" style={{ color: "#141019" }}>{flight.id}</div>
+            <div className="text-[11px] font-medium" style={{ color: "#55503F" }}>
               {flight.aircraft_id} · {flight.passengers ?? "—"} pax
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="w-7 h-7 rounded-full flex items-center justify-center text-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
-          >×</button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="text-[9px] font-mono font-bold px-2 py-1 rounded-full tracking-widest" style={{ background: "rgba(20,16,25,0.08)", color: "#141019" }}>SIM</span>
+            <button onClick={onClose} aria-label="Close" className="w-7 h-7 rounded-full flex items-center justify-center text-lg transition-all" style={{ color: "#55503F" }}>×</button>
+          </div>
         </div>
 
-        <div className="px-4 py-4">
-          {/* Route arc display */}
-          <div className="flex items-center gap-3 mb-4">
-            <div className="text-center shrink-0">
-              <div className="font-mono font-semibold text-2xl leading-none" style={{ color: "var(--ae-text)" }}>
-                {flight.origin.replace("K", "")}
-              </div>
-              <div className="text-[9px] text-muted-foreground mt-0.5">{oAp?.city ?? ""}</div>
+        {/* FROM ── ✈ ── TO */}
+        <div className="px-5 pb-4">
+          <div className="flex items-end justify-between gap-2">
+            <div className="min-w-0">
+              <div className="text-[9px] uppercase tracking-[0.16em] font-semibold mb-1" style={{ color: "#55503F" }}>From</div>
+              <div className="font-mono font-bold leading-none" style={{ color: "#141019", fontSize: 34 }}>{flight.origin.replace("K", "")}</div>
+              <div className="text-[10px] mt-1 truncate font-medium" style={{ color: "#55503F" }}>{oAp?.city ?? ""}</div>
             </div>
-
-            <div className="flex-1 flex items-center relative">
-              <div
-                className="flex-1 h-px"
-                style={{
-                  background: isCancelled
-                    ? `repeating-linear-gradient(90deg,${MAP_COLORS.planCancelled} 0,${MAP_COLORS.planCancelled} 5px,transparent 5px,transparent 10px)`
-                    : "var(--ae-line-strong)",
-                }}
-              />
-              <div
-                className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center w-7 h-7 rounded-full text-sm"
-                style={{
-                  background: isCancelled
-                    ? MAP_COLORS.planCancelled
-                    : isSwapped
-                    ? MAP_COLORS.planSwap
-                    : delayMin > 0
-                    ? MAP_COLORS.planDelayed
-                    : "var(--ae-surface-3)",
-                  color: isCancelled || isSwapped || delayMin > 0 ? "#FFFFFF" : "var(--ae-text)",
-                }}
-              >
-                {isCancelled ? "✕" : "✈"}
+            <div className="flex-1 flex flex-col items-center pb-4 px-1">
+              <div className="text-[10px] font-mono font-semibold mb-1" style={{ color: isCancelled ? "#9D174D" : "#141019" }}>
+                {isCancelled ? "CANCELLED" : delayMin > 0 ? `+${delayMin} min` : "on time"}
               </div>
-              <div
-                className="flex-1 h-px"
-                style={{
-                  background: isCancelled
-                    ? `repeating-linear-gradient(90deg,${MAP_COLORS.planCancelled} 0,${MAP_COLORS.planCancelled} 5px,transparent 5px,transparent 10px)`
-                    : "var(--ae-line-strong)",
-                }}
-              />
+              <div className="w-full flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ border: "1.5px solid #141019" }} />
+                <span className="flex-1" style={{ borderTop: "2px dashed rgba(20,16,25,0.3)" }} />
+                {isCancelled ? (
+                  <span className="text-[13px] font-bold leading-none" style={{ color: "#141019" }}>✕</span>
+                ) : (
+                  <svg viewBox="0 0 24 24" width={15} height={15} aria-hidden style={{ color: "#141019", transform: "rotate(90deg)" }}>
+                    <path fill="currentColor" d="M21.5 15.5v-2l-8-5V3a1.5 1.5 0 0 0-3 0v5.5l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13.5 19v-6z" />
+                  </svg>
+                )}
+                <span className="flex-1" style={{ borderTop: "2px dashed rgba(20,16,25,0.3)" }} />
+                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "#141019" }} />
+              </div>
+              <div className="text-[9px] font-mono font-medium mt-1" style={{ color: "#55503F" }}>
+                {fmtZ(flight.scheduled_departure)} → {fmtZ(flight.scheduled_arrival)}
+              </div>
             </div>
-
-            <div className="text-center shrink-0">
-              <div className="font-mono font-semibold text-2xl leading-none" style={{ color: "var(--ae-text)" }}>
-                {flight.destination.replace("K", "")}
-              </div>
-              <div className="text-[9px] text-muted-foreground mt-0.5">{dAp?.city ?? ""}</div>
+            <div className="min-w-0 text-right">
+              <div className="text-[9px] uppercase tracking-[0.16em] font-semibold mb-1" style={{ color: "#55503F" }}>To</div>
+              <div className="font-mono font-bold leading-none" style={{ color: "#141019", fontSize: 34 }}>{flight.destination.replace("K", "")}</div>
+              <div className="text-[10px] mt-1 truncate font-medium" style={{ color: "#55503F" }}>{dAp?.city ?? ""}</div>
             </div>
           </div>
+        </div>
 
-          {/* Scheduled times — where it's heading and when */}
-          <div
-            className="flex items-center justify-between rounded-lg px-3 py-2 mb-2.5 text-[11px] font-mono"
-            style={{ background: "var(--ae-surface-2)", border: "1px solid var(--ae-line)", color: "var(--ae-text-2)" }}
-          >
-            <span>dep {fmtZ(flight.scheduled_departure)}</span>
-            <span style={{ color: "var(--ae-text-3)" }}>→</span>
-            <span>arr {fmtZ(flight.scheduled_arrival)}</span>
-            <span style={{ color: "var(--ae-text-3)" }}>{dAp?.name ? dAp.name.slice(0, 18) : ""}</span>
-          </div>
+        <div className="ae-ticket-perf" />
 
-          {/* Status grid — pigment dot + neutral text */}
-          <div className="grid grid-cols-2 gap-2 mb-2.5">
-            {[
-              {
-                label: "Status",
-                value: isCancelled ? "✕ Cancelled" : delayMin > 0 ? `+${delayMin}m delay` : state?.status ?? "On time",
-                dot: isCancelled ? "var(--ae-line-strong)" : delayMin > 0 ? "var(--ae-amber)" : "var(--ae-teal)",
-              },
-              {
-                label: "Cascade",
-                value: cascOrder < 0 ? "None" : cascOrder === 0 ? "Direct" : `Order ${cascOrder}`,
-                dot: cascOrder === 0 ? "var(--ae-amber)" : cascOrder > 0 ? "var(--ae-amber-soft)" : "var(--ae-line-strong)",
-              },
-            ].map((item) => (
-              <div
-                key={item.label}
-                className="rounded-lg p-2.5"
-                style={{ background: "var(--ae-surface)", border: "1px solid var(--ae-line)" }}
-              >
-                <div className="text-[10px] text-muted-foreground mb-1">{item.label}</div>
-                <div className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: item.dot }} />
-                  <span className="text-[12px] font-semibold" style={{ color: "var(--ae-text)" }}>{item.value}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* P(delay) bar — hidden for cancelled flights */}
+        {/* operational stats */}
+        <div className="px-5 py-4 grid grid-cols-2 gap-x-4 gap-y-3">
+          <TicketStat
+            label="Status"
+            value={isCancelled ? "Cancelled" : delayMin > 0 ? `+${delayMin} min` : state?.status ?? "On time"}
+          />
+          <TicketStat
+            label="Cascade"
+            value={cascOrder < 0 ? "None" : cascOrder === 0 ? "Direct hit" : `Order ${cascOrder}`}
+          />
           {!isCancelled && (
-            <div
-              className="rounded-lg p-2.5 mb-2.5"
-              style={{ background: "var(--ae-surface)", border: "1px solid var(--ae-line)" }}
-            >
+            <div className="col-span-2">
               <div className="flex items-center justify-between mb-1.5">
-                <div className="text-[10px] text-muted-foreground">Impact probability</div>
-                <div className="text-[11px] font-semibold font-mono" style={{ color: pDelay > 0.6 ? "var(--ae-amber-ink)" : "var(--ae-teal-ink)" }}>
-                  {(pDelay * 100).toFixed(0)}%
-                </div>
+                <div className="text-[9px] uppercase tracking-[0.14em] font-semibold" style={{ color: "#55503F" }}>Impact probability</div>
+                <div className="text-[12px] font-semibold font-mono" style={{ color: "#141019" }}>{(pDelay * 100).toFixed(0)}%</div>
               </div>
-              <div className="h-1.5 rounded-full" style={{ background: "var(--ae-neutral-bg)" }}>
+              <div className="h-1.5 rounded-full" style={{ background: "rgba(20,16,25,0.08)" }}>
                 <div
                   className="h-full rounded-full transition-all duration-500"
                   style={{ width: `${pDelay * 100}%`, background: pDelay > 0.6 ? "var(--ae-amber)" : "var(--ae-teal)" }}
@@ -788,38 +722,32 @@ function FlightDetailCard({
               </div>
             </div>
           )}
-
-          {/* Recovery action tag */}
           {actionLabel && (
             <div
-              className="rounded-xl px-3 py-2 flex items-center gap-2 text-[11px] font-bold"
-              style={{
-                background: `${actionColor}12`,
-                border: `1px solid ${actionColor}30`,
-                color: actionColor,
-              }}
+              className="col-span-2 rounded-xl px-3 py-2 flex items-center gap-2 text-[11px] font-bold"
+              style={{ background: `${actionColor}14`, border: `1px solid ${actionColor}55`, color: "#141019" }}
             >
               <span className="text-sm shrink-0">{actionIcon}</span>
               {actionLabel}
             </div>
           )}
-
           {state?.reason && (
-            <div className="mt-2 text-[10px] text-muted-foreground italic px-0.5 leading-relaxed">
+            <div className="col-span-2 text-[10px] italic leading-relaxed" style={{ color: "#55503F" }}>
               {state.reason}
             </div>
           )}
+        </div>
 
-          {/* Aircraft & seating — opens the seat-map modal */}
+        <div className="ae-ticket-perf" />
+
+        {/* stub — flight id barcode + seat-map action */}
+        <div className="px-5 py-4">
+          <div className="ae-ticket-barcode mb-1" aria-hidden />
+          <div className="font-mono text-[9px] mb-3 tracking-[0.3em]" style={{ color: "#55503F" }}>{flight.id} · {flight.aircraft_id}</div>
           <button
             onClick={onOpenAircraft}
-            className="mt-2.5 w-full text-[11.5px] font-medium px-3 py-2 rounded-lg transition-colors"
-            style={{
-              background: "var(--ae-teal-bg)",
-              border: "1px solid var(--ae-teal)",
-              color: "var(--ae-teal-ink)",
-              cursor: "pointer",
-            }}
+            className="w-full text-[12px] font-semibold px-3 py-2.5 rounded-full transition-colors"
+            style={{ background: "#141019", color: "#FFFFFF", border: "none", cursor: "pointer" }}
           >
             Aircraft &amp; seating →
           </button>
@@ -839,103 +767,121 @@ function StatCell({ label, value, sub, tone }: { label: string; value: string; s
   )
 }
 
+/** Boarding-pass ticket: label row + big mono value. All ink-on-white. */
+function TicketStat({ label, value, sub }: { label: string; value: string; sub?: string }) {
+  return (
+    <div>
+      <div className="text-[9px] uppercase tracking-[0.14em] font-semibold mb-0.5" style={{ color: "#55503F" }}>{label}</div>
+      <div className="font-mono font-semibold text-[15px] leading-none" style={{ color: "#141019" }}>{value}</div>
+      {sub && <div className="text-[9.5px] mt-0.5 font-medium" style={{ color: "#55503F" }}>{sub}</div>}
+    </div>
+  )
+}
+
 function LivePanel({ flight, onClose }: { flight: LiveFlight; onClose: () => void }) {
   const d = deriveLive(flight)
   const emergency = flight.squawk === "7500" || flight.squawk === "7600" || flight.squawk === "7700"
   const nearAp = d.nearest ? NIMBUS_AIRPORTS[d.nearest.icao] : null
   const aheadAp = d.ahead ? NIMBUS_AIRPORTS[d.ahead.icao] : null
   const fl = flight.altitude_ft != null ? `FL${String(Math.round(flight.altitude_ft / 100)).padStart(3, "0")}` : "—"
+  const eta = d.ahead
+    ? d.ahead.etaMin < 60 ? `${Math.round(d.ahead.etaMin)} min` : `${(d.ahead.etaMin / 60).toFixed(1)} h`
+    : "—"
 
   return (
     <div
-      className="absolute top-12 right-14 left-3 sm:left-auto z-[450] w-[19rem] rounded-2xl overflow-hidden flex flex-col"
-      style={{ background: GLASS_STRONG, backdropFilter: "blur(18px)", border: "1px solid var(--ae-line)", boxShadow: "var(--ae-shadow-overlay)", maxHeight: "calc(100% - 202px)" }}
+      className="ae-ticket absolute top-12 right-14 left-3 sm:left-auto z-[450] w-[19.5rem] flex flex-col"
+      style={{ maxHeight: "calc(100% - 202px)" }}
     >
-      {/* gradient header, tinted by flight phase */}
-      <div
-        className="px-4 py-3.5 relative overflow-hidden shrink-0"
-        style={{ background: `linear-gradient(135deg, ${d.phase.tone}22, ${d.phase.tone}08 60%, transparent)`, borderBottom: "1px solid var(--ae-line)" }}
-      >
-        <span aria-hidden style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: d.phase.tone }} />
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="font-mono font-bold text-[17px] leading-none" style={{ color: "var(--ae-text)" }}>{flight.flight_icao}</span>
-              {flight.flight_iata && flight.flight_iata !== flight.flight_icao && (
-                <span className="font-mono text-[10px] px-1.5 py-0.5 rounded" style={{ background: "var(--ae-surface-2)", color: "var(--ae-text-2)" }}>{flight.flight_iata}</span>
-              )}
-            </div>
-            <div className="text-[11px] font-medium truncate" style={{ color: "var(--ae-text-2)" }}>{flight.airline_name}</div>
+      {/* header — callsign, airline, LIVE chip */}
+      <div className="px-5 pt-4 pb-3 flex items-start justify-between gap-2 shrink-0">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="font-mono font-bold text-[18px] leading-none" style={{ color: "#141019" }}>{flight.flight_icao}</span>
+            {flight.flight_iata && flight.flight_iata !== flight.flight_icao && (
+              <span className="font-mono text-[10px] px-1.5 py-0.5 rounded" style={{ background: "rgba(20,16,25,0.06)", color: "#55503F" }}>{flight.flight_iata}</span>
+            )}
           </div>
-          <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center text-lg shrink-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-all">×</button>
+          <div className="text-[11px] font-medium truncate" style={{ color: "#55503F" }}>{flight.airline_name}</div>
         </div>
-        {/* phase chip + live pulse */}
-        <div className="flex items-center gap-2 mt-2.5 flex-wrap">
-          <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold px-2 py-1 rounded-full" style={{ background: `${d.phase.tone}1E`, color: d.phase.tone }}>
-            <span className="w-1.5 h-1.5 rounded-full ae-live-dot" style={{ background: d.phase.tone }} />
-            {d.phase.label}
-          </span>
-          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-full" style={{ background: "var(--ae-teal-bg)", color: "var(--ae-teal-ink)" }}>ADS-B LIVE</span>
-          {emergency && (
-            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: "var(--ae-rust-bg)", color: "var(--ae-rust-ink)" }}>SQUAWK {flight.squawk}</span>
-          )}
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className="text-[9px] font-mono font-bold px-2 py-1 rounded-full tracking-widest" style={{ background: "#141019", color: "#FFFFFF" }}>LIVE</span>
+          <button onClick={onClose} aria-label="Close" className="w-7 h-7 rounded-full flex items-center justify-center text-lg transition-all" style={{ color: "#55503F" }}>×</button>
         </div>
       </div>
-
-      <div className="px-4 py-3.5 ae-scroll-smooth flex-1 min-h-0" style={{ overflowY: "auto" }}>
-        {/* route strip — nearest behind → nearest ahead in track */}
-        <div className="flex items-center gap-2 mb-3">
-          <div className="text-center shrink-0" style={{ minWidth: 46 }}>
-            <div className="font-mono font-bold text-lg leading-none" style={{ color: "var(--ae-text)" }}>{nearAp?.iata ?? "—"}</div>
-            <div className="text-[8px] mt-0.5" style={{ color: "var(--ae-text-3)" }}>nearest</div>
-          </div>
-          <div className="flex-1 flex items-center relative" style={{ height: 22 }}>
-            <div className="flex-1 h-0.5 rounded" style={{ background: `linear-gradient(90deg, ${d.phase.tone}, var(--ae-teal))` }} />
-            <span className="mx-1" style={{ color: d.phase.tone, fontSize: 12 }}>✈</span>
-            <div className="flex-1 h-0.5 rounded" style={{ background: aheadAp ? "var(--ae-teal)" : "var(--ae-line-strong)" }} />
-          </div>
-          <div className="text-center shrink-0" style={{ minWidth: 46 }}>
-            <div className="font-mono font-bold text-lg leading-none" style={{ color: aheadAp ? "var(--ae-teal-ink)" : "var(--ae-text-3)" }}>{aheadAp?.iata ?? "—"}</div>
-            <div className="text-[8px] mt-0.5" style={{ color: "var(--ae-text-3)" }}>heading to</div>
-          </div>
+      {emergency && (
+        <div className="mx-5 mb-2 text-[10px] font-bold px-2.5 py-1.5 rounded-lg" style={{ background: "rgba(190,24,93,0.10)", color: "#9D174D", border: "1px solid rgba(190,24,93,0.4)" }}>
+          EMERGENCY · SQUAWK {flight.squawk}
         </div>
+      )}
 
-        {/* ETA banner when a plausible arrival is in track */}
-        {d.ahead && aheadAp && (
-          <div className="rounded-lg px-3 py-2 mb-3 flex items-center justify-between" style={{ background: "var(--ae-teal-bg)", border: "1px solid var(--ae-teal)" }}>
-            <div>
-              <div className="text-[9px] uppercase tracking-wider font-semibold" style={{ color: "var(--ae-teal-ink)" }}>Est. arrival · {aheadAp.city}</div>
-              <div className="font-mono text-[13px] font-semibold" style={{ color: "var(--ae-text)" }}>
-                {d.ahead.etaMin < 60 ? `${Math.round(d.ahead.etaMin)} min` : `${(d.ahead.etaMin / 60).toFixed(1)} h`} · {Math.round(d.ahead.nm)} nm
-              </div>
+      <div className="ae-scroll-smooth flex-1 min-h-0" style={{ overflowY: "auto" }}>
+        {/* FROM ── ✈ ── TO, boarding-pass style */}
+        <div className="px-5 pb-4 pt-1">
+          <div className="flex items-end justify-between gap-2">
+            <div className="min-w-0">
+              <div className="text-[9px] uppercase tracking-[0.16em] font-semibold mb-1" style={{ color: "#55503F" }}>Nearest</div>
+              <div className="font-mono font-bold leading-none" style={{ color: "#141019", fontSize: 34 }}>{nearAp?.iata ?? "———"}</div>
+              <div className="text-[10px] mt-1 truncate font-medium" style={{ color: "#55503F" }}>{nearAp?.city ?? "en route"}</div>
             </div>
-            <span className="text-2xl">🛬</span>
+            <div className="flex-1 flex flex-col items-center pb-4 px-1">
+              <div className="text-[10px] font-mono font-semibold mb-1" style={{ color: "#141019" }}>{eta}</div>
+              <div className="w-full flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ border: "1.5px solid #141019" }} />
+                <span className="flex-1" style={{ borderTop: "2px dashed rgba(20,16,25,0.3)" }} />
+                <svg viewBox="0 0 24 24" width={15} height={15} aria-hidden style={{ color: "#141019", transform: "rotate(90deg)" }}>
+                  <path fill="currentColor" d="M21.5 15.5v-2l-8-5V3a1.5 1.5 0 0 0-3 0v5.5l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13.5 19v-6z" />
+                </svg>
+                <span className="flex-1" style={{ borderTop: "2px dashed rgba(20,16,25,0.3)" }} />
+                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "#141019" }} />
+              </div>
+              <div className="text-[9px] font-medium mt-1" style={{ color: "#55503F" }}>{d.ahead ? `${Math.round(d.ahead.nm)} nm` : d.phase.label}</div>
+            </div>
+            <div className="min-w-0 text-right">
+              <div className="text-[9px] uppercase tracking-[0.16em] font-semibold mb-1" style={{ color: "#55503F" }}>Heading to</div>
+              <div className="font-mono font-bold leading-none" style={{ color: "#141019", fontSize: 34 }}>{aheadAp?.iata ?? "———"}</div>
+              <div className="text-[10px] mt-1 truncate font-medium" style={{ color: "#55503F" }}>{aheadAp?.city ?? "no hub in track"}</div>
+            </div>
           </div>
-        )}
-
-        {/* core telemetry grid */}
-        <div className="grid grid-cols-2 gap-2 mb-3">
-          <StatCell label="Altitude" value={flight.altitude_ft != null ? `${flight.altitude_ft.toLocaleString()} ft` : "—"} sub={fl} tone={d.phase.tone} />
-          <StatCell label="Ground speed" value={d.gs ? `${d.gs} kt` : "—"} sub={d.gs ? `${Math.round(d.gs * 1.15078)} mph` : undefined} />
-          <StatCell label="Vertical rate" value={d.vs ? `${d.vs > 0 ? "▲" : d.vs < 0 ? "▼" : "→"} ${Math.abs(d.vs).toLocaleString()}` : "0"} sub="fpm" tone={d.vs > 200 ? "#0369A1" : d.vs < -200 ? "#B8863C" : undefined} />
-          <StatCell label="Heading" value={`${Math.round(d.hdg)}°`} sub={cardinal(d.hdg)} />
-          <StatCell label="Mach" value={d.mach ? `M ${d.mach.toFixed(2)}` : "—"} />
-          <StatCell label="Distance to hub" value={d.nearest ? `${Math.round(d.nearest.nm)} nm` : "—"} sub={nearAp ? `${cardinal(bearing(flight.lat, flight.lon, nearAp.lat, nearAp.lon))} of ${nearAp.iata}` : undefined} />
         </div>
 
-        {/* position + signal */}
-        <div className="rounded-lg px-3 py-2 mb-3 flex items-center justify-between text-[10px] font-mono" style={{ background: "var(--ae-surface-2)", border: "1px solid var(--ae-line)", color: "var(--ae-text-2)" }}>
-          <span>{flight.lat.toFixed(3)}, {flight.lon.toFixed(3)}</span>
-          <span style={{ color: d.ageSec > 60 ? "var(--ae-amber-ink)" : "var(--ae-teal-ink)" }}>◉ {d.ageSec}s ago</span>
+        <div className="ae-ticket-perf" />
+
+        {/* telemetry — the numbers an operator actually reads */}
+        <div className="px-5 py-4 grid grid-cols-2 gap-x-4 gap-y-3">
+          <TicketStat label="Altitude" value={flight.altitude_ft != null ? `${flight.altitude_ft.toLocaleString()} ft` : "—"} sub={fl} />
+          <TicketStat label="Ground speed" value={d.gs ? `${d.gs} kt` : "—"} sub={d.gs ? `${Math.round(d.gs * 1.15078)} mph` : undefined} />
+          <TicketStat label="Vertical rate" value={d.vs ? `${d.vs > 0 ? "▲" : "▼"} ${Math.abs(d.vs).toLocaleString()}` : "level"} sub="fpm" />
+          <TicketStat label="Heading" value={`${Math.round(d.hdg)}°`} sub={cardinal(d.hdg)} />
+          <TicketStat label="Mach" value={d.mach ? `M ${d.mach.toFixed(2)}` : "—"} />
+          <TicketStat label="Dist. to hub" value={d.nearest ? `${Math.round(d.nearest.nm)} nm` : "—"} sub={nearAp ? `${cardinal(bearing(flight.lat, flight.lon, nearAp.lat, nearAp.lon))} of ${nearAp.iata}` : undefined} />
         </div>
 
-        {/* external trackers */}
-        <div className="flex flex-wrap gap-1.5">
-          {flight.tracking.flightaware && (
-            <a href={flight.tracking.flightaware} target="_blank" rel="noopener noreferrer" className="text-[10px] px-2.5 py-1 rounded-md font-semibold transition-colors" style={{ background: "var(--ae-neutral-bg)", border: "1px solid var(--ae-line)", color: "var(--ae-text-2)" }}>FlightAware ↗</a>
-          )}
-          <a href={flight.tracking.flightradar24} target="_blank" rel="noopener noreferrer" className="text-[10px] px-2.5 py-1 rounded-md font-semibold transition-colors" style={{ background: "var(--ae-neutral-bg)", border: "1px solid var(--ae-line)", color: "var(--ae-text-2)" }}>FR24 ↗</a>
-          <a href={flight.tracking.adsbexchange} target="_blank" rel="noopener noreferrer" className="text-[10px] px-2.5 py-1 rounded-md font-semibold transition-colors" style={{ background: "var(--ae-neutral-bg)", border: "1px solid var(--ae-line)", color: "var(--ae-text-2)" }}>ADS-B ↗</a>
+        <div className="ae-ticket-perf" />
+
+        {/* stub — transponder hex as the "ticket number" + barcode */}
+        <div className="px-5 py-4">
+          <div className="flex items-end justify-between gap-3 mb-2">
+            <div>
+              <div className="text-[9px] uppercase tracking-[0.14em] font-semibold mb-1" style={{ color: "#55503F" }}>Transponder · ADS-B</div>
+              <div className="font-mono text-[13px] font-semibold tracking-wider" style={{ color: "#141019" }}>{flight.icao24.toUpperCase()}</div>
+            </div>
+            <div className="text-right">
+              <div className="text-[9px] uppercase tracking-[0.14em] font-semibold mb-1" style={{ color: "#55503F" }}>Signal</div>
+              <div className="font-mono text-[12px] font-semibold" style={{ color: d.ageSec > 60 ? "#8A6410" : "#141019" }}>{d.ageSec}s ago</div>
+            </div>
+          </div>
+          <div className="ae-ticket-barcode mb-1" aria-hidden />
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-[9px]" style={{ color: "#55503F" }}>{flight.lat.toFixed(3)}, {flight.lon.toFixed(3)}</span>
+            <span className="flex gap-2">
+              {flight.tracking.flightaware && (
+                <a href={flight.tracking.flightaware} target="_blank" rel="noopener noreferrer" className="text-[10px] font-semibold underline" style={{ color: "#1E33A8" }}>FlightAware</a>
+              )}
+              <a href={flight.tracking.flightradar24} target="_blank" rel="noopener noreferrer" className="text-[10px] font-semibold underline" style={{ color: "#1E33A8" }}>FR24</a>
+              <a href={flight.tracking.adsbexchange} target="_blank" rel="noopener noreferrer" className="text-[10px] font-semibold underline" style={{ color: "#1E33A8" }}>ADS-B</a>
+            </span>
+          </div>
         </div>
       </div>
     </div>

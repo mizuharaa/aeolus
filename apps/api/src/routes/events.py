@@ -6,65 +6,20 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+from src.events.catalog import (
+    EVENT_DEFAULTS,
+    EVENT_DESCRIPTIONS,
+    normalize_event_params,
+)
 
 router = APIRouter()
-
-# Default scenario params for each event type
-DEFAULT_PARAMS = {
-    "weather_closure": {"airport": "KORD", "severity": "severe", "duration_hours": 4},
-    "ground_stop": {"airport": "KORD", "duration_hours": 3},
-    "airspace_closure": {
-        "polygon": {
-            "type": "Polygon",
-            "coordinates": [
-                [[-85.0, 39.0], [-69.0, 39.0], [-69.0, 44.0], [-85.0, 44.0], [-85.0, 39.0]]
-            ],
-        },
-        "airports": ["KJFK", "KBOS", "KDTW"],
-        "duration_hours": 24,
-        "severity": "severe",
-    },
-    "security_event": {"airport": "KATL", "severity": "severe", "duration_hours": 3},
-    "mechanical_aog": {"aircraft_tail": "N001NB", "airport": "KATL", "duration_hours": 8},
-    "crew_sickout": {"base": "KORD", "percent_affected": 30, "duration_hours": 8},
-    "runway_closure": {
-        "airport": "KDFW",
-        "runway_id": "17L",
-        "capacity_cut_pct": 45,
-        "duration_hours": 6,
-    },
-    "atc_staffing": {"sector_or_airport": "KLAS", "capacity_pct": 40, "duration_hours": 5},
-    "volcanic_ash": {
-        "polygon": {
-            "type": "Polygon",
-            "coordinates": [
-                [[-125.0, 44.0], [-117.0, 44.0], [-117.0, 50.0], [-125.0, 50.0], [-125.0, 44.0]]
-            ],
-        },
-        "duration_hours": 18,
-        "severity": "severe",
-    },
-    "cyber_incident": {"airline": "NimbusAir", "degradation_pct": 60, "duration_hours": 12},
-}
-
-EVENT_DESCRIPTIONS = {
-    "weather_closure": "Airport unavailable due to severe weather (thunderstorm, blizzard, etc.)",
-    "ground_stop": "FAA issues GDP/GS — no departures until further notice",
-    "airspace_closure": "Polygon of airspace blocked (geopolitical, NOTAM, military)",
-    "security_event": "Security incident — airport evacuated, TSA re-screening required",
-    "mechanical_aog": "Aircraft on ground — mechanical failure, awaiting parts/repairs",
-    "crew_sickout": "Bulk crew unavailability — illness, sick call campaign",
-    "runway_closure": "One or more runways closed — emergency repair, FOD, incident",
-    "atc_staffing": "ATC staffing shortage — reduced TRACON/ARTCC throughput",
-    "volcanic_ash": "Ash cloud — flights must avoid altitude range over affected polygon",
-    "cyber_incident": "IT system degradation — manual processes, slower turnarounds",
-}
 
 
 class TriggerEventRequest(BaseModel):
     kind: str
-    params: dict[str, Any] = {}
+    params: dict[str, Any] = Field(default_factory=dict)
 
 
 @router.get("/events/types")
@@ -74,10 +29,10 @@ async def get_event_types():
             {
                 "kind": kind,
                 "label": kind.replace("_", " ").title(),
-                "description": EVENT_DESCRIPTIONS.get(kind, ""),
+                "description": EVENT_DESCRIPTIONS[kind],
                 "default_params": params,
             }
-            for kind, params in DEFAULT_PARAMS.items()
+            for kind, params in EVENT_DEFAULTS.items()
         ]
     }
 
@@ -97,34 +52,33 @@ async def trigger_event(payload: TriggerEventRequest, request: Request):
     optimizer = request.app.state.optimizer
     weather = request.app.state.weather
 
-    if payload.kind not in DEFAULT_PARAMS:
-        raise HTTPException(status_code=400, detail=f"Unknown event kind: {payload.kind}")
+    if not engine:
+        raise HTTPException(status_code=503, detail="Simulation engine not initialized")
 
-    # Merge with defaults
-    merged_params = {**DEFAULT_PARAMS[payload.kind], **payload.params}
+    try:
+        merged_params = normalize_event_params(payload.kind, payload.params)
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
     event = {
         "id": str(uuid.uuid4()),
         "kind": payload.kind,
         "triggered_at": datetime.now(timezone.utc).isoformat(),
         "params": merged_params,
     }
-
-    if engine:
-        result = await engine.trigger_event(event, predictor, optimizer, weather)
-        return result
-    else:
-        return {"event": event, "message": "Engine not initialized"}
+    return await engine.trigger_event(event, predictor, optimizer, weather)
 
 
 @router.delete("/events/{event_id}")
 async def cancel_event(event_id: str, request: Request):
     engine = request.app.state.engine
-    if engine:
-        engine.state.active_events = [
-            e for e in engine.state.active_events if e.get("id") != event_id
-        ]
-        return {"status": "cancelled", "event_id": event_id}
-    raise HTTPException(status_code=404, detail="Event not found")
+    if not engine:
+        raise HTTPException(status_code=503, detail="Simulation engine not initialized")
+
+    removed = await engine.cancel_event(event_id)
+    if not removed:
+        raise HTTPException(status_code=404, detail="Event not found")
+    return {"status": "cancelled", "event_id": event_id}
 
 
 _SCENARIOS_DIR = Path(__file__).parent.parent.parent.parent.parent / "data" / "scenarios"
@@ -136,11 +90,11 @@ async def get_scenarios():
 
     scenarios = []
     try:
-        for f in _SCENARIOS_DIR.glob("*.yaml"):
-            with open(f) as fh:
-                s = yaml.safe_load(fh)
-                if s:
-                    scenarios.append(s)
-    except Exception:
-        pass
+        for file in _SCENARIOS_DIR.glob("*.yaml"):
+            with open(file) as handle:
+                scenario = yaml.safe_load(handle)
+                if scenario:
+                    scenarios.append(scenario)
+    except OSError:
+        return {"scenarios": [], "error": "Scenario directory is unavailable"}
     return {"scenarios": scenarios}

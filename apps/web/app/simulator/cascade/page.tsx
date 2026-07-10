@@ -4,6 +4,7 @@ import Link from "next/link"
 import { motion } from "framer-motion"
 import { ChevronRight, Search } from "lucide-react"
 import { CascadeTimeline } from "@/components/simulator/cascade-timeline"
+import { CascadeTimeMachine } from "@/components/simulator/cascade-time-machine"
 import { useSimulationStore, useHasActiveDisruption } from "@/stores/simulation"
 import { airportLabel } from "@/lib/labels"
 import { c, ff, r, sp, type as typeStyle } from "@/lib/design-tokens"
@@ -66,6 +67,11 @@ export default function CascadeIndexPage() {
         />
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: sp.lg }}>
+
+          {/* ── Time machine — scrub the cascade, compare counterfactuals ── */}
+          <ContentCard padding={0}>
+            <CascadeTimeMachine />
+          </ContentCard>
 
           {/* ── Hero timeline (full width) ── */}
           <ContentCard padding={0} style={{ overflow: "hidden", height: 280 }}>

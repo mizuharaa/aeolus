@@ -184,11 +184,12 @@ function PlanCard({
 
   return (
     <motion.div
+      className="ae-maestro-card"
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.07 }}
       style={{
-        borderRadius: r.lg,
+        borderRadius: 18,
         overflow: "hidden",
         background: c.canvas,
         border: `1px solid ${isApplied ? APPLIED_ACCENT : c.hairline}`,

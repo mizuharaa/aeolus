@@ -59,7 +59,7 @@ export function DashboardLoader() {
       style={{
         position: "fixed", inset: 0, zIndex: 4000,
         display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 22,
-        background: "linear-gradient(160deg, #EAF6FF, #F2F8FE 45%, #FFF7EC)",
+        background: "linear-gradient(160deg, #F7F3E8, #F5F0E3 45%, #FFFDF6)",
         opacity: leaving ? 0 : 1,
         transition: "opacity 440ms ease",
         fontFamily: ff.body,
@@ -74,7 +74,7 @@ export function DashboardLoader() {
             position: "relative", width: 58, height: 58, borderRadius: 18,
             background: "linear-gradient(135deg, var(--ae-sky), var(--ae-teal))",
             display: "flex", alignItems: "center", justifyContent: "center",
-            boxShadow: "0 12px 30px -10px rgba(13,148,136,0.6)",
+            boxShadow: "0 12px 30px -10px rgba(44,73,224,0.6)",
           }}
         >
           <Plane className="dl-plane" style={{ width: 28, height: 28, color: "#fff" }} strokeWidth={2} />
@@ -92,14 +92,14 @@ export function DashboardLoader() {
       </div>
 
       {/* progress shimmer bar */}
-      <div style={{ width: 220, height: 4, borderRadius: 99, background: "rgba(13,148,136,0.15)", overflow: "hidden" }}>
+      <div style={{ width: 220, height: 4, borderRadius: 99, background: "rgba(44,73,224,0.15)", overflow: "hidden" }}>
         <span className="dl-bar" />
       </div>
 
       <style jsx>{`
         .dl-ring {
           position: absolute; inset: 0; border-radius: 999px;
-          border: 2px solid rgba(13,148,136,0.35);
+          border: 2px solid rgba(44,73,224,0.35);
           animation: dl-radar 1.8s ease-out infinite;
         }
         .dl-ring--2 { animation-delay: 0.9s; }

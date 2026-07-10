@@ -95,7 +95,7 @@ type EventKind = typeof EVENT_TYPES[number]["value"]
 // one flat neutral grid. Drives the event-tile accent + hover glow.
 const CATEGORY_ACCENT: Record<string, string> = {
   "Weather": "#0EA5C4",
-  "Air Traffic Control": "#B8863C",
+  "Air Traffic Control": "#EFAF1B",
   "Aircraft & Operations": "#6F3FE4",
   "Crew & Personnel": "#EC4899",
   "Security & Emergency": "#E1554E",
@@ -1149,7 +1149,7 @@ export function EventPanel() {
           <div className="space-y-3.5">
             {EVENT_CATEGORIES.map((cat) => {
               const catEvents = cat.events.map((v) => EVENT_TYPES.find((e) => e.value === v)!).filter(Boolean)
-              const accent = CATEGORY_ACCENT[cat.label] ?? "#0D9488"
+              const accent = CATEGORY_ACCENT[cat.label] ?? "#2C49E0"
               return (
                 <div key={cat.label}>
                   <div className="flex items-center gap-2 mb-2">

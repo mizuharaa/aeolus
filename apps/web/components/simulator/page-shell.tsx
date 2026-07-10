@@ -16,7 +16,7 @@ import { useWebSocket } from "@/lib/websocket"
 import { SimulatorNav } from "@/components/simulator/nav"
 import { apiClient } from "@/lib/api"
 import { c, ff, r, sp } from "@/lib/design-tokens"
-import { Eyebrow, Type, Container } from "@/components/ds/primitives"
+import { Type, Container } from "@/components/ds/primitives"
 
 export function SimulatorPageShell({
   breadcrumbs = [],
@@ -174,9 +174,8 @@ export function NoActiveDisruptionState({
 }) {
   return (
     <div
+      className="ae-maestro-card"
       style={{
-        background: c.signatureCream,
-        borderRadius: r.md,
         padding: sp.xxl,
         display: "flex",
         flexDirection: "column",
@@ -184,7 +183,7 @@ export function NoActiveDisruptionState({
         alignItems: "flex-start",
       }}
     >
-      <Eyebrow color={c.signatureForest}>Awaiting Disruption</Eyebrow>
+      <span className="ae-punch">Awaiting Disruption</span>
       <Type as="h2" role="titleLg" color={c.ink}>
         {title}
       </Type>

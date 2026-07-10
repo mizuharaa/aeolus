@@ -55,8 +55,8 @@ const STRIP_H = 192  // docked timeline height
 
 // Panel pigments — the color the dashboard borrows from the landing. Events =
 // amber/rust (disruption), Recovery = teal (identity).
-const EVENT_ACCENT = "#B8863C"
-const RECOVERY_ACCENT = "#0D9488"
+const EVENT_ACCENT = "#EFAF1B"
+const RECOVERY_ACCENT = "#2C49E0"
 
 export default function SimulatorPage() {
   const {

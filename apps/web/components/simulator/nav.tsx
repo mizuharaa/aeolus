@@ -6,6 +6,36 @@ import { toast } from "sonner"
 import { useMemo } from "react"
 import { c, ff } from "@/lib/design-tokens"
 import { NotificationBell } from "@/components/simulator/notification-bell"
+import { useIndecisionCost, fmtUsdShort } from "@/lib/use-live-cost"
+
+/**
+ * Cost-of-indecision meter — visible only while a disruption is running and
+ * no recovery plan has been committed. Burn rate + accrued total, derived
+ * from the same per-minute constants as the live cost ticker.
+ */
+function IndecisionMeter() {
+  const { active, ratePerMin, accrued } = useIndecisionCost()
+  if (!active) return null
+  return (
+    <span
+      title="Cost accruing while no recovery plan is committed (pax value-of-time + crew overtime)"
+      style={{
+        display: "inline-flex", alignItems: "center", gap: 8,
+        fontFamily: ff.mono, fontSize: 11, fontWeight: 700,
+        lineHeight: 1, padding: "6px 12px", borderRadius: 999,
+        background: "var(--ae-rose-bg)",
+        border: "1px solid var(--ae-rose)",
+        color: "var(--ae-rose-ink)",
+        whiteSpace: "nowrap",
+        fontVariantNumeric: "tabular-nums",
+      }}
+    >
+      <span style={{ letterSpacing: "0.1em" }}>UNCOMMITTED</span>
+      <span style={{ color: "var(--ae-text)" }}>−{fmtUsdShort(ratePerMin)}/min</span>
+      <span>{fmtUsdShort(accrued)} burned</span>
+    </span>
+  )
+}
 
 /**
  * Simulator top bar — daylight register.
@@ -57,9 +87,9 @@ export function SimulatorNav({ isConnected }: SimulatorNavProps) {
         // lively tinted gradient wash — sky→teal→amber at low alpha, so the
         // ops bar reads warm/colorful rather than flat paper.
         background:
-          "linear-gradient(90deg, rgba(56,189,248,0.10), rgba(13,148,136,0.06) 42%, rgba(184,134,60,0.05) 78%, var(--ae-bg))",
+          "linear-gradient(90deg, rgba(56,189,248,0.10), rgba(44,73,224,0.06) 42%, rgba(184,134,60,0.05) 78%, var(--ae-bg))",
         borderBottom: `1px solid ${c.hairline}`,
-        boxShadow: "inset 0 -2px 0 -1px rgba(13,148,136,0.25)",
+        boxShadow: "inset 0 -2px 0 -1px rgba(44,73,224,0.25)",
         flexShrink: 0,
         zIndex: 50,
         fontFamily: ff.body,
@@ -120,6 +150,7 @@ export function SimulatorNav({ isConnected }: SimulatorNavProps) {
 
       {/* ── Right cluster ── */}
       <div style={{ display: "flex", alignItems: "center", gap: 16, flexShrink: 0 }}>
+        <IndecisionMeter />
         {/* Fleet status — plain text, pigment dots */}
         {stats.total > 0 && (
           <div
@@ -160,27 +191,23 @@ export function SimulatorNav({ isConnected }: SimulatorNavProps) {
         {/* Live ops feed — imminent arrivals + active disruptions */}
         <NotificationBell />
 
-        {/* Connection state — colored pill with a live pulse dot */}
+        {/* Connection state — punched-out text pill, no pulsing dot */}
         <span
           style={{
-            display: "inline-flex", alignItems: "center", gap: 7,
+            display: "inline-flex", alignItems: "center",
             fontFamily: ff.mono,
             fontSize: 10.5,
             fontWeight: 700,
             letterSpacing: "0.14em",
             textTransform: "uppercase",
             lineHeight: 1,
-            padding: "5px 10px",
+            padding: "6px 12px",
             borderRadius: 999,
-            color: isConnected ? "var(--ae-teal-ink)" : "var(--ae-amber-ink)",
-            background: isConnected ? "var(--ae-teal-bg)" : "var(--ae-amber-bg)",
-            border: `1px solid ${isConnected ? "var(--ae-teal)" : "var(--ae-amber)"}`,
+            color: isConnected ? "var(--ae-bg)" : "var(--ae-amber-ink)",
+            background: isConnected ? "var(--ae-text)" : "var(--ae-amber-bg)",
+            border: `1px solid ${isConnected ? "var(--ae-text)" : "var(--ae-amber)"}`,
           }}
         >
-          <span
-            className="ae-live-dot"
-            style={{ width: 7, height: 7, borderRadius: "50%", background: isConnected ? "var(--ae-teal)" : "var(--ae-amber)" }}
-          />
           {isConnected ? "Live" : "Offline"}
         </span>
 

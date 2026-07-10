@@ -1,173 +1,193 @@
 @import 'leaflet/dist/leaflet.css';
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /* ══════════════════════════════════════════════════════════════════
-   Aeolus — daylight sky system.
+   Aeolus — control-tower editorial system (matches the landing).
 
-     ink   #0B2434  deep sea-blue ink — type, dark marks
-     paper #F2F8FE  sky-tinted white  — surfaces
-     sky   #38BDF8  the atmosphere    — gradients, chrome accents
-     teal  #0D9488  the identity      — actions, recovery, active
-     pink  #EC4899  the disruption    — events, cascade energy
-     amber #B8863C  the status hue    — delayed / warning (simulator)
+     ink    #141019  warm ink          — type, dark marks
+     paper  #F5F0E3  warm beige        — surfaces
+     cobalt #2C49E0  the identity      — actions, recovery, active
+     violet #6F3FE4  the atmosphere    — gradients, chrome accents
+     amber  #EFAF1B  the status hue    — delayed / warning (simulator)
+     pink   #EC4899  the disruption    — events, cascade energy
 
    Two registers, one token set:
-     :root           landing, docs, scenarios — bright sky
-     .register-dark  the simulator app — same daylight family, denser
+     :root           landing, docs, scenarios — beige paper
+     .register-dark  the simulator app — same beige family, denser
                      surfaces (name kept so no call site churns)
    ══════════════════════════════════════════════════════════════════ */
 
 @layer base {
   :root {
-    /* ── Pigments (constant across registers) ─────────────────────── */
-    --ae-sky:   #38BDF8;
-    --ae-teal:  #0D9488;
-    --ae-amber: #B8863C;
+    /* ── Pigments (constant across registers) — the LANDING palette:
+       cobalt = identity/action, violet = atmosphere, amber = status,
+       rose = disruption energy ──────────────────────────────────── */
+    --ae-sky:   #6F3FE4;
+    --ae-teal:  #2C49E0;
+    --ae-amber: #EFAF1B;
     --ae-rust:  var(--ae-amber);   /* legacy alias */
     --ae-rose:  #EC4899;           /* disruption pink */
     --ae-pink:  var(--ae-rose);
 
-    /* ── Light register ──────────────────────────────────────────── */
-    --ae-bg:            #F2F8FE;
-    --ae-surface:       #FFFFFF;
-    --ae-surface-2:     #E7F2FC;
-    --ae-surface-3:     #D3E7F8;
-    --ae-line:          rgba(11, 36, 52, 0.12);
-    --ae-line-strong:   rgba(11, 36, 52, 0.30);
-    --ae-text:          #0B2434;
-    --ae-text-2:        #3A5A6E;
-    --ae-text-3:        #63808F;
+    /* ── Light register — warm beige paper, ink type ─────────────── */
+    --ae-bg:            #F5F0E3;
+    --ae-surface:       #FFFDF6;
+    --ae-surface-2:     #EFE8D6;
+    --ae-surface-3:     #E5DBC2;
+    --ae-line:          rgba(20, 16, 25, 0.12);
+    --ae-line-strong:   rgba(20, 16, 25, 0.30);
+    --ae-text:          #141019;
+    --ae-text-2:        #55503F;
+    --ae-text-3:        #8A8270;
 
-    --ae-primary:        #0B2434;
-    --ae-primary-active: #14405C;
-    --ae-on-primary:     #F2F8FE;
+    --ae-primary:        #141019;
+    --ae-primary-active: #2C49E0;
+    --ae-on-primary:     #F5F0E3;
 
-    --ae-sky-ink:   #0369A1;
-    --ae-teal-ink:  #0B7065;
-    --ae-amber-ink: #7E5A20;
+    --ae-sky-ink:   #4C28A8;
+    --ae-teal-ink:  #1E33A8;
+    --ae-amber-ink: #8A6410;
     --ae-rust-ink:  var(--ae-amber-ink);
     --ae-rose-ink:  #BE185D;
 
-    --ae-sky-bg:     rgba(56, 189, 248, 0.14);
-    --ae-teal-bg:    rgba(13, 148, 136, 0.10);
-    --ae-amber-bg:   rgba(184, 134, 60, 0.13);
+    --ae-sky-bg:     rgba(111, 63, 228, 0.12);
+    --ae-teal-bg:    rgba(44, 73, 224, 0.10);
+    --ae-amber-bg:   rgba(239, 175, 27, 0.14);
     --ae-rust-bg:    var(--ae-amber-bg);
     --ae-rose-bg:    rgba(236, 72, 153, 0.10);
-    --ae-neutral-bg: rgba(11, 36, 52, 0.05);
-    --ae-amber-soft:  rgba(184, 134, 60, 0.55);
-    --ae-amber-soft2: rgba(184, 134, 60, 0.30);
+    --ae-neutral-bg: rgba(20, 16, 25, 0.05);
+    --ae-amber-soft:  rgba(239, 175, 27, 0.55);
+    --ae-amber-soft2: rgba(239, 175, 27, 0.30);
     --ae-rose-soft:   rgba(236, 72, 153, 0.55);
     --ae-rose-soft2:  rgba(236, 72, 153, 0.30);
 
-    --ae-focus: rgba(2, 132, 199, 0.35);
+    --ae-focus: rgba(44, 73, 224, 0.35);
 
     /* ── Fonts ───────────────────────────────────────────────────── */
     --ae-font-display: "Inter Display", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     --ae-font-body:    "Inter", "Inter Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     --ae-font-mono:    "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
 
-    /* ── Shadows — blue-cast, daylight ───────────────────────────── */
-    --ae-shadow-button:    0 1px 2px rgba(11, 36, 52, 0.10);
-    --ae-shadow-card:      0 1px 2px rgba(11, 36, 52, 0.05);
-    --ae-shadow-card-elev: 0 6px 24px rgba(11, 36, 52, 0.10);
-    --ae-shadow-overlay:   0 16px 48px rgba(11, 36, 52, 0.16);
+    /* ── Shadows — warm ink-cast ─────────────────────────────────── */
+    --ae-shadow-button:    0 1px 2px rgba(20, 16, 25, 0.10);
+    --ae-shadow-card:      0 1px 2px rgba(20, 16, 25, 0.05);
+    --ae-shadow-card-elev: 0 6px 24px rgba(20, 16, 25, 0.10);
+    --ae-shadow-overlay:   0 16px 48px rgba(20, 16, 25, 0.16);
     --ae-shadow-focus:     0 0 0 3px var(--ae-focus);
 
-    /* ── shadcn/Tailwind semantic bridge (light) ─────────────────── */
-    --background:   207 75% 97%;           /* sky paper */
-    --foreground:   203 65% 12%;           /* sea ink */
-    --card:         0 0% 100%;
-    --card-foreground: 203 65% 12%;
-    --primary:      203 65% 12%;
-    --primary-foreground: 207 75% 97%;
-    --secondary:    206 68% 95%;
-    --secondary-foreground: 203 65% 12%;
-    --muted:        206 68% 95%;
-    --muted-foreground: 203 19% 47%;
-    --accent:       206 68% 93%;
-    --accent-foreground: 203 65% 12%;
-    --destructive:  336 74% 42%;           /* pink ink */
-    --destructive-foreground: 207 75% 97%;
-    --border:       203 65% 12% / 0.12;
-    --input:        203 65% 12% / 0.16;
-    --ring:         199 89% 48%;           /* sky */
-    --radius:       0.625rem;
+    /* ── shadcn/Tailwind semantic bridge (light) — landing beige ─── */
+    --background:   43 47% 93%;             /* beige paper */
+    --foreground:   267 22% 8%;             /* ink */
+    --card:         47 100% 98%;
+    --card-foreground: 267 22% 8%;
+    --primary:      267 22% 8%;
+    --primary-foreground: 43 47% 93%;
+    --secondary:    43 40% 89%;
+    --secondary-foreground: 267 22% 8%;
+    --muted:        43 40% 89%;
+    --muted-foreground: 43 15% 40%;
+    --accent:       43 38% 85%;
+    --accent-foreground: 267 22% 8%;
+    --destructive:  336 74% 42%;
+    --destructive-foreground: 0 0% 100%;
+    --border:       267 22% 8% / 0.12;
+    --input:        267 22% 8% / 0.16;
+    --ring:         229 76% 53%;            /* cobalt */
+    --radius:   0.625rem;
 
     /* Legacy shadow names still referenced by old components */
     --shadow-card:  var(--ae-shadow-card);
     --shadow-hover: var(--ae-shadow-card-elev);
     --shadow-modal: var(--ae-shadow-overlay);
     --shadow-nav:   0 1px 0 var(--ae-line);
+    --popover:   oklch(1 0 0);
+    --popover-foreground:   oklch(0.145 0 0);
+    --chart-1:   oklch(0.87 0 0);
+    --chart-2:   oklch(0.556 0 0);
+    --chart-3:   oklch(0.439 0 0);
+    --chart-4:   oklch(0.371 0 0);
+    --chart-5:   oklch(0.269 0 0);
+    --sidebar:   oklch(0.985 0 0);
+    --sidebar-foreground:   oklch(0.145 0 0);
+    --sidebar-primary:   oklch(0.205 0 0);
+    --sidebar-primary-foreground:   oklch(0.985 0 0);
+    --sidebar-accent:   oklch(0.97 0 0);
+    --sidebar-accent-foreground:   oklch(0.205 0 0);
+    --sidebar-border:   oklch(0.922 0 0);
+    --sidebar-ring:   oklch(0.708 0 0);
   }
 
   /* ── App register — the simulator. Same daylight family, slightly
      denser floor so panels/cards sit white-on-blue. The class name
      .register-dark is historical; values are BRIGHT now. ─────────── */
   .register-dark {
-    --ae-bg:            #EAF4FC;
-    --ae-surface:       #FFFFFF;
-    --ae-surface-2:     #E1EEF9;
-    --ae-surface-3:     #CDE3F4;
-    --ae-line:          rgba(11, 36, 52, 0.12);
-    --ae-line-strong:   rgba(11, 36, 52, 0.30);
-    --ae-text:          #0B2434;
-    --ae-text-2:        #3A5A6E;
-    --ae-text-3:        #63808F;
+    --ae-bg:            #F1EBDB;
+    --ae-surface:       #FFFDF6;
+    --ae-surface-2:     #EAE2CC;
+    --ae-surface-3:     #DFD3B4;
+    --ae-line:          rgba(20, 16, 25, 0.12);
+    --ae-line-strong:   rgba(20, 16, 25, 0.30);
+    --ae-text:          #141019;
+    --ae-text-2:        #55503F;
+    --ae-text-3:        #8A8270;
 
-    --ae-primary:        #0D9488;
-    --ae-primary-active: #0B7F75;
+    --ae-primary:        #2C49E0;
+    --ae-primary-active: #1E33A8;
     --ae-on-primary:     #FFFFFF;
 
-    --ae-sky-ink:   #0369A1;
-    --ae-teal-ink:  #0B7065;
-    --ae-amber-ink: #7E5A20;
+    --ae-sky-ink:   #4C28A8;
+    --ae-teal-ink:  #1E33A8;
+    --ae-amber-ink: #8A6410;
     --ae-rust-ink:  var(--ae-amber-ink);
     --ae-rose-ink:  #BE185D;
 
-    --ae-sky-bg:     rgba(56, 189, 248, 0.16);
-    --ae-teal-bg:    rgba(13, 148, 136, 0.10);
-    --ae-amber-bg:   rgba(184, 134, 60, 0.14);
+    --ae-sky-bg:     rgba(111, 63, 228, 0.14);
+    --ae-teal-bg:    rgba(44, 73, 224, 0.10);
+    --ae-amber-bg:   rgba(239, 175, 27, 0.15);
     --ae-rust-bg:    var(--ae-amber-bg);
     --ae-rose-bg:    rgba(236, 72, 153, 0.10);
-    --ae-neutral-bg: rgba(11, 36, 52, 0.05);
-    --ae-amber-soft:  rgba(184, 134, 60, 0.55);
-    --ae-amber-soft2: rgba(184, 134, 60, 0.30);
+    --ae-neutral-bg: rgba(20, 16, 25, 0.05);
+    --ae-amber-soft:  rgba(239, 175, 27, 0.55);
+    --ae-amber-soft2: rgba(239, 175, 27, 0.30);
     --ae-rose-soft:   rgba(236, 72, 153, 0.55);
     --ae-rose-soft2:  rgba(236, 72, 153, 0.30);
 
-    --ae-focus: rgba(2, 132, 199, 0.35);
+    --ae-focus: rgba(44, 73, 224, 0.35);
 
-    --ae-shadow-button:    0 1px 2px rgba(11, 36, 52, 0.12);
-    --ae-shadow-card:      0 1px 2px rgba(11, 36, 52, 0.06);
-    --ae-shadow-card-elev: 0 8px 28px rgba(11, 36, 52, 0.12);
-    --ae-shadow-overlay:   0 16px 48px rgba(11, 36, 52, 0.18);
+    --ae-shadow-button:    0 1px 2px rgba(20, 16, 25, 0.12);
+    --ae-shadow-card:      0 1px 2px rgba(20, 16, 25, 0.06);
+    --ae-shadow-card-elev: 0 8px 28px rgba(20, 16, 25, 0.12);
+    --ae-shadow-overlay:   0 16px 48px rgba(20, 16, 25, 0.18);
 
-    /* shadcn bridge — daylight app values */
-    --background:   206 72% 95%;
-    --foreground:   203 65% 12%;
-    --card:         0 0% 100%;
-    --card-foreground: 203 65% 12%;
-    --primary:      174 84% 32%;           /* teal action */
+    /* shadcn bridge — landing beige, cobalt action */
+    --background:   44 42% 90%;
+    --foreground:   267 22% 8%;
+    --card:         47 100% 98%;
+    --card-foreground: 267 22% 8%;
+    --primary:      229 76% 53%;           /* cobalt action */
     --primary-foreground: 0 0% 100%;
-    --secondary:    206 65% 93%;
-    --secondary-foreground: 203 65% 12%;
-    --muted:        206 65% 93%;
-    --muted-foreground: 203 19% 47%;
-    --accent:       206 65% 91%;
-    --accent-foreground: 203 65% 12%;
+    --secondary:    44 38% 86%;
+    --secondary-foreground: 267 22% 8%;
+    --muted:        44 38% 86%;
+    --muted-foreground: 43 15% 40%;
+    --accent:       44 36% 82%;
+    --accent-foreground: 267 22% 8%;
     --destructive:  336 74% 42%;
     --destructive-foreground: 0 0% 100%;
-    --border:       203 65% 12% / 0.12;
-    --input:        203 65% 12% / 0.16;
-    --ring:         199 89% 48%;
+    --border:       267 22% 8% / 0.12;
+    --input:        267 22% 8% / 0.16;
+    --ring:         229 76% 53%;
 
     color-scheme: light;
   }
 
-  html { color-scheme: light; }
-  * { @apply border-border; box-sizing: border-box; }
+  html { color-scheme: light;
+    @apply font-sans; }
+  * { @apply border-border outline-ring/50; box-sizing: border-box; }
 
   body {
     background: var(--ae-bg);
@@ -179,6 +199,7 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     font-feature-settings: "cv11", "ss01";
+    @apply bg-background text-foreground;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -188,7 +209,7 @@
     letter-spacing: -0.01em;
   }
 
-  ::selection { background: rgba(56, 189, 248, 0.30); }
+  ::selection { background: rgba(111, 63, 228, 0.25); }
 
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
@@ -196,6 +217,43 @@
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
     }
+  }
+  .theme {
+    --font-heading:   var(--font-sans);
+    --font-sans:   var(--font-sans);
+  }
+  .dark {
+    --background:   oklch(0.145 0 0);
+    --foreground:   oklch(0.985 0 0);
+    --card:   oklch(0.205 0 0);
+    --card-foreground:   oklch(0.985 0 0);
+    --popover:   oklch(0.205 0 0);
+    --popover-foreground:   oklch(0.985 0 0);
+    --primary:   oklch(0.922 0 0);
+    --primary-foreground:   oklch(0.205 0 0);
+    --secondary:   oklch(0.269 0 0);
+    --secondary-foreground:   oklch(0.985 0 0);
+    --muted:   oklch(0.269 0 0);
+    --muted-foreground:   oklch(0.708 0 0);
+    --accent:   oklch(0.269 0 0);
+    --accent-foreground:   oklch(0.985 0 0);
+    --destructive:   oklch(0.704 0.191 22.216);
+    --border:   oklch(1 0 0 / 10%);
+    --input:   oklch(1 0 0 / 15%);
+    --ring:   oklch(0.556 0 0);
+    --chart-1:   oklch(0.87 0 0);
+    --chart-2:   oklch(0.556 0 0);
+    --chart-3:   oklch(0.439 0 0);
+    --chart-4:   oklch(0.371 0 0);
+    --chart-5:   oklch(0.269 0 0);
+    --sidebar:   oklch(0.205 0 0);
+    --sidebar-foreground:   oklch(0.985 0 0);
+    --sidebar-primary:   oklch(0.488 0.243 264.376);
+    --sidebar-primary-foreground:   oklch(0.985 0 0);
+    --sidebar-accent:   oklch(0.269 0 0);
+    --sidebar-accent-foreground:   oklch(0.985 0 0);
+    --sidebar-border:   oklch(1 0 0 / 10%);
+    --sidebar-ring:   oklch(0.556 0 0);
   }
 }
 
@@ -341,8 +399,8 @@
 .signature-dark {
   border-radius: 12px;
   padding: 48px;
-  color: #EAF4FC;
-  background: #0B2434;
+  color: #F0EBDF;
+  background: #171320;
   border: 1px solid rgba(242, 248, 254, 0.08);
 }
 
@@ -744,16 +802,16 @@
    disruption) so the demo previews the actual product. Fixed palette,
    independent of the page stage themes. ─────────────────────────── */
 .demo-screen {
-  --dk-bg:      #F5F9FD;
-  --dk-panel:   #FFFFFF;
-  --dk-panel-2: #F0F5FA;
-  --dk-line:    rgba(11, 36, 52, 0.12);
-  --dk-text:    #0B2434;
-  --dk-muted:   #63808F;
-  --dk-blue:    #0369A1;
+  --dk-bg:      #F7F3E8;
+  --dk-panel:   #FFFDF6;
+  --dk-panel-2: #EFE8D6;
+  --dk-line:    rgba(20, 16, 25, 0.12);
+  --dk-text:    #141019;
+  --dk-muted:   #8A8270;
+  --dk-blue:    #1E33A8;
   --dk-rose:    #EC4899;
-  --dk-amber:   #B8863C;
-  --dk-teal:    #0D9488;
+  --dk-amber:   #EFAF1B;
+  --dk-teal:    #2C49E0;
 
   background: var(--dk-bg);
   border: 1px solid rgba(26, 22, 34, 0.14);
@@ -803,7 +861,7 @@
   width: 22px;
   height: 22px;
   pointer-events: none;
-  filter: drop-shadow(0 2px 5px rgba(11, 36, 52, 0.35));
+  filter: drop-shadow(0 2px 5px rgba(20, 16, 25, 0.35));
 }
 .demo-click {
   position: absolute;
@@ -912,33 +970,170 @@
   .ae-event-tile:hover .ae-tile-chip { transform: none; }
 }
 
-/* Live pulse + blink — used by the flight detail panel and the selected
-   flight marker. The user asked for live/blinking indicators, so these are
-   intentional (a scoped exception to the "no pulsing dots in chrome" rule). */
-.ae-live-dot { animation: ae-live-pulse 1.6s ease-in-out infinite; }
-@keyframes ae-live-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.35; transform: scale(0.72); }
-}
-@keyframes ae-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
-@media (prefers-reduced-motion: reduce) {
-  .ae-live-dot { animation: none; }
-}
-
-/* Selected live-flight marker — expanding radar ring + blinking core, so a
-   clicked plane reads as "locked on" while the rest of the map dims. */
+/* Selected live-flight marker — a static lock-on ring. (All pulsing
+   "live dot" chrome was removed deliberately; state is carried by text
+   chips with WCAG-passing contrast instead of blinking pigment.) */
 .ae-livesel { position: relative; }
 .ae-livesel .ae-livesel-ring {
   position: absolute; left: 50%; top: 50%;
-  width: 14px; height: 14px; margin: -7px 0 0 -7px;
+  width: 22px; height: 22px; margin: -11px 0 0 -11px;
   border-radius: 999px; border: 2px solid var(--ae-teal);
-  animation: ae-radar 1.6s ease-out infinite;
+  opacity: 0.55;
 }
-.ae-livesel .ae-livesel-ring.delay { animation-delay: 0.8s; }
-@keyframes ae-radar {
-  0%   { transform: scale(1);   opacity: 0.85; }
-  100% { transform: scale(4.2); opacity: 0; }
+.ae-livesel .ae-livesel-ring.delay { display: none; }
+
+/* ══════════════════════════════════════════════════════════════════
+   Maestro kit — curvy surfaces, punched-out text, sweeping hover
+   borders. Shared by the landing (lp-mrow ancestor) AND the dashboard
+   so both registers speak the same visual language.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Punched-out label: solid ink pill, paper-colored type — reads as text
+   die-cut from the surface. Ink-on-paper pair passes WCAG AAA. */
+.ae-punch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--ae-text, #141019);
+  color: var(--ae-bg, #F5F0E3);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-family: var(--ae-font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+/* Curvy card with the landing's hover lift + gradient border sweep. */
+.ae-maestro-card {
+  position: relative;
+  background: var(--ae-surface);
+  border: 1px solid var(--ae-line);
+  border-radius: 18px;
+  transition: transform 300ms cubic-bezier(0.22, 0.9, 0.28, 1), box-shadow 300ms ease;
+}
+.ae-maestro-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 22px 48px -26px rgba(20, 16, 25, 0.55);
+  z-index: 1;
+}
+.ae-maestro-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  padding: 1.6px;
+  background: linear-gradient(100deg, var(--ae-teal), var(--ae-sky), var(--ae-amber), var(--ae-teal));
+  background-size: 220% 100%;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 260ms ease;
+  pointer-events: none;
+}
+.ae-maestro-card:hover::after { opacity: 1; animation: lp-border-sweep 1.8s linear infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .ae-maestro-card:hover { transform: none; }
+  .ae-maestro-card:hover::after { animation: none; }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Boarding-pass ticket — the flight inspector format. White stock,
+   punch-hole notches at the perforation, dashed route line, barcode.
+   All type uses ink-on-white (WCAG AA+); icons are monochrome.
+   ══════════════════════════════════════════════════════════════════ */
+
+.ae-ticket {
+  position: relative;
+  background: #FFFFFF;
+  border: 1px solid var(--ae-line);
+  border-radius: 18px;
+  box-shadow: var(--ae-shadow-overlay);
+  overflow: hidden;
+}
+/* perforation row: side notches + dashed rule */
+.ae-ticket-perf {
+  position: relative;
+  height: 0;
+  border-top: 2px dashed rgba(20, 16, 25, 0.18);
+  margin: 0 18px;
+}
+.ae-ticket-perf::before,
+.ae-ticket-perf::after {
+  content: "";
+  position: absolute;
+  top: -9px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--ae-bg);
+  border: 1px solid var(--ae-line);
+}
+.ae-ticket-perf::before { left: -28px; }
+.ae-ticket-perf::after  { right: -28px; }
+
+/* CSS barcode — vertical ink stripes, no image needed */
+.ae-ticket-barcode {
+  height: 34px;
+  background: repeating-linear-gradient(
+    90deg,
+    #141019 0 2px, transparent 2px 4px,
+    #141019 4px 7px, transparent 7px 9px,
+    #141019 9px 10px, transparent 10px 14px,
+    #141019 14px 16px, transparent 16px 17px,
+    #141019 17px 21px, transparent 21px 24px
+  );
+  border-radius: 2px;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   macOS window chrome — wraps the landing demo console.
+   ══════════════════════════════════════════════════════════════════ */
+
+.mac-window {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(26, 22, 34, 0.18);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.6) inset, 0 30px 90px rgba(26, 22, 34, 0.20), 0 10px 32px rgba(26, 22, 34, 0.12);
+  transition: transform 320ms cubic-bezier(0.22, 0.9, 0.28, 1), box-shadow 320ms ease;
+}
+.mac-window:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.6) inset, 0 42px 110px rgba(26, 22, 34, 0.26), 0 14px 40px rgba(26, 22, 34, 0.14);
+}
+.mac-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 14px;
+  background: linear-gradient(180deg, #F3EEE2, #EAE3D2);
+  border-bottom: 1px solid rgba(26, 22, 34, 0.14);
+  flex-shrink: 0;
+}
+.mac-dot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.12); }
+.mac-dot--close { background: #FF5F57; }
+.mac-dot--min   { background: #FEBC2E; }
+.mac-dot--max   { background: #28C840; }
+.mac-title {
+  flex: 1;
+  text-align: center;
+  font-family: var(--ae-font-body);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #55503F;
+  letter-spacing: 0.01em;
+  /* keep centered despite the traffic lights on the left */
+  margin-right: 52px;
 }
 @media (prefers-reduced-motion: reduce) {
-  .ae-livesel .ae-livesel-ring { animation: none; opacity: 0.3; }
+  .mac-window:hover { transform: none; }
 }
+
+/* Demo console element-state UI — rows and cards respond like the real app */
+.dm-evrow-hot, .dm-plan { transition: transform 180ms cubic-bezier(0.22,0.9,0.28,1), background 160ms ease, border-color 160ms ease, box-shadow 180ms ease; }
+.dm-plan:hover { transform: translateY(-2px); border-color: var(--dk-teal) !important; box-shadow: 0 8px 20px -12px rgba(44, 73, 224, 0.5); }
+.dm-events .dm-evrow-hot:hover { background: rgba(236, 72, 153, 0.07); }

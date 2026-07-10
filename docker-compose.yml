@@ -74,6 +74,8 @@ services:
     restart: unless-stopped
     environment:
       NODE_ENV: production
+      # Server-side REST proxy target (container network, not browser-visible).
+      API_URL: http://aeolus-api:8000
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
       NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL:-ws://localhost:8000}
     ports:

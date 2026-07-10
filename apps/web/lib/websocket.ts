@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useRef, useState } from "react"
 import { useSimulationStore } from "@/stores/simulation"
+import { toWebSocketUrl } from "@/lib/backend-url"
 
 /**
  * Resolve the WebSocket base URL in priority order:
@@ -10,21 +11,21 @@ import { useSimulationStore } from "@/stores/simulation"
  *                          works even when no NEXT_PUBLIC_* was set at build time
  *  4. ws://localhost:8000 — local dev fallback
  */
-async function resolveWsUrl(): Promise<string> {
+async function resolveWsUrl(): Promise<string | null> {
   const explicit = process.env.NEXT_PUBLIC_WS_URL
-  if (explicit) return explicit
+  if (explicit) return toWebSocketUrl(explicit)
   const api = process.env.NEXT_PUBLIC_API_URL
-  if (api) return api.replace(/^http/, "ws")
+  if (api) return toWebSocketUrl(api)
 
   try {
     const res = await fetch("/api/ws-config", { cache: "no-store" })
     if (res.ok) {
       const { wsUrl } = (await res.json()) as { wsUrl: string | null }
-      if (wsUrl) return wsUrl
+      if (wsUrl) return toWebSocketUrl(wsUrl)
     }
   } catch {}
 
-  return "ws://localhost:8000"
+  return process.env.NODE_ENV === "development" ? "ws://localhost:8000" : null
 }
 
 export function useWebSocket() {
@@ -88,7 +89,7 @@ export function useWebSocket() {
     isMounted.current = true
 
     resolveWsUrl().then((url) => {
-      if (!isMounted.current) return
+      if (!isMounted.current || !url) return
       wsUrlRef.current = url
       connect(url)
     })

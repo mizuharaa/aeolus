@@ -165,6 +165,52 @@ export function useLiveCost(plan: RecoveryPlan | null | undefined): LiveCost {
   }
 }
 
+/**
+ * useIndecisionCost — "every minute you don't commit a plan costs $X".
+ *
+ * While a disruption is active and NO recovery plan has been applied, the
+ * network's currently-delayed flights burn cost at the same per-minute rates
+ * as useLiveCost (pax value-of-time + crew OT past 60 min — same constants,
+ * same conservative lower bound). Accrual is anchored to the event's
+ * `triggered_at`, so the number is derived, not integrated: reloading the
+ * page shows the same total.
+ */
+export function useIndecisionCost(): { active: boolean; ratePerMin: number; accrued: number } {
+  const { activeEvents, appliedPlanId, flightStates, schedule } = useSimulationStore()
+  const [, setTick] = useState(0)
+
+  const hasEvent = activeEvents.length > 0
+  const active = hasEvent && !appliedPlanId
+
+  // 1 Hz re-render while the meter is live — per-second precision is plenty.
+  useEffect(() => {
+    if (!active) return
+    const id = window.setInterval(() => setTick((t) => t + 1), 1000)
+    return () => window.clearInterval(id)
+  }, [active])
+
+  if (!active) return { active: false, ratePerMin: 0, accrued: 0 }
+
+  const paxByFlight = new Map<string, number>()
+  for (const f of schedule) paxByFlight.set(f.id, f.passengers ?? PAX_FALLBACK)
+
+  let rate = 0
+  for (const s of Object.values(flightStates)) {
+    if (s.status === "cancelled" || !(s.delay_minutes > 0)) continue
+    rate += (paxByFlight.get(s.flight_id) ?? PAX_FALLBACK) * PAX_DELAY_COST_PER_MIN_USD
+    if (s.delay_minutes >= CREW_OT_TRIGGER_MIN) rate += CREW_OT_PER_MIN_USD
+  }
+  if (rate === 0) return { active: false, ratePerMin: 0, accrued: 0 }
+
+  const triggeredMs = activeEvents
+    .map((e) => (e.triggered_at ? Date.parse(e.triggered_at) : NaN))
+    .filter((t) => Number.isFinite(t))
+    .sort((a, b) => a - b)[0]
+  const elapsedMin = Number.isFinite(triggeredMs) ? Math.max(0, (Date.now() - (triggeredMs as number)) / 60_000) : 0
+
+  return { active: true, ratePerMin: rate, accrued: rate * elapsedMin }
+}
+
 /** Format a dollar amount in the same idiom used across the dashboard. */
 export function fmtUsdShort(n: number): string {
   if (Math.abs(n) >= 1_000_000) return `$${(n / 1_000_000).toFixed(2)}M`

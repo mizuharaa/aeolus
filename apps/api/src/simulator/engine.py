@@ -8,12 +8,15 @@ optimizer, and broadcasts real-time updates to WebSocket subscribers.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
+
+from src.events.catalog import constraint_kind_for
 
 if TYPE_CHECKING:
     from fastapi import WebSocket
@@ -158,6 +161,7 @@ class SimulationEngine:
 
         # Simulation state
         self.state = SimulationState()
+        self._event_lock = asyncio.Lock()
 
         # Initialise per-flight state
         for fid in self.schedule:
@@ -166,6 +170,17 @@ class SimulationEngine:
     # ─── Public API ───────────────────────────────────────────────────────
 
     async def trigger_event(
+        self,
+        event: dict,
+        predictor: "CascadePredictor",
+        optimizer: "RecoveryOptimizer",
+        weather_client: "WeatherClient",
+    ) -> dict:
+        """Serialize state mutations while keeping the event loop responsive."""
+        async with self._event_lock:
+            return await self._trigger_event_unlocked(event, predictor, optimizer, weather_client)
+
+    async def _trigger_event_unlocked(
         self,
         event: dict,
         predictor: "CascadePredictor",
@@ -251,7 +266,8 @@ class SimulationEngine:
         constraints = self._event_to_constraints(event)
 
         # Run recovery optimizer
-        plans = optimizer.solve(
+        plans = await asyncio.to_thread(
+            optimizer.solve,
             schedule=flights_list,
             aircraft=list(self.aircraft.values()),
             crews=list(self.crews.values()),
@@ -283,6 +299,23 @@ class SimulationEngine:
 
         await self._broadcast(update)
         return update
+
+    async def cancel_event(self, event_id: str) -> bool:
+        """Remove an active event and notify every connected simulator view."""
+        remaining = [event for event in self.state.active_events if event.get("id") != event_id]
+        if len(remaining) == len(self.state.active_events):
+            return False
+
+        self.state.active_events = remaining
+        await self._broadcast(
+            {
+                "type": "event_cancelled",
+                "event_id": event_id,
+                "active_events": remaining,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+        )
+        return True
 
     def reset(self) -> None:
         """Reset simulation to clean initial state (no events, no delays)."""
@@ -482,7 +515,8 @@ class SimulationEngine:
 
     def _event_to_constraints(self, event: dict) -> list[dict]:
         """Convert a triggered event dict into optimizer constraint dicts."""
-        kind = event.get("kind", "")
+        original_kind = event.get("kind", "")
+        kind = constraint_kind_for(original_kind)
         params = event.get("params", {})
         constraints: list[dict] = []
 
@@ -588,6 +622,8 @@ class SimulationEngine:
                 }
             )
 
+        for constraint in constraints:
+            constraint["kind"] = original_kind
         return constraints
 
     def _compute_cascade_summary(self, predictions: dict[str, dict]) -> dict:

@@ -44,7 +44,6 @@ logger = logging.getLogger(__name__)
 
 AIRCRAFT_REPOSITION_COST = 8_000  # ferry flight, USD
 MAX_DELAY_MINUTES = 480  # solver upper bound for delay variable
-CPSAT_TIMEOUT_SECS = 8  # per-plan solver budget
 SPARE_POOL_CAP = 20  # cap spare aircraft considered (solver speed)
 
 # Plan D (Green) only. The per-seat carbon+service price of stranding the
@@ -235,7 +234,9 @@ class RecoveryOptimizer:
         # ── Build CP-SAT model ────────────────────────────────────────────────
         model = cp_model.CpModel()
         solver = cp_model.CpSolver()
-        solver.parameters.max_time_in_seconds = CPSAT_TIMEOUT_SECS
+        # SOLVER_TIMEOUT_SECS is a total request budget; divide it across the
+        # four plans so deployment configuration actually controls solve time.
+        solver.parameters.max_time_in_seconds = max(0.1, self.timeout_secs / len(PLAN_WEIGHTS))
         solver.parameters.num_search_workers = 4
         solver.parameters.log_search_progress = False
 

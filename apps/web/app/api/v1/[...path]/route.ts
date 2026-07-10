@@ -13,17 +13,32 @@
  * the Vercel build environment (baked at build time by Next.js).
  */
 import { NextRequest, NextResponse } from "next/server"
+import { getBackendUrl } from "@/lib/backend-config"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
+export const maxDuration = 60
 
-const BACKEND = () => {
-  const raw = process.env.API_URL || "http://localhost:8000"
-  return raw.startsWith("http") ? raw : `https://${raw}`
+function proxyTimeoutMs(): number {
+  const configured = Number(process.env.API_PROXY_TIMEOUT_MS || 55_000)
+  if (!Number.isFinite(configured)) return 55_000
+  return Math.min(55_000, Math.max(1_000, configured))
 }
 
 async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
-  const url = `${BACKEND()}/api/v1/${path.join("/")}${req.nextUrl.search}`
+  const backend = getBackendUrl()
+  if (!backend) {
+    return NextResponse.json(
+      {
+        detail:
+          "API backend is not configured. Set API_URL to the Railway service URL in Vercel.",
+      },
+      { status: 503 }
+    )
+  }
+
+  const encodedPath = path.map((part) => encodeURIComponent(part)).join("/")
+  const url = `${backend}/api/v1/${encodedPath}${req.nextUrl.search}`
 
   const init: RequestInit = { method: req.method }
 
@@ -34,14 +49,13 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
     init.body = await req.arrayBuffer()
   }
 
-  // 9-second abort so the Vercel function always responds before its 10s
-  // default timeout — prevents HTTP 000 (connection dropped) on slow upstreams.
+  // Recovery solves can legitimately take longer than a cold Railway startup.
+  // Keep this just under maxDuration so the proxy can return a structured 504.
   const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), 9000)
+  const timer = setTimeout(() => controller.abort(), proxyTimeoutMs())
 
   try {
     const upstream = await fetch(url, { ...init, signal: controller.signal })
-    clearTimeout(timer)
     const body = await upstream.arrayBuffer()
     return new NextResponse(body, {
       status: upstream.status,
@@ -50,12 +64,18 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
       },
     })
   } catch (e) {
-    clearTimeout(timer)
     const isTimeout = e instanceof Error && e.name === "AbortError"
+    const message = e instanceof Error ? e.message : String(e)
     return NextResponse.json(
-      { detail: isTimeout ? "upstream timeout" : `Proxy error: ${String(e)}` },
+      {
+        detail: isTimeout
+          ? "The API did not respond before the proxy timeout. Check Railway logs and service health."
+          : `Unable to reach the API backend: ${message}`,
+      },
       { status: isTimeout ? 504 : 502 }
     )
+  } finally {
+    clearTimeout(timer)
   }
 }
 

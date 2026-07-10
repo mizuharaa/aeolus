@@ -10,7 +10,7 @@
 import { useLayoutEffect, useRef } from "react"
 import { motion, useReducedMotion } from "framer-motion"
 import { ArrowDown } from "lucide-react"
-import { gsap } from "@/components/landing/gsap"
+import { gsap, ScrollTrigger } from "@/components/landing/gsap"
 import { AeolusMark } from "@/components/ds/logo"
 import { MaskedWordmark } from "@/components/landing/masked-wordmark"
 import { EASE } from "@/components/landing/motion"
@@ -33,6 +33,40 @@ export function OpeningWordmarkStage() {
         ease: "none",
         scrollTrigger: { trigger: root, start: "top top", end: "bottom top", scrub: 0.5 },
       })
+
+      // The stage sits under the CabinOpening/SplinePlane layers until the
+      // fly-through is done, so its reveal is scroll-scrubbed (not played
+      // blind on mount): the whole composition blends in while the plane
+      // climbs, and the AEOLUS letters wipe in left → right.
+      const vh = () => window.innerHeight
+      // hold the stage on screen while the cabin fly-through + plane climb
+      // play above it; it starts scrolling once the sequence resolves
+      ScrollTrigger.create({
+        trigger: root,
+        start: "top top",
+        end: () => "+=" + vh() * 1.7,
+        pin: true,
+      })
+      gsap.fromTo(
+        root,
+        { autoAlpha: 0 },
+        {
+          autoAlpha: 1,
+          ease: "none",
+          immediateRender: true,
+          scrollTrigger: { start: () => vh() * 1.0, end: () => vh() * 1.35, scrub: 0.5 },
+        },
+      )
+      gsap.fromTo(
+        wm,
+        { clipPath: "inset(0 100% 0 0)" },
+        {
+          clipPath: "inset(0 0% 0 0)",
+          ease: "none",
+          immediateRender: true,
+          scrollTrigger: { start: () => vh() * 1.05, end: () => vh() * 1.45, scrub: 0.5 },
+        },
+      )
     }, root)
     return () => ctx.revert()
   }, [])

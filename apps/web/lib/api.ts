@@ -5,33 +5,42 @@
 // Note: NEXT_PUBLIC_API_URL is still used by websocket.ts for WS URL derivation.
 const API_URL = ""
 
+async function request<T>(path: string, init?: RequestInit): Promise<{ data: T }> {
+  const url = `${API_URL}/api/v1${path.startsWith("/") ? path : `/${path}`}`
+  let res: Response
+
+  try {
+    res = await fetch(url, { cache: "no-store", ...init })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    throw new Error(`Unable to reach the Aeolus API (${message})`)
+  }
+
+  if (!res.ok) {
+    const payload = (await res.json().catch(() => null)) as { detail?: string } | null
+    throw new Error(payload?.detail || `API request failed with status ${res.status}`)
+  }
+
+  if (res.status === 204) return { data: undefined as T }
+  return { data: (await res.json()) as T }
+}
+
 export const apiClient = {
   async get<T = unknown>(path: string): Promise<{ data: T }> {
-    const res = await fetch(`${API_URL}/api/v1${path}`, {
-      cache: "no-store",
-    })
-    if (!res.ok) throw new Error(`API error: ${res.status}`)
-    return { data: (await res.json()) as T }
+    return request<T>(path)
   },
 
   async post<T = unknown>(path: string, body?: unknown): Promise<{ data: T }> {
-    const res = await fetch(`${API_URL}/api/v1${path}`, {
+    return request<T>(path, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: body !== undefined ? JSON.stringify(body) : undefined,
     })
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}))
-      throw new Error((err as { detail?: string }).detail || `API error: ${res.status}`)
-    }
-    return { data: (await res.json()) as T }
   },
 
   async del<T = unknown>(path: string): Promise<{ data: T }> {
-    const res = await fetch(`${API_URL}/api/v1${path}`, {
+    return request<T>(path, {
       method: "DELETE",
     })
-    if (!res.ok) throw new Error(`API error: ${res.status}`)
-    return { data: (await res.json()) as T }
   },
 }

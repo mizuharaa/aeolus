@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from src.events.airspace_closure import AirspaceClosureEvent
 from src.events.atc_staffing import ATCStaffingEvent
 from src.events.base import DisruptionEvent, EventKind
+from src.events.catalog import EVENT_DEFAULTS, normalize_event_params
 from src.events.crew_sickout import CrewSickoutEvent
 from src.events.cyber_incident import CyberIncidentEvent
 from src.events.ground_stop import GroundStopEvent
@@ -19,11 +20,22 @@ from src.events.weather_closure import WeatherClosureEvent
 
 EVENT_REGISTRY: dict[EventKind, type[DisruptionEvent]] = {
     EventKind.WEATHER_CLOSURE: WeatherClosureEvent,
+    EventKind.THUNDERSTORM: WeatherClosureEvent,
+    EventKind.BLIZZARD: WeatherClosureEvent,
+    EventKind.SANDSTORM: WeatherClosureEvent,
+    EventKind.DENSE_FOG: WeatherClosureEvent,
+    EventKind.WIND_SHEAR: WeatherClosureEvent,
+    EventKind.HURRICANE: WeatherClosureEvent,
     EventKind.GROUND_STOP: GroundStopEvent,
     EventKind.AIRSPACE_CLOSURE: AirspaceClosureEvent,
     EventKind.SECURITY_EVENT: SecurityEvent,
+    EventKind.AIRPORT_EMERGENCY: SecurityEvent,
     EventKind.MECHANICAL_AOG: MechanicalAOGEvent,
+    EventKind.BIRD_STRIKE: MechanicalAOGEvent,
+    EventKind.DEICING_SHORTAGE: RunwayClosureEvent,
+    EventKind.FUEL_CONTAMINATION: WeatherClosureEvent,
     EventKind.CREW_SICKOUT: CrewSickoutEvent,
+    EventKind.LABOR_ACTION: CrewSickoutEvent,
     EventKind.RUNWAY_CLOSURE: RunwayClosureEvent,
     EventKind.ATC_STAFFING: ATCStaffingEvent,
     EventKind.VOLCANIC_ASH: VolcanicAshEvent,
@@ -34,7 +46,12 @@ EVENT_REGISTRY: dict[EventKind, type[DisruptionEvent]] = {
 DEFAULT_SCENARIOS: dict[str, dict] = {}
 for _kind, _cls in EVENT_REGISTRY.items():
     try:
-        DEFAULT_SCENARIOS[_kind.value] = _cls.default_scenario()
+        _scenario = _cls.default_scenario()
+        DEFAULT_SCENARIOS[_kind.value] = {
+            **_scenario,
+            "kind": _kind.value,
+            "params": EVENT_DEFAULTS[_kind.value],
+        }
     except NotImplementedError:
         pass
 
@@ -72,7 +89,7 @@ def create_event(
         id=event_id or str(uuid.uuid4()),
         kind=event_kind,
         triggered_at=triggered_at or datetime.now(timezone.utc),
-        params=params,
+        params=normalize_event_params(kind, params),
     )
 
 

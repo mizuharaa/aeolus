@@ -177,11 +177,10 @@ export function NotificationBell() {
         <Bell style={{ width: 16, height: 16 }} strokeWidth={1.9} />
         {badge > 0 && (
           <span
-            className="ae-live-dot"
             style={{
               position: "absolute", top: -5, right: -5, minWidth: 16, height: 16, padding: "0 4px",
               borderRadius: 99, background: imminent.length > 0 ? "var(--ae-teal)" : "var(--ae-amber)",
-              color: "#fff", fontSize: 9.5, fontWeight: 700, fontFamily: ff.mono,
+              color: imminent.length > 0 ? "#fff" : "#141019", fontSize: 9.5, fontWeight: 700, fontFamily: ff.mono,
               display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1,
               boxShadow: "0 0 0 2px var(--ae-bg)",
             }}
@@ -252,7 +251,7 @@ export function NotificationBell() {
                       key={a.key}
                       onClick={() => { setSelectedLiveFlight(a.flight); setOpen(false) }}
                       className="ae-event-tile"
-                      style={{ ["--tile-accent" as string]: "#0D9488", display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", textAlign: "left" }}
+                      style={{ ["--tile-accent" as string]: "#2C49E0", display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", textAlign: "left" }}
                     >
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 30, height: 30, borderRadius: 8, background: "var(--ae-teal-bg)", color: "var(--ae-teal-ink)", flexShrink: 0 }}>
                         <PlaneLanding style={{ width: 15, height: 15 }} strokeWidth={2} />
@@ -292,7 +291,7 @@ export function NotificationBell() {
               <div style={{ display: "grid", gap: 6, marginBottom: live.length ? 10 : 0 }}>
                 {activeEvents.map((ev) => (
                   <div key={ev.id} style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 10px", borderRadius: 10, background: "var(--ae-rose-bg, var(--ae-amber-bg))", border: "1px solid var(--ae-amber)" }}>
-                    <span style={{ width: 8, height: 8, borderRadius: 99, background: "var(--ae-amber)", flexShrink: 0 }} className="ae-live-dot" />
+                    <span style={{ width: 8, height: 8, borderRadius: 99, background: "var(--ae-amber)", flexShrink: 0 }} />
                     <span style={{ minWidth: 0, flex: 1 }}>
                       <span style={{ display: "block", fontSize: 12, fontWeight: 650, color: c.ink }}>{ev.kind.replace(/_/g, " ")} <span style={{ fontSize: 9, fontWeight: 600, color: "var(--ae-teal-ink)" }}>· SIM</span></span>
                       <span style={{ display: "block", fontSize: 10, color: c.muted }}>

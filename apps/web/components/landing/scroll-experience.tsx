@@ -23,11 +23,16 @@ import { StoryMarquee } from "@/components/landing/marquee"
 import { CinematicSimulatorDemo } from "@/components/landing/demo/cinematic-simulator-demo"
 import { FourPlansSection } from "@/components/landing/four-plans"
 import { MethodologySection } from "@/components/landing/methodology-section"
+import { PricingSection } from "@/components/landing/pricing"
 import { TrustedBy } from "@/components/landing/trusted-by"
 import { FinalCTAStage } from "@/components/landing/final-cta-stage"
 import { LandingFooter } from "@/components/landing/footer"
 
-// three.js only on the client, and only when the hero is in play
+// 3D layers only on the client
+const CabinOpening = dynamic(
+  () => import("@/components/landing/cabin-opening").then((m) => m.CabinOpening),
+  { ssr: false },
+)
 const HeroPlane3D = dynamic(
   () => import("@/components/landing/hero-plane-3d").then((m) => m.HeroPlane3D),
   { ssr: false },
@@ -107,6 +112,7 @@ export function LandingScrollExperience() {
     <main ref={wrapRef} className="lp" style={{ position: "relative" }}>
       <LandingAtmosphere />
       <HeroPlane3D />
+      <CabinOpening />
       <LandingNav />
       {/* content sits above the fixed atmosphere/plane layers */}
       <div style={{ position: "relative", zIndex: 2 }}>
@@ -116,6 +122,7 @@ export function LandingScrollExperience() {
         <CinematicSimulatorDemo />
         <FourPlansSection />
         <MethodologySection />
+        <PricingSection />
         <TrustedBy />
         <FinalCTAStage />
         <LandingFooter />

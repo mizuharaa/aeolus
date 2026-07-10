@@ -9,14 +9,15 @@
  * var was embedded at build time.
  */
 import { NextResponse } from "next/server"
+import { getBackendUrl } from "@/lib/backend-config"
+import { toWebSocketUrl } from "@/lib/backend-url"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 export async function GET() {
-  const raw = process.env.API_URL || ""
-  if (!raw) return NextResponse.json({ wsUrl: null })
-  const withScheme = raw.startsWith("http") ? raw : `https://${raw}`
-  const wsUrl = withScheme.replace(/^http/, "ws")
+  const wsUrl =
+    toWebSocketUrl(process.env.NEXT_PUBLIC_WS_URL) ??
+    toWebSocketUrl(getBackendUrl() ?? undefined)
   return NextResponse.json({ wsUrl })
 }

@@ -45,7 +45,7 @@ import {
 const STATUS = [
   { label: "Nominal", color: "var(--dk-teal)" },
   { label: "Disrupted", color: "var(--dk-rose)" },
-  { label: "Recovering", color: "#B8863C" },
+  { label: "Recovering", color: "#EFAF1B" },
   { label: "Stable", color: "var(--dk-teal)" },
 ]
 
@@ -165,7 +165,7 @@ export function CinematicSimulatorDemo() {
             const bob = held ? Math.sin(now / 240 + i * 1.3) * 2.2 : 0
             el.style.transform = `translate(${pt.x}px, ${(pt.y + bob).toFixed(2)}px)`
             glyphs[i].style.transform = `rotate(${bezAngle(path, s.t).toFixed(1)}deg)`
-            paint(i, held ? "var(--dk-amber)" : onReroute && phase === 2 ? "var(--dk-amber)" : "#0D9488")
+            paint(i, held ? "var(--dk-amber)" : onReroute && phase === 2 ? "var(--dk-amber)" : "#2C49E0")
             if (holds[i]) holds[i].style.opacity = held ? "1" : "0"
           }
           raf = requestAnimationFrame(frame)
@@ -262,8 +262,8 @@ export function CinematicSimulatorDemo() {
           10.4,
         )
         tl.to(q(".dm-c1"), { strokeDashoffset: 0, duration: 1.7, stagger: 0.16, ease: "sine.inOut" }, 10.5)
-        tl.to(q('[data-wave="1"] .dm-ap-dot'), { borderColor: "#B8863C", background: "#F7EAD5", duration: 0.6, stagger: 0.08 }, 11.4)
-        tl.to(q('[data-wave="2"] .dm-ap-dot'), { borderColor: "#B8863C", background: "#F7EAD5", duration: 0.6, stagger: 0.08 }, 13.2)
+        tl.to(q('[data-wave="1"] .dm-ap-dot'), { borderColor: "#EFAF1B", background: "#F7EAD5", duration: 0.6, stagger: 0.08 }, 11.4)
+        tl.to(q('[data-wave="2"] .dm-ap-dot'), { borderColor: "#EFAF1B", background: "#F7EAD5", duration: 0.6, stagger: 0.08 }, 13.2)
         tl.fromTo(q(".ag-line-1"), { opacity: 0, y: 4 }, { opacity: 1, y: 0, duration: 0.5 }, 12.9)
         tl.to(world, { x: "-=26", y: "-=12", duration: 6, ease: "none" }, 10.8)
 
@@ -287,7 +287,7 @@ export function CinematicSimulatorDemo() {
           { scale: 1.9, opacity: 0, duration: 0.7 },
           17.9,
         )
-        tl.to(q(".dm-plan-b"), { borderColor: "#0D9488", backgroundColor: "rgba(13, 148, 136, 0.08)", duration: 0.4 }, 18.1)
+        tl.to(q(".dm-plan-b"), { borderColor: "#2C49E0", backgroundColor: "rgba(44, 73, 224, 0.08)", duration: 0.4 }, 18.1)
         tl.to(q(".dm-plan:not(.dm-plan-b)"), { opacity: 0.5, duration: 0.5 }, 18.3)
         tl.to(q(".demo-cursor"), { opacity: 0, duration: 0.4 }, 18.9)
 
@@ -310,7 +310,7 @@ export function CinematicSimulatorDemo() {
         tl.to(q(".dm-rr"), { strokeDashoffset: 0, duration: 1.8, stagger: 0.3, ease: "sine.inOut" }, 18.9)
         tl.to(q(".dm-cascade"), { opacity: 0.22, duration: 1.5 }, 19.0)
         tl.to(q(".dm-ap-dot"), { borderColor: "#7E98A8", background: "#FFFFFF", duration: 1.2, stagger: 0.05 }, 19.8)
-        tl.to(q(".dm-ring"), { borderColor: "#0D9488", duration: 0.6 }, 21.2)
+        tl.to(q(".dm-ring"), { borderColor: "#2C49E0", duration: 0.6 }, 21.2)
         tl.fromTo(q(".ag-line-3"), { opacity: 0, y: 4 }, { opacity: 1, y: 0, duration: 0.5 }, 21.9)
         tl.fromTo(q(".dm-toast"), { y: -12, opacity: 0 }, { y: 0, opacity: 1, duration: 0.7, ease: "power3.out" }, 22.5)
         tl.to(q(".st-2"), { opacity: 0, duration: 0.4 }, 23.0)
@@ -439,13 +439,20 @@ export function CinematicSimulatorDemo() {
           transition={{ duration: 1.0, ease: EASE }}
         >
           <div
-            className="demo-screen dm-frame"
+            className="demo-screen dm-frame mac-window"
             style={{
               display: "flex",
               flexDirection: "column",
               height: "clamp(400px, 68vh, 720px)",
             }}
           >
+            {/* macOS window chrome */}
+            <div className="mac-titlebar" aria-hidden>
+              <span className="mac-dot mac-dot--close" />
+              <span className="mac-dot mac-dot--min" />
+              <span className="mac-dot mac-dot--max" />
+              <span className="mac-title">app.aeolus.ai — Operations Control</span>
+            </div>
             {/* top bar */}
             <div
               style={{
@@ -513,7 +520,7 @@ export function CinematicSimulatorDemo() {
                         padding: 7,
                         borderRadius: 8,
                         color: active ? "var(--dk-teal)" : "var(--dk-muted)",
-                        background: active ? "rgba(13, 148, 136, 0.10)" : "transparent",
+                        background: active ? "rgba(44, 73, 224, 0.10)" : "transparent",
                         transition: "color 300ms ease, background 300ms ease",
                       }}
                     >
@@ -630,7 +637,7 @@ export function CinematicSimulatorDemo() {
                     zIndex: 27,
                     padding: "9px 16px",
                     background: "rgba(255, 255, 255, 0.96)",
-                    borderColor: "rgba(13, 148, 136, 0.5)",
+                    borderColor: "rgba(44, 73, 224, 0.5)",
                     boxShadow: "0 8px 28px rgba(11, 36, 52, 0.10)",
                     fontSize: 12.5,
                     fontWeight: 550,
@@ -672,8 +679,8 @@ export function CinematicSimulatorDemo() {
                         key={p.id}
                         className={`dm-plan${p.id === "B" ? " dm-plan-b" : ""}`}
                         style={{
-                          border: `1px solid ${staticMode && p.id === "B" ? "#0D9488" : "var(--dk-line)"}`,
-                          background: staticMode && p.id === "B" ? "rgba(13, 148, 136, 0.08)" : "var(--dk-panel-2)",
+                          border: `1px solid ${staticMode && p.id === "B" ? "#2C49E0" : "var(--dk-line)"}`,
+                          background: staticMode && p.id === "B" ? "rgba(44, 73, 224, 0.08)" : "var(--dk-panel-2)",
                           borderRadius: 8,
                           padding: "8px 10px",
                           opacity: staticMode ? (p.id === "B" ? 1 : 0.55) : 0,

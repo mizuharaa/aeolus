@@ -7,7 +7,9 @@ from typing import Any
 
 import yaml
 from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+from src.events.catalog import normalize_event_params
 
 router = APIRouter()
 
@@ -16,7 +18,7 @@ SCENARIOS_DIR = Path(__file__).parent.parent.parent.parent.parent / "data" / "sc
 
 class TriggerRequest(BaseModel):
     kind: str
-    params: dict[str, Any] = {}
+    params: dict[str, Any] = Field(default_factory=dict)
 
 
 @router.post("/simulator/trigger")
@@ -30,24 +32,10 @@ async def trigger_disruption(payload: TriggerRequest, request: Request):
     if not engine:
         raise HTTPException(status_code=503, detail="Simulation engine not initialized")
 
-    DEFAULT_PARAMS = {
-        "weather_closure": {"airport": "KORD", "severity": "severe", "duration_hours": 4},
-        "ground_stop": {"airport": "KORD", "duration_hours": 3},
-        "airspace_closure": {"duration_hours": 24},
-        "security_event": {"airport": "KATL", "severity": "severe", "duration_hours": 3},
-        "mechanical_aog": {"aircraft_tail": "N001NB", "airport": "KATL", "duration_hours": 8},
-        "crew_sickout": {"base": "KORD", "percent_affected": 30, "duration_hours": 8},
-        "runway_closure": {
-            "airport": "KDFW",
-            "runway_id": "17L",
-            "capacity_cut_pct": 45,
-            "duration_hours": 6,
-        },
-        "atc_staffing": {"sector_or_airport": "KLAS", "capacity_pct": 40, "duration_hours": 5},
-        "volcanic_ash": {"duration_hours": 18, "severity": "severe"},
-        "cyber_incident": {"airline": "NimbusAir", "degradation_pct": 60, "duration_hours": 12},
-    }
-    merged = {**DEFAULT_PARAMS.get(payload.kind, {}), **payload.params}
+    try:
+        merged = normalize_event_params(payload.kind, payload.params)
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     event = {
         "id": str(uuid.uuid4()),
         "kind": payload.kind,
@@ -129,11 +117,18 @@ async def load_scenario(scenario_name: str, request: Request):
 
     results = []
     for ev_def in scenario.get("events", []):
+        try:
+            params = normalize_event_params(ev_def["kind"], ev_def.get("params", {}))
+        except (KeyError, TypeError, ValueError) as exc:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Scenario ''{scenario_name}'' contains an invalid event: {exc}",
+            ) from exc
         event = {
             "id": str(uuid.uuid4()),
             "kind": ev_def["kind"],
             "triggered_at": datetime.now(timezone.utc).isoformat(),
-            "params": ev_def.get("params", {}),
+            "params": params,
             "scenario": scenario_name,
         }
         if engine:

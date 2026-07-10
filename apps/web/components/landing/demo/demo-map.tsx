@@ -102,17 +102,20 @@ function DotCanvas() {
   )
 }
 
-/** Swept plane silhouette, nose pointing +x so heading = rotate(angle). */
+/** Airliner silhouette — fuselage, swept wings, tailplane — nose pointing
+ *  +x so heading = rotate(angle). Reads as a plane, not an arrow. */
 function PlaneGlyph() {
   return (
-    <svg viewBox="0 0 20 20" width={15} height={15} style={{ display: "block", overflow: "visible" }}>
-      <path
-        d="M19 10 L2 3.4 L6.6 10 L2 16.6 Z"
-        fill="currentColor"
-        stroke="rgba(255,255,255,0.85)"
-        strokeWidth={0.6}
-        strokeLinejoin="round"
-      />
+    <svg viewBox="0 0 24 24" width={16} height={16} style={{ display: "block", overflow: "visible" }}>
+      <g transform="rotate(90 12 12)">
+        <path
+          d="M21.5 15.5v-2l-8-5V3a1.5 1.5 0 0 0-3 0v5.5l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13.5 19v-6z"
+          fill="currentColor"
+          stroke="rgba(255,255,255,0.85)"
+          strokeWidth={0.5}
+          strokeLinejoin="round"
+        />
+      </g>
     </svg>
   )
 }
@@ -288,7 +291,7 @@ export function DemoMap({ staticMode }: { staticMode: boolean }) {
               />
               <span
                 className="dm-plane-glyph"
-                style={{ display: "block", margin: "-7px 0 0 -7px", transform: `rotate(${ang}deg)` }}
+                style={{ display: "block", margin: "-8px 0 0 -8px", transform: `rotate(${ang}deg)` }}
               >
                 <PlaneGlyph />
               </span>
