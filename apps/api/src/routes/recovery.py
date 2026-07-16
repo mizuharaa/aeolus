@@ -31,9 +31,21 @@ class ApplyRequest(BaseModel):
     plan_id: str | None = None
 
 
-def _load_network():
-    """Network tuple from the shared in-memory cache (read-only; the optimizer
-    does not mutate the schedule)."""
+def _load_network(engine=None):
+    """Network tuple (read-only; the optimizer does not mutate the schedule).
+
+    Prefers the ENGINE's working schedule/aircraft when available — the
+    engine may have been reseeded from live ADS-B traffic, and solving
+    against the static YAML cache would silently ignore that. Crew data
+    always comes from the cache (live traffic carries no pairings; the
+    optimizer tolerates flights without pairings)."""
+    if engine is not None:
+        return (
+            list(engine.schedule.values()),
+            list(engine.aircraft.values()),
+            cache.get_crew_pairings(),
+            cache.get_crew_members(),
+        )
     return (
         cache.get_flights(),
         cache.get_aircraft(),
@@ -54,7 +66,7 @@ async def solve_recovery(payload: SolveRequest, request: Request):
         raise HTTPException(status_code=503, detail="Optimizer not initialized")
 
     # Get schedule + active constraints
-    flights, aircraft, crews, _ = _load_network()
+    flights, aircraft, crews, _ = _load_network(engine)
     active_events = engine.state.active_events if engine else []
     constraints = []
     for ev in active_events:
@@ -153,7 +165,7 @@ async def explain_recovery_plan(payload: ExplainRequest, request: Request):
             status_code=404, detail=f"Plan {payload.plan_id} not found — solve first."
         )
 
-    flights, aircraft, _, _ = _load_network()
+    flights, aircraft, _, _ = _load_network(engine)
     active_events = engine.state.active_events if engine else []
     event_kind = active_events[0].get("kind", "") if active_events else ""
 
@@ -213,7 +225,7 @@ async def solve_crew_overbooking(request: Request):
     predictor = getattr(request.app.state, "predictor", None)
     weather = getattr(request.app.state, "weather", None)
 
-    flights, aircraft, crews, members = _load_network()
+    flights, aircraft, crews, members = _load_network(engine)
     flights_by_id = {f["id"]: f for f in flights}
 
     active_events: list[dict] = engine.state.active_events if engine else []

@@ -11,6 +11,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import random
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -23,6 +24,7 @@ if TYPE_CHECKING:
 
     from src.optimizer.milp import RecoveryOptimizer
     from src.predictor.cascade import CascadePredictor
+    from src.store.repository import ScenarioRepository
     from src.weather.client import WeatherClient
 
 logger = logging.getLogger(__name__)
@@ -151,6 +153,7 @@ class SimulationEngine:
         schedule: list[dict],
         aircraft: list[dict],
         crews: list[dict],
+        repository: "ScenarioRepository | None" = None,
     ):
         # Immutable network data (aircraft/crews)
         self.aircraft: dict[str, dict] = {a["id"]: a.copy() for a in aircraft}
@@ -166,6 +169,67 @@ class SimulationEngine:
         # Initialise per-flight state
         for fid in self.schedule:
             self.state.flight_states[fid] = self._default_flight_state(fid)
+
+        # ── Persistence ─────────────────────────────────────────────────
+        # `repository`, when set, gets a snapshot after every state
+        # transition (trigger/cancel/apply/unapply/reset) so a restart can
+        # restore the timeline instead of losing it. One "scenario" spans
+        # the engine's life between resets; a fresh scenario_id + RNG seed
+        # is minted lazily on the first event triggered after boot/reset.
+        self._repo = repository
+        self.scenario_id: str | None = None
+        self.rng_seed: int | None = None
+        self._event_seq = 0
+
+    def restore_from_repository(self) -> bool:
+        """On boot, resume the most recent open scenario if the repository
+        has one. Returns True if state was restored."""
+        if self._repo is None:
+            return False
+        record = self._repo.load_latest_open_scenario()
+        if record is None or record.state is None:
+            return False
+        self.scenario_id = record.id
+        self.rng_seed = record.seed
+        self._event_seq = len(record.events)
+        self._restore_state_dict(record.state)
+        logger.info(
+            "Restored scenario %s (%s) — %d events, %d recovery plans",
+            record.id,
+            record.kind,
+            len(record.events),
+            len(self.state.recovery_plans),
+        )
+        return True
+
+    def to_state_dict(self) -> dict:
+        """Serialize the mutable SimulationState for persistence."""
+        return {
+            "sim_time": self.state.sim_time.isoformat(),
+            "active_events": self.state.active_events,
+            "flight_states": self.state.flight_states,
+            "recovery_plans": self.state.recovery_plans,
+            "cascade_summary": self.state.cascade_summary,
+            "applied_plan_id": self.state.applied_plan_id,
+            "flight_states_pre_apply": self.state.flight_states_pre_apply,
+            "is_running": self.state.is_running,
+            "event_history": self.state.event_history,
+        }
+
+    def _restore_state_dict(self, data: dict) -> None:
+        self.state.sim_time = datetime.fromisoformat(data["sim_time"])
+        self.state.active_events = data.get("active_events", [])
+        self.state.flight_states = data.get("flight_states", {})
+        self.state.recovery_plans = data.get("recovery_plans", [])
+        self.state.cascade_summary = data.get("cascade_summary", {})
+        self.state.applied_plan_id = data.get("applied_plan_id")
+        self.state.flight_states_pre_apply = data.get("flight_states_pre_apply", {})
+        self.state.is_running = data.get("is_running", False)
+        self.state.event_history = data.get("event_history", [])
+
+    def _snapshot(self) -> None:
+        if self._repo is not None and self.scenario_id is not None:
+            self._repo.snapshot(self.scenario_id, self.to_state_dict())
 
     # ─── Public API ───────────────────────────────────────────────────────
 
@@ -193,14 +257,22 @@ class SimulationEngine:
         Returns the full simulation update payload that is also broadcast to
         all connected WebSocket clients.
         """
-        # Stamp the event
+        # Stamp the event. A replayed event already carries its original id
+        # and triggered_at — overwriting them here was the main source of
+        # replay drift, since the cascade predictor's RNG seed is derived
+        # from the event's own content (see CascadePredictor._rotation_predict).
         event = {
             **event,
             "id": event.get("id") or str(uuid.uuid4()),
-            "triggered_at": datetime.now(timezone.utc).isoformat(),
+            "triggered_at": event.get("triggered_at") or datetime.now(timezone.utc).isoformat(),
         }
         self.state.active_events.append(event)
         self.state.event_history.append(event)
+
+        if self._repo is not None and self.scenario_id is None:
+            self.scenario_id = str(uuid.uuid4())
+            self.rng_seed = random.SystemRandom().randrange(1, 2**32)
+            self._repo.create_scenario(self.scenario_id, event.get("kind", "unknown"), self.rng_seed)
 
         logger.info("Triggering event kind=%s id=%s", event.get("kind"), event["id"])
 
@@ -297,6 +369,11 @@ class SimulationEngine:
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
+        if self._repo is not None and self.scenario_id is not None:
+            self._repo.record_event(self.scenario_id, self._event_seq, event, metar_data)
+            self._event_seq += 1
+        self._snapshot()
+
         await self._broadcast(update)
         return update
 
@@ -307,6 +384,7 @@ class SimulationEngine:
             return False
 
         self.state.active_events = remaining
+        self._snapshot()
         await self._broadcast(
             {
                 "type": "event_cancelled",
@@ -327,7 +405,40 @@ class SimulationEngine:
         self.state.applied_plan_id = None
         self.state.flight_states_pre_apply = {}
         # Keep event_history for audit log
+
+        # Close out the persisted scenario (if any) — the next triggered
+        # event mints a fresh scenario_id/seed rather than appending to a
+        # timeline that's just been wiped.
+        if self._repo is not None and self.scenario_id is not None:
+            self._repo.close_scenario(self.scenario_id)
+        self.scenario_id = None
+        self.rng_seed = None
+        self._event_seq = 0
         logger.info("Simulation state reset")
+
+    def reseed(self, schedule: list[dict], aircraft: list[dict]) -> None:
+        """Replace the working schedule + fleet (e.g. with one derived from a
+        live ADS-B snapshot) and re-initialise per-flight state. Events,
+        plans, and the persisted scenario are cleared — same lifecycle as
+        reset(). Crews are left untouched: live traffic carries no pairings,
+        and both the predictor and the optimizer tolerate flights without
+        pairings (they just report zero crew violations)."""
+        self.schedule = {f["id"]: f.copy() for f in schedule}
+        self.aircraft = {a["id"]: a.copy() for a in aircraft}
+        self.state.flight_states = {
+            fid: self._default_flight_state(fid) for fid in self.schedule
+        }
+        self.state.active_events.clear()
+        self.state.recovery_plans.clear()
+        self.state.cascade_summary = {}
+        self.state.applied_plan_id = None
+        self.state.flight_states_pre_apply = {}
+        if self._repo is not None and self.scenario_id is not None:
+            self._repo.close_scenario(self.scenario_id)
+        self.scenario_id = None
+        self.rng_seed = None
+        self._event_seq = 0
+        logger.info("Simulation reseeded — %d flights now in the working schedule", len(self.schedule))
 
     # ── Apply / unapply a recovery plan ───────────────────────────────────────
     #
@@ -408,6 +519,7 @@ class SimulationEngine:
         # Refresh the cascade summary so secondary pages reading
         # cascadeSummary.total_affected get the post-apply view.
         self.state.cascade_summary = self._cascade_summary_from_states()
+        self._snapshot()
 
         update = {
             "type": "plan_applied",
@@ -439,6 +551,8 @@ class SimulationEngine:
             self.state.flight_states_pre_apply = {}
             self.state.applied_plan_id = None
             self.state.cascade_summary = self._cascade_summary_from_states()
+
+        self._snapshot()
 
         update = {
             "type": "plan_unapplied",

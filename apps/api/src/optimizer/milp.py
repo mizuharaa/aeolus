@@ -123,11 +123,24 @@ class RecoveryOptimizer:
 
     PLAN_WEIGHTS = PLAN_WEIGHTS
 
-    def __init__(self, timeout_secs: int = 30, use_fallback: bool = True):
+    def __init__(
+        self,
+        timeout_secs: int = 30,
+        use_fallback: bool = True,
+        deterministic: bool = False,
+    ):
         self.timeout_secs = timeout_secs
         self.use_fallback = use_fallback
         self.legality_engine = CrewLegalityEngine()
         self.calc = AirlineDelayCalculator()
+        # CP-SAT's parallel portfolio search (num_search_workers > 1) races
+        # worker threads against the wall clock — under a time limit that can
+        # return different (still-feasible) solutions run to run. Replay
+        # needs the solve itself pinned, not just its inputs, so a
+        # deterministic optimizer runs single-threaded with a fixed seed.
+        # Production keeps num_search_workers=4 for solve speed; this is
+        # opt-in only, so /simulator API responses are unchanged.
+        self.deterministic = deterministic
 
     # ── Public API ────────────────────────────────────────────────────────────
 
@@ -237,8 +250,12 @@ class RecoveryOptimizer:
         # SOLVER_TIMEOUT_SECS is a total request budget; divide it across the
         # four plans so deployment configuration actually controls solve time.
         solver.parameters.max_time_in_seconds = max(0.1, self.timeout_secs / len(PLAN_WEIGHTS))
-        solver.parameters.num_search_workers = 4
         solver.parameters.log_search_progress = False
+        if self.deterministic:
+            solver.parameters.num_search_workers = 1
+            solver.parameters.random_seed = 42
+        else:
+            solver.parameters.num_search_workers = 4
 
         # Decision vars
         cancel: dict[str, cp_model.IntVar] = {fid: model.new_bool_var(f"x_{fid}") for fid in active}

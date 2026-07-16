@@ -137,8 +137,11 @@ docker compose up --build
 ```
 
 Two services start: `aeolus-api` (FastAPI, port 8000) and `aeolus-web`
-(Next.js, port 3000). No database or cache is provisioned — the API loads its
-network from YAML at startup.
+(Next.js, port 3000). No external database or cache is provisioned — the API
+loads its network from YAML at startup. Simulation/scenario state (disruption
+timeline, recovery plans) is persisted locally to `apps/api/state/aeolus.db`
+(SQLite) so a restart mid-scenario doesn't lose it; see
+`apps/api/NONDETERMINISM.md` for what replay does and doesn't pin.
 
 | Service | URL |
 |---|---|

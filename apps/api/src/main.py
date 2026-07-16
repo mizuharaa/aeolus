@@ -19,6 +19,7 @@ from src.routes import events, live, network, playtest, predict, recovery, simul
 from src.routes.flights import router as flights_router
 from src.routes.passengers import router as passengers_router
 from src.simulator.engine import SimulationEngine
+from src.store.repository import ScenarioRepository
 from src.weather.client import WeatherClient
 from src.ws.handlers import simulation_ws_handler
 
@@ -224,7 +225,14 @@ async def lifespan(app: FastAPI):
 
     # Load network
     flights, aircraft, crews = _load_network()
-    engine = SimulationEngine(flights, aircraft, crews)
+
+    # Scenario persistence — snapshots the timeline + recovery plans on
+    # every transition so a restart mid-disruption doesn't lose them.
+    repo_path = Path(__file__).parent.parent / "state" / "aeolus.db"
+    repository = ScenarioRepository(repo_path)
+    engine = SimulationEngine(flights, aircraft, crews, repository=repository)
+    if engine.restore_from_repository():
+        logger.info("Resumed scenario %s from %s", engine.scenario_id, repo_path)
 
     # Attach to app state
     app.state.predictor = predictor
@@ -232,6 +240,7 @@ async def lifespan(app: FastAPI):
     app.state.weather = weather_client
     app.state.engine = engine
     app.state.opensky = opensky
+    app.state.repository = repository
 
     # Background tasks
     asyncio.create_task(weather_client.fetch_metars())
@@ -253,6 +262,7 @@ async def lifespan(app: FastAPI):
     yield
 
     await weather_client.close()
+    repository.close()
     logger.info("Aeolus API shut down cleanly")
 
 
