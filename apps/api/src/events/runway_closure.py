@@ -3,6 +3,8 @@ Runway closure disruption event.
 Models planned/unplanned runway closures that reduce airport capacity.
 """
 
+import hashlib
+import random
 from datetime import timedelta
 
 from src.events.base import DisruptionEvent, EventKind
@@ -123,11 +125,14 @@ class RunwayClosureEvent(DisruptionEvent):
             if self._flight_overlaps_window(flight, start, end, airport=airport):
                 candidates.append(flight)
 
-        # Return the portion of flights that will experience delays
-        # based on capacity cut (simplified linear model)
-        import random
-
-        random.seed(len(airport))
+        # Return a deterministic sample of the flights that will experience
+        # delays based on the capacity cut. Keep the RNG local to this event:
+        # seeding the module-level generator makes otherwise unrelated work
+        # depend on whether a runway-closure event ran first.
+        seed_src = f"{self.id}|{sorted(self.params.items())}".encode()
+        seed = int.from_bytes(hashlib.sha256(seed_src).digest()[:4], "big")
+        rng = random.Random(seed)
+        rng.shuffle(candidates)
         cutoff = len(candidates) * capacity_cut
         return candidates[: int(cutoff)]
 

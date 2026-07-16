@@ -1,5 +1,6 @@
 """Tests for all 10 disruption event types."""
 
+import random
 from datetime import datetime, timedelta
 
 from src.events.airspace_closure import AirspaceClosureEvent
@@ -247,6 +248,26 @@ class TestRunwayClosure:
         affected = ev.affected_flights(SAMPLE_SCHEDULE)
         for f in affected:
             assert f["origin"] == "KORD" or f["destination"] == "KORD"
+
+    def test_simulation_evaluation_does_not_touch_global_random_state(self):
+        ev = _make_event(
+            RunwayClosureEvent,
+            {"airport": "KORD", "runway_id": "10L", "capacity_cut_pct": 50, "duration_hours": 4},
+        )
+        state_before_test = random.getstate()
+        try:
+            random.seed(918273)
+            state_before_tick = random.getstate()
+
+            first_tick = ev.affected_flights(SAMPLE_SCHEDULE)
+            second_tick = ev.affected_flights(SAMPLE_SCHEDULE)
+
+            assert random.getstate() == state_before_tick
+            assert [flight["id"] for flight in first_tick] == [
+                flight["id"] for flight in second_tick
+            ]
+        finally:
+            random.setstate(state_before_test)
 
     def test_constraints_capacity(self):
         ev = _make_event(
