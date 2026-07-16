@@ -272,7 +272,9 @@ class SimulationEngine:
         if self._repo is not None and self.scenario_id is None:
             self.scenario_id = str(uuid.uuid4())
             self.rng_seed = random.SystemRandom().randrange(1, 2**32)
-            self._repo.create_scenario(self.scenario_id, event.get("kind", "unknown"), self.rng_seed)
+            self._repo.create_scenario(
+                self.scenario_id, event.get("kind", "unknown"), self.rng_seed
+            )
 
         logger.info("Triggering event kind=%s id=%s", event.get("kind"), event["id"])
 
@@ -425,9 +427,7 @@ class SimulationEngine:
         pairings (they just report zero crew violations)."""
         self.schedule = {f["id"]: f.copy() for f in schedule}
         self.aircraft = {a["id"]: a.copy() for a in aircraft}
-        self.state.flight_states = {
-            fid: self._default_flight_state(fid) for fid in self.schedule
-        }
+        self.state.flight_states = {fid: self._default_flight_state(fid) for fid in self.schedule}
         self.state.active_events.clear()
         self.state.recovery_plans.clear()
         self.state.cascade_summary = {}
@@ -438,7 +438,9 @@ class SimulationEngine:
         self.scenario_id = None
         self.rng_seed = None
         self._event_seq = 0
-        logger.info("Simulation reseeded — %d flights now in the working schedule", len(self.schedule))
+        logger.info(
+            "Simulation reseeded — %d flights now in the working schedule", len(self.schedule)
+        )
 
     # ── Apply / unapply a recovery plan ───────────────────────────────────────
     #

@@ -31,24 +31,50 @@ def test_haversine_ord_atl_plausible():
 
 def test_engine_reseed_replaces_schedule_and_state():
     eng = SimulationEngine(
-        schedule=[{
-            "id": "NB101", "aircraft_id": "N001NB", "origin": "KORD",
-            "destination": "KATL", "scheduled_departure": "2026-07-15T08:00:00Z",
-            "scheduled_arrival": "2026-07-15T10:00:00Z", "passengers": 150,
-        }],
-        aircraft=[{"id": "N001NB", "type": "B737-800", "seats": 162,
-                   "base_airport_id": "KORD", "min_turn_minutes": 45}],
+        schedule=[
+            {
+                "id": "NB101",
+                "aircraft_id": "N001NB",
+                "origin": "KORD",
+                "destination": "KATL",
+                "scheduled_departure": "2026-07-15T08:00:00Z",
+                "scheduled_arrival": "2026-07-15T10:00:00Z",
+                "passengers": 150,
+            }
+        ],
+        aircraft=[
+            {
+                "id": "N001NB",
+                "type": "B737-800",
+                "seats": 162,
+                "base_airport_id": "KORD",
+                "min_turn_minutes": 45,
+            }
+        ],
         crews=[],
     )
     eng.state.recovery_plans.append({"plan_id": "A"})
     eng.reseed(
-        [{
-            "id": "UAL123", "aircraft_id": "LV-UAL123", "origin": "KDEN",
-            "destination": "KORD", "scheduled_departure": "2026-07-15T12:00:00Z",
-            "scheduled_arrival": "2026-07-15T14:00:00Z", "passengers": 160,
-        }],
-        [{"id": "LV-UAL123", "type": "B737-800", "seats": 162,
-          "base_airport_id": "KDEN", "min_turn_minutes": 45}],
+        [
+            {
+                "id": "UAL123",
+                "aircraft_id": "LV-UAL123",
+                "origin": "KDEN",
+                "destination": "KORD",
+                "scheduled_departure": "2026-07-15T12:00:00Z",
+                "scheduled_arrival": "2026-07-15T14:00:00Z",
+                "passengers": 160,
+            }
+        ],
+        [
+            {
+                "id": "LV-UAL123",
+                "type": "B737-800",
+                "seats": 162,
+                "base_airport_id": "KDEN",
+                "min_turn_minutes": 45,
+            }
+        ],
     )
     assert set(eng.schedule) == {"UAL123"}
     assert set(eng.state.flight_states) == {"UAL123"}

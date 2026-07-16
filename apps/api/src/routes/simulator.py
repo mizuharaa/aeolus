@@ -96,7 +96,9 @@ def _project_nm(lat: float, lon: float, bearing_deg: float, dist_nm: float) -> t
     return lat + dlat, lon + dlon
 
 
-def _nearest_airport(airports: list[dict], lat: float, lon: float, exclude: str | None = None) -> dict | None:
+def _nearest_airport(
+    airports: list[dict], lat: float, lon: float, exclude: str | None = None
+) -> dict | None:
     best, best_d = None, float("inf")
     for ap in airports:
         if exclude and ap["id"] == exclude:
@@ -187,7 +189,9 @@ async def reseed_from_live(payload: ReseedRequest, request: Request):
         )
 
     if not schedule:
-        raise HTTPException(status_code=422, detail="No usable flights in snapshot (need callsign + position)")
+        raise HTTPException(
+            status_code=422, detail="No usable flights in snapshot (need callsign + position)"
+        )
 
     engine.reseed(schedule, fleet)
     return {

@@ -5,7 +5,6 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
-
 EVENT_DEFAULTS: dict[str, dict[str, Any]] = {
     "weather_closure": {"airport": "KORD", "severity": "severe", "duration_hours": 4},
     "thunderstorm": {"airport": "KORD", "severity": "severe", "duration_hours": 3},

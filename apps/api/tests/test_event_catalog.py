@@ -17,7 +17,6 @@ from src.events.catalog import (
 from src.events.registry import EVENT_REGISTRY, create_event
 from src.simulator.engine import SimulationEngine
 
-
 VISIBLE_EVENT_KINDS = {
     "weather_closure",
     "thunderstorm",

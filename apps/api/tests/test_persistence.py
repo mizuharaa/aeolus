@@ -54,8 +54,20 @@ FLIGHTS = [
 ]
 
 AIRCRAFT = [
-    {"id": "N001NB", "type": "B737-800", "base_airport_id": "KDEN", "seats": 162, "min_turn_minutes": 45},
-    {"id": "N002NB", "type": "B737-800", "base_airport_id": "KDFW", "seats": 162, "min_turn_minutes": 45},
+    {
+        "id": "N001NB",
+        "type": "B737-800",
+        "base_airport_id": "KDEN",
+        "seats": 162,
+        "min_turn_minutes": 45,
+    },
+    {
+        "id": "N002NB",
+        "type": "B737-800",
+        "base_airport_id": "KDFW",
+        "seats": 162,
+        "min_turn_minutes": 45,
+    },
 ]
 
 CREWS = [

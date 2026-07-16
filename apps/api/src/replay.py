@@ -29,6 +29,10 @@ import argparse
 import asyncio
 import json
 from pathlib import Path
+from typing import TYPE_CHECKING, cast
+
+if TYPE_CHECKING:
+    from src.weather.client import WeatherClient
 
 from src.network import cache
 from src.optimizer.milp import RecoveryOptimizer
@@ -77,7 +81,8 @@ async def replay_scenario(
     engine = SimulationEngine(schedule, aircraft, crews)
     predictor = CascadePredictor()
     optimizer = RecoveryOptimizer(deterministic=True, timeout_secs=10)
-    weather = _FrozenWeatherClient(repo.load_metars(scenario_id))
+    # Same duck-typed interface as WeatherClient for the one method the engine calls.
+    weather = cast("WeatherClient", _FrozenWeatherClient(repo.load_metars(scenario_id)))
 
     for event in record.events:
         await engine.trigger_event(event, predictor, optimizer, weather)

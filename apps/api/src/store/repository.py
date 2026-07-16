@@ -109,9 +109,7 @@ class ScenarioRepository:
             "updated_at = excluded.updated_at",
             (scenario_id, json.dumps(state, default=str), now),
         )
-        self._conn.execute(
-            "UPDATE scenarios SET updated_at = ? WHERE id = ?", (now, scenario_id)
-        )
+        self._conn.execute("UPDATE scenarios SET updated_at = ? WHERE id = ?", (now, scenario_id))
         self._conn.commit()
 
     def close_scenario(self, scenario_id: str) -> None:
@@ -140,7 +138,9 @@ class ScenarioRepository:
             "SELECT state_json FROM scenario_snapshots WHERE scenario_id = ?", (scenario_id,)
         ).fetchone()
         state = json.loads(snap_row[0]) if snap_row else None
-        return ScenarioRecord(id=row[0], kind=row[1], seed=row[2], status=row[3], events=events, state=state)
+        return ScenarioRecord(
+            id=row[0], kind=row[1], seed=row[2], status=row[3], events=events, state=state
+        )
 
     def load_metars(self, scenario_id: str) -> list[dict]:
         return [

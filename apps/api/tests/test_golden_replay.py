@@ -14,7 +14,6 @@ from src.replay import replay_scenario
 from src.simulator.engine import SimulationEngine
 from src.store.repository import ScenarioRepository
 
-
 FLIGHTS = [
     {
         "id": "NB201",
@@ -126,9 +125,7 @@ def _golden_bytes(stream: list[dict]) -> bytes:
 
 
 @pytest.mark.parametrize("event", EVENTS)
-def test_persisted_scenario_replays_to_byte_identical_event_streams(
-    tmp_path, monkeypatch, event
-):
+def test_persisted_scenario_replays_to_byte_identical_event_streams(tmp_path, monkeypatch, event):
     db_path = tmp_path / "aeolus.db"
     repo = ScenarioRepository(db_path)
     engine = SimulationEngine(FLIGHTS, AIRCRAFT, CREWS, repository=repo)
