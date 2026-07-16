@@ -524,8 +524,9 @@ function RecoveryBanner({ plan, onUnapply }: { plan: RecoveryPlan; onUnapply: ()
     : `$${(plan.total_cost_usd / 1000).toFixed(0)}K`
 
   return (
-    // Banner anchored to top-right — leaves the left where FlightSearch lives
-    <div className="absolute top-3 right-3 z-[450]" style={{ maxWidth: 560, left: "min(460px, calc(50% - 40px))" }}>
+    // Banner anchored top-right but clearing the map's instrument column
+    // (focus toggle + zoom, 40px wide at right:12) — right ≥ 64 per design.md
+    <div className="absolute top-3 z-[450]" style={{ maxWidth: 560, right: 64, left: "min(460px, calc(50% - 40px))" }}>
       <div
         className="rounded-xl px-3 py-2.5 flex items-center gap-2.5 flex-wrap"
         style={{
@@ -971,12 +972,14 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
     schedule, flightStates, activeEvents, recoveryPlans, appliedPlanId, applyPlan,
     cascadeSummary, liveFlights, showLiveFlights, showSimulation,
     selectedLiveFlight, setSelectedLiveFlight,
-    setLiveFlights, setShowLiveFlights, setShowSimulation,
+    setLiveFlights, setShowLiveFlights, setShowSimulation, setSchedule,
   } = useSimulationStore()
 
   const [nowMs, setNowMs]         = useState(() => Date.now())
   const [loading, setLoading]     = useState(false)
   const [lastFetch, setLastFetch] = useState<number | null>(null)
+  const [liveSeeded, setLiveSeeded] = useState(false)
+  const [seeding, setSeeding]       = useState(false)
   const [selAirport, setSelAirport]   = useState<string | null>(null)
   const [airportFAA, setAirportFAA]   = useState<Record<string, FAAStatus>>({})
   const [wxAirports, setWxAirports]   = useState<Record<string, string>>({})
@@ -994,7 +997,8 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
     try {
       // Use the Vercel-native endpoint — Railway's IPs are blocked by OpenSky,
       // so /api/v1/flights/live (proxied to Railway) always times out in prod.
-      // /api/flights-live fetches via the /api/osky relay on Vercel's network.
+      // /api/flights-live now fetches keyless ADS-B data from api.adsb.lol on
+      // Vercel's edge network (no OpenSky creds needed).
       const res = await fetch("/api/flights-live").then((r) => r.json()) as { flights?: LiveFlight[] }
       const all: LiveFlight[] = res.flights || []
       setLiveFlights(all.filter((f) => f.airline_iata && f.airline_name !== "Unknown"), Date.now())
@@ -1010,6 +1014,39 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
     const t = setInterval(fetchLive, 15_000)
     return () => clearInterval(t)
   }, [fetchLive])
+
+  // ── Live traffic as the simulation stem — post the current ADS-B
+  //    snapshot to the API, which rebuilds the working schedule from it so
+  //    events/cascade/recovery solve over REAL current traffic. Posting an
+  //    empty list restores the Nimbus YAML network. ──
+  const seedFromLive = useCallback(async () => {
+    setSeeding(true)
+    try {
+      const body = liveSeeded
+        ? { flights: [] }
+        : {
+            flights: liveFlights.slice(0, 150).map((f) => ({
+              callsign: f.callsign,
+              airline_iata: f.airline_iata,
+              lat: f.lat,
+              lon: f.lon,
+              heading: f.heading,
+              velocity_kt: f.velocity_kt,
+              altitude_ft: f.altitude_ft,
+            })),
+          }
+      const res = await apiClient.post<{ status: string; flights: number; schedule: ScheduledFlight[] }>(
+        "/simulator/reseed-live",
+        body,
+      )
+      setSchedule(res.data.schedule ?? [])
+      setLiveSeeded(res.data.status === "reseeded")
+    } catch {
+      /* API unreachable — leave the current schedule alone */
+    } finally {
+      setSeeding(false)
+    }
+  }, [liveSeeded, liveFlights, setSchedule])
 
   const fetchFAA = useCallback(async () => {
     try {
@@ -1714,13 +1751,18 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
           className="rounded-lg px-3 py-2 flex flex-col gap-1.5 text-[11px]"
           style={{ background: GLASS, backdropFilter: "blur(12px)", border: "1px solid var(--ae-line)" }}
         >
+          {/* Layer toggles — swatch = the layer's actual mark color (data
+              link); on/off is carried by text, not a status dot. */}
           <button
             onClick={() => setShowLiveFlights(!showLiveFlights)}
             className="flex items-center gap-2 font-medium transition-colors"
-            style={{ color: showLiveFlights ? "var(--ae-text)" : "var(--ae-text-3)" }}
+            style={{
+              color: showLiveFlights ? "var(--ae-text)" : "var(--ae-text-3)",
+              textDecoration: showLiveFlights ? "none" : "line-through",
+            }}
           >
             <span
-              className="w-2 h-2 rounded-full shrink-0"
+              className="w-3 h-1 rounded-full shrink-0"
               style={{ background: showLiveFlights ? MAP_COLORS.live : "var(--ae-line-strong)" }}
             />
             <span>Real flights (ADS-B)</span>
@@ -1733,10 +1775,13 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
           <button
             onClick={() => setShowSimulation(!showSimulation)}
             className="flex items-center gap-2 font-medium transition-colors"
-            style={{ color: showSimulation ? "var(--ae-text)" : "var(--ae-text-3)" }}
+            style={{
+              color: showSimulation ? "var(--ae-text)" : "var(--ae-text-3)",
+              textDecoration: showSimulation ? "none" : "line-through",
+            }}
           >
             <span
-              className="w-2 h-2 rounded-full shrink-0"
+              className="w-3 h-1 rounded-full shrink-0"
               style={{ background: showSimulation ? "var(--ae-teal)" : "var(--ae-line-strong)" }}
             />
             <span>Nimbus Air sim</span>
@@ -1746,24 +1791,53 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
               </span>
             )}
           </button>
+
+          {/* Live traffic as the sim stem — rebuild the working schedule
+              from the current ADS-B snapshot (or restore the YAML network). */}
+          <button
+            onClick={seedFromLive}
+            disabled={seeding || (!liveSeeded && liveFlights.length === 0)}
+            className="flex items-center gap-2 font-semibold transition-colors disabled:opacity-40"
+            title={liveSeeded
+              ? "Restore the Nimbus YAML network"
+              : "Rebuild the simulator schedule from the live planes on this map — events and recovery plans will run over real traffic"}
+            style={{
+              marginTop: 2,
+              paddingTop: 6,
+              borderTop: "1px solid var(--ae-line)",
+              color: liveSeeded ? "var(--ae-amber-ink)" : "var(--ae-teal-ink)",
+            }}
+          >
+            <span
+              className="font-mono text-[9px] font-bold tracking-widest uppercase"
+              style={{
+                borderBottom: `2px solid ${liveSeeded ? "var(--ae-amber)" : "var(--ae-teal)"}`,
+                paddingBottom: 1,
+              }}
+            >
+              {seeding ? "Seeding…" : liveSeeded ? "Live-seeded · restore Nimbus" : "Seed sim from live traffic"}
+            </span>
+          </button>
         </div>
 
-        {/* ADS-B age */}
+        {/* ADS-B age — mono text, no status dot; the words carry the state */}
         {ageSec != null && (
           <div
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[9px] font-medium"
+            className="px-2.5 py-1 rounded-md text-[9px] font-mono font-semibold tracking-wide"
             style={{
               background: GLASS,
               backdropFilter: "blur(8px)",
               border: "1px solid var(--ae-line)",
-              color: ageSec > 30 ? "var(--ae-amber-ink)" : "var(--ae-text-3)",
+              color: loading
+                ? "var(--ae-text-3)"
+                : liveFlights.length === 0
+                ? "var(--ae-rust-ink)"
+                : ageSec > 30
+                ? "var(--ae-amber-ink)"
+                : "var(--ae-text-3)",
             }}
           >
-            <span
-              className="w-1.5 h-1.5 rounded-full shrink-0"
-              style={{ background: loading ? "var(--ae-amber)" : liveFlights.length > 0 ? "var(--ae-teal)" : "var(--ae-rust)" }}
-            />
-            {loading ? "Fetching…" : `ADS-B · ${ageSec}s ago`}
+            {loading ? "ADS-B · FETCHING…" : liveFlights.length === 0 ? "ADS-B · NO FEED" : `ADS-B · ${ageSec}S AGO`}
           </div>
         )}
       </div>

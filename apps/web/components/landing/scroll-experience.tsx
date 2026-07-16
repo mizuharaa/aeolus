@@ -103,6 +103,20 @@ export function LandingScrollExperience() {
       // family until the night CTA: dawn → noon (demo + methodology) → night.
       shift("#demo", NOON)
       shift("#cta", NIGHT)
+
+      // The peach/rose atmosphere blobs are multiply-blended: over beige they
+      // read as warm washes, but multiplied over the night register's near-
+      // black they turn into muddy smudges that no longer blend. Fade the
+      // whole atmosphere out across the same scroll range the night register
+      // fades in, so the two motions read as one crossfade.
+      const atmos = wrap.querySelector(".lp-atmos")
+      if (atmos)
+        gsap.to(atmos, {
+          opacity: 0,
+          ease: "none",
+          immediateRender: false,
+          scrollTrigger: { trigger: "#cta", start: "top 78%", end: "top 22%", scrub: true },
+        })
     }, wrap)
 
     return () => ctx.revert()

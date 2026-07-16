@@ -3,7 +3,7 @@
  * DemoMap — the world plane the demo camera flies over.
  *
  * Layers, back to front:
- *   1. DotCanvas       dotted CONUS landmass, sampled from earth-mask.png
+ *   1. DotCanvas       flat CONUS landmass wash, sampled from earth-mask.png
  *   2. route graph     faint always-on arcs for every flight (the network)
  *   3. cascade layer   pink hub routes, drawn out as the closure propagates
  *   4. reroute layer   teal re-flow arcs, drawn out as recovery commits
@@ -73,20 +73,18 @@ function DotCanvas() {
 
       const { LON_MIN, LON_MAX, LAT_MIN, LAT_MAX } = MASK_WINDOW
       g.clearRect(0, 0, WORLD_W, WORLD_H)
-      const step = 8
-      for (let x = 0; x < WORLD_W; x += step) {
-        for (let y = 0; y < WORLD_H; y += step) {
+      // Flat landmass wash — a quiet chart-like silhouette, not the
+      // dot-matrix halftone (the single most recognisable AI-dashboard
+      // trope). 2px blocks keep the one-time raster pass cheap; a gentle
+      // north-lit alpha ramp stops the floor reading dead flat.
+      const step = 2
+      for (let y = 0; y < WORLD_H; y += step) {
+        const lat = LAT_MAX - (y / WORLD_H) * (LAT_MAX - LAT_MIN)
+        const depth = 0.09 + 0.05 * (1 - y / WORLD_H)
+        g.fillStyle = `rgba(70, 116, 158, ${depth})`
+        for (let x = 0; x < WORLD_W; x += step) {
           const lon = LON_MIN + (x / WORLD_W) * (LON_MAX - LON_MIN)
-          const lat = LAT_MAX - (y / WORLD_H) * (LAT_MAX - LAT_MIN)
-          if (isLand(lat, lon)) {
-            // gentle vertical depth: brighter toward the north, so the plane
-            // floor reads as a lit surface rather than a flat field of dots
-            const depth = 0.20 + 0.12 * (1 - y / WORLD_H)
-            g.fillStyle = `rgba(70, 116, 158, ${depth})`
-            g.beginPath()
-            g.arc(x, y, 1.6, 0, Math.PI * 2)
-            g.fill()
-          }
+          if (isLand(lat, lon)) g.fillRect(x, y, step, step)
         }
       }
     }

@@ -6,9 +6,14 @@
  * cloud access without authentication and returns data already normalised to
  * feet / knots / fpm — no unit conversion required.
  *
- * Coverage: radius of 2500nm from the geographic centre of the contiguous US
- * (37°N, -95°W) — covers CONUS and approaches. Alaska/Hawaii are outside this
- * bounding box but the app focuses on CONUS operations.
+ * Coverage: ONE query, radius 1400nm from (37°N, -95°W) — reaches every CONUS
+ * corner (SEA ~1370nm is the farthest) without dragging in half the Atlantic
+ * like the old 2500nm did. Measured against a degraded feed (2026-07-15):
+ * 1400nm ≈ 9.5s / ~1000 aircraft, while 2500nm was still streaming at 20s —
+ * which, against the old 6s abort, is exactly why prod maps rendered empty.
+ * Parallel regional fan-out is NOT an option: adsb.lol rate-limits per IP
+ * (measured 429/420 on a 10-request burst). One request per cycle it is.
+ * Alaska/Hawaii are outside the circle but the app focuses on CONUS.
  *
  * adsb.lol field reference:
  *   hex        ICAO 24-bit transponder code
@@ -26,7 +31,7 @@ import { NextResponse } from "next/server"
 export const runtime = "edge"
 export const dynamic = "force-dynamic"
 
-const ADSB_LOL_URL = "https://api.adsb.lol/v2/lat/37/lon/-95/dist/2500"
+const ADSB_LOL_URL = "https://api.adsb.lol/v2/lat/37/lon/-95/dist/1400"
 
 // ICAO callsign prefix → IATA two-letter code (from apps/api/src/data/airlines.py)
 const ICAO_TO_IATA: Record<string, string> = {
@@ -79,22 +84,25 @@ interface AdsbLolAircraft {
 export async function GET() {
   let aircraft: AdsbLolAircraft[] = []
 
+  // 20s abort: fits inside the Edge 25s initial-response window and clears
+  // the measured ~9.5s degraded-feed latency with margin. The old 6s abort
+  // was shorter than the feed's own response time — guaranteed empty maps.
   const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), 6000)
+  const timer = setTimeout(() => controller.abort(), 20000)
   try {
     const res = await fetch(ADSB_LOL_URL, {
       cache: "no-store",
       signal: controller.signal,
       headers: { "User-Agent": "Aeolus/0.2 (github.com/mizuharaa/aeolus)" },
     })
-    clearTimeout(timer)
     if (res.ok) {
       const body = (await res.json()) as { ac?: AdsbLolAircraft[] }
       aircraft = body.ac ?? []
     }
   } catch {
-    clearTimeout(timer)
     // Graceful degradation — return empty list if feed is unavailable
+  } finally {
+    clearTimeout(timer)
   }
 
   const flights = []
@@ -150,5 +158,14 @@ export async function GET() {
     })
   }
 
-  return NextResponse.json({ flights, total: flights.length, source: "adsb.lol" })
+  return NextResponse.json(
+    { flights, total: flights.length, source: "adsb.lol" },
+    {
+      headers: {
+        // Vercel CDN serves all clients from one upstream burst per 15s
+        // (matches the client poll interval); stale answers beat empty maps.
+        "Cache-Control": "public, s-maxage=15, stale-while-revalidate=120",
+      },
+    },
+  )
 }

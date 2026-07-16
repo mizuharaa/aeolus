@@ -17,7 +17,6 @@ import Link from "next/link"
 import type { Route } from "next"
 import { ArrowRight, Menu, X } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
-import { AeolusMark } from "@/components/ds/logo"
 
 const LINKS = [
   { href: "/scenarios", label: "Scenarios" },
@@ -86,12 +85,10 @@ export function LandingNav() {
         style={{ position: "absolute", inset: 0, zIndex: -1, background: "rgba(237, 230, 214, 0.94)" }}
       />
 
-      <Link href="/" className="lp-nav-link lp-nav-brand" style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <span className="lp-nav-mark" style={{ display: "inline-flex", transformStyle: "preserve-3d" }}>
-          <AeolusMark size={26} />
-        </span>
-        <span style={{ fontFamily: "var(--ae-font-display)", fontWeight: 650, fontSize: 16.5, letterSpacing: "-0.01em" }}>
-          Aeolus
+      {/* wordmark logo — the hero statement text IS the brand now */}
+      <Link href="/" aria-label="Aeolus home" className="lp-nav-link lp-nav-brand" style={{ display: "flex", alignItems: "center" }}>
+        <span className="lp-nav-mark lp-nav-wordmark" style={{ display: "inline-flex", transformStyle: "preserve-3d" }}>
+          AEOLUS
         </span>
       </Link>
 

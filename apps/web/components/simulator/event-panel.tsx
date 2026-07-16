@@ -90,17 +90,6 @@ const EVENT_TYPES = [
 
 type EventKind = typeof EVENT_TYPES[number]["value"]
 
-// Per-category pigment — the dashboard now reads as 5 colour-coded clusters
-// (weather=sky, ATC=amber, ops=violet, crew=pink, security=rust) rather than
-// one flat neutral grid. Drives the event-tile accent + hover glow.
-const CATEGORY_ACCENT: Record<string, string> = {
-  "Weather": "#0EA5C4",
-  "Air Traffic Control": "#EFAF1B",
-  "Aircraft & Operations": "#6F3FE4",
-  "Crew & Personnel": "#EC4899",
-  "Security & Emergency": "#E1554E",
-}
-
 const EVENT_CATEGORIES: { label: string; events: EventKind[] }[] = [
   { label: "Weather", events: ["weather_closure","thunderstorm","blizzard","sandstorm","dense_fog","wind_shear","hurricane","volcanic_ash"] },
   { label: "Air Traffic Control", events: ["ground_stop","airspace_closure","atc_staffing"] },
@@ -108,6 +97,14 @@ const EVENT_CATEGORIES: { label: string; events: EventKind[] }[] = [
   { label: "Crew & Personnel", events: ["crew_sickout","labor_action"] },
   { label: "Security & Emergency", events: ["security_event","airport_emergency","cyber_incident"] },
 ]
+
+// Running ledger index 01–21 across categories, in EVENT_CATEGORIES order.
+const EVENT_INDEX: Record<EventKind, string> = (() => {
+  const m = {} as Record<EventKind, string>
+  let n = 0
+  for (const cat of EVENT_CATEGORIES) for (const v of cat.events) m[v] = String(++n).padStart(2, "0")
+  return m
+})()
 
 const EVENT_DESCRIPTIONS: Record<EventKind, string> = {
   weather_closure:
@@ -535,13 +532,24 @@ function SectionToggle({ label, badge, children, defaultOpen = true }: {
   const [open, setOpen] = useState(defaultOpen)
   return (
     <section>
+      {/* One consistent header row everywhere: label left, badge + chevron
+          pinned right in the same spot at the same size, 36px hit target. */}
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-2 w-full mb-2 group"
+        aria-expanded={open}
+        className="flex items-center gap-2 w-full mb-2 rounded-lg px-2 transition-colors hover:bg-secondary focus-visible:outline-none"
+        style={{ minHeight: 36, boxShadow: "none" }}
+        onFocus={(e) => { if (e.currentTarget.matches(":focus-visible")) e.currentTarget.style.boxShadow = "0 0 0 3px var(--ae-focus)" }}
+        onBlur={(e) => { e.currentTarget.style.boxShadow = "none" }}
       >
-        <ChevronDown className={`w-3 h-3 text-muted-foreground transition-transform ${open ? "" : "-rotate-90"}`} strokeWidth={1.75} />
         <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex-1 text-left">{label}</span>
         {badge}
+        <span
+          className="flex items-center justify-center shrink-0 rounded-md"
+          style={{ width: 22, height: 22, border: "1px solid var(--ae-line)", background: "var(--ae-surface)" }}
+        >
+          <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform ${open ? "" : "-rotate-90"}`} strokeWidth={1.75} />
+        </span>
       </button>
       <AnimatePresence initial={false}>
         {open && (
@@ -1023,13 +1031,17 @@ export function EventPanel() {
   const [values, setValues]                   = useState<Record<string, string>>(FORM_SCHEMA.weather_closure.defaults)
   const [isLoading, setIsLoading]             = useState(false)
   const [showDescription, setShowDescription] = useState(false)
+  const [formOpen, setFormOpen]               = useState(false)
   const [tab, setTab]                         = useState<"trigger" | "live" | "active">("trigger")
   const { activeEvents, setUpdate }           = useSimulationStore()
 
+  // Clicking a tile opens the config sheet pinned to the bottom of the
+  // panel — right where the cursor already is, without burying the grid.
   const selectKind = (kind: EventKind) => {
     setSelectedKind(kind)
     setValues(FORM_SCHEMA[kind].defaults)
     setShowDescription(false)
+    setFormOpen(true)
   }
 
   const setField = (k: string, v: string) => setValues((s) => ({ ...s, [k]: v }))
@@ -1061,13 +1073,14 @@ export function EventPanel() {
     }
   }
 
-  const handleTrigger = () => {
+  const handleTrigger = async () => {
     const params: Record<string, any> = {}
     for (const f of FORM_SCHEMA[selectedKind].fields) {
       const raw = values[f.key]
       params[f.key] = f.type === "number" ? Number(raw) : raw
     }
-    triggerEvent(selectedKind, params)
+    await triggerEvent(selectedKind, params)
+    setFormOpen(false)
   }
 
   const selectedInfo = EVENT_TYPES.find((e) => e.value === selectedKind)!
@@ -1140,109 +1153,122 @@ export function EventPanel() {
 
         {/* ── Trigger tab ── */}
         {tab === "trigger" && (
+        <div className="flex-1 relative min-h-0 flex flex-col">
         <div className="flex-1 overflow-y-auto ae-scroll-smooth px-3 py-3 space-y-4 mt-0">
 
-          {/* Categorized event grid — every category gets one brand voltage tone
-              (mint / coral / mustard / peach / forest-on-cream) so the panel
-              reads as 5 grouped clusters instead of a 21-color rainbow.
-              Selected tile inverts to dark ink (Airtable editorial pattern). */}
-          <div className="space-y-3.5">
+          {/* Categorised event LEDGER — full-width runbook rows with a mono
+              index instead of icon-chip tiles: bigger touch targets, one
+              quiet voice, no 21-icon rainbow. Selected row inverts to ink
+              (Airtable editorial pattern). Styles: .ae-event-row in
+              globals.css, all 8 states. */}
+          <div className="space-y-4">
             {EVENT_CATEGORIES.map((cat) => {
               const catEvents = cat.events.map((v) => EVENT_TYPES.find((e) => e.value === v)!).filter(Boolean)
-              const accent = CATEGORY_ACCENT[cat.label] ?? "#2C49E0"
               return (
                 <div key={cat.label}>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span style={{ width: 8, height: 8, borderRadius: 3, background: accent, flexShrink: 0 }} />
+                  <div className="flex items-center gap-2 mb-1">
                     <span
                       className="text-[10px] font-bold uppercase"
-                      style={{ letterSpacing: "0.1em", color: c.ink }}
+                      style={{ letterSpacing: "0.12em", color: c.muted, fontFamily: ff.mono }}
                     >
                       {cat.label}
                     </span>
                     <span style={{ flex: 1, height: 1, background: c.hairline }} />
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {catEvents.map((et) => {
-                      const isSel = selectedKind === et.value
-                      return (
-                        <button
-                          key={et.value}
-                          onClick={() => selectKind(et.value)}
-                          className="ae-event-tile flex items-center gap-2.5 px-2.5 py-2.5 text-left"
-                          data-selected={isSel}
-                          style={{ ["--tile-accent" as string]: accent, fontFamily: ff.body }}
-                        >
-                          <span
-                            className="ae-tile-chip flex items-center justify-center shrink-0"
-                            style={{
-                              width: 26, height: 26, borderRadius: 8,
-                              background: isSel
-                                ? accent
-                                : `color-mix(in srgb, ${accent} 14%, transparent)`,
-                              color: isSel ? "#FFFFFF" : accent,
-                            }}
-                          >
-                            <et.Icon className="w-3.5 h-3.5" strokeWidth={2} />
-                          </span>
-                          <span
-                            className="text-[11.5px] leading-tight"
-                            style={{ fontWeight: isSel ? 700 : 600, color: c.ink }}
-                          >
-                            {et.label}
-                          </span>
-                        </button>
-                      )
-                    })}
+                  <div>
+                    {catEvents.map((et) => (
+                      <button
+                        key={et.value}
+                        onClick={() => selectKind(et.value)}
+                        className="ae-event-row"
+                        data-selected={selectedKind === et.value}
+                      >
+                        <span className="ae-event-idx">{EVENT_INDEX[et.value]}</span>
+                        <span className="ae-event-name">{et.label}</span>
+                      </button>
+                    ))}
                   </div>
                 </div>
               )
             })}
           </div>
 
-          {/* Form for selected event */}
-          <AnimatePresence mode="wait">
+        </div>
+
+        {/* Config sheet — slides up from the panel's bottom edge when a tile
+            is clicked. Covers only the lower part of the panel (not the
+            screen); scrim click or ✕ dismisses it. */}
+        <AnimatePresence>
+          {formOpen && (
             <motion.div
-              key={selectedKind}
-              initial={{ opacity: 0, y: 8 }}
+              key="ev-scrim"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.14 }}
+              onClick={() => setFormOpen(false)}
+              className="absolute inset-0"
+              style={{ background: "rgba(20, 16, 25, 0.16)", zIndex: 5 }}
+            />
+          )}
+          {formOpen && (
+            <motion.div
+              key="ev-sheet"
+              role="dialog"
+              aria-label={`Configure ${selectedInfo.label}`}
+              initial={{ opacity: 0, y: 28 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.15 }}
+              exit={{ opacity: 0, y: 28 }}
+              transition={{ duration: 0.18, ease: [0.22, 0.9, 0.28, 1] }}
+              className="absolute left-2 right-2 bottom-2 flex flex-col"
               style={{
-                borderRadius: r.lg,
+                zIndex: 6,
+                maxHeight: "68%",
+                borderRadius: 14,
                 border: `1px solid ${tone.border}`,
                 background: tone.bg,
+                boxShadow: "var(--ae-shadow-overlay)",
                 overflow: "hidden",
                 fontFamily: ff.body,
               }}
             >
               {/* Event header */}
               <div
-                className="flex items-center justify-between gap-2 px-4 py-3"
+                className="flex items-center justify-between gap-2 px-4 py-3 shrink-0"
                 style={{ borderBottom: `1px solid ${tone.border}` }}
               >
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-2.5 min-w-0">
                   <span
                     className="w-8 h-8 flex items-center justify-center shrink-0"
                     style={{ borderRadius: r.sm, background: tone.iconBg, color: "var(--ae-teal-ink)" }}
                   >
                     <selectedInfo.Icon className="w-4 h-4" strokeWidth={1.75} />
                   </span>
-                  <div className="text-sm font-semibold leading-tight" style={{ color: tone.ink }}>
+                  <div className="text-sm font-semibold leading-tight truncate" style={{ color: tone.ink }}>
                     {selectedInfo.label}
                   </div>
                 </div>
-                <button
-                  onClick={() => setShowDescription((d) => !d)}
-                  className="flex items-center gap-1 text-[10px] font-semibold shrink-0 opacity-60 hover:opacity-100 transition-opacity"
-                  style={{ color: tone.ink, background: "transparent", border: "none", cursor: "pointer" }}
-                >
-                  {showDescription ? "Less" : "Info"}
-                  <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${showDescription ? "rotate-180" : ""}`} />
-                </button>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    onClick={() => setShowDescription((d) => !d)}
+                    className="flex items-center gap-1 text-[10px] font-semibold opacity-60 hover:opacity-100 transition-opacity"
+                    style={{ color: tone.ink, background: "transparent", border: "none", cursor: "pointer", padding: "6px 8px" }}
+                  >
+                    {showDescription ? "Less" : "Info"}
+                    <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${showDescription ? "rotate-180" : ""}`} />
+                  </button>
+                  <button
+                    onClick={() => setFormOpen(false)}
+                    aria-label="Close event configuration"
+                    className="w-7 h-7 rounded-full flex items-center justify-center text-base transition-colors hover:bg-secondary"
+                    style={{ color: tone.ink, background: "transparent", border: "none", cursor: "pointer" }}
+                  >
+                    ×
+                  </button>
+                </div>
               </div>
 
-              <div className="px-4 py-3.5 space-y-3">
+              <div className="px-4 py-3.5 space-y-3 overflow-y-auto ae-scroll-smooth" style={{ minHeight: 0 }}>
                 {/* Expandable description */}
                 <AnimatePresence>
                   {showDescription && (
@@ -1312,7 +1338,8 @@ export function EventPanel() {
                 </ButtonPrimary>
               </div>
             </motion.div>
-          </AnimatePresence>
+          )}
+        </AnimatePresence>
         </div>
         )}
 

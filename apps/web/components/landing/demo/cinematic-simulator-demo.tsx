@@ -23,7 +23,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import { motion, useReducedMotion } from "framer-motion"
-import { CloudLightning, FileText, LayoutGrid, Leaf, OctagonX, Route, TrafficCone, Users } from "lucide-react"
+import { CloudLightning, FileText, LayoutGrid, Leaf, Route, Users } from "lucide-react"
 import { gsap, ScrollTrigger } from "@/components/landing/gsap"
 import { AeolusMark } from "@/components/ds/logo"
 import { EASE } from "@/components/landing/motion"
@@ -53,11 +53,13 @@ const RAIL_ICONS = [LayoutGrid, CloudLightning, Route, Users, Leaf, FileText]
 /** which rail icon is "active" per scene */
 const RAIL_ACTIVE = [0, 1, 2, 5]
 
+// Mirrors the real simulator's event LEDGER (mono index + name — see
+// event-panel.tsx), so the demo previews the product that actually ships.
 const EVENT_ROWS = [
-  { icon: CloudLightning, label: "Weather closure", hot: true },
-  { icon: OctagonX, label: "Ground stop" },
-  { icon: TrafficCone, label: "Runway closure" },
-  { icon: Users, label: "Crew sick-out" },
+  { label: "Weather closure", hot: true },
+  { label: "Ground stop" },
+  { label: "Runway closure" },
+  { label: "Crew sick-out" },
 ]
 
 /** loop length in seconds + where each caption scene starts */
@@ -439,20 +441,13 @@ export function CinematicSimulatorDemo() {
           transition={{ duration: 1.0, ease: EASE }}
         >
           <div
-            className="demo-screen dm-frame mac-window"
+            className="demo-screen dm-frame"
             style={{
               display: "flex",
               flexDirection: "column",
               height: "clamp(400px, 68vh, 720px)",
             }}
           >
-            {/* macOS window chrome */}
-            <div className="mac-titlebar" aria-hidden>
-              <span className="mac-dot mac-dot--close" />
-              <span className="mac-dot mac-dot--min" />
-              <span className="mac-dot mac-dot--max" />
-              <span className="mac-title">app.aeolus.ai — Operations Control</span>
-            </div>
             {/* top bar */}
             <div
               style={{
@@ -554,13 +549,13 @@ export function CinematicSimulatorDemo() {
                     Trigger event
                   </span>
                   <div style={{ display: "grid", gap: 5 }}>
-                    {EVENT_ROWS.map((r) => (
+                    {EVENT_ROWS.map((r, i) => (
                       <span
                         key={r.label}
                         className={r.hot ? "dm-evrow-hot" : undefined}
                         style={{
                           display: "flex",
-                          alignItems: "center",
+                          alignItems: "baseline",
                           gap: 9,
                           padding: "7px 9px",
                           borderRadius: 7,
@@ -570,7 +565,18 @@ export function CinematicSimulatorDemo() {
                           color: "var(--dk-text)",
                         }}
                       >
-                        <r.icon style={{ width: 13, height: 13, color: "var(--dk-muted)" }} strokeWidth={1.75} />
+                        <span
+                          style={{
+                            fontFamily: "var(--ae-font-mono)",
+                            fontSize: 9.5,
+                            letterSpacing: "0.06em",
+                            color: "var(--dk-muted)",
+                            width: 16,
+                            flexShrink: 0,
+                          }}
+                        >
+                          {String(i + 1).padStart(2, "0")}
+                        </span>
                         {r.label}
                       </span>
                     ))}

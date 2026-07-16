@@ -75,7 +75,7 @@ export default function SimulatorPage() {
   const [rightOpen, setRightOpen]   = useState(true)
   const [bottomOpen, setBottomOpen] = useState(true)
   const left   = useResizable("aeolus-rail-left",  308, 240, 460, "left")
-  const right  = useResizable("aeolus-rail-right", 340, 260, 480, "right")
+  const right  = useResizable("aeolus-rail-right", 392, 320, 560, "right")
   const bottom = useResizable("aeolus-strip-h",    STRIP_H, 120, 340, "bottom")
 
   // "focus map" = collapse everything; derived, not a separate mode.
@@ -238,12 +238,16 @@ export default function SimulatorPage() {
               whileTap={{ scale: 0.94 }}
               transition={{ type: "spring", stiffness: 380, damping: 26 }}
               style={{
+                // Top of the map's single instrument column — the Leaflet zoom
+                // control is margin-pushed to sit directly below this button
+                // (see globals.css .leaflet-control-zoom), so the two never
+                // collide and read as one paper tool stack.
                 position: "absolute",
                 top: 12,
                 right: 12,
                 zIndex: 600,
-                width: 38,
-                height: 38,
+                width: 40,
+                height: 40,
                 borderRadius: r.md,
                 display: "flex",
                 alignItems: "center",

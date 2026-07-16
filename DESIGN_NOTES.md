@@ -1,5 +1,10 @@
 # Aeolus — Design System
 
+> **Superseded note (2026-07-15):** the "two worlds" split below is retired —
+> the simulator now shares the landing's paper/ink editorial register.
+> The locked system lives in [`design.md`](design.md) at the project root;
+> read that first. This file remains as the detailed landing reference.
+
 Two worlds, one product (July 2026):
 
 - **Landing — "control-tower editorial"**: warm beige paper, near-black ink,

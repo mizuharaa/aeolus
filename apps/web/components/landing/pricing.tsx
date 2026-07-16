@@ -1,17 +1,16 @@
 "use client"
 /**
- * PricingSection — plans & pricing on shadcn primitives (Card/Badge/Button),
- * inked in the landing's editorial register: beige paper, white cards,
- * cobalt action, one recommended tier lifted with the violet wash.
+ * PricingSection — an editorial pricing LEDGER, not a card rack. Three tier
+ * rows sit directly on the paper between drawn rules: display tier name +
+ * blurb · features as a prose run · mono price · typographic CTA. The
+ * recommended tier is marked with an amber rule + mono tag instead of a
+ * "Most popular" badge on a lifted box.
  */
 
 import Link from "next/link"
 import { useLayoutEffect, useRef } from "react"
-import { ArrowRight, Check } from "lucide-react"
+import { ArrowRight } from "lucide-react"
 import { gsap } from "@/components/landing/gsap"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 
 type Tier = {
   name: string
@@ -68,11 +67,11 @@ export function PricingSection() {
     if (!root) return
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
     const ctx = gsap.context(() => {
-      gsap.from(".pr-card", {
-        y: 42,
+      gsap.from(".pr-row", {
+        y: 28,
         opacity: 0,
-        stagger: 0.09,
-        duration: 0.75,
+        stagger: 0.10,
+        duration: 0.7,
         ease: "power3.out",
         scrollTrigger: { trigger: root, start: "top 74%" },
       })
@@ -112,68 +111,160 @@ export function PricingSection() {
         </p>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20 }}>
+      {/* The ledger — rows between drawn rules, no boxes */}
+      <div style={{ borderTop: "2px solid var(--ink, var(--ae-text))" }}>
         {TIERS.map((t) => (
-          <Card
+          <Link
             key={t.name}
-            className="pr-card"
-            style={{
-              background: "var(--panel, var(--ae-surface))",
-              borderColor: t.recommended ? "#2C49E0" : "var(--border, var(--ae-line))",
-              boxShadow: t.recommended ? "0 18px 48px -18px rgba(44, 73, 224, 0.35)" : undefined,
-              position: "relative",
-              overflow: "hidden",
-            }}
+            href={t.href as import("next").Route}
+            className="pr-row"
+            aria-label={`${t.name} — ${t.price}${t.period ? ` ${t.period}` : ""} · ${t.cta}`}
           >
-            {t.recommended && (
-              <div
-                aria-hidden
-                style={{
-                  position: "absolute",
-                  inset: "0 0 auto 0",
-                  height: 4,
-                  background: "linear-gradient(90deg, #2C49E0, #6F3FE4, #EFAF1B)",
-                }}
-              />
-            )}
-            <CardHeader>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <CardTitle style={{ fontSize: 18, letterSpacing: "0.01em" }}>{t.name}</CardTitle>
-                {t.recommended && <Badge style={{ background: "#2C49E0", color: "#fff" }}>Most popular</Badge>}
-              </div>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 6 }}>
-                <span style={{ fontSize: 40, fontWeight: 700, letterSpacing: "-0.03em", color: "var(--ink, var(--ae-text))" }}>
-                  {t.price}
+            {/* name + blurb */}
+            <div className="pr-name-cell">
+              {t.recommended && <span className="pr-tag">Recommended · OCC teams</span>}
+              <span className="pr-name">{t.name}</span>
+              <span className="pr-blurb">{t.blurb}</span>
+            </div>
+
+            {/* features as a prose run, not a checkmark list */}
+            <p className="pr-features">
+              {t.features.map((f, i) => (
+                <span key={f}>
+                  {f}
+                  {i < t.features.length - 1 && <span className="pr-sep"> · </span>}
                 </span>
-                {t.period && <span style={{ fontSize: 13, color: "var(--muted, var(--ae-text-3))" }}>{t.period}</span>}
-              </div>
-              <CardDescription style={{ marginTop: 4 }}>{t.blurb}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 10 }}>
-                {t.features.map((f) => (
-                  <li key={f} style={{ display: "flex", gap: 10, alignItems: "flex-start", fontSize: 14, lineHeight: 1.45 }}>
-                    <Check style={{ width: 15, height: 15, marginTop: 2, flexShrink: 0, color: "#2C49E0" }} strokeWidth={2.5} />
-                    <span>{f}</span>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-            <CardFooter>
-              <Button
-                asChild
-                variant={t.recommended ? "default" : "outline"}
-                style={t.recommended ? { background: "#2C49E0", color: "#fff", width: "100%" } : { width: "100%" }}
-              >
-                <Link href={t.href as import("next").Route}>
-                  {t.cta}
-                  <ArrowRight style={{ width: 15, height: 15 }} />
-                </Link>
-              </Button>
-            </CardFooter>
-          </Card>
+              ))}
+            </p>
+
+            {/* price + CTA */}
+            <div className="pr-price-cell">
+              <span className="pr-price">{t.price}</span>
+              {t.period && <span className="pr-period">{t.period}</span>}
+              <span className={t.recommended ? "pr-cta pr-cta--solid" : "pr-cta"}>
+                {t.cta}
+                <ArrowRight className="pr-arrow" style={{ width: 14, height: 14 }} />
+              </span>
+            </div>
+          </Link>
         ))}
       </div>
+
+      <style jsx>{`
+        :global(.pr-row) {
+          display: grid;
+          grid-template-columns: minmax(180px, 280px) minmax(0, 1fr) auto;
+          gap: clamp(16px, 3vw, 48px);
+          align-items: start;
+          padding: clamp(22px, 3.5vh, 34px) 4px;
+          border-bottom: 1px solid var(--border, var(--ae-line));
+          text-decoration: none;
+          transition: background 180ms ease;
+        }
+        :global(.pr-row:hover) {
+          background: color-mix(in srgb, var(--ink, #141019) 4%, transparent);
+        }
+        :global(.pr-row:focus-visible) {
+          outline: 3px solid var(--accent-blue, #2c49e0);
+          outline-offset: -3px;
+        }
+        .pr-name-cell {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          min-width: 0;
+        }
+        .pr-tag {
+          font-family: var(--ae-font-mono);
+          font-size: 10px;
+          font-weight: 600;
+          letter-spacing: 0.16em;
+          text-transform: uppercase;
+          color: var(--accent-amber, #b8863c);
+        }
+        .pr-name {
+          font-size: clamp(22px, 2.6vw, 32px);
+          font-weight: 700;
+          letter-spacing: -0.02em;
+          line-height: 1.05;
+          color: var(--ink, var(--ae-text));
+        }
+        .pr-blurb {
+          font-size: 13.5px;
+          line-height: 1.5;
+          color: var(--muted, var(--ae-text-3));
+        }
+        .pr-features {
+          margin: 6px 0 0;
+          font-size: 14.5px;
+          line-height: 1.7;
+          color: var(--ink, var(--ae-text));
+          max-width: 56ch;
+        }
+        .pr-sep {
+          color: var(--accent-blue, #2c49e0);
+          font-weight: 600;
+        }
+        .pr-price-cell {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 2px;
+          text-align: right;
+          white-space: nowrap;
+        }
+        .pr-price {
+          font-family: var(--ae-font-mono);
+          font-size: clamp(26px, 3vw, 38px);
+          font-weight: 600;
+          letter-spacing: -0.02em;
+          color: var(--ink, var(--ae-text));
+          font-variant-numeric: tabular-nums;
+        }
+        .pr-period {
+          font-size: 12px;
+          color: var(--muted, var(--ae-text-3));
+        }
+        .pr-cta {
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+          margin-top: 12px;
+          font-size: 14px;
+          font-weight: 600;
+          color: var(--ink, var(--ae-text));
+          border-bottom: 2px solid var(--accent-amber, #efaf1b);
+          padding-bottom: 2px;
+        }
+        .pr-cta--solid {
+          border-bottom: none;
+          background: var(--ink, #141019);
+          color: var(--bg, #f5f0e3);
+          border-radius: 999px;
+          padding: 9px 18px;
+        }
+        :global(.pr-row) .pr-arrow {
+          transition: transform 180ms cubic-bezier(0.22, 0.9, 0.28, 1);
+        }
+        :global(.pr-row:hover) .pr-arrow {
+          transform: translateX(4px);
+        }
+        @media (max-width: 860px) {
+          :global(.pr-row) {
+            grid-template-columns: 1fr;
+            gap: 12px;
+          }
+          .pr-price-cell {
+            align-items: flex-start;
+            text-align: left;
+          }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          :global(.pr-row:hover) .pr-arrow {
+            transform: none;
+          }
+        }
+      `}</style>
     </section>
   )
 }

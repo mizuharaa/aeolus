@@ -11,7 +11,7 @@
  *   Center      — Leaflet map preview of the user-built routes
  *   Right rail  — disruption injector + cascade results + cost ledger
  */
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import dynamic from "next/dynamic"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -110,13 +110,13 @@ export default function PlaytestPage() {
     return `T${flights.length + 1}`
   }, [flights])
 
-  const handleAddFlight = () => {
-    if (origin === destination) {
+  const addFlightFromTo = (o: string, d: string) => {
+    if (o === d) {
       setError("Origin and destination must differ.")
       return
     }
     setError(null)
-    const dur = estimateBlockHours(origin, destination)
+    const dur = estimateBlockHours(o, d)
     // Compose ISO strings on today at the chosen departure HH:MM. The
     // predictor is timezone-agnostic; we use UTC for stability.
     const today = new Date()
@@ -127,13 +127,34 @@ export default function PlaytestPage() {
     addFlight({
       id:                  nextFlightId,
       aircraft_id:         nextAircraftId,
-      origin,
-      destination,
+      origin:              o,
+      destination:         d,
       scheduled_departure: depISO,
       scheduled_arrival:   arrISO,
       passengers:          AIRCRAFT_TYPES.find((a) => a.id === acType)?.seats ?? 150,
     })
+    // Auto-advance the departure slot so consecutive adds chain into a
+    // plausible rotation instead of stacking at the same minute.
+    const next = new Date(today.getTime() + 45 * 60 * 1000)
+    setDep(`${String(next.getUTCHours()).padStart(2, "0")}:${String(next.getUTCMinutes()).padStart(2, "0")}`)
   }
+
+  const handleAddFlight = () => addFlightFromTo(origin, destination)
+
+  // ── Click-to-build: click one airport to arm the origin, click a second
+  //    to draw the flight. Esc (or re-clicking the armed airport) cancels. ──
+  const [armedOrigin, setArmedOrigin] = useState<string | null>(null)
+  const handleAirportPick = (icao: string) => {
+    if (!armedOrigin) { setArmedOrigin(icao); setError(null); return }
+    if (armedOrigin === icao) { setArmedOrigin(null); return }
+    addFlightFromTo(armedOrigin, icao)
+    setArmedOrigin(null)
+  }
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setArmedOrigin(null) }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [])
 
   const handleRun = async () => {
     if (flights.length === 0) return
@@ -175,7 +196,7 @@ export default function PlaytestPage() {
         { label: "Playtest sandbox" },
       ]}
       title="Playtest sandbox"
-      subtitle="Build your own flight set, inject disruptions, watch the cascade. Stateless and self-contained — nothing here touches the Nimbus Air schedule."
+      subtitle="Click two airports on the map to draw a route — or use the form for precision. Inject a disruption, watch the cascade. Stateless: nothing here touches the Nimbus Air schedule."
       actions={
         flights.length > 0 ? (
           <ButtonSecondary
@@ -191,9 +212,12 @@ export default function PlaytestPage() {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "minmax(280px, 320px) minmax(0, 1fr) minmax(280px, 360px)",
+          gridTemplateColumns: "minmax(300px, 340px) minmax(0, 1fr) minmax(300px, 380px)",
           gap: sp.md,
           alignItems: "stretch",
+          // The map is the hero: fill the viewport below the shell header
+          // instead of a fixed 640px band.
+          height: "calc(100vh - 240px)",
           minHeight: 640,
         }}
       >
@@ -265,10 +289,32 @@ export default function PlaytestPage() {
           </div>
         </ContentCard>
 
-        {/* ── CENTER: map preview ──────────────────────────────────────── */}
-        <ContentCard padding={0} style={{ overflow: "hidden", minHeight: 540 }}>
+        {/* ── CENTER: the map is the primary builder ───────────────────── */}
+        <ContentCard padding={0} style={{ overflow: "hidden", minHeight: 540, position: "relative" }}>
           <div style={{ height: "100%", minHeight: 540 }}>
-            <PlaytestMap flights={flights} flightStates={flightStates} />
+            <PlaytestMap
+              flights={flights}
+              flightStates={flightStates}
+              onAirportPick={handleAirportPick}
+              armedOrigin={armedOrigin}
+            />
+          </div>
+          {/* Build hint — tells the user the map itself is the form */}
+          <div
+            style={{
+              position: "absolute", top: 12, left: "50%", transform: "translateX(-50%)",
+              zIndex: 500, padding: "7px 14px", borderRadius: 999,
+              background: armedOrigin ? "var(--ae-amber-bg)" : "rgba(255,253,246,0.92)",
+              border: `1px solid ${armedOrigin ? "var(--ae-amber)" : c.hairline}`,
+              backdropFilter: "blur(8px)",
+              fontFamily: ff.mono, fontSize: 11, fontWeight: 600, letterSpacing: "0.04em",
+              color: armedOrigin ? "var(--ae-amber-ink)" : c.muted,
+              whiteSpace: "nowrap", pointerEvents: "none",
+            }}
+          >
+            {armedOrigin
+              ? `${NIMBUS_AIRPORTS[armedOrigin]?.iata ?? armedOrigin} armed — click a destination · Esc cancels`
+              : "Click two airports to draw a route"}
           </div>
         </ContentCard>
 
@@ -416,9 +462,10 @@ function Select({
 
 const inputStyle: React.CSSProperties = {
   fontFamily: ff.body,
-  fontSize: 13,
+  fontSize: 13.5,
   fontWeight: 400,
-  padding: "8px 10px",
+  padding: "10px 12px",
+  minHeight: 40,
   borderRadius: r.sm,
   border: `1px solid ${c.hairline}`,
   background: c.canvas,

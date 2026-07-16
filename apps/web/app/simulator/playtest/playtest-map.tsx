@@ -13,21 +13,29 @@
 import { useEffect, useRef } from "react"
 import L from "leaflet"
 import { NIMBUS_AIRPORTS } from "@/components/simulator/airports"
-import { c } from "@/lib/design-tokens"
+import { c, pigment } from "@/lib/design-tokens"
 import type { PlaytestFlight, PlaytestFlightState } from "@/stores/playtest"
 
 interface Props {
   flights:      PlaytestFlight[]
   flightStates: Record<string, PlaytestFlightState>
+  /** Click-to-build: every network airport is a clickable build target. */
+  onAirportPick?: (icao: string) => void
+  /** ICAO armed as the pending origin — rendered amber. */
+  armedOrigin?: string | null
 }
 
 const US_CENTER:  [number, number] = [39.5, -98.5]
 const INITIAL_ZOOM = 4
 
-export function PlaytestMap({ flights, flightStates }: Props) {
+export function PlaytestMap({ flights, flightStates, onAirportPick, armedOrigin }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef       = useRef<L.Map | null>(null)
   const layerRef     = useRef<L.LayerGroup | null>(null)
+  const airportsRef  = useRef<L.LayerGroup | null>(null)
+  // Keep the latest pick handler without re-creating markers per render.
+  const pickRef = useRef(onAirportPick)
+  useEffect(() => { pickRef.current = onAirportPick }, [onAirportPick])
 
   // ── Bootstrap the map once ──────────────────────────────────────────────
   useEffect(() => {
@@ -46,15 +54,44 @@ export function PlaytestMap({ flights, flightStates }: Props) {
       subdomains: "abcd",
     }).addTo(map)
 
+    airportsRef.current = L.layerGroup().addTo(map)
     layerRef.current = L.layerGroup().addTo(map)
     mapRef.current   = map
 
     return () => {
       map.remove()
-      mapRef.current   = null
-      layerRef.current = null
+      mapRef.current      = null
+      layerRef.current    = null
+      airportsRef.current = null
     }
   }, [])
+
+  // ── Base airport layer — EVERY network airport is a click-to-build
+  //    target; the armed origin renders amber. Redrawn only when the armed
+  //    state changes (the click handler reads through a ref). ─────────────
+  useEffect(() => {
+    const layer = airportsRef.current
+    if (!layer) return
+    layer.clearLayers()
+    for (const [icao, ap] of Object.entries(NIMBUS_AIRPORTS)) {
+      const armed = armedOrigin === icao
+      const m = L.circleMarker([ap.lat, ap.lon], {
+        radius: armed ? 9 : 6,
+        color: armed ? pigment.amber : c.ink,
+        weight: armed ? 2.5 : 1.5,
+        fillColor: armed ? pigment.amber : c.canvas,
+        fillOpacity: armed ? 0.9 : 0.9,
+      })
+        .bindTooltip(
+          armed ? `${ap.iata} — origin armed · click a destination` : `${ap.iata} — ${ap.city}`,
+          { direction: "top", offset: [0, -6], opacity: 0.95 },
+        )
+        .addTo(layer)
+      if (pickRef.current) {
+        m.on("click", () => pickRef.current?.(icao))
+      }
+    }
+  }, [armedOrigin])
 
   // ── Redraw routes + endpoints whenever the input changes ────────────────
   useEffect(() => {
@@ -63,16 +100,13 @@ export function PlaytestMap({ flights, flightStates }: Props) {
 
     if (flights.length === 0) return
 
-    // Track the union of all visited airports so we can auto-fit bounds.
-    const visited = new Set<string>()
+    // Endpoint coordinates for auto-fit bounds.
     const points: [number, number][] = []
 
     for (const f of flights) {
       const o = NIMBUS_AIRPORTS[f.origin]
       const d = NIMBUS_AIRPORTS[f.destination]
       if (!o || !d) continue
-      visited.add(f.origin)
-      visited.add(f.destination)
       points.push([o.lat, o.lon])
       points.push([d.lat, d.lon])
 
@@ -89,20 +123,7 @@ export function PlaytestMap({ flights, flightStates }: Props) {
       ).addTo(layerRef.current)
     }
 
-    // Airport endpoint markers (one per unique ICAO).
-    for (const icao of visited) {
-      const ap = NIMBUS_AIRPORTS[icao]
-      if (!ap) continue
-      L.circleMarker([ap.lat, ap.lon], {
-        radius: 5,
-        color: c.ink,
-        weight: 1.5,
-        fillColor: c.canvas,
-        fillOpacity: 1,
-      })
-        .bindTooltip(`${ap.iata} — ${ap.city}`, { direction: "top", offset: [0, -4], opacity: 0.95 })
-        .addTo(layerRef.current)
-    }
+    // (Endpoint markers now come from the always-on base airport layer.)
 
     // Auto-fit once the user has at least one flight, otherwise stay on CONUS.
     if (points.length >= 2) {

@@ -30,9 +30,9 @@ function IndecisionMeter() {
         fontVariantNumeric: "tabular-nums",
       }}
     >
-      <span style={{ letterSpacing: "0.1em" }}>UNCOMMITTED</span>
+      <span className="ae-hide-below-1250" style={{ letterSpacing: "0.1em" }}>UNCOMMITTED</span>
       <span style={{ color: "var(--ae-text)" }}>−{fmtUsdShort(ratePerMin)}/min</span>
-      <span>{fmtUsdShort(accrued)} burned</span>
+      <span className="ae-hide-below-1250">{fmtUsdShort(accrued)} burned</span>
     </span>
   )
 }
@@ -118,10 +118,7 @@ export function SimulatorNav({ isConnected }: SimulatorNavProps) {
             lineHeight: 1,
             letterSpacing: "-0.01em",
             whiteSpace: "nowrap",
-            background: "linear-gradient(90deg, var(--ae-text), var(--ae-teal-ink))",
-            WebkitBackgroundClip: "text",
-            backgroundClip: "text",
-            WebkitTextFillColor: "transparent",
+            color: c.ink,
           }}
         >
           Nimbus Air OCC
@@ -164,22 +161,21 @@ export function SimulatorNav({ isConnected }: SimulatorNavProps) {
               fontVariantNumeric: "tabular-nums",
             }}
           >
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--ae-teal)" }} />
-              <span style={{ fontFamily: ff.mono, fontWeight: 550, color: c.ink }}>{stats.onTime}</span>
+            {/* Status is text with a pigment underline — the landing's
+                LIVE/OFFLINE convention. Status dots are banned (design.md). */}
+            <span style={{ display: "inline-flex", alignItems: "baseline", gap: 5 }}>
+              <span style={{ fontFamily: ff.mono, fontWeight: 550, color: c.ink, borderBottom: "2px solid var(--ae-teal)", paddingBottom: 1 }}>{stats.onTime}</span>
               on time
             </span>
             {stats.delayed > 0 && (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--ae-amber)" }} />
-                <span style={{ fontFamily: ff.mono, fontWeight: 550, color: c.ink }}>{stats.delayed}</span>
+              <span style={{ display: "inline-flex", alignItems: "baseline", gap: 5 }}>
+                <span style={{ fontFamily: ff.mono, fontWeight: 550, color: c.ink, borderBottom: "2px solid var(--ae-amber)", paddingBottom: 1 }}>{stats.delayed}</span>
                 delayed
               </span>
             )}
             {stats.cancelled > 0 && (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--ae-line-strong)" }} />
-                <span style={{ fontFamily: ff.mono, fontWeight: 550, color: c.ink }}>{stats.cancelled}</span>
+              <span style={{ display: "inline-flex", alignItems: "baseline", gap: 5 }}>
+                <span style={{ fontFamily: ff.mono, fontWeight: 550, color: c.ink, borderBottom: "2px solid var(--ae-line-strong)", paddingBottom: 1, textDecoration: "line-through" }}>{stats.cancelled}</span>
                 cancelled
               </span>
             )}
