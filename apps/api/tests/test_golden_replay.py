@@ -138,12 +138,7 @@ def test_persisted_scenario_replays_to_byte_identical_event_streams(tmp_path, mo
         )
     )
     scenario_id = engine.scenario_id
-    repo.close()
-
-    # Reopen the on-disk store so replay cannot accidentally rely on the
-    # creating engine or repository connection retaining in-memory state.
-    reloaded_repo = ScenarioRepository(db_path)
-    persisted = reloaded_repo.load(scenario_id)
+    persisted = repo.load(scenario_id)
     assert persisted is not None
     assert persisted.events == [event]
 
@@ -157,17 +152,36 @@ def test_persisted_scenario_replays_to_byte_identical_event_streams(tmp_path, mo
 
     monkeypatch.setattr(SimulationEngine, "trigger_event", capture_trigger)
 
-    for _ in range(2):
-        streams.append([])
-        asyncio.run(
-            replay_scenario(
-                scenario_id,
-                reloaded_repo,
-                schedule=FLIGHTS,
-                aircraft=AIRCRAFT,
-                crews=CREWS,
-            )
+    streams.append([])
+    asyncio.run(
+        replay_scenario(
+            scenario_id,
+            repo,
+            schedule=FLIGHTS,
+            aircraft=AIRCRAFT,
+            crews=CREWS,
         )
+    )
+
+    # Cross the restart boundary between the two golden runs. Closing the
+    # original connection leaves the second replay only the SQLite file;
+    # neither the creating engine nor its repository can supply live state.
+    repo.close()
+    reloaded_repo = ScenarioRepository(db_path)
+    reloaded = reloaded_repo.load(scenario_id)
+    assert reloaded is not None
+    assert reloaded.events == persisted.events
+
+    streams.append([])
+    asyncio.run(
+        replay_scenario(
+            scenario_id,
+            reloaded_repo,
+            schedule=FLIGHTS,
+            aircraft=AIRCRAFT,
+            crews=CREWS,
+        )
+    )
 
     assert len(streams[0]) == len(streams[1]) == len(persisted.events)
     assert _golden_bytes(streams[0]) == _golden_bytes(streams[1])
