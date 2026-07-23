@@ -34,7 +34,9 @@ export function Rise({
       style={style}
       initial={reduce ? false : { opacity: 0, y }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-80px" }}
+      // once:false — the reveal reverses when the element scrolls back out,
+      // so the page animates in BOTH scroll directions
+      viewport={{ once: false, margin: "-80px" }}
       transition={{ duration: 0.7, delay, ease: EASE }}
     >
       {children}
@@ -89,7 +91,7 @@ export function StaggerGroup({
       style={style}
       initial={reduce ? false : "hidden"}
       whileInView="show"
-      viewport={{ once: true, margin: "-60px" }}
+      viewport={{ once: false, margin: "-60px" }}
       variants={{
         hidden: {},
         show: { transition: { staggerChildren: gap, delayChildren: delay } },

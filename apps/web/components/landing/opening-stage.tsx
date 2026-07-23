@@ -11,7 +11,6 @@ import { useLayoutEffect, useRef } from "react"
 import { motion, useReducedMotion } from "framer-motion"
 import { ArrowDown } from "lucide-react"
 import { gsap, ScrollTrigger } from "@/components/landing/gsap"
-import { AeolusMark } from "@/components/ds/logo"
 import { MaskedWordmark } from "@/components/landing/masked-wordmark"
 import { EASE } from "@/components/landing/motion"
 
@@ -100,24 +99,29 @@ export function OpeningWordmarkStage() {
           flexWrap: "wrap",
         }}
       >
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 12 }}>
-          <AeolusMark size={30} style={{ color: "var(--ink)" }} />
-          <span className="lp-eyebrow" style={{ color: "var(--ink)" }}>
-            Aeolus
-          </span>
+        <span className="lp-eyebrow" style={{ color: "var(--ink)" }}>
+          Aeolus
         </span>
         <span className="lp-eyebrow">Airline disruption &amp; recovery simulator</span>
       </motion.div>
 
-      {/* the wordmark */}
+      {/* the wordmark — full bleed: breaks out of the section padding and
+          stretches wall-to-wall, ribbons running past the viewport edges */}
       <motion.div
         ref={wmRef}
         initial={reduce ? false : { opacity: 0, y: 56 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 1.0, ease: EASE, delay: 0.3 }}
-        style={{ willChange: "transform" }}
+        style={{
+          willChange: "transform",
+          width: "100vw",
+          marginLeft: "calc(50% - 50vw)",
+        }}
       >
-        <MaskedWordmark text="AEOLUS" />
+        <MaskedWordmark
+          text="AEOLUS"
+          style={{ height: "clamp(170px, 24vw, 330px)", width: "100%" }}
+        />
       </motion.div>
 
       {/* baseline row */}

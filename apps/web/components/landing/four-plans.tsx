@@ -80,7 +80,7 @@ export function FourPlansSection() {
         overflow: "hidden",
         padding: "clamp(56px, 9vh, 120px) clamp(22px, 5vw, 76px)",
         background:
-          "linear-gradient(135deg, #0C7A6E 0%, #14807E 34%, #3B4F9E 66%, #6F3FE4 100%)",
+          "#241A38",
         color: "#F4F0FF",
         perspective: 1400,
       }}

@@ -1,63 +1,33 @@
 "use client"
 /**
- * PricingSection — an editorial pricing LEDGER, not a card rack. Three tier
- * rows sit directly on the paper between drawn rules: display tier name +
- * blurb · features as a prose run · mono price · typographic CTA. The
- * recommended tier is marked with an amber rule + mono tag instead of a
- * "Most popular" badge on a lifted box.
+ * PricingSection — MVP edition. One plan, one card. Aeolus is free while it's
+ * in MVP, so the section states that plainly: a single centered card with a
+ * price, what's included, and one CTA. Hover lifts the card and lights the
+ * border in plum; the feature list is the informative payload. When paid
+ * tiers arrive this grid can grow back to multiple cards.
  */
 
 import Link from "next/link"
 import { useLayoutEffect, useRef } from "react"
-import { ArrowRight } from "lucide-react"
+import { ArrowRight, Check } from "lucide-react"
 import { gsap } from "@/components/landing/gsap"
 
-type Tier = {
-  name: string
-  price: string
-  period?: string
-  blurb: string
-  cta: string
-  href: string
-  features: string[]
-  recommended?: boolean
+const PLAN = {
+  name: "Free",
+  price: "$0",
+  period: "while we're in MVP",
+  blurb: "The whole recovery loop, open to everyone. Trigger real disruption physics, watch the cascade spread, and compare recovery plans — no card, no trial clock.",
+  cta: "Launch the simulator",
+  href: "/simulator",
+  features: [
+    "Full Nimbus Air network + live ADS-B traffic",
+    "Every disruption type — weather, ATC, crew, mechanical",
+    "Delay cascade replay across the network",
+    "All four recovery plans — cost · passengers · crew · carbon",
+    "Deterministic CP-SAT solver, sub-10ms solves",
+    "Shareable scenario replays",
+  ],
 }
-
-const TIERS: Tier[] = [
-  {
-    name: "Explorer",
-    price: "$0",
-    period: "forever",
-    blurb: "Kick the tires on real disruption physics.",
-    cta: "Start free",
-    href: "/simulator",
-    features: ["Sandbox network (1 hub)", "3 curated scenarios", "Delay cascade replay", "Community scenario library"],
-  },
-  {
-    name: "Operations",
-    price: "$79",
-    period: "per seat / month",
-    blurb: "The full recovery loop for working OCC teams.",
-    cta: "Start 14-day trial",
-    href: "/simulator",
-    features: [
-      "Full network, unlimited scenarios",
-      "All four recovery plans (cost / pax / crew / carbon)",
-      "Agent command console",
-      "Exports & shareable replays",
-      "Priority support",
-    ],
-    recommended: true,
-  },
-  {
-    name: "Enterprise",
-    price: "Custom",
-    blurb: "Your fleet, your schedules, your rules engine.",
-    cta: "Talk to us",
-    href: "mailto:hello@aeolus.dev",
-    features: ["Private data feeds & SSO", "Custom crew-legality rules", "Simulation API access", "Dedicated recovery engineer"],
-  },
-]
 
 export function PricingSection() {
   const rootRef = useRef<HTMLElement>(null)
@@ -67,13 +37,20 @@ export function PricingSection() {
     if (!root) return
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
     const ctx = gsap.context(() => {
-      gsap.from(".pr-row", {
-        y: 28,
+      gsap.from(".pr-card", {
+        y: 32,
         opacity: 0,
-        stagger: 0.10,
-        duration: 0.7,
+        duration: 0.8,
         ease: "power3.out",
-        scrollTrigger: { trigger: root, start: "top 74%" },
+        scrollTrigger: { trigger: root, start: "top 76%" },
+      })
+      gsap.from(".pr-feat", {
+        x: -12,
+        opacity: 0,
+        stagger: 0.06,
+        duration: 0.5,
+        ease: "power2.out",
+        scrollTrigger: { trigger: root, start: "top 62%" },
       })
     }, root)
     return () => ctx.revert()
@@ -86,173 +63,236 @@ export function PricingSection() {
       aria-label="Plans and pricing"
       style={{ padding: "clamp(72px, 10vh, 128px) clamp(20px, 4vw, 56px)", maxWidth: 1280, margin: "0 auto" }}
     >
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginBottom: 40 }}>
-        <div>
-          <span className="lp-eyebrow">05 — Plans &amp; pricing</span>
-          <h2
-            style={{
-              margin: "10px 0 0",
-              fontSize: "clamp(30px, 4.4vw, 54px)",
-              lineHeight: 1.04,
-              letterSpacing: "-0.02em",
-              color: "var(--ink, var(--ae-text))",
-            }}
-          >
-            Priced like a tool,
-            <br />
-            <span className="ed-serif" style={{ color: "var(--accent-blue, #2C49E0)" }}>
-              not a consultancy.
-            </span>
-          </h2>
-        </div>
-        <p style={{ maxWidth: 380, margin: 0, color: "var(--muted, var(--ae-text-3))", fontSize: 15, lineHeight: 1.55 }}>
-          Every tier runs the same simulation core — the difference is network size, seats, and how deep the recovery
-          tooling goes.
+      <div style={{ textAlign: "center", marginBottom: 44, maxWidth: 620, marginInline: "auto" }}>
+        <span className="lp-eyebrow">05 — Plans &amp; pricing</span>
+        <h2
+          style={{
+            margin: "12px 0 14px",
+            fontSize: "clamp(30px, 4.4vw, 54px)",
+            lineHeight: 1.04,
+            letterSpacing: "-0.02em",
+            color: "var(--ink, var(--ae-text))",
+          }}
+        >
+          Free{" "}
+          <span className="ed-serif" style={{ color: "var(--accent-blue, #5B3FA8)" }}>
+            while we build.
+          </span>
+        </h2>
+        <p style={{ margin: 0, color: "var(--muted, var(--ae-text-3))", fontSize: 15.5, lineHeight: 1.6 }}>
+          Aeolus is in MVP, so the full engine is open with no paywall. Paid tiers for large fleets and
+          teams will come later — for now, everything below is yours.
         </p>
       </div>
 
-      {/* The ledger — rows between drawn rules, no boxes */}
-      <div style={{ borderTop: "2px solid var(--ink, var(--ae-text))" }}>
-        {TIERS.map((t) => (
-          <Link
-            key={t.name}
-            href={t.href as import("next").Route}
-            className="pr-row"
-            aria-label={`${t.name} — ${t.price}${t.period ? ` ${t.period}` : ""} · ${t.cta}`}
-          >
-            {/* name + blurb */}
-            <div className="pr-name-cell">
-              {t.recommended && <span className="pr-tag">Recommended · OCC teams</span>}
-              <span className="pr-name">{t.name}</span>
-              <span className="pr-blurb">{t.blurb}</span>
+      <div style={{ display: "flex", justifyContent: "center" }}>
+        <Link
+          href={PLAN.href as import("next").Route}
+          className="pr-card"
+          aria-label={`${PLAN.name} plan — ${PLAN.price} ${PLAN.period}. ${PLAN.cta}`}
+        >
+          {/* header row: name/tag + price */}
+          <div className="pr-head">
+            <div className="pr-head-l">
+              <span className="pr-tag">Current plan · MVP</span>
+              <span className="pr-name">{PLAN.name}</span>
             </div>
-
-            {/* features as a prose run, not a checkmark list */}
-            <p className="pr-features">
-              {t.features.map((f, i) => (
-                <span key={f}>
-                  {f}
-                  {i < t.features.length - 1 && <span className="pr-sep"> · </span>}
-                </span>
-              ))}
-            </p>
-
-            {/* price + CTA */}
             <div className="pr-price-cell">
-              <span className="pr-price">{t.price}</span>
-              {t.period && <span className="pr-period">{t.period}</span>}
-              <span className={t.recommended ? "pr-cta pr-cta--solid" : "pr-cta"}>
-                {t.cta}
-                <ArrowRight className="pr-arrow" style={{ width: 14, height: 14 }} />
-              </span>
+              <span className="pr-price">{PLAN.price}</span>
+              <span className="pr-period">{PLAN.period}</span>
             </div>
-          </Link>
-        ))}
+          </div>
+
+          <p className="pr-blurb">{PLAN.blurb}</p>
+
+          <span className="pr-rule" aria-hidden />
+
+          <ul className="pr-features">
+            {PLAN.features.map((f) => (
+              <li key={f} className="pr-feat">
+                <span className="pr-check" aria-hidden>
+                  <Check style={{ width: 13, height: 13 }} strokeWidth={2.5} />
+                </span>
+                {f}
+              </li>
+            ))}
+          </ul>
+
+          <span className="pr-cta">
+            {PLAN.cta}
+            <ArrowRight className="pr-arrow" style={{ width: 16, height: 16 }} strokeWidth={2.25} />
+          </span>
+          <span className="pr-note">No sign-up · no credit card · nothing to cancel</span>
+        </Link>
       </div>
 
       <style jsx>{`
-        :global(.pr-row) {
-          display: grid;
-          grid-template-columns: minmax(180px, 280px) minmax(0, 1fr) auto;
-          gap: clamp(16px, 3vw, 48px);
-          align-items: start;
-          padding: clamp(22px, 3.5vh, 34px) 4px;
-          border-bottom: 1px solid var(--border, var(--ae-line));
-          text-decoration: none;
-          transition: background 180ms ease;
-        }
-        :global(.pr-row:hover) {
-          background: color-mix(in srgb, var(--ink, #141019) 4%, transparent);
-        }
-        :global(.pr-row:focus-visible) {
-          outline: 3px solid var(--accent-blue, #2c49e0);
-          outline-offset: -3px;
-        }
-        .pr-name-cell {
+        :global(.pr-card) {
           display: flex;
           flex-direction: column;
-          gap: 6px;
+          width: 100%;
+          max-width: 540px;
+          padding: clamp(26px, 4vw, 40px);
+          background: var(--panel, var(--ae-surface));
+          border: 1.5px solid var(--border, var(--ae-line));
+          border-radius: 20px;
+          text-decoration: none;
+          box-shadow: 0 1px 2px rgba(28, 20, 38, 0.05);
+          transition: transform 240ms cubic-bezier(0.22, 0.9, 0.28, 1),
+            box-shadow 240ms ease, border-color 200ms ease;
+          will-change: transform;
+        }
+        :global(.pr-card:hover) {
+          transform: translateY(-6px);
+          border-color: var(--accent-blue, #5b3fa8);
+          box-shadow: 0 26px 60px -30px rgba(91, 63, 168, 0.55),
+            0 0 0 1px color-mix(in srgb, var(--accent-blue, #5b3fa8) 30%, transparent) inset;
+        }
+        :global(.pr-card:focus-visible) {
+          outline: none;
+          border-color: var(--accent-blue, #5b3fa8);
+          box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-blue, #5b3fa8) 40%, transparent);
+        }
+
+        .pr-head {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 16px;
+        }
+        .pr-head-l {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
           min-width: 0;
         }
         .pr-tag {
+          display: inline-flex;
+          align-items: center;
+          align-self: flex-start;
           font-family: var(--ae-font-mono);
           font-size: 10px;
           font-weight: 600;
           letter-spacing: 0.16em;
           text-transform: uppercase;
           color: var(--accent-amber, #b8863c);
+          padding: 4px 9px;
+          border-radius: 999px;
+          background: color-mix(in srgb, var(--accent-amber, #b8863c) 14%, transparent);
         }
         .pr-name {
-          font-size: clamp(22px, 2.6vw, 32px);
-          font-weight: 700;
+          font-size: clamp(26px, 3vw, 36px);
+          font-weight: 750;
           letter-spacing: -0.02em;
-          line-height: 1.05;
+          line-height: 1;
           color: var(--ink, var(--ae-text));
-        }
-        .pr-blurb {
-          font-size: 13.5px;
-          line-height: 1.5;
-          color: var(--muted, var(--ae-text-3));
-        }
-        .pr-features {
-          margin: 6px 0 0;
-          font-size: 14.5px;
-          line-height: 1.7;
-          color: var(--ink, var(--ae-text));
-          max-width: 56ch;
-        }
-        .pr-sep {
-          color: var(--accent-blue, #2c49e0);
-          font-weight: 600;
         }
         .pr-price-cell {
           display: flex;
           flex-direction: column;
           align-items: flex-end;
-          gap: 2px;
           text-align: right;
           white-space: nowrap;
+          flex-shrink: 0;
         }
         .pr-price {
           font-family: var(--ae-font-mono);
-          font-size: clamp(26px, 3vw, 38px);
+          font-size: clamp(34px, 4.4vw, 46px);
           font-weight: 600;
           letter-spacing: -0.02em;
+          line-height: 1;
           color: var(--ink, var(--ae-text));
           font-variant-numeric: tabular-nums;
         }
         .pr-period {
+          margin-top: 6px;
           font-size: 12px;
           color: var(--muted, var(--ae-text-3));
         }
+
+        .pr-blurb {
+          margin: 18px 0 0;
+          font-size: 14.5px;
+          line-height: 1.6;
+          color: var(--muted, var(--ae-text-3));
+        }
+
+        .pr-rule {
+          display: block;
+          height: 1px;
+          margin: 22px 0;
+          background: var(--border, var(--ae-line));
+        }
+
+        .pr-features {
+          list-style: none;
+          margin: 0;
+          padding: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        .pr-feat {
+          display: flex;
+          align-items: flex-start;
+          gap: 11px;
+          font-size: 14.5px;
+          line-height: 1.45;
+          color: var(--ink, var(--ae-text));
+        }
+        .pr-check {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          width: 20px;
+          height: 20px;
+          margin-top: 1px;
+          border-radius: 999px;
+          background: color-mix(in srgb, var(--accent-blue, #5b3fa8) 14%, transparent);
+          color: var(--accent-blue, #5b3fa8);
+          transition: background 200ms ease, transform 200ms cubic-bezier(0.22, 0.9, 0.28, 1);
+        }
+        :global(.pr-card:hover) .pr-check {
+          background: var(--accent-blue, #5b3fa8);
+          color: #fff;
+        }
+
         .pr-cta {
           display: inline-flex;
           align-items: center;
-          gap: 7px;
-          margin-top: 12px;
-          font-size: 14px;
-          font-weight: 600;
-          color: var(--ink, var(--ae-text));
-          border-bottom: 2px solid var(--accent-amber, #efaf1b);
-          padding-bottom: 2px;
-        }
-        .pr-cta--solid {
-          border-bottom: none;
-          background: var(--ink, #141019);
-          color: var(--bg, #f5f0e3);
+          justify-content: center;
+          gap: 8px;
+          margin-top: 30px;
+          padding: 14px 22px;
+          font-size: 15px;
+          font-weight: 650;
+          color: var(--bg, #f5f1e8);
+          background: var(--ink, #1c1426);
           border-radius: 999px;
-          padding: 9px 18px;
+          transition: background 200ms ease;
         }
-        :global(.pr-row) .pr-arrow {
-          transition: transform 180ms cubic-bezier(0.22, 0.9, 0.28, 1);
+        :global(.pr-card:hover) .pr-cta {
+          background: var(--accent-blue, #5b3fa8);
         }
-        :global(.pr-row:hover) .pr-arrow {
+        :global(.pr-card) .pr-arrow {
+          transition: transform 200ms cubic-bezier(0.22, 0.9, 0.28, 1);
+        }
+        :global(.pr-card:hover) .pr-arrow {
           transform: translateX(4px);
         }
-        @media (max-width: 860px) {
-          :global(.pr-row) {
-            grid-template-columns: 1fr;
-            gap: 12px;
+
+        .pr-note {
+          margin-top: 12px;
+          text-align: center;
+          font-size: 12px;
+          color: var(--muted, var(--ae-text-3));
+        }
+
+        @media (max-width: 480px) {
+          .pr-head {
+            flex-direction: column;
+            gap: 14px;
           }
           .pr-price-cell {
             align-items: flex-start;
@@ -260,7 +300,10 @@ export function PricingSection() {
           }
         }
         @media (prefers-reduced-motion: reduce) {
-          :global(.pr-row:hover) .pr-arrow {
+          :global(.pr-card:hover) {
+            transform: none;
+          }
+          :global(.pr-card:hover) .pr-arrow {
             transform: none;
           }
         }

@@ -251,7 +251,7 @@ export function NotificationBell() {
                       key={a.key}
                       onClick={() => { setSelectedLiveFlight(a.flight); setOpen(false) }}
                       className="ae-event-tile"
-                      style={{ ["--tile-accent" as string]: "#2C49E0", display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", textAlign: "left" }}
+                      style={{ ["--tile-accent" as string]: "#5B3FA8", display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", textAlign: "left" }}
                     >
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 30, height: 30, borderRadius: 8, background: "var(--ae-teal-bg)", color: "var(--ae-teal-ink)", flexShrink: 0 }}>
                         <PlaneLanding style={{ width: 15, height: 15 }} strokeWidth={2} />

@@ -25,7 +25,7 @@ function seeded(key: string): number {
   return ((h >>> 0) % 1000) / 1000
 }
 
-const TEAL = "#2C49E0"
+const TEAL = "#5B3FA8"
 const SEAT_EMPTY_STROKE = "rgba(15,20,18,0.28)"
 
 type CabinRow = { cols: number[]; aisleAfter: number; cls: "F" | "Y"; exit?: boolean }

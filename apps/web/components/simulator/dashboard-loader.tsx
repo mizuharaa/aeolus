@@ -72,9 +72,9 @@ export function DashboardLoader() {
         <span
           style={{
             position: "relative", width: 58, height: 58, borderRadius: 18,
-            background: "linear-gradient(135deg, var(--ae-sky), var(--ae-teal))",
+            background: "var(--ae-text)",
             display: "flex", alignItems: "center", justifyContent: "center",
-            boxShadow: "0 12px 30px -10px rgba(44,73,224,0.6)",
+            boxShadow: "0 12px 30px -10px rgba(28,20,38,0.5)",
           }}
         >
           <Plane className="dl-plane" style={{ width: 28, height: 28, color: "#fff" }} strokeWidth={2} />
@@ -108,7 +108,7 @@ export function DashboardLoader() {
         @keyframes dl-bob { 0%,100% { transform: translateY(-1px) rotate(-4deg); } 50% { transform: translateY(2px) rotate(4deg); } }
         .dl-bar {
           display: block; width: 45%; height: 100%; border-radius: 99px;
-          background: linear-gradient(90deg, var(--ae-sky), var(--ae-teal), var(--ae-amber));
+          background: var(--ae-teal);
           animation: dl-slide 1.2s ease-in-out infinite;
         }
         @keyframes dl-slide { 0% { transform: translateX(-110%); } 100% { transform: translateX(260%); } }

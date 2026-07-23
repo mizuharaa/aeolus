@@ -32,6 +32,10 @@ export const runtime = "edge"
 export const dynamic = "force-dynamic"
 
 const ADSB_LOL_URL = "https://api.adsb.lol/v2/lat/37/lon/-95/dist/1400"
+// Fallback when the wide query times out or comes back empty: a tighter
+// circle answers much faster on a degraded feed — fewer planes beats an
+// empty map.
+const ADSB_LOL_URL_NARROW = "https://api.adsb.lol/v2/lat/37/lon/-95/dist/900"
 
 // ICAO callsign prefix → IATA two-letter code (from apps/api/src/data/airlines.py)
 const ICAO_TO_IATA: Record<string, string> = {
@@ -81,28 +85,34 @@ interface AdsbLolAircraft {
   r?: string
 }
 
-export async function GET() {
-  let aircraft: AdsbLolAircraft[] = []
-
-  // 20s abort: fits inside the Edge 25s initial-response window and clears
-  // the measured ~9.5s degraded-feed latency with margin. The old 6s abort
-  // was shorter than the feed's own response time — guaranteed empty maps.
+async function fetchAdsb(url: string, timeoutMs: number): Promise<AdsbLolAircraft[]> {
   const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), 20000)
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
   try {
-    const res = await fetch(ADSB_LOL_URL, {
+    const res = await fetch(url, {
       cache: "no-store",
       signal: controller.signal,
       headers: { "User-Agent": "Aeolus/0.2 (github.com/mizuharaa/aeolus)" },
     })
-    if (res.ok) {
-      const body = (await res.json()) as { ac?: AdsbLolAircraft[] }
-      aircraft = body.ac ?? []
-    }
+    if (!res.ok) return []
+    const body = (await res.json()) as { ac?: AdsbLolAircraft[] }
+    return body.ac ?? []
   } catch {
-    // Graceful degradation — return empty list if feed is unavailable
+    return []
   } finally {
     clearTimeout(timer)
+  }
+}
+
+export async function GET() {
+  // 11s abort on the wide query: clears the measured ~9.5s degraded-feed
+  // latency (the old 6s abort was shorter than the feed's own response time
+  // — guaranteed empty maps). If it still comes back empty, one narrow
+  // retry — the pair (~17s worst case) stays inside the client's 13s poll
+  // abort + CDN stale-while-revalidate, and well under Edge's 25s window.
+  let aircraft = await fetchAdsb(ADSB_LOL_URL, 11000)
+  if (aircraft.length === 0) {
+    aircraft = await fetchAdsb(ADSB_LOL_URL_NARROW, 6000)
   }
 
   const flights = []

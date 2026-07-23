@@ -1238,12 +1238,7 @@ export function EventPanel() {
                 style={{ borderBottom: `1px solid ${tone.border}` }}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <span
-                    className="w-8 h-8 flex items-center justify-center shrink-0"
-                    style={{ borderRadius: r.sm, background: tone.iconBg, color: "var(--ae-teal-ink)" }}
-                  >
-                    <selectedInfo.Icon className="w-4 h-4" strokeWidth={1.75} />
-                  </span>
+                  <selectedInfo.Icon className="w-4 h-4 shrink-0" strokeWidth={1.75} style={{ color: tone.ink }} />
                   <div className="text-sm font-semibold leading-tight truncate" style={{ color: tone.ink }}>
                     {selectedInfo.label}
                   </div>
@@ -1378,14 +1373,8 @@ export function EventPanel() {
                     style={{ borderRadius: r.md, border: `1px solid ${t.border}`, background: t.bg, fontFamily: ff.body }}
                   >
                     <div className="flex items-center gap-2.5 mb-1.5">
-                      {info && (
-                        <span
-                          className="w-7 h-7 flex items-center justify-center"
-                          style={{ borderRadius: r.sm, background: t.iconBg, color: t.ink }}
-                        >
-                          <info.Icon className="w-3.5 h-3.5" />
-                        </span>
-                      )}
+                      {/* monochrome icon, no colored chip tile */}
+                      {info && <info.Icon className="w-4 h-4 shrink-0" strokeWidth={1.75} style={{ color: c.ink }} />}
                       <span className="text-xs font-bold" style={{ color: t.ink }}>{info?.label ?? ev.kind}</span>
                     </div>
                     <div className="text-[11px] text-muted-foreground space-y-0.5">

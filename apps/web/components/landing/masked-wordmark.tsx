@@ -53,6 +53,14 @@ const DEFAULT_RIBBONS: Ribbon[] = [
   { color: "var(--accent-amber)",  midY: 184, amp: 32, thick: 44, periods: 1, phase: 4.1, duration: 17 },
 ]
 
+/** Per-ribbon vertical swell — makes the bands truly undulate (waveform)
+ * instead of only sliding sideways. Tuned per index, deterministic. */
+const SWELL = [
+  { y: 16, dur: 5.2 },
+  { y: -20, dur: 6.8 },
+  { y: 12, dur: 4.4 },
+]
+
 export function MaskedWordmark({
   text = "AEOLUS",
   className,
@@ -83,6 +91,16 @@ export function MaskedWordmark({
           { x: r.reverse ? -W : 0 },
           { x: r.reverse ? 0 : -W, duration: r.duration, ease: "none", repeat: -1 },
         )
+        // vertical swell on top of the travel — the band rises and falls
+        // like a waveform / an aircraft riding gentle turbulence
+        const s = SWELL[i % SWELL.length]
+        gsap.to(nodes, {
+          y: s.y,
+          duration: s.dur,
+          ease: "sine.inOut",
+          yoyo: true,
+          repeat: -1,
+        })
       })
     }, root)
     return () => ctx.revert()
@@ -112,6 +130,7 @@ export function MaskedWordmark({
       className={className}
       style={{ display: "block", width: "100%", height: "auto", overflow: "visible", ...style }}
       viewBox={`0 0 ${W} 250`}
+      preserveAspectRatio="none"
       role="img"
       aria-label={text}
     >

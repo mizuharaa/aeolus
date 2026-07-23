@@ -164,6 +164,7 @@ interface SimulationStore {
   applyPlan: (planId: string | null) => void
   setLiveFlights: (flights: LiveFlight[], ts?: number) => void
   hydrateLiveFromCache: () => void
+  hydrateStaticFromCache: () => void
   setShowLiveFlights: (show: boolean) => void
   setShowSimulation: (show: boolean) => void
   setSelectedLiveFlight: (flight: LiveFlight | null) => void
@@ -202,6 +203,9 @@ function classify(update: any): UpdateKind {
   if (t === "connected" || t === "state_snapshot") return "snapshot"
   if (t === "simulation_update" || update?.event)  return "event"
   if (t === "plan_applied" || t === "plan_unapplied") return "applied"
+  // event_cancelled ships the full reverted state + authoritative
+  // applied_plan_id — treat like an apply-style server-authoritative update
+  if (t === "event_cancelled") return "applied"
   if (t === "flight_state")                        return "single-flight"
   // Some legacy paths broadcast without a `type`. If they carry plans or
   // an `event` payload, treat as event; otherwise let the merge keep state.
@@ -313,9 +317,43 @@ export const useSimulationStore = create<SimulationStore>((set, get) => ({
       }
     }),
 
-  setSchedule: (schedule) => set({ schedule }),
+  setSchedule: (schedule) => {
+    // Cache the Nimbus schedule so a reload paints the fleet + routes
+    // instantly instead of waiting on the API roundtrip (kills the long
+    // dashboard boot). Read back by hydrateStaticFromCache().
+    try {
+      if (schedule.length > 0)
+        sessionStorage.setItem("aeolus-schedule-cache", JSON.stringify({ schedule, ts: Date.now() }))
+    } catch {}
+    set({ schedule })
+  },
 
-  setFleet: (fleet) => set({ fleet }),
+  setFleet: (fleet) => {
+    try {
+      if (fleet.length > 0)
+        sessionStorage.setItem("aeolus-fleet-cache", JSON.stringify({ fleet, ts: Date.now() }))
+    } catch {}
+    set({ fleet })
+  },
+
+  hydrateStaticFromCache: () => {
+    try {
+      if (get().schedule.length === 0) {
+        const raw = sessionStorage.getItem("aeolus-schedule-cache")
+        if (raw) {
+          const { schedule } = JSON.parse(raw) as { schedule: ScheduledFlight[]; ts: number }
+          if (Array.isArray(schedule) && schedule.length > 0) set({ schedule })
+        }
+      }
+      if (get().fleet.length === 0) {
+        const raw = sessionStorage.getItem("aeolus-fleet-cache")
+        if (raw) {
+          const { fleet } = JSON.parse(raw) as { fleet: FleetAircraft[]; ts: number }
+          if (Array.isArray(fleet) && fleet.length > 0) set({ fleet })
+        }
+      }
+    } catch {}
+  },
 
   reset: () =>
     set({

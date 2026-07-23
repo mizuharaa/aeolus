@@ -67,6 +67,13 @@ class Settings(BaseSettings):
     # Mapbox (for backend validation only)
     mapbox_token: str = ""
 
+    # Gemini — the "Ask Aeolus" copilot. Key comes from env only, never code.
+    gemini_api_key: str = ""
+    gemini_model: str = "gemini-flash-latest"
+    # App-level token bucket for /agent/ask (per client IP)
+    agent_rate_per_min: int = 10
+    agent_burst: int = 4
+
     # OpenSky Network — OAuth2 client credentials (preferred)
     # Create API client at https://opensky-network.org/my-opensky
     # Gives 5-second ADS-B resolution vs 10-second anonymous

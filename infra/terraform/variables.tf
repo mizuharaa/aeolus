@@ -1,11 +1,11 @@
 variable "aws_region" {
-  description = "AWS region for all resources"
+  description = "AWS region for Aeolus"
   type        = string
   default     = "us-east-1"
 }
 
 variable "environment" {
-  description = "Deployment environment (dev, staging, prod)"
+  description = "Deployment environment"
   type        = string
   default     = "prod"
 
@@ -16,150 +16,100 @@ variable "environment" {
 }
 
 variable "project_name" {
-  description = "Project name used as prefix for all resource names"
+  description = "Resource name prefix"
   type        = string
   default     = "aeolus"
 }
 
 variable "vpc_cidr" {
-  description = "CIDR block for the VPC"
+  description = "CIDR for the dedicated VPC"
   type        = string
-  default     = "10.0.0.0/16"
+  default     = "10.42.0.0/16"
 }
 
-variable "availability_zones" {
-  description = "List of availability zones to use"
-  type        = list(string)
-  default     = ["us-east-1a", "us-east-1b", "us-east-1c"]
-}
-
-variable "private_subnet_cidrs" {
-  description = "CIDR blocks for private subnets (one per AZ)"
-  type        = list(string)
-  default     = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
-}
-
-variable "public_subnet_cidrs" {
-  description = "CIDR blocks for public subnets (one per AZ)"
-  type        = list(string)
-  default     = ["10.0.101.0/24", "10.0.102.0/24", "10.0.103.0/24"]
-}
-
-# ── ECS / Fargate ──────────────────────────────────────────────────────────────
-
-variable "api_cpu" {
-  description = "CPU units for the API ECS task (1024 = 1 vCPU)"
-  type        = number
-  default     = 1024
-}
-
-variable "api_memory" {
-  description = "Memory (MiB) for the API ECS task"
-  type        = number
-  default     = 2048
-}
-
-variable "api_desired_count" {
-  description = "Number of API task replicas"
-  type        = number
-  default     = 2
-}
-
-variable "api_container_port" {
-  description = "Container port for the FastAPI application"
-  type        = number
-  default     = 8000
-}
-
-# ── RDS (PostgreSQL + TimescaleDB) ────────────────────────────────────────────
-
-variable "db_instance_class" {
-  description = "RDS instance class"
+variable "instance_type" {
+  description = "Single ECS container instance; t3a.small keeps the stack near $45/month"
   type        = string
-  default     = "db.t3.medium"
+  default     = "t3a.small"
 }
 
-variable "db_allocated_storage" {
-  description = "Allocated storage (GiB) for RDS"
+variable "root_volume_size_gb" {
+  description = "Encrypted gp3 root disk size"
   type        = number
   default     = 20
 }
 
-variable "db_name" {
-  description = "Name of the PostgreSQL database"
-  type        = string
-  default     = "aeolus"
-}
-
-variable "db_username" {
-  description = "Master username for RDS"
-  type        = string
-  default     = "aeolus_app"
-  sensitive   = true
-}
-
-variable "db_password" {
-  description = "Master password for RDS (use AWS Secrets Manager in prod)"
-  type        = string
-  sensitive   = true
-}
-
-variable "db_backup_retention_days" {
-  description = "Number of days to retain automated backups"
-  type        = number
-  default     = 7
-}
-
-# ── ElastiCache (Redis) ───────────────────────────────────────────────────────
-
-variable "redis_node_type" {
-  description = "ElastiCache node type"
-  type        = string
-  default     = "cache.t3.micro"
-}
-
-variable "redis_num_nodes" {
-  description = "Number of Redis cluster nodes"
-  type        = number
-  default     = 1
-}
-
-# ── ECR ───────────────────────────────────────────────────────────────────────
-
-variable "ecr_image_tag" {
-  description = "Docker image tag to deploy (set by CI/CD)"
+variable "image_tag" {
+  description = "Mutable bootstrap tag deployed by GitHub Actions"
   type        = string
   default     = "latest"
 }
 
-variable "ecr_scan_on_push" {
-  description = "Enable ECR image scanning on push"
-  type        = bool
-  default     = true
+variable "service_desired_count" {
+  description = "Use 0 for the first apply, then 1 after images are pushed"
+  type        = number
+  default     = 0
+
+  validation {
+    condition     = contains([0, 1], var.service_desired_count)
+    error_message = "Aeolus must use zero or one task until simulation state is externalized."
+  }
 }
 
-# ── ALB ───────────────────────────────────────────────────────────────────────
+variable "domain_name" {
+  description = "Optional Route 53 hostname, for example aeolus.example.com"
+  type        = string
+  default     = ""
+}
 
-variable "alb_deletion_protection" {
-  description = "Enable ALB deletion protection"
+variable "hosted_zone_id" {
+  description = "Route 53 hosted zone ID; required with domain_name to enable HTTPS"
+  type        = string
+  default     = ""
+}
+
+variable "enable_deletion_protection" {
+  description = "Protect the ALB from accidental deletion"
   type        = bool
   default     = false
 }
 
-variable "health_check_path" {
-  description = "ALB target group health check path"
-  type        = string
-  default     = "/health"
+variable "monthly_budget_usd" {
+  description = "Monthly AWS budget guardrail"
+  type        = number
+  default     = 50
 }
 
-# ── Tags ──────────────────────────────────────────────────────────────────────
+variable "budget_alert_email" {
+  description = "Email for 80% and 100% forecast budget alerts"
+  type        = string
+  default     = ""
+}
+
+variable "github_repository" {
+  description = "GitHub owner/repository allowed to assume the deployment role"
+  type        = string
+  default     = "mizuharaa/aeolus"
+}
+
+variable "create_github_oidc_provider" {
+  description = "Create the account-level GitHub Actions OIDC provider"
+  type        = bool
+  default     = true
+}
+
+variable "github_oidc_provider_arn" {
+  description = "Existing GitHub OIDC provider ARN when creation is disabled"
+  type        = string
+  default     = ""
+}
 
 variable "common_tags" {
-  description = "Common tags applied to all resources"
+  description = "Tags applied to all supported resources"
   type        = map(string)
   default = {
-    Project     = "aeolus"
-    ManagedBy   = "terraform"
-    Owner       = "nimbus-ops"
+    Project   = "aeolus"
+    ManagedBy = "terraform"
+    Purpose   = "portfolio"
   }
 }

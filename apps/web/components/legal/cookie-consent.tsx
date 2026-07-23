@@ -65,11 +65,11 @@ export function CookieConsent() {
         Aeolus uses only first-party functional storage to remember your
         preferences (theme, map focus, layout). We don&apos;t run third-party
         advertising or cross-site tracking. See our{" "}
-        <Link href="/cookies" style={{ color: "#EFAF1B", textDecoration: "underline" }}>
+        <Link href="/cookies" style={{ color: "#B8863C", textDecoration: "underline" }}>
           Cookie Policy
         </Link>{" "}
         and{" "}
-        <Link href="/privacy" style={{ color: "#EFAF1B", textDecoration: "underline" }}>
+        <Link href="/privacy" style={{ color: "#B8863C", textDecoration: "underline" }}>
           Privacy Policy
         </Link>
         .
@@ -84,7 +84,7 @@ export function CookieConsent() {
             padding: "10px 16px",
             borderRadius: 999,
             border: "none",
-            background: "#EFAF1B",
+            background: "#B8863C",
             color: "#14100F",
             fontSize: 13,
             fontWeight: 650,

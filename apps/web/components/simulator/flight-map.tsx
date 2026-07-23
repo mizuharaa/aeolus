@@ -39,29 +39,29 @@ const MAP_COLORS = {
   // LIGHT REGISTER: the map runs on Carto voyager tiles; darker = stronger.
   planCancelled: "#98A29B",
   planCancelledInk: "#6A716D",
-  planSwap:      "#2C49E0",
-  planSwapFlow:  "#2C49E0",
-  planDelayed:   "#EFAF1B",
+  planSwap:      "#5B3FA8",
+  planSwapFlow:  "#5B3FA8",
+  planDelayed:   "#B8863C",
 
   // Cascade severity: one amber family; on the light floor the DIRECT hit
   // is the darkest step and later generations lighten.
   cascadeDirect: "#9A6420",
-  cascadeOrder1: "#EFAF1B",
+  cascadeOrder1: "#B8863C",
   cascadeOrder2: "#CFA96A",
   unaffected:    "#8CA096",
 
   // Live ADS-B — quiet sage traffic beneath the sim layer
   live:          "#93A29A",
-  liveSelected:  "#2C49E0",
+  liveSelected:  "#5B3FA8",
 
   // Airport state
   airportHub:    "#0B7065",
   airportNormal: "#7B8A80",
   groundStop:    "#9A6420",
-  gdp:           "#EFAF1B",
-  depDelay:      "#EFAF1B",
+  gdp:           "#B8863C",
+  depDelay:      "#B8863C",
   eventEpicenter: "#9A6420",
-  weather:       "#EFAF1B",
+  weather:       "#B8863C",
 } as const
 
 // Overlay glass — light register (paper at high alpha over the map).
@@ -123,12 +123,12 @@ function deriveLive(f: LiveFlight) {
   const phase = f.on_ground
     ? { label: "On ground", tone: "#8A8270", pct: 0 }
     : vs > 350
-      ? { label: "Climbing", tone: "#4C28A8", pct: Math.min(1, alt / 38000) }
+      ? { label: "Climbing", tone: "#553B9E", pct: Math.min(1, alt / 38000) }
       : vs < -400
-        ? { label: alt < 10000 ? "Approach" : "Descending", tone: "#EFAF1B", pct: Math.min(1, alt / 38000) }
+        ? { label: alt < 10000 ? "Approach" : "Descending", tone: "#B8863C", pct: Math.min(1, alt / 38000) }
         : alt > 18000
-          ? { label: "Cruise", tone: "#2C49E0", pct: Math.min(1, alt / 38000) }
-          : { label: "Level", tone: "#2C49E0", pct: Math.min(1, alt / 38000) }
+          ? { label: "Cruise", tone: "#5B3FA8", pct: Math.min(1, alt / 38000) }
+          : { label: "Level", tone: "#5B3FA8", pct: Math.min(1, alt / 38000) }
 
   // nearest airport overall, and nearest airport within ±55° of the track
   let nearest: { icao: string; nm: number } | null = null
@@ -190,7 +190,7 @@ function liveSelIcon(heading: number | null): L.DivIcon {
       html: `<div class="ae-livesel" style="width:34px;height:34px;display:flex;align-items:center;justify-content:center">
         <span class="ae-livesel-ring"></span>
         <span class="ae-livesel-ring delay"></span>
-        <span style="width:22px;height:22px;transform:rotate(${hdg}deg);transform-origin:center;filter:drop-shadow(0 1px 4px rgba(44,73,224,0.6))"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="#2C49E0" stroke="#FFFFFF" stroke-width="1"/></svg></span>
+        <span style="width:22px;height:22px;transform:rotate(${hdg}deg);transform-origin:center;filter:drop-shadow(0 1px 4px rgba(91,63,168,0.6))"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="#5B3FA8" stroke="#FFFFFF" stroke-width="1"/></svg></span>
       </div>`,
     })
   )
@@ -630,7 +630,7 @@ function FlightDetailCard({
   const oAp = NIMBUS_AIRPORTS[flight.origin]
   const dAp = NIMBUS_AIRPORTS[flight.destination]
 
-  let actionLabel = "", actionColor = "#2C49E0", actionIcon = ""
+  let actionLabel = "", actionColor = "#5B3FA8", actionIcon = ""
   // Colours mirror the map's MAP_COLORS palette so the inspector card and the
   // line/marker on the map read as the same semantic state at a glance.
   if (isPlanCancelled)     { actionLabel = "Cancelled by recovery plan"; actionColor = MAP_COLORS.planCancelledInk; actionIcon = "✕" }
@@ -877,10 +877,10 @@ function LivePanel({ flight, onClose }: { flight: LiveFlight; onClose: () => voi
             <span className="font-mono text-[9px]" style={{ color: "#55503F" }}>{flight.lat.toFixed(3)}, {flight.lon.toFixed(3)}</span>
             <span className="flex gap-2">
               {flight.tracking.flightaware && (
-                <a href={flight.tracking.flightaware} target="_blank" rel="noopener noreferrer" className="text-[10px] font-semibold underline" style={{ color: "#1E33A8" }}>FlightAware</a>
+                <a href={flight.tracking.flightaware} target="_blank" rel="noopener noreferrer" className="text-[10px] font-semibold underline" style={{ color: "#46307F" }}>FlightAware</a>
               )}
-              <a href={flight.tracking.flightradar24} target="_blank" rel="noopener noreferrer" className="text-[10px] font-semibold underline" style={{ color: "#1E33A8" }}>FR24</a>
-              <a href={flight.tracking.adsbexchange} target="_blank" rel="noopener noreferrer" className="text-[10px] font-semibold underline" style={{ color: "#1E33A8" }}>ADS-B</a>
+              <a href={flight.tracking.flightradar24} target="_blank" rel="noopener noreferrer" className="text-[10px] font-semibold underline" style={{ color: "#46307F" }}>FR24</a>
+              <a href={flight.tracking.adsbexchange} target="_blank" rel="noopener noreferrer" className="text-[10px] font-semibold underline" style={{ color: "#46307F" }}>ADS-B</a>
             </span>
           </div>
         </div>
@@ -992,18 +992,38 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
     return () => clearInterval(t)
   }, [])
 
+  // One in-flight live fetch at a time: a hung request is aborted before the
+  // next 15s poll fires, so slow-feed responses can never stack up.
+  const liveAbort = useRef<AbortController | null>(null)
   const fetchLive = useCallback(async () => {
+    liveAbort.current?.abort()
+    const controller = new AbortController()
+    liveAbort.current = controller
+    const timer = window.setTimeout(() => controller.abort(), 13_000)
     setLoading(true)
     try {
       // Use the Vercel-native endpoint — Railway's IPs are blocked by OpenSky,
       // so /api/v1/flights/live (proxied to Railway) always times out in prod.
       // /api/flights-live now fetches keyless ADS-B data from api.adsb.lol on
       // Vercel's edge network (no OpenSky creds needed).
-      const res = await fetch("/api/flights-live").then((r) => r.json()) as { flights?: LiveFlight[] }
+      const res = await fetch("/api/flights-live", { signal: controller.signal })
+        .then((r) => r.json()) as { flights?: LiveFlight[] }
       const all: LiveFlight[] = res.flights || []
-      setLiveFlights(all.filter((f) => f.airline_iata && f.airline_name !== "Unknown"), Date.now())
-      setLastFetch(Date.now())
-    } catch { /* degrade */ } finally { setLoading(false) }
+      // Prefer recognised airline traffic, but never at the cost of an empty
+      // map: when the airline filter guts the feed (regional/int'l prefixes
+      // missing from the lookup), fall back to everything with a callsign.
+      const airlines = all.filter((f) => f.airline_iata && f.airline_name !== "Unknown")
+      const flights = airlines.length >= 30 ? airlines : all
+      // An empty poll (feed timeout / rate limit) must NOT wipe the fleet off
+      // the map — keep showing the last snapshot; dead reckoning carries it.
+      if (flights.length > 0) {
+        setLiveFlights(flights, Date.now())
+        setLastFetch(Date.now())
+      }
+    } catch { /* degrade — keep the previous snapshot on screen */ } finally {
+      window.clearTimeout(timer)
+      setLoading(false)
+    }
   }, [setLiveFlights])
 
   useEffect(() => {
@@ -1274,12 +1294,25 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
     [appliedPlanId, applied, visuallyCancelled],
   )
 
-  // Dead-reckoned live positions — viewport culled for performance
+  // Dead-reckoned live positions — viewport culled for performance.
+  //
+  // The cap used to be a plain `.slice(0, 450)`, which took the FIRST 450 of
+  // the in-view set. adsb.lol returns aircraft in a spatially-clustered order,
+  // so when zoomed out (whole CONUS in view) those first 450 all fell in one
+  // region — the classic "I only see planes over the west coast" bug. Fix:
+  // when the in-view set exceeds the cap, SAMPLE it evenly across the array
+  // so the render is spread over the whole viewport instead of clustered.
   const livePlanes = useMemo(() => {
     const nowSec = nowMs / 1000
-    return liveFlights
-      .filter((lf) => !mapBounds || mapBounds.contains([lf.lat, lf.lon]))
-      .slice(0, 450)
+    const CAP = 650
+    const inView = liveFlights.filter((lf) => !mapBounds || mapBounds.contains([lf.lat, lf.lon]))
+    let sampled = inView
+    if (inView.length > CAP) {
+      const step = inView.length / CAP
+      sampled = []
+      for (let k = 0; k < CAP; k++) sampled.push(inView[Math.floor(k * step)])
+    }
+    return sampled
       .map((lf) => {
         if (!lf.on_ground && lf.heading != null && (lf.velocity_kt ?? 0) > 80 && lf.last_contact > 0) {
           const elapsed = nowSec - lf.last_contact
@@ -1300,8 +1333,13 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
   // "the planes disappeared" until you zoomed into the few survivors.
   const simPlanes = useMemo(() => {
     if (!showSimulation) return []
+    // During an active disruption, the map declutters to the AFFECTED fleet
+    // only — showing all 300+ nominal legs while the operator is working one
+    // event is noise. No event → the full schedule flies as usual.
+    const affectedOnly = hasActiveEvents && impactIds.size > 0
+    const source = affectedOnly ? schedule.filter((f) => impactIds.has(f.id)) : schedule
     const cycle = 60 * 6, phase = ((nowMs / 1000) % cycle) / cycle, hr = 6 + phase * 18
-    return schedule.flatMap((f) => {
+    return source.flatMap((f) => {
       const o = NIMBUS_AIRPORTS[f.origin], d = NIMBUS_AIRPORTS[f.destination]
       if (!o || !d) return []
       const dep = isoToHour(f.scheduled_departure), arr = isoToHour(f.scheduled_arrival)
@@ -1311,7 +1349,7 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
       const [lat, lon] = interp(o.lat, o.lon, d.lat, d.lon, Math.max(0.02, Math.min(0.98, t)))
       return [{ id: f.id, f, lat, lon, brg: bearing(o.lat, o.lon, d.lat, d.lon) }]
     })
-  }, [schedule, nowMs, showSimulation])
+  }, [schedule, nowMs, showSimulation, hasActiveEvents, impactIds])
 
   // Selected flight arc
   const selectedSched = selectedFlight ? schedule.find((f) => f.id === selectedFlight) ?? null : null
@@ -1408,8 +1446,10 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
           ]
         })}
 
-        {/* Background Nimbus routes (unaffected) */}
-        {showSimulation && schedule.map((f) => {
+        {/* Background Nimbus routes (unaffected). Hidden during an active
+            disruption — only the affected legs + their routes stay on the
+            map so the operator sees the event, not the whole network. */}
+        {showSimulation && !hasActiveEvents && schedule.map((f) => {
           if (impactIds.has(f.id)) return null
           const o = NIMBUS_AIRPORTS[f.origin], d = NIMBUS_AIRPORTS[f.destination]
           if (!o || !d) return null
@@ -1652,8 +1692,10 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
           )
         })}
 
-        {/* Live airline aircraft — viewport culled */}
-        {showLiveFlights && livePlanes.map(({ lf, lat, lon }) => {
+        {/* Live airline aircraft — viewport culled. Auto-hidden while a
+            disruption is active so the ADS-B sea doesn't bury the affected
+            Nimbus fleet; re-appears once the event clears. */}
+        {showLiveFlights && !hasActiveEvents && livePlanes.map(({ lf, lat, lon }) => {
           const sel = selectedLiveFlight?.icao24 === lf.icao24
           return (
             <Marker key={`lv-${lf.icao24}`} position={[lat, lon]}
@@ -1757,16 +1799,22 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
             onClick={() => setShowLiveFlights(!showLiveFlights)}
             className="flex items-center gap-2 font-medium transition-colors"
             style={{
-              color: showLiveFlights ? "var(--ae-text)" : "var(--ae-text-3)",
-              textDecoration: showLiveFlights ? "none" : "line-through",
+              // Auto-hidden while a disruption is active (affected-only view),
+              // so it reads as muted/struck even though the toggle stays on.
+              color: showLiveFlights && !hasActiveEvents ? "var(--ae-text)" : "var(--ae-text-3)",
+              textDecoration: showLiveFlights && !hasActiveEvents ? "none" : "line-through",
             }}
           >
             <span
               className="w-3 h-1 rounded-full shrink-0"
-              style={{ background: showLiveFlights ? MAP_COLORS.live : "var(--ae-line-strong)" }}
+              style={{ background: showLiveFlights && !hasActiveEvents ? MAP_COLORS.live : "var(--ae-line-strong)" }}
             />
             <span>Real flights (ADS-B)</span>
-            {showLiveFlights && liveFlights.length > 0 && (
+            {hasActiveEvents ? (
+              <span className="text-[9px] font-semibold" style={{ color: "var(--ae-text-3)" }}>
+                hidden during event
+              </span>
+            ) : showLiveFlights && liveFlights.length > 0 && (
               <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full font-mono tabular-nums" style={{ background: "var(--ae-neutral-bg)", color: "var(--ae-text-2)" }}>
                 {liveFlights.length.toLocaleString()}
               </span>

@@ -1,0 +1,18 @@
+aws_region            = "us-east-1"
+environment           = "prod"
+instance_type         = "t3a.small"
+service_desired_count = 0 # Change to 1 after the first image push.
+
+# Optional but recommended for HTTPS/WSS.
+# domain_name   = "aeolus.example.com"
+# hosted_zone_id = "Z0123456789EXAMPLE"
+
+monthly_budget_usd = 50
+budget_alert_email = "you@example.com"
+
+github_repository = "mizuharaa/aeolus"
+
+# When the account already has this provider, disable creation and supply it:
+# create_github_oidc_provider = false
+# github_oidc_provider_arn    = "arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com"
+create_github_oidc_provider = true

@@ -84,12 +84,9 @@ export function SimulatorNav({ isConnected }: SimulatorNavProps) {
         gap: 20,
         paddingLeft: 22,
         paddingRight: 20,
-        // lively tinted gradient wash — sky→teal→amber at low alpha, so the
-        // ops bar reads warm/colorful rather than flat paper.
-        background:
-          "linear-gradient(90deg, rgba(56,189,248,0.10), rgba(44,73,224,0.06) 42%, rgba(184,134,60,0.05) 78%, var(--ae-bg))",
+        // flat paper — the bar carries status, not decoration
+        background: "var(--ae-surface)",
         borderBottom: `1px solid ${c.hairline}`,
-        boxShadow: "inset 0 -2px 0 -1px rgba(44,73,224,0.25)",
         flexShrink: 0,
         zIndex: 50,
         fontFamily: ff.body,
@@ -98,18 +95,7 @@ export function SimulatorNav({ isConnected }: SimulatorNavProps) {
     >
       {/* ── Context label (brand lives in the left rail) ── */}
       <div style={{ display: "flex", alignItems: "center", gap: 11, flexShrink: 0 }}>
-        {/* colorful ops badge */}
-        <span
-          aria-hidden
-          style={{
-            display: "inline-flex", alignItems: "center", justifyContent: "center",
-            width: 26, height: 26, borderRadius: 8,
-            background: "linear-gradient(135deg, var(--ae-sky), var(--ae-teal))",
-            boxShadow: "0 2px 8px -3px var(--ae-teal)",
-          }}
-        >
-          <Plane style={{ width: 14, height: 14, color: "#fff" }} strokeWidth={2.25} />
-        </span>
+        <Plane aria-hidden style={{ width: 16, height: 16, color: c.ink }} strokeWidth={2} />
         <span
           style={{
             fontFamily: ff.display,

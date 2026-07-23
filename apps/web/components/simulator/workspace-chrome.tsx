@@ -14,6 +14,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import { ChevronLeft, ChevronRight, PanelRightClose, X } from "lucide-react"
 import { c, ff } from "@/lib/design-tokens"
 
@@ -277,3 +278,149 @@ export function ReopenTab({
 }
 
 export { X }
+
+
+const PANEL_EASE = [0.22, 0.9, 0.28, 1] as const
+
+// ─── Floating overlay panel ──────────────────────────────────────────────
+// A self-contained layer over the map: rounded card, elevation, a thin accent
+// top rule, a header with a monochrome icon + title + close, and a scrollable
+// body. Closed, it collapses to a slim vertical launcher tab on its edge.
+// Responsive: capped to the viewport with an 88px gutter so it never covers
+// the whole map on small screens.
+
+export function FloatingPanel({
+  side, open, accent, title, icon, onOpen, onClose, children, width = 356, badge,
+}: {
+  side: "left" | "right"
+  open: boolean
+  accent: string
+  title: string
+  icon: React.ReactNode
+  onOpen: () => void
+  onClose: () => void
+  children: React.ReactNode
+  width?: number
+  badge?: number
+}) {
+  return (
+    <>
+      <AnimatePresence>
+        {open && (
+          <motion.aside
+            key={`${side}-panel`}
+            initial={{ x: side === "left" ? -28 : 28, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: side === "left" ? -28 : 28, opacity: 0 }}
+            transition={{ duration: 0.3, ease: PANEL_EASE }}
+            aria-label={title}
+            style={{
+              position: "absolute",
+              top: 14,
+              bottom: 14,
+              [side]: 14,
+              width: `min(${width}px, calc(100% - 88px))`,
+              zIndex: 640,
+              background: "var(--ae-surface)",
+              border: `1px solid ${c.hairline}`,
+              borderRadius: 18,
+              boxShadow: "var(--ae-shadow-overlay)",
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+              fontFamily: ff.body,
+            }}
+          >
+            {/* accent top rule — the only chrome this layer adds; each panel
+                brings its own header, so we don't stack a second one */}
+            <span aria-hidden style={{ height: 3, background: accent, flexShrink: 0 }} />
+
+            {/* floating close — sits over the panel header's empty right end */}
+            <button
+              type="button" onClick={onClose} aria-label={`Close ${title}`}
+              style={{
+                position: "absolute", top: 11, right: 10, zIndex: 5,
+                width: 28, height: 28, borderRadius: 8, border: `1px solid ${c.hairline}`,
+                background: "var(--ae-surface)", color: c.muted, cursor: "pointer",
+                display: "inline-flex", alignItems: "center", justifyContent: "center",
+              }}
+            >
+              <X style={{ width: 15, height: 15 }} strokeWidth={2} />
+            </button>
+
+            {/* body — the panel manages its own header + internal scroll
+                (both EventPanel and RecoveryPlans are h-full flex columns) */}
+            <div style={{ flex: 1, minHeight: 0 }}>
+              {children}
+            </div>
+          </motion.aside>
+        )}
+      </AnimatePresence>
+
+      {/* launcher tab (closed) */}
+      <AnimatePresence>
+        {!open && (
+          <motion.button
+            key={`${side}-tab`}
+            type="button"
+            onClick={onOpen}
+            aria-label={`Open ${title}`}
+            initial={{ x: side === "left" ? -12 : 12, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: side === "left" ? -12 : 12, opacity: 0 }}
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.96 }}
+            transition={{ duration: 0.2, ease: PANEL_EASE }}
+            style={{
+              position: "absolute",
+              top: "50%",
+              [side]: 0,
+              transform: "translateY(-50%)",
+              zIndex: 610,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 9,
+              padding: "16px 9px",
+              background: "var(--ae-surface)",
+              border: `1px solid ${c.hairline}`,
+              [side === "left" ? "borderLeft" : "borderRight"]: "none",
+              borderRadius: side === "left" ? "0 14px 14px 0" : "14px 0 0 14px",
+              boxShadow: "var(--ae-shadow-card-elev)",
+              color: c.ink,
+              cursor: "pointer",
+            }}
+          >
+            <span style={{ display: "inline-flex", color: accent }}>{icon}</span>
+            <span
+              style={{
+                writingMode: "vertical-rl",
+                transform: side === "left" ? "rotate(180deg)" : "none",
+                fontFamily: ff.mono,
+                fontSize: 10.5,
+                fontWeight: 650,
+                letterSpacing: "0.16em",
+                textTransform: "uppercase",
+                color: c.body,
+              }}
+            >
+              {title}
+            </span>
+            {badge != null && (
+              <span
+                style={{
+                  fontFamily: ff.mono, fontSize: 10, fontWeight: 700, lineHeight: 1,
+                  minWidth: 18, height: 18, padding: "0 5px", borderRadius: 99,
+                  display: "inline-flex", alignItems: "center", justifyContent: "center",
+                  background: accent, color: "#fff",
+                }}
+              >
+                {badge}
+              </span>
+            )}
+          </motion.button>
+        )}
+      </AnimatePresence>
+    </>
+  )
+}

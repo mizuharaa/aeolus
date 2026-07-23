@@ -5,10 +5,10 @@
  *
  *   ink    #141019   warm ink          — type, dark marks, primary CTA
  *   paper  #F5F0E3   warm beige         — surfaces
- *   sky    #6F3FE4   the atmosphere     — gradients, chrome accents
- *   teal   #2C49E0   the identity color — actions, links, recovery, active
- *   pink   #EC4899   the disruption     — events, cascade energy (landing)
- *   amber  #EFAF1B   THE status color   — delayed / warning (simulator ops)
+ *   sky    #8B6FD0   the atmosphere     — gradients, chrome accents
+ *   teal   #5B3FA8   the identity color — actions, links, recovery, active
+ *   pink   #C13A6B   the disruption     — events, cascade energy (landing)
+ *   amber  #B8863C   THE status color   — delayed / warning (simulator ops)
  *
  * "Cancelled / not operating" is NOT a hue: it renders as neutral gray with
  * a strike, dash, or x. Severity within amber is carried by opacity steps.
@@ -24,13 +24,13 @@
 
 // ── Literal pigments (canvas-safe; identical in both registers) ─────────
 export const pigment = {
-  ink:   "#141019",
-  paper: "#F5F0E3",
-  gray:  "#8A8270", // warm-gray mid neutral
-  sky:   "#6F3FE4",
-  teal:  "#2C49E0",
-  amber: "#EFAF1B",
-  rose:  "#EC4899", // disruption pink (landing narrative; teal = recovery)
+  ink:   "#1C1426",
+  paper: "#F5F1E8",
+  gray:  "#8C8272", // warm-gray mid neutral
+  sky:   "#8B6FD0", // lavender atmosphere
+  teal:  "#5B3FA8", // royal plum — identity/action (name kept, value re-inked)
+  amber: "#B8863C", // beige gold — status
+  rose:  "#C13A6B", // disruption rose (landing narrative; plum = recovery)
 } as const
 
 export const tokens = {

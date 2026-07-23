@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import threading
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -66,13 +67,17 @@ def _now() -> str:
 
 
 class ScenarioRepository:
-    """Small, synchronous repository — one connection, WAL off (single
-    process, low write volume; not worth the extra moving part)."""
+    """Small, synchronous repository — one shared connection guarded by a
+    lock (check_same_thread=False means ANY thread may touch it; the lock
+    keeps a future to_thread'd snapshot from corrupting a write). WAL on so
+    a reader never blocks the writer."""
 
     def __init__(self, db_path: str | Path):
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._conn = sqlite3.connect(self.db_path, check_same_thread=False)
+        self._lock = threading.Lock()
+        self._conn.execute("PRAGMA journal_mode=WAL")
         self._conn.executescript(SCHEMA)
         self._conn.commit()
 
@@ -82,42 +87,46 @@ class ScenarioRepository:
     # ── writes ──────────────────────────────────────────────────────────
 
     def create_scenario(self, scenario_id: str, kind: str, seed: int) -> None:
-        now = _now()
-        self._conn.execute(
-            "INSERT INTO scenarios (id, kind, seed, status, created_at, updated_at) "
-            "VALUES (?, ?, ?, 'open', ?, ?)",
-            (scenario_id, kind, seed, now, now),
-        )
-        self._conn.commit()
+        with self._lock:
+            now = _now()
+            self._conn.execute(
+                "INSERT INTO scenarios (id, kind, seed, status, created_at, updated_at) "
+                "VALUES (?, ?, ?, 'open', ?, ?)",
+                (scenario_id, kind, seed, now, now),
+            )
+            self._conn.commit()
 
     def record_event(self, scenario_id: str, seq: int, event: dict, metar: dict) -> None:
-        self._conn.execute(
-            "INSERT OR REPLACE INTO scenario_events (scenario_id, seq, event_json, metar_json) "
-            "VALUES (?, ?, ?, ?)",
-            (scenario_id, seq, json.dumps(event, default=str), json.dumps(metar, default=str)),
-        )
-        self._conn.execute(
-            "UPDATE scenarios SET updated_at = ? WHERE id = ?", (_now(), scenario_id)
-        )
-        self._conn.commit()
+        with self._lock:
+            self._conn.execute(
+                "INSERT OR REPLACE INTO scenario_events (scenario_id, seq, event_json, metar_json) "
+                "VALUES (?, ?, ?, ?)",
+                (scenario_id, seq, json.dumps(event, default=str), json.dumps(metar, default=str)),
+            )
+            self._conn.execute(
+                "UPDATE scenarios SET updated_at = ? WHERE id = ?", (_now(), scenario_id)
+            )
+            self._conn.commit()
 
     def snapshot(self, scenario_id: str, state: dict) -> None:
-        now = _now()
-        self._conn.execute(
-            "INSERT INTO scenario_snapshots (scenario_id, state_json, updated_at) VALUES (?, ?, ?) "
-            "ON CONFLICT(scenario_id) DO UPDATE SET state_json = excluded.state_json, "
-            "updated_at = excluded.updated_at",
-            (scenario_id, json.dumps(state, default=str), now),
-        )
-        self._conn.execute("UPDATE scenarios SET updated_at = ? WHERE id = ?", (now, scenario_id))
-        self._conn.commit()
+        with self._lock:
+            now = _now()
+            self._conn.execute(
+                "INSERT INTO scenario_snapshots (scenario_id, state_json, updated_at) VALUES (?, ?, ?) "
+                "ON CONFLICT(scenario_id) DO UPDATE SET state_json = excluded.state_json, "
+                "updated_at = excluded.updated_at",
+                (scenario_id, json.dumps(state, default=str), now),
+            )
+            self._conn.execute("UPDATE scenarios SET updated_at = ? WHERE id = ?", (now, scenario_id))
+            self._conn.commit()
 
     def close_scenario(self, scenario_id: str) -> None:
-        self._conn.execute(
-            "UPDATE scenarios SET status = 'closed', updated_at = ? WHERE id = ?",
-            (_now(), scenario_id),
-        )
-        self._conn.commit()
+        with self._lock:
+            self._conn.execute(
+                "UPDATE scenarios SET status = 'closed', updated_at = ? WHERE id = ?",
+                (_now(), scenario_id),
+            )
+            self._conn.commit()
 
     # ── reads ───────────────────────────────────────────────────────────
 

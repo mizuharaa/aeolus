@@ -283,7 +283,7 @@ class SimulationEngine:
 
         # Run cascade predictor
         flights_list = list(self.schedule.values())
-        logger.info(
+        logger.debug(
             "CASCADE DEBUG — schedule_size=%d, event_kind=%s, params=%s",
             len(flights_list),
             event.get("kind"),
@@ -306,7 +306,7 @@ class SimulationEngine:
         )
 
         orders = [p.get("cascade_order", -1) for p in predictions.values()]
-        logger.info(
+        logger.debug(
             "CASCADE DEBUG — predictions=%d, direct=%d, cascade1=%d, cascade2=%d, unaffected=%d",
             len(predictions),
             orders.count(0),
@@ -334,7 +334,7 @@ class SimulationEngine:
 
         # Build disrupted flight list for optimizer
         disrupted = [fid for fid, pred in predictions.items() if pred.get("cascade_order", -1) >= 0]
-        logger.info("CASCADE DEBUG — disrupted_flights=%d, running optimizer", len(disrupted))
+        logger.debug("CASCADE DEBUG — disrupted_flights=%d, running optimizer", len(disrupted))
 
         # Build optimizer constraints from event
         constraints = self._event_to_constraints(event)
@@ -380,18 +380,42 @@ class SimulationEngine:
         return update
 
     async def cancel_event(self, event_id: str) -> bool:
-        """Remove an active event and notify every connected simulator view."""
+        """Remove an active event AND revert its impact from flight_states.
+
+        Every state written by trigger stamps `last_event_id`, so reverting is
+        a per-flight reset of exactly the flights this event touched. When the
+        last event goes, plans + cascade summary go with it (they were solved
+        against a disruption that no longer exists)."""
         remaining = [event for event in self.state.active_events if event.get("id") != event_id]
         if len(remaining) == len(self.state.active_events):
             return False
 
         self.state.active_events = remaining
+
+        # Revert the cancelled event's per-flight damage.
+        for fid, fstate in self.state.flight_states.items():
+            if fstate.get("last_event_id") == event_id:
+                self.state.flight_states[fid] = self._default_flight_state(fid)
+
+        if not remaining:
+            # No disruption left — plans and cascade are stale artifacts.
+            self.state.recovery_plans = []
+            self.state.cascade_summary = {}
+            self.state.applied_plan_id = None
+            self.state.flight_states_pre_apply = {}
+        else:
+            self.state.cascade_summary = self._cascade_summary_from_states()
+
         self._snapshot()
         await self._broadcast(
             {
                 "type": "event_cancelled",
                 "event_id": event_id,
                 "active_events": remaining,
+                "applied_plan_id": self.state.applied_plan_id,
+                "flight_states": self.state.flight_states,
+                "cascade_summary": self.state.cascade_summary,
+                "recovery_plans": self.state.recovery_plans,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             }
         )
@@ -504,14 +528,18 @@ class SimulationEngine:
                     }
                 )
 
-        # 3. Aircraft swaps → update the tail on the affected flight.
+        # 3. Aircraft swaps → update the tail on the affected flight. The
+        # schedule snapshot merges state OVER the flight dict, so writing
+        # `aircraft_id` here is what actually surfaces the new tail in the
+        # UI (which keys on aircraft_id, not `tail`).
         for s in plan.get("aircraft_swaps", []) or []:
             fid = s.get("flight_id")
             if fid and fid in self.state.flight_states:
+                new_tail = s.get("new_aircraft", "")
                 self.state.flight_states[fid].update(
                     {
-                        "tail": s.get("new_aircraft", "")
-                        or self.state.flight_states[fid].get("tail"),
+                        "aircraft_id": new_tail or self.schedule.get(fid, {}).get("aircraft_id"),
+                        "tail": new_tail or self.state.flight_states[fid].get("tail"),
                         "applied_action": "swapped",
                         "applied_plan_id": plan_id,
                     }
@@ -790,7 +818,11 @@ class SimulationEngine:
         payload = json.dumps(message, default=str)
         dead: set = set()
 
-        for ws in self.state.ws_subscribers:
+        # Iterate a SNAPSHOT: each `await send_text` yields to the event loop,
+        # where a tab connecting/disconnecting mutates the live subscriber set
+        # — iterating it directly raises "Set changed size during iteration"
+        # and 500s the triggering request with 2+ tabs open.
+        for ws in list(self.state.ws_subscribers):
             try:
                 await ws.send_text(payload)
             except Exception as exc:

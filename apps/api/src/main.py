@@ -15,7 +15,7 @@ from src.data.opensky import OpenSkyClient
 from src.network import cache
 from src.optimizer.milp import RecoveryOptimizer
 from src.predictor.cascade import CascadePredictor
-from src.routes import events, live, network, playtest, predict, recovery, simulator, weather
+from src.routes import agent, events, live, network, playtest, predict, recovery, simulator, weather
 from src.routes.flights import router as flights_router
 from src.routes.passengers import router as passengers_router
 from src.simulator.engine import SimulationEngine
@@ -309,6 +309,7 @@ app.include_router(simulator.router, prefix="/api/v1", tags=["simulator"])
 app.include_router(live.router, prefix="/api/v1", tags=["live"])
 app.include_router(passengers_router, prefix="/api/v1", tags=["passengers"])
 app.include_router(playtest.router, prefix="/api/v1", tags=["playtest"])
+app.include_router(agent.router, prefix="/api/v1", tags=["agent"])
 
 
 @app.get("/health", tags=["health"])

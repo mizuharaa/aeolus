@@ -27,6 +27,7 @@ import { PricingSection } from "@/components/landing/pricing"
 import { TrustedBy } from "@/components/landing/trusted-by"
 import { FinalCTAStage } from "@/components/landing/final-cta-stage"
 import { LandingFooter } from "@/components/landing/footer"
+import { Rise } from "@/components/landing/motion"
 
 // 3D layers only on the client
 const CabinOpening = dynamic(
@@ -39,20 +40,20 @@ const HeroPlane3D = dynamic(
 )
 
 const NOON = {
-  "--bg": "#F5F0E3",
-  "--ink": "#141019",
+  "--bg": "#F7F3EA",
+  "--ink": "#1C1426",
   "--muted": "#6A6250",
-  "--panel": "#FFFDF6",
-  "--border": "rgba(20, 16, 25, 0.20)",
-  navBg: "rgba(245, 240, 227, 0.94)",
+  "--panel": "#FFFEF9",
+  "--border": "rgba(28, 20, 38, 0.20)",
+  navBg: "rgba(247, 243, 234, 0.94)",
 }
 const NIGHT = {
-  "--bg": "#171320",
-  "--ink": "#F0EBDF",
-  "--muted": "#9A93AC",
-  "--panel": "#211B36",
-  "--border": "rgba(240, 235, 223, 0.16)",
-  navBg: "rgba(23, 19, 32, 0.92)",
+  "--bg": "#191223",
+  "--ink": "#F1ECE1",
+  "--muted": "#9C93B0",
+  "--panel": "#241B38",
+  "--border": "rgba(241, 236, 225, 0.16)",
+  navBg: "rgba(25, 18, 35, 0.92)",
 }
 
 export function LandingScrollExperience() {
@@ -134,10 +135,10 @@ export function LandingScrollExperience() {
         <HeroStatementStage />
         <StoryMarquee />
         <CinematicSimulatorDemo />
-        <FourPlansSection />
+        <Rise><FourPlansSection /></Rise>
         <MethodologySection />
-        <PricingSection />
-        <TrustedBy />
+        <Rise><PricingSection /></Rise>
+        <Rise><TrustedBy /></Rise>
         <FinalCTAStage />
         <LandingFooter />
       </div>

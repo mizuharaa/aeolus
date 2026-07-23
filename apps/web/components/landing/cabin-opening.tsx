@@ -1,6 +1,6 @@
 "use client"
 /**
- * CabinOpening — the landing element. A bright white airplane cabin in 3D
+ * CabinOpening — the landing element. A NIGHT business-class cabin in 3D
  * (R3F): a row of three portholes with soft rounded frames and shade slots
  * (reference: clean white plastic, big soft bevels), detailed seats, overhead
  * bins, ceiling and floor — and open sky with sun + drifting clouds outside
@@ -15,25 +15,24 @@
  *      accelerates upward and away.
  */
 
-import { useLayoutEffect, useMemo, useRef } from "react"
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import { Canvas, useFrame } from "@react-three/fiber"
 import * as THREE from "three"
 import { gsap } from "@/components/landing/gsap"
-import { AeolusMark } from "@/components/ds/logo"
 
-// ── palette: vintage business class — cognac leather, cream lacquer,
-//    walnut trim, brass hardware, deep warm carpet ───────────────────────
-const WALL = "#EFE9DC"
-const FRAME_OUT = "#F7F4EC"
-const FRAME_IN = "#E0D8C8"
-const SLOT = "#E6DECD"
-const PILL = "#FBF8F0"
-const FABRIC = "#8F5B36" // cognac leather
-const FABRIC_LIT = "#A96F45"
-const SHELL = "#EFE6D2" // cream lacquered pod shell
-const ARMREST = "#4E3A2A" // walnut
-const METAL = "#C9A050" // brass
-const CARPET = "#4A3226"
+// ── palette: night business class (reference: dark sculpted ceiling, cool
+//    LED spine, warm amber pools on cognac leather + cream shells) ────────
+const WALL = "#39322F"       // deep taupe walls
+const FRAME_OUT = "#453C36"  // window surrounds
+const FRAME_IN = "#2A241F"
+const SLOT = "#3E3630"
+const PILL = "#5C5248"
+const FABRIC = "#8F5B36"     // cognac leather
+const FABRIC_LIT = "#B0754A"
+const SHELL = "#E9DEC8"      // cream lacquered pod shell (catches the lamps)
+const ARMREST = "#4E3A2A"    // walnut
+const METAL = "#C9A050"      // brass
+const CARPET = "#221B16"     // near-black warm carpet
 
 function roundedRect(w: number, h: number, r: number) {
   const s = new THREE.Shape()
@@ -56,7 +55,7 @@ function mat(color: string, opts: Partial<THREE.MeshStandardMaterialParameters> 
     color,
     roughness: 0.75,
     emissive: color,
-    emissiveIntensity: 0.22,
+    emissiveIntensity: 0.1,
     ...opts,
   })
 }
@@ -259,14 +258,21 @@ function buildCabin() {
   wallB.rotation.y = Math.PI
   root.add(wallB)
 
-  // ceiling sweeping between the walls + light strips
-  const ceil = new THREE.Mesh(new THREE.BoxGeometry(30, 0.15, WALL_B_Z + 1), mat("#F7F5F0"))
+  // ceiling: dark sculpted slab with a cool blue-white LED spine down the
+  // aisle (the reference shot's signature) + soft amber wash strips
+  const ceil = new THREE.Mesh(new THREE.BoxGeometry(30, 0.15, WALL_B_Z + 1), mat("#2B2733", { roughness: 0.6 }))
   ceil.position.set(0, 2.6, WALL_B_Z / 2)
   root.add(ceil)
+  const spine = new THREE.Mesh(
+    new THREE.BoxGeometry(24, 0.05, 0.5),
+    new THREE.MeshStandardMaterial({ color: "#DDEBFF", emissive: "#BFD9FF", emissiveIntensity: 2.2 }),
+  )
+  spine.position.set(0, 2.52, WALL_B_Z / 2)
+  root.add(spine)
   for (const z of [0.9, WALL_B_Z - 0.9]) {
     const strip = new THREE.Mesh(
       new THREE.BoxGeometry(26, 0.04, 0.08),
-      new THREE.MeshStandardMaterial({ color: "#FFE9BC", emissive: "#FFD98F", emissiveIntensity: 2.6 }),
+      new THREE.MeshStandardMaterial({ color: "#FFE9BC", emissive: "#FFD98F", emissiveIntensity: 1.4 }),
     )
     strip.position.set(0, 2.15, z)
     root.add(strip)
@@ -278,7 +284,7 @@ function buildCabin() {
     [0.75, 1],
     [WALL_B_Z - 0.75, -1],
   ] as const) {
-    const bin = new THREE.Mesh(new THREE.BoxGeometry(26, 0.95, 1.15), mat("#F4F1EB"))
+    const bin = new THREE.Mesh(new THREE.BoxGeometry(26, 0.95, 1.15), mat("#332E3B", { roughness: 0.55 }))
     bin.position.set(0, 2.0, z)
     bin.rotation.x = 0.3 * flip
     root.add(bin)
@@ -303,7 +309,7 @@ function buildCabin() {
     cavity.position.set(2.05, 2.05, z + 0.28)
     cavity.rotation.x = 0.3
     root.add(cavity)
-    const door = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.55, 0.06), mat("#F4F1EB"))
+    const door = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.55, 0.06), mat("#3B3544", { roughness: 0.55 }))
     door.position.set(2.05, 2.62, z + 0.72)
     door.rotation.x = -1.15 // swung up + out
     root.add(door)
@@ -375,6 +381,31 @@ function buildCabin() {
   return root
 }
 
+/** Typewriter for the opening slogan — the plain sentences key on, then the
+ * gold serif closer fades in. Idle life on the very first screen. */
+function SloganTypewriter() {
+  const LEAD = "Trigger a hub closure. Watch the delay cascade spread. "
+  const [n, setN] = useState(0)
+  useEffect(() => {
+    if (n >= LEAD.length) return
+    const t = window.setTimeout(() => setN(n + 1), 34)
+    return () => window.clearTimeout(t)
+  }, [n, LEAD.length])
+  const done = n >= LEAD.length
+  return (
+    <>
+      {LEAD.slice(0, n)}
+      {!done && <span style={{ opacity: 0.7 }}>▍</span>}
+      <span
+        className="ed-serif"
+        style={{ color: "#C9A050", opacity: done ? 1 : 0, transition: "opacity 600ms ease" }}
+      >
+        Recover the network.
+      </span>
+    </>
+  )
+}
+
 // camera path: close to the window row → back across the aisle → out
 // through the far wall's centre window
 const CAM_START_Z = 2.3
@@ -412,18 +443,20 @@ function CabinScene({ progressRef }: { progressRef: React.MutableRefObject<numbe
 
   return (
     <>
-      {/* vintage golden lounge: deep warm ambient + amber pools of light */}
-      <ambientLight intensity={1.0} color="#FFDFA8" />
-      {/* late-sun daylight through the porthole row */}
-      <directionalLight position={[0.5, 1.2, -4]} intensity={1.1} color="#FFD89A" />
-      <directionalLight position={[-0.5, 1.0, 9]} intensity={0.75} color="#F2E0C2" />
-      {/* warm ceiling-strip glow, pooled down the aisle */}
-      <pointLight position={[0, 2.1, 1.2]} intensity={2.4} color="#FFCE7A" distance={9} />
-      <pointLight position={[0, 2.0, 3.4]} intensity={1.8} color="#FFCE7A" distance={9} />
-      {/* low amber bounce off the carpet + lamp pools by the window pods */}
-      <pointLight position={[0, -1.2, 2.2]} intensity={0.8} color="#FFBE72" distance={6} />
-      <pointLight position={[2.4, -0.6, 1.0]} intensity={0.9} color="#FFCE7A" distance={4} />
-      <pointLight position={[-2.4, -0.6, 1.0]} intensity={0.9} color="#FFCE7A" distance={4} />
+      {/* night cabin: dim warm ambient so darks stay dark */}
+      <ambientLight intensity={0.32} color="#FFD9A8" />
+      {/* cool LED spine key from directly above the aisle */}
+      <pointLight position={[0, 2.4, 1.4]} intensity={2.6} color="#BFD9FF" distance={7} />
+      <pointLight position={[0, 2.4, 3.4]} intensity={2.0} color="#BFD9FF" distance={7} />
+      {/* dusk light through the porthole rows */}
+      <directionalLight position={[0.5, 1.2, -4]} intensity={0.7} color="#9FB8E8" />
+      <directionalLight position={[-0.5, 1.0, 9]} intensity={0.5} color="#9FB8E8" />
+      {/* warm amber pools on the seats + aisle (the hotel-bar glow) */}
+      <pointLight position={[0, -0.6, 2.2]} intensity={1.6} color="#FFBE72" distance={6} />
+      <pointLight position={[2.4, -0.4, 1.0]} intensity={1.5} color="#FFCE7A" distance={4.5} />
+      <pointLight position={[-2.4, -0.4, 1.0]} intensity={1.5} color="#FFCE7A" distance={4.5} />
+      <pointLight position={[2.4, -0.4, 3.6]} intensity={1.2} color="#FFCE7A" distance={4.5} />
+      <pointLight position={[-2.4, -0.4, 3.6]} intensity={1.2} color="#FFCE7A" distance={4.5} />
       <primitive object={cabin} />
     </>
   )
@@ -546,7 +579,7 @@ export function CabinOpening() {
           style={{
             position: "absolute",
             inset: 0,
-            background: "radial-gradient(115% 100% at 50% 46%, rgba(0,0,0,0) 58%, rgba(41,35,28,0.16) 100%)",
+            background: "radial-gradient(115% 100% at 50% 46%, rgba(0,0,0,0) 50%, rgba(12,9,7,0.45) 100%)",
           }}
         />
       </div>
@@ -564,18 +597,15 @@ export function CabinOpening() {
           alignItems: "center",
           gap: 14,
           textAlign: "center",
-          color: "#141019",
+          color: "#F1ECE1",
+          textShadow: "0 1px 12px rgba(12,9,7,0.6)",
         }}
       >
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 12 }}>
-          <AeolusMark size={28} style={{ color: "#141019" }} />
-          <span className="lp-eyebrow" style={{ color: "#141019", letterSpacing: "0.3em" }}>AEOLUS</span>
-        </span>
-        <p style={{ margin: 0, fontSize: "clamp(15px, 1.6vw, 20px)", fontWeight: 500, maxWidth: 560, lineHeight: 1.5 }}>
-          Trigger a hub closure. Watch the delay cascade spread.{" "}
-          <span className="ed-serif" style={{ color: "#6F3FE4" }}>Recover the network.</span>
+        <span className="lp-eyebrow" style={{ color: "#F1ECE1", letterSpacing: "0.3em" }}>AEOLUS</span>
+        <p style={{ margin: 0, fontSize: "clamp(15px, 1.6vw, 20px)", fontWeight: 500, maxWidth: 560, lineHeight: 1.5, minHeight: "1.5em" }}>
+          <SloganTypewriter />
         </p>
-        <span className="lp-eyebrow" style={{ color: "rgba(20,16,25,0.55)", marginTop: 6 }}>Scroll ↓</span>
+        <span className="lp-eyebrow" style={{ color: "rgba(241,236,225,0.6)", marginTop: 6 }}>Scroll ↓</span>
       </div>
 
       <style>{`

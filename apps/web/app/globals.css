@@ -9,66 +9,69 @@
  * design-system: design.md · designed-as-app · pre-emit critique: P4 H4 E4 S4 R5 V4 */
 
 /* ══════════════════════════════════════════════════════════════════
-   Aeolus — control-tower editorial system (matches the landing).
+   Aeolus — royal-plum flight deck system.
 
-     ink    #141019  warm ink          — type, dark marks
-     paper  #F5F0E3  warm beige        — surfaces
-     cobalt #2C49E0  the identity      — actions, recovery, active
-     violet #6F3FE4  the atmosphere    — gradients, chrome accents
-     amber  #EFAF1B  the status hue    — delayed / warning (simulator)
-     pink   #EC4899  the disruption    — events, cascade energy
+     ink    #1C1426  plum-black ink    — type, dark marks (authority)
+     paper  #F5F1E8  warm paper white  — surfaces (clarity, calm)
+     plum   #5B3FA8  the identity      — actions, recovery, active
+     lav    #8B6FD0  the atmosphere    — gradients, chrome accents
+     gold   #B8863C  the status hue    — delayed / warning (premium)
+     rose   #C13A6B  the disruption    — events, cascade energy
+
+   Color psychology: plum = authority + luxury, beige-gold = premium
+   warmth, paper white = trust + clarity. One family, no neon.
 
    Two registers, one token set:
-     :root           landing, docs, scenarios — beige paper
-     .register-dark  the simulator app — same beige family, denser
+     :root           landing, docs, scenarios — paper
+     .register-dark  the simulator app — same family, denser
                      surfaces (name kept so no call site churns)
    ══════════════════════════════════════════════════════════════════ */
 
 @layer base {
   :root {
-    /* ── Pigments (constant across registers) — the LANDING palette:
-       cobalt = identity/action, violet = atmosphere, amber = status,
+    /* ── Pigments (constant across registers):
+       plum = identity/action, lavender = atmosphere, gold = status,
        rose = disruption energy ──────────────────────────────────── */
-    --ae-sky:   #6F3FE4;
-    --ae-teal:  #2C49E0;
-    --ae-amber: #EFAF1B;
+    --ae-sky:   #8B6FD0;
+    --ae-teal:  #5B3FA8;
+    --ae-amber: #B8863C;
     --ae-rust:  var(--ae-amber);   /* legacy alias */
-    --ae-rose:  #EC4899;           /* disruption pink */
+    --ae-rose:  #C13A6B;           /* disruption rose */
     --ae-pink:  var(--ae-rose);
 
-    /* ── Light register — warm beige paper, ink type ─────────────── */
-    --ae-bg:            #F5F0E3;
-    --ae-surface:       #FFFDF6;
-    --ae-surface-2:     #EFE8D6;
-    --ae-surface-3:     #E5DBC2;
-    --ae-line:          rgba(20, 16, 25, 0.12);
-    --ae-line-strong:   rgba(20, 16, 25, 0.30);
-    --ae-text:          #141019;
-    --ae-text-2:        #55503F;
-    --ae-text-3:        #8A8270;
+    /* ── Light register — warm paper, plum-ink type ──────────────── */
+    --ae-bg:            #F5F1E8;
+    --ae-surface:       #FFFEF9;
+    --ae-surface-2:     #EFE9DB;
+    --ae-surface-3:     #E5DCC8;
+    --ae-line:          rgba(28, 20, 38, 0.12);
+    --ae-line-strong:   rgba(28, 20, 38, 0.30);
+    --ae-text:          #1C1426;
+    --ae-text-2:        #5A5147;
+    --ae-text-3:        #8C8272;
 
-    --ae-primary:        #141019;
-    --ae-primary-active: #2C49E0;
-    --ae-on-primary:     #F5F0E3;
+    --ae-primary:        #1C1426;
+    --ae-primary-active: #5B3FA8;
+    --ae-on-primary:     #F5F1E8;
 
-    --ae-sky-ink:   #4C28A8;
-    --ae-teal-ink:  #1E33A8;
-    --ae-amber-ink: #8A6410;
+    --ae-sky-ink:   #553B9E;
+    --ae-teal-ink:  #46307F;
+    --ae-amber-ink: #7A5A22;
     --ae-rust-ink:  var(--ae-amber-ink);
-    --ae-rose-ink:  #BE185D;
+    --ae-rose-ink:  #A02458;
 
-    --ae-sky-bg:     rgba(111, 63, 228, 0.12);
-    --ae-teal-bg:    rgba(44, 73, 224, 0.10);
-    --ae-amber-bg:   rgba(239, 175, 27, 0.14);
+    --ae-sky-bg:     rgba(139, 111, 208, 0.12);
+    --ae-teal-bg:    rgba(91, 63, 168, 0.10);
+    --ae-amber-bg:   rgba(184, 134, 60, 0.14);
     --ae-rust-bg:    var(--ae-amber-bg);
-    --ae-rose-bg:    rgba(236, 72, 153, 0.10);
-    --ae-neutral-bg: rgba(20, 16, 25, 0.05);
-    --ae-amber-soft:  rgba(239, 175, 27, 0.55);
-    --ae-amber-soft2: rgba(239, 175, 27, 0.30);
-    --ae-rose-soft:   rgba(236, 72, 153, 0.55);
-    --ae-rose-soft2:  rgba(236, 72, 153, 0.30);
+    --ae-rose-bg:    rgba(193, 58, 107, 0.10);
+    --ae-neutral-bg: rgba(28, 20, 38, 0.05);
+    --ae-amber-soft:  rgba(184, 134, 60, 0.55);
+    --ae-amber-soft2: rgba(184, 134, 60, 0.30);
+    --ae-rose-soft:   rgba(193, 58, 107, 0.55);
+    --ae-rose-soft2:  rgba(193, 58, 107, 0.30);
 
-    --ae-focus: rgba(44, 73, 224, 0.35);
+    --ae-focus: rgba(91, 63, 168, 0.35);
 
     /* ── Fonts ───────────────────────────────────────────────────── */
     --ae-font-display: "Inter Display", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -82,24 +85,24 @@
     --ae-shadow-overlay:   0 16px 48px rgba(20, 16, 25, 0.16);
     --ae-shadow-focus:     0 0 0 3px var(--ae-focus);
 
-    /* ── shadcn/Tailwind semantic bridge (light) — landing beige ─── */
-    --background:   43 47% 93%;             /* beige paper */
-    --foreground:   267 22% 8%;             /* ink */
-    --card:         47 100% 98%;
-    --card-foreground: 267 22% 8%;
-    --primary:      267 22% 8%;
-    --primary-foreground: 43 47% 93%;
-    --secondary:    43 40% 89%;
-    --secondary-foreground: 267 22% 8%;
-    --muted:        43 40% 89%;
-    --muted-foreground: 43 15% 40%;
-    --accent:       43 38% 85%;
-    --accent-foreground: 267 22% 8%;
-    --destructive:  336 74% 42%;
+    /* ── shadcn/Tailwind semantic bridge (light) — landing paper ─── */
+    --background:   42 39% 93%;             /* paper */
+    --foreground:   266 30% 11%;            /* plum ink */
+    --card:         50 100% 99%;
+    --card-foreground: 266 30% 11%;
+    --primary:      266 30% 11%;
+    --primary-foreground: 42 39% 93%;
+    --secondary:    42 36% 89%;
+    --secondary-foreground: 266 30% 11%;
+    --muted:        42 36% 89%;
+    --muted-foreground: 40 12% 40%;
+    --accent:       42 34% 85%;
+    --accent-foreground: 266 30% 11%;
+    --destructive:  339 58% 42%;
     --destructive-foreground: 0 0% 100%;
-    --border:       267 22% 8% / 0.12;
-    --input:        267 22% 8% / 0.16;
-    --ring:         229 76% 53%;            /* cobalt */
+    --border:       266 30% 11% / 0.12;
+    --input:        266 30% 11% / 0.16;
+    --ring:         256 45% 45%;            /* plum */
     --radius:   0.625rem;
 
     /* Legacy shadow names still referenced by old components */
@@ -128,62 +131,62 @@
      denser floor so panels/cards sit white-on-blue. The class name
      .register-dark is historical; values are BRIGHT now. ─────────── */
   .register-dark {
-    --ae-bg:            #F1EBDB;
-    --ae-surface:       #FFFDF6;
-    --ae-surface-2:     #EAE2CC;
-    --ae-surface-3:     #DFD3B4;
-    --ae-line:          rgba(20, 16, 25, 0.12);
-    --ae-line-strong:   rgba(20, 16, 25, 0.30);
-    --ae-text:          #141019;
-    --ae-text-2:        #55503F;
-    --ae-text-3:        #8A8270;
+    --ae-bg:            #F2EDE2;
+    --ae-surface:       #FFFEF9;
+    --ae-surface-2:     #EAE3D2;
+    --ae-surface-3:     #DFD4BC;
+    --ae-line:          rgba(28, 20, 38, 0.12);
+    --ae-line-strong:   rgba(28, 20, 38, 0.30);
+    --ae-text:          #1C1426;
+    --ae-text-2:        #5A5147;
+    --ae-text-3:        #8C8272;
 
-    --ae-primary:        #2C49E0;
-    --ae-primary-active: #1E33A8;
+    --ae-primary:        #5B3FA8;
+    --ae-primary-active: #46307F;
     --ae-on-primary:     #FFFFFF;
 
-    --ae-sky-ink:   #4C28A8;
-    --ae-teal-ink:  #1E33A8;
-    --ae-amber-ink: #8A6410;
+    --ae-sky-ink:   #553B9E;
+    --ae-teal-ink:  #46307F;
+    --ae-amber-ink: #7A5A22;
     --ae-rust-ink:  var(--ae-amber-ink);
-    --ae-rose-ink:  #BE185D;
+    --ae-rose-ink:  #A02458;
 
-    --ae-sky-bg:     rgba(111, 63, 228, 0.14);
-    --ae-teal-bg:    rgba(44, 73, 224, 0.10);
-    --ae-amber-bg:   rgba(239, 175, 27, 0.15);
+    --ae-sky-bg:     rgba(139, 111, 208, 0.14);
+    --ae-teal-bg:    rgba(91, 63, 168, 0.10);
+    --ae-amber-bg:   rgba(184, 134, 60, 0.15);
     --ae-rust-bg:    var(--ae-amber-bg);
-    --ae-rose-bg:    rgba(236, 72, 153, 0.10);
-    --ae-neutral-bg: rgba(20, 16, 25, 0.05);
-    --ae-amber-soft:  rgba(239, 175, 27, 0.55);
-    --ae-amber-soft2: rgba(239, 175, 27, 0.30);
-    --ae-rose-soft:   rgba(236, 72, 153, 0.55);
-    --ae-rose-soft2:  rgba(236, 72, 153, 0.30);
+    --ae-rose-bg:    rgba(193, 58, 107, 0.10);
+    --ae-neutral-bg: rgba(28, 20, 38, 0.05);
+    --ae-amber-soft:  rgba(184, 134, 60, 0.55);
+    --ae-amber-soft2: rgba(184, 134, 60, 0.30);
+    --ae-rose-soft:   rgba(193, 58, 107, 0.55);
+    --ae-rose-soft2:  rgba(193, 58, 107, 0.30);
 
-    --ae-focus: rgba(44, 73, 224, 0.35);
+    --ae-focus: rgba(91, 63, 168, 0.35);
 
-    --ae-shadow-button:    0 1px 2px rgba(20, 16, 25, 0.12);
-    --ae-shadow-card:      0 1px 2px rgba(20, 16, 25, 0.06);
-    --ae-shadow-card-elev: 0 8px 28px rgba(20, 16, 25, 0.12);
-    --ae-shadow-overlay:   0 16px 48px rgba(20, 16, 25, 0.18);
+    --ae-shadow-button:    0 1px 2px rgba(28, 20, 38, 0.12);
+    --ae-shadow-card:      0 1px 2px rgba(28, 20, 38, 0.06);
+    --ae-shadow-card-elev: 0 8px 28px rgba(28, 20, 38, 0.12);
+    --ae-shadow-overlay:   0 16px 48px rgba(28, 20, 38, 0.18);
 
-    /* shadcn bridge — landing beige, cobalt action */
-    --background:   44 42% 90%;
-    --foreground:   267 22% 8%;
-    --card:         47 100% 98%;
-    --card-foreground: 267 22% 8%;
-    --primary:      229 76% 53%;           /* cobalt action */
+    /* shadcn bridge — paper floor, plum action */
+    --background:   43 38% 92%;
+    --foreground:   266 30% 11%;
+    --card:         50 100% 99%;
+    --card-foreground: 266 30% 11%;
+    --primary:      256 45% 45%;           /* plum action */
     --primary-foreground: 0 0% 100%;
-    --secondary:    44 38% 86%;
-    --secondary-foreground: 267 22% 8%;
-    --muted:        44 38% 86%;
-    --muted-foreground: 43 15% 40%;
-    --accent:       44 36% 82%;
-    --accent-foreground: 267 22% 8%;
-    --destructive:  336 74% 42%;
+    --secondary:    43 34% 87%;
+    --secondary-foreground: 266 30% 11%;
+    --muted:        43 34% 87%;
+    --muted-foreground: 40 12% 40%;
+    --accent:       43 32% 82%;
+    --accent-foreground: 266 30% 11%;
+    --destructive:  339 58% 42%;
     --destructive-foreground: 0 0% 100%;
-    --border:       267 22% 8% / 0.12;
-    --input:        267 22% 8% / 0.16;
-    --ring:         229 76% 53%;
+    --border:       266 30% 11% / 0.12;
+    --input:        266 30% 11% / 0.16;
+    --ring:         256 45% 45%;
 
     color-scheme: light;
   }
@@ -212,7 +215,7 @@
     letter-spacing: -0.01em;
   }
 
-  ::selection { background: rgba(111, 63, 228, 0.25); }
+  ::selection { background: rgba(139, 111, 208, 0.28); }
 
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
@@ -599,21 +602,16 @@
    ══════════════════════════════════════════════════════════════════ */
 
 .lp {
-  --bg:     #EDE6D6;
-  --ink:    #1A1622;
+  --bg:     #F4EFE4;
+  --ink:    #1C1426;
   --muted:  #6E6553;
-  --panel:  #F8F3E7;
-  --border: rgba(26, 22, 34, 0.16);
+  --panel:  #FCFAF3;
+  --border: rgba(28, 20, 38, 0.16);
 
-  --accent-blue:   #2C49E0;
-  --accent-purple: #6F3FE4;
-  --accent-amber:  #EFAF1B;
-  --accent-teal:   #0E7C6B;
-
-  /* Warm atmosphere — soft peach/rose washes bloom behind the content so the
-     beige floor reads warm rather than flat. Restrained, editorial. */
-  --peach: #F6D3B8;
-  --rose:  #F3B7C4;
+  --accent-blue:   #5B3FA8;  /* royal plum — identity (name kept, value re-inked) */
+  --accent-purple: #8B6FD0;  /* lavender — atmosphere */
+  --accent-amber:  #B8863C;  /* beige gold — premium warmth */
+  --accent-teal:   #46307F;  /* deep plum ink */
 
   background: var(--bg);
   color: var(--ink);
@@ -622,7 +620,9 @@
   min-height: 100vh;
 }
 
-/* ── Landing atmosphere — scroll-reactive peach/rose blooms ─────────────── */
+/* ── Landing atmosphere — flat color waves, no blur, no gradient smears.
+   Crisp layered sine bands in the brand pigments drift slowly behind the
+   paper; sharp edges read as printed waves, not AI glow. ─────────────── */
 .lp-atmos {
   position: fixed;
   inset: 0;
@@ -630,16 +630,12 @@
   pointer-events: none;
   overflow: clip;
 }
-.lp-blob {
+.lp-wave {
   position: absolute;
-  border-radius: 50%;
-  filter: blur(60px);
-  opacity: 0.5;
+  left: -25vw;
+  width: 150vw;
+  height: auto;
   will-change: transform;
-  mix-blend-mode: multiply;
-}
-@media (prefers-reduced-motion: reduce) {
-  .lp-blob { opacity: 0.32; }
 }
 
 /* Editorial display voice — huge, tight, mixed case. */
@@ -791,7 +787,7 @@
   background: var(--panel);
   border-color: var(--accent-blue);
   transform: perspective(900px) translateY(-6px) rotateX(2.4deg) scale(1.008);
-  box-shadow: 0 30px 60px -28px rgba(44, 73, 224, 0.45), 0 12px 28px -18px rgba(26, 22, 34, 0.5);
+  box-shadow: 0 30px 60px -28px rgba(91, 63, 168, 0.45), 0 12px 28px -18px rgba(26, 22, 34, 0.5);
   z-index: 1;
 }
 /* (the animated gradient border sweep that used to paint here on hover was
@@ -838,10 +834,10 @@
   --dk-line:    rgba(20, 16, 25, 0.12);
   --dk-text:    #141019;
   --dk-muted:   #8A8270;
-  --dk-blue:    #1E33A8;
-  --dk-rose:    #EC4899;
-  --dk-amber:   #EFAF1B;
-  --dk-teal:    #2C49E0;
+  --dk-blue:    #46307F;
+  --dk-rose:    #C13A6B;
+  --dk-amber:   #B8863C;
+  --dk-teal:    #5B3FA8;
 
   background: var(--dk-bg);
   border: 1px solid rgba(26, 22, 34, 0.14);
@@ -877,7 +873,7 @@
   height: 12px;
   margin: -6px 0 0 -6px;
   border-radius: 999px;
-  border: 1.5px solid var(--dk-rose, #EC4899);
+  border: 1.5px solid var(--dk-rose, #C13A6B);
   transform: scale(2.2);
   opacity: 0.45;
 }
@@ -1071,8 +1067,8 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: var(--ae-text, #141019);
-  color: var(--ae-bg, #F5F0E3);
+  background: var(--ae-text, #1C1426);
+  color: var(--ae-bg, #F5F1E8);
   border-radius: 999px;
   padding: 6px 14px;
   font-family: var(--ae-font-mono);
@@ -1143,16 +1139,16 @@
   height: 34px;
   background: repeating-linear-gradient(
     90deg,
-    #141019 0 2px, transparent 2px 4px,
-    #141019 4px 7px, transparent 7px 9px,
-    #141019 9px 10px, transparent 10px 14px,
-    #141019 14px 16px, transparent 16px 17px,
-    #141019 17px 21px, transparent 21px 24px
+    #1C1426 0 2px, transparent 2px 4px,
+    #1C1426 4px 7px, transparent 7px 9px,
+    #1C1426 9px 10px, transparent 10px 14px,
+    #1C1426 14px 16px, transparent 16px 17px,
+    #1C1426 17px 21px, transparent 21px 24px
   );
   border-radius: 2px;
 }
 
 /* Demo console element-state UI — rows and cards respond like the real app */
 .dm-evrow-hot, .dm-plan { transition: transform 180ms cubic-bezier(0.22,0.9,0.28,1), background 160ms ease, border-color 160ms ease, box-shadow 180ms ease; }
-.dm-plan:hover { transform: translateY(-2px); border-color: var(--dk-teal) !important; box-shadow: 0 8px 20px -12px rgba(44, 73, 224, 0.5); }
-.dm-events .dm-evrow-hot:hover { background: rgba(236, 72, 153, 0.07); }
+.dm-plan:hover { transform: translateY(-2px); border-color: var(--dk-teal) !important; box-shadow: 0 8px 20px -12px rgba(91, 63, 168, 0.5); }
+.dm-events .dm-evrow-hot:hover { background: rgba(193, 58, 107, 0.07); }

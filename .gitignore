@@ -317,6 +317,7 @@ tramp
 # -----------------------------------------------------------------------------
 **/.terraform/
 **/.terraform.lock.hcl
+!infra/terraform/.terraform.lock.hcl
 *.tfstate
 *.tfstate.*
 *.tfvars
