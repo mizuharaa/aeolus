@@ -18,8 +18,8 @@ import { gsap } from "@/components/landing/gsap"
 import styles from "@/components/landing/landing-experience.module.css"
 import { LandingNav } from "@/components/landing/landing-nav"
 import { LandingAtmosphere } from "@/components/landing/atmosphere"
+import { FlightIntroStage } from "@/components/landing/flight-intro-stage"
 import { OpeningWordmarkStage } from "@/components/landing/opening-stage"
-import { HeroStatementStage } from "@/components/landing/hero-stage"
 import { LiveGlobeStage } from "@/components/landing/live-globe-stage"
 import { StoryMarquee } from "@/components/landing/marquee"
 import { CinematicSimulatorDemo } from "@/components/landing/demo/cinematic-simulator-demo"
@@ -131,18 +131,24 @@ export function LandingScrollExperience() {
   return (
     <main ref={wrapRef} className="lp" style={{ position: "relative" }}>
       <LandingAtmosphere />
-      <HeroPlane3D />
-      <CabinOpening />
       <LandingNav />
-      {/* content sits above the fixed atmosphere/plane layers */}
+      <div className={styles.experience}>
+        <HeroPlane3D />
+        <CabinOpening />
+        <div style={{ position: "relative", zIndex: 2 }}>
+          <FlightIntroStage />
+          <OpeningWordmarkStage />
+        </div>
+      </div>
+      {/* content sits above the fixed atmosphere and flight layers */}
       <div style={{ position: "relative", zIndex: 2 }}>
-        <OpeningWordmarkStage />
-        <HeroStatementStage />
         <div className={styles.experience}>
           <LiveGlobeStage />
         </div>
         <StoryMarquee />
-        <CinematicSimulatorDemo />
+        <div className={styles.experience}>
+          <CinematicSimulatorDemo />
+        </div>
         <Rise><FourPlansSection /></Rise>
         <MethodologySection />
         <Rise><PricingSection /></Rise>

@@ -25,6 +25,8 @@ export function SplitReveal({
   delay = 0,
   stagger = 0.09,
   start = "top 85%",
+  end = "top 46%",
+  mode = "once",
 }: {
   children: ReactNode
   as?: keyof HTMLElementTagNameMap
@@ -33,6 +35,8 @@ export function SplitReveal({
   delay?: number
   stagger?: number
   start?: string
+  end?: string
+  mode?: "once" | "reversible" | "scrub"
 }) {
   const ref = useRef<HTMLElement>(null)
 
@@ -41,28 +45,50 @@ export function SplitReveal({
     if (!el || prefersReduced()) return
 
     let split: SplitText | undefined
+    let disposed = false
     const ctx = gsap.context(() => {
       gsap.set(el, { autoAlpha: 0 })
       document.fonts.ready.then(() => {
-        if (!ref.current) return
-        split = new SplitText(el, { type: "lines", mask: "lines", linesClass: "lp-line" })
-        gsap.set(el, { autoAlpha: 1 })
-        gsap.from(split.lines, {
-          yPercent: 115,
-          duration: 1.0,
-          ease: "power4.out",
-          stagger,
-          delay,
-          scrollTrigger: { trigger: el, start, once: true },
+        if (!ref.current || disposed) return
+        ctx.add(() => {
+          split = new SplitText(el, { type: "lines", mask: "lines", linesClass: "lp-line" })
+          gsap.set(el, { autoAlpha: 1 })
+
+          if (mode === "scrub") {
+            gsap.fromTo(
+              split.lines,
+              { yPercent: 115 },
+              {
+                yPercent: 0,
+                ease: "none",
+                stagger,
+                scrollTrigger: { trigger: el, start, end, scrub: 0.65 },
+              },
+            )
+            return
+          }
+
+          gsap.from(split.lines, {
+            yPercent: 115,
+            duration: 1.0,
+            ease: "power4.out",
+            stagger,
+            delay,
+            scrollTrigger:
+              mode === "reversible"
+                ? { trigger: el, start, toggleActions: "play none none reverse" }
+                : { trigger: el, start, once: true },
+          })
         })
       })
     }, el)
 
     return () => {
+      disposed = true
       split?.revert()
       ctx.revert()
     }
-  }, [delay, stagger, start])
+  }, [delay, end, mode, stagger, start])
 
   // createElement instead of JSX: `as` is a runtime tag name and TS can't
   // reconcile the polymorphic ref through JSX generics.
@@ -125,15 +151,14 @@ export function TickerNumber({
 }
 
 /**
- * HighlightSwipe — a marker band that pans left→right behind the wrapped
- * phrase, SCRUBBED to scroll: it draws as the phrase enters and retracts as
- * the user scrolls back up. It stops at ~80% coverage so the tail of the
- * word stays bare, reading like a hand-drawn marker rather than a fill.
+ * HighlightSwipe — an inverted amber block whose mask wipes left→right while
+ * the words remain still. It is sampled from scroll in both directions, so
+ * reversing past the reveal closes the same mask without replay state.
  */
 export function HighlightSwipe({
   children,
-  color = "var(--accent-amber)",
-  height = "42%",
+  color = "var(--flight-amber, var(--accent-amber))",
+  height = "100%",
   coverage = 0.8,
   style,
 }: {
@@ -152,17 +177,15 @@ export function HighlightSwipe({
     const band = el.querySelector<HTMLElement>(".hl-band")
     if (!band) return
     if (prefersReduced()) {
-      band.style.transform = `scaleX(${coverage})`
+      band.style.clipPath = `inset(0 ${(1 - coverage) * 100}% 0 0)`
       return
     }
     const ctx = gsap.context(() => {
-      // scrub: scaleX tracks scroll position both ways, so scrolling back up
-      // retracts the marker instead of leaving it filled.
       gsap.fromTo(
         band,
-        { scaleX: 0 },
+        { clipPath: "inset(0 100% 0 0)" },
         {
-          scaleX: coverage,
+          clipPath: `inset(0 ${(1 - coverage) * 100}% 0 0)`,
           ease: "none",
           scrollTrigger: {
             trigger: el,
@@ -177,26 +200,43 @@ export function HighlightSwipe({
   }, [coverage])
 
   return (
-    <span ref={ref} style={{ position: "relative", display: "inline-block", ...style }}>
+    <span
+      ref={ref}
+      className="hl-swipe"
+      style={{
+        position: "relative",
+        display: "inline-block",
+        isolation: "isolate",
+        marginInline: "-0.08em",
+        paddingInline: "0.08em",
+        letterSpacing: "-0.02em",
+        ...style,
+      }}
+    >
       <span
         className="hl-band"
         aria-hidden
         style={{
-          // extra right inset catches the slant overhang of italic glyphs so
-          // the marker reaches past the final letter rather than stopping short
           position: "absolute",
-          left: "-1.5%",
-          right: "-4%",
-          bottom: "6%",
+          insetInline: 0,
+          top: "3%",
           height,
           background: color,
-          borderRadius: 6,
-          transform: "scaleX(0)",
-          transformOrigin: "0 50%",
+          borderRadius: "0.06em",
+          clipPath: "inset(0 100% 0 0)",
           zIndex: 0,
         }}
       />
-      <span style={{ position: "relative", zIndex: 1 }}>{children}</span>
+      <span
+        className="hl-copy"
+        style={{
+          position: "relative",
+          zIndex: 1,
+          color: "var(--color-accent-ink, oklch(13.9% 0.0227 298.19))",
+        }}
+      >
+        {children}
+      </span>
     </span>
   )
 }

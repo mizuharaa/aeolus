@@ -2,14 +2,15 @@
 
 ## Current state
 
-The landing page has been restored to commit `207712b`, the last state before
-the cinematic overhaul started. The only retained work is the Earth event
-theatre:
+The landing page uses the established Aeolus sections with three retained
+cinematic prototypes:
 
-- the textured 3D globe;
+- the Q-path aircraft from `bd6d43d`;
+- the bidirectional OCC MacBook from `e4b6d71`;
+- the textured 3D globe and its safe manual event controls;
 - the “Airline recovery, simulated live.” copy;
 - the event feed, active-event copy, notification card, and coverage strip;
-- the Earth textures and the minimal scroll/render runtime needed by that scene.
+- the aircraft/Earth assets and the minimal shared scroll/render runtime.
 
 Automatic event cycling, moving white route dots, event particle sprays, and
 high-frequency cyber strobing are disabled. Events now change only after an
@@ -21,7 +22,6 @@ Do not restore or rebuild these pieces from the reverted branch:
 
 - the CSS-only replacement cabin;
 - the procedural luxury cabin and generated cabin texture library;
-- the replacement aircraft model/poster and fast Q-flight sequence;
 - the literal reference-frame MacBook treatment;
 - global card tilt, blanket blur reveals, or motion on every text block;
 - multiple concurrent canvases or startup work that can freeze first paint;
@@ -37,17 +37,18 @@ Keep the section order and existing marketing copy. Improve fidelity one scene
 at a time without replacing the established Aeolus typography or page
 structure.
 
-1. Cabin and aircraft: start from a lightweight, licensed GLB. Improve
-   materials, lighting, wing-root/engine attachment, camera framing, and
-   environmental reflections. Do not ship procedural placeholder geometry.
-2. Aircraft transition: a slow, shallow Q-shaped departure that passes the
-   Aeolus wordmark, leaves a readable dwell, and recedes toward the globe. It
-   must be a reversible function of scroll progress.
+1. Cabin: improve the original scene incrementally. Do not replace it with the
+   rejected heavy procedural cabin or generated texture stack.
+2. Aircraft transition: preserve the current Q-path prototype. Refine its
+   pacing and shallow departure without changing its path architecture. It must
+   pass the Aeolus wordmark, leave a readable dwell, recede toward the globe,
+   and remain a reversible function of scroll progress.
 3. Globe: preserve the current scene. Any future event treatment must be
    surface-bound, low-frequency, manually triggered, and safe under
    `prefers-reduced-motion`.
-4. OCC device: use a licensed, correctly hinged laptop GLB with the real live
-   dashboard rendered on its screen. Opening/closing must be scroll-derived,
+4. OCC device: preserve the current prototype MacBook and its real live
+   dashboard. Refine the hinge and materials in place; never replace the screen
+   with reference-frame images. Opening/closing must stay scroll-derived,
    bidirectional, and physically eased.
 5. Text motion: retain the original display/serif pairing. Use vertical clip
    reveals only for key display lines; do not apply one entrance effect to

@@ -22,3 +22,12 @@ and carry the same rights as their source assets. Generation is documented in
 `scripts/generate-earth-assets.mjs`.
 
 NASA usage follows the [NASA Images and Media Usage Guidelines](https://www.nasa.gov/nasa-brand-center/images-and-media/).
+
+## Aircraft
+
+| Shipped asset | Source | Rights / license | Use |
+| --- | --- | --- | --- |
+| `apps/web/public/models/aeolus-airliner.glb` | Project-generated image-to-3D model created with Meshy from the Aeolus aircraft concept | CC BY 4.0, conservatively applying Meshy free-plan terms. | Q-path aircraft prototype, with runtime material refinement. |
+| `apps/web/public/images/aeolus-airliner-poster.webp` | Repository-authored render of the Aeolus airliner GLB | CC BY 4.0 as a derivative of the model. | Lightweight poster while the live model loads. |
+
+Meshy terms were checked against its [ownership guidance](https://help.meshy.ai/en/articles/10137554-what-is-the-ownership-of-the-generated-models).

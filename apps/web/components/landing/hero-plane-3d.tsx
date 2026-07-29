@@ -20,9 +20,44 @@
  * scrolling back up flies the whole thing in reverse.
  */
 
-import { Canvas, useFrame } from "@react-three/fiber"
-import { useEffect, useMemo, useRef } from "react"
+import { Canvas, useFrame, useThree } from "@react-three/fiber"
+import { useGLTF } from "@react-three/drei"
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react"
+import Image from "next/image"
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js"
 import * as THREE from "three"
+import {
+  landingScroll,
+  markLandingAssetReady,
+  registerLandingFrame,
+  registerThreeRoot,
+} from "@/lib/scroll"
+import { Spring } from "@/lib/spring"
+import { CanvasBudget } from "@/components/landing/canvas-budget"
+
+function StudioEnvironment() {
+  const { gl, scene } = useThree()
+
+  useEffect(() => {
+    const previous = scene.environment
+    const previousIntensity = scene.environmentIntensity
+    const pmrem = new THREE.PMREMGenerator(gl)
+    const room = new RoomEnvironment()
+    const target = pmrem.fromScene(room, 0.04)
+    scene.environment = target.texture
+    scene.environmentIntensity = 0.64
+    room.dispose()
+
+    return () => {
+      scene.environment = previous
+      scene.environmentIntensity = previousIntensity
+      target.dispose()
+      pmrem.dispose()
+    }
+  }, [gl, scene])
+
+  return null
+}
 
 /** Build the airliner once. Nose points toward +X. Length ±2.9.
  *
@@ -257,138 +292,470 @@ function useAirlinerModel() {
   }, [])
 }
 
-/**
- * Two poses only — hero view and the parked corner — joined by ONE smooth
- * segment, so there is no mid-flight joint to stall on.
- */
-// The zoom continues out of the cabin window: a HUGE horizontal side profile
-// (we just phased out through the fuselage) keeps pulling back until the
-// whole plane fits the frame side-on, holds a beat, then climbs out.
-const CLOSE = { pos: new THREE.Vector3(0.8, -0.3, 1.6), rot: new THREE.Euler(0.02, -0.06, 0), scale: 2.2 }
-const SIDE = { pos: new THREE.Vector3(0, 0.1, 0), rot: new THREE.Euler(0.05, -0.16, 0.01), scale: 0.66 }
-// climb-out runs along the line y = x: equal rise and run, a clean 45°
-// diagonal up-and-right, receding slightly from the viewer
-const AWAY = { pos: new THREE.Vector3(5.6, 5.7, -2.4), scale: 0.6 }
-const ZOOM_START = 0.28
-const ZOOM_END = 0.57
-const CLIMB_START = 0.63
-const CLIMB_END = 0.88
-
+const CLOSE = {
+  pos: new THREE.Vector3(0.72, -0.2, 1.3),
+  rot: new THREE.Euler(0.08, -0.28, 0),
+  scale: 2.16,
+}
+const SIDE = {
+  pos: new THREE.Vector3(-0.1, 0.06, 0),
+  rot: new THREE.Euler(0.09, -0.42, 0.015),
+  scale: 0.66,
+}
+const ZOOM_START = 0.22
+const ZOOM_END = 0.48
+const CLIMB_START = 0.62
+const CLIMB_END = 0.985
 const Q_CLOSE = new THREE.Quaternion().setFromEuler(CLOSE.rot)
 const Q_SIDE = new THREE.Quaternion().setFromEuler(SIDE.rot)
-// climb-out: nose (+X) along the travel direction, wings level w.r.t. world
-// up, banked into the turn — reads as climbing away, never inverted
-const Q_AWAY = (() => {
-  const x = AWAY.pos.clone().sub(SIDE.pos).normalize()
-  const z = new THREE.Vector3().crossVectors(x, new THREE.Vector3(0, 1, 0)).normalize()
-  const y = new THREE.Vector3().crossVectors(z, x)
-  const aim = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, y, z))
-  return new THREE.Quaternion().setFromAxisAngle(x, -0.28).multiply(aim)
-})()
+const Q_PATH = new THREE.CatmullRomCurve3(
+  [
+    SIDE.pos.clone(),
+    new THREE.Vector3(0.62, 0.16, -0.34),
+    new THREE.Vector3(0.92, 0.68, -0.72),
+    new THREE.Vector3(0.5, 1.14, -1.08),
+    new THREE.Vector3(-0.34, 1.32, -1.46),
+    new THREE.Vector3(-1.16, 1.08, -1.84),
+    new THREE.Vector3(-1.52, 0.48, -2.24),
+    new THREE.Vector3(-1.24, -0.18, -2.64),
+    new THREE.Vector3(-0.45, -0.5, -3.04),
+    new THREE.Vector3(0.46, -0.34, -3.42),
+    new THREE.Vector3(0.92, 0.2, -3.82),
+    new THREE.Vector3(0.52, -0.24, -4.22),
+    new THREE.Vector3(1.58, -0.92, -5.12),
+    new THREE.Vector3(4.4, -1.92, -7.8),
+  ],
+  false,
+  "catmullrom",
+  0.58,
+)
+const Q_FRAMES = Q_PATH.computeFrenetFrames(400, false)
 
-function Airliner({ progressRef }: { progressRef: React.MutableRefObject<number> }) {
-  const ref = useRef<THREE.Group>(null)
+function ProceduralAirliner() {
   const model = useAirlinerModel()
-  const cur = useRef(0)
-  const mats = useMemo(() => {
-    const list: THREE.MeshStandardMaterial[] = []
-    const seen = new Set<THREE.Material>()
-    model.traverse((o) => {
-      const m = (o as THREE.Mesh).material as THREE.MeshStandardMaterial | undefined
-      if (m && !seen.has(m)) {
-        seen.add(m)
-        m.transparent = true
-        list.push(m)
-      }
+  return <primitive object={model} />
+}
+
+function physicalFromStandard(source: THREE.MeshStandardMaterial) {
+  const upgraded = new THREE.MeshPhysicalMaterial({
+    color: source.color,
+    map: source.map,
+    normalMap: source.normalMap,
+    normalScale: source.normalScale,
+    roughness: Math.max(0.16, source.roughness * 0.88),
+    roughnessMap: source.roughnessMap,
+    metalness: Math.max(0.24, source.metalness),
+    metalnessMap: source.metalnessMap,
+    emissive: source.emissive,
+    emissiveMap: source.emissiveMap,
+    emissiveIntensity: source.emissiveIntensity,
+    aoMap: source.aoMap,
+    aoMapIntensity: source.aoMapIntensity,
+    alphaMap: source.alphaMap,
+    opacity: source.opacity,
+    transparent: source.transparent,
+    side: source.side,
+    clearcoat: 0.62,
+    clearcoatRoughness: 0.17,
+    envMapIntensity: 1.18,
+  })
+  upgraded.name = `${source.name || "airliner"}-physical`
+  for (const texture of [
+    upgraded.map,
+    upgraded.normalMap,
+    upgraded.roughnessMap,
+    upgraded.metalnessMap,
+    upgraded.emissiveMap,
+    upgraded.aoMap,
+  ]) {
+    if (texture) texture.anisotropy = 8
+  }
+  return upgraded
+}
+
+function GeneratedAirliner({ onReady }: { onReady: () => void }) {
+  const { scene } = useGLTF("/models/aeolus-airliner.glb")
+  const model = useMemo(() => {
+    const clone = scene.clone(true)
+    clone.traverse((object) => {
+      if (!(object instanceof THREE.Mesh)) return
+      object.castShadow = true
+      object.receiveShadow = true
+      const source = object.material
+      object.material = Array.isArray(source)
+        ? source.map((material) =>
+            material instanceof THREE.MeshStandardMaterial
+              ? physicalFromStandard(material)
+              : material.clone(),
+          )
+        : source instanceof THREE.MeshStandardMaterial
+          ? physicalFromStandard(source)
+          : source.clone()
     })
-    return list
-  }, [model])
-  const lastFade = useRef(1)
 
-  useFrame((state, delta) => {
-    const g = ref.current
-    if (!g) return
-    // frame-rate-independent damp toward the scroll target; an instant jump
-    // (anchor link, scrollIntoView) snaps instead of ghosting mid-flight
-    const k = 3.4
-    if (Math.abs(progressRef.current - cur.current) > 0.35) cur.current = progressRef.current
-    else cur.current += (progressRef.current - cur.current) * (1 - Math.exp(-k * Math.min(delta, 0.05)))
-    const t = cur.current
+    const bounds = new THREE.Box3().setFromObject(clone)
+    const center = bounds.getCenter(new THREE.Vector3())
+    const size = bounds.getSize(new THREE.Vector3())
+    clone.position.sub(center)
+    clone.scale.setScalar(5.8 / Math.max(size.x, size.y, size.z))
 
-    const fade = 1 - THREE.MathUtils.smoothstep(t, 0.82, 0.94)
-    if (fade <= 0.01) {
-      if (g.visible) g.visible = false
-      return
+    const wrapper = new THREE.Group()
+    wrapper.add(clone)
+    // Meshy inferred the source image with its nose on local -X. Normalize
+    // that axis once so every flight quaternion can treat +X as forward.
+    wrapper.rotation.y = Math.PI
+    return wrapper
+  }, [scene])
+
+  useEffect(() => {
+    onReady()
+    return () => {
+      model.traverse((object) => {
+        if (!(object instanceof THREE.Mesh)) return
+        const materials = Array.isArray(object.material) ? object.material : [object.material]
+        for (const material of materials) material.dispose()
+      })
     }
-    if (!g.visible) g.visible = true
+  }, [model, onReady])
 
-    let s: number
-    if (t < CLIMB_START) {
-      // continuing zoom-out: giant side profile → whole plane, horizontal
-      const z = THREE.MathUtils.smoothstep(t, ZOOM_START, ZOOM_END)
-      g.position.lerpVectors(CLOSE.pos, SIDE.pos, z)
-      g.quaternion.copy(Q_CLOSE).slerp(Q_SIDE, z)
-      g.scale.setScalar(THREE.MathUtils.lerp(CLOSE.scale, SIDE.scale, z))
-      s = 0
-    } else {
-      // upward climb-out with ACCELERATION: quadratic ease-in — starts from
-      // rest at the side view and leaves the top of the frame at full speed
-      const r = THREE.MathUtils.clamp((t - CLIMB_START) / (CLIMB_END - CLIMB_START), 0, 1)
-      s = r * r
-      g.position.lerpVectors(SIDE.pos, AWAY.pos, s)
-      g.quaternion.copy(Q_SIDE).slerp(Q_AWAY, s)
-      g.scale.setScalar(THREE.MathUtils.lerp(SIDE.scale, AWAY.scale, s))
+  return <primitive object={model} />
+}
+
+useGLTF.preload("/models/aeolus-airliner.glb")
+
+const CONTRAIL_SAMPLES = 120
+
+function Contrail({
+  progress,
+}: {
+  progress: { current: number }
+}) {
+  const { gl } = useThree()
+  const geometry = useMemo(() => {
+    const result = new THREE.BufferGeometry()
+    result.setAttribute(
+      "position",
+      new THREE.BufferAttribute(
+        new Float32Array(CONTRAIL_SAMPLES * 2 * 3),
+        3,
+      ),
+    )
+    result.setAttribute(
+      "aAlpha",
+      new THREE.BufferAttribute(
+        new Float32Array(CONTRAIL_SAMPLES * 2),
+        1,
+      ),
+    )
+    return result
+  }, [])
+  const material = useMemo(
+    () =>
+      new THREE.ShaderMaterial({
+        blending: THREE.NormalBlending,
+        depthWrite: false,
+        transparent: true,
+        uniforms: {
+          uOpacity: { value: 0 },
+          uPixelRatio: { value: 1 },
+        },
+        vertexShader: `
+          attribute float aAlpha;
+          varying float vAlpha;
+          uniform float uPixelRatio;
+
+          void main() {
+            vAlpha = aAlpha;
+            vec4 viewPosition = modelViewMatrix * vec4(position, 1.0);
+            float perspective = 11.0 / max(8.0, -viewPosition.z);
+            gl_PointSize = (2.0 + aAlpha * 4.8) * uPixelRatio * perspective;
+            gl_Position = projectionMatrix * viewPosition;
+          }
+        `,
+        fragmentShader: `
+          varying float vAlpha;
+          uniform float uOpacity;
+
+          void main() {
+            vec2 centered = gl_PointCoord - 0.5;
+            float radial = 1.0 - smoothstep(0.08, 0.5, length(centered));
+            float filament = 0.76 + 0.24 * smoothstep(0.5, 0.0, abs(centered.y));
+            vec3 aeolusVapor = vec3(0.42, 0.34, 0.68);
+            gl_FragColor = vec4(aeolusVapor, radial * filament * vAlpha * uOpacity * 0.34);
+          }
+        `,
+      }),
+    [],
+  )
+  const point = useMemo(() => new THREE.Vector3(), [])
+  const binormal = useMemo(() => new THREE.Vector3(), [])
+
+  useEffect(
+    () => () => {
+      geometry.dispose()
+      material.dispose()
+    },
+    [geometry, material],
+  )
+
+  useFrame((state) => {
+    const u = progress.current
+    const positionAttribute = geometry.getAttribute(
+      "position",
+    ) as THREE.BufferAttribute
+    const alphaAttribute = geometry.getAttribute(
+      "aAlpha",
+    ) as THREE.BufferAttribute
+    const positions = positionAttribute.array as Float32Array
+    const alphas = alphaAttribute.array as Float32Array
+    const reveal = THREE.MathUtils.smoothstep(u, 0.015, 0.12)
+    const exit = 1 - THREE.MathUtils.smoothstep(u, 0.82, 1)
+    material.uniforms.uOpacity.value = reveal * exit
+    material.uniforms.uPixelRatio.value = Math.min(gl.getPixelRatio(), 1.75)
+
+    for (let index = 0; index < CONTRAIL_SAMPLES; index += 1) {
+      const age = index / (CONTRAIL_SAMPLES - 1)
+      const sample = u - age * 0.19
+      const alpha =
+        sample > 0
+          ? Math.pow(1 - age, 1.55) *
+            (1 - THREE.MathUtils.smoothstep(age, 0.88, 1))
+          : 0
+      Q_PATH.getPointAt(Math.max(0, sample), point)
+      const frameIndex = Math.min(
+        400,
+        Math.max(0, Math.round(Math.max(0, sample) * 400)),
+      )
+      binormal.copy(Q_FRAMES.binormals[frameIndex])
+      const expansion =
+        age *
+        (0.012 +
+          Math.sin(index * 1.73 + state.clock.elapsedTime * 0.35) *
+            0.006)
+      for (let sideIndex = 0; sideIndex < 2; sideIndex += 1) {
+        const side = sideIndex === 0 ? -1 : 1
+        const vertex = index * 2 + sideIndex
+        const offset = vertex * 3
+        positions[offset] =
+          point.x + binormal.x * (side * 0.045 + expansion)
+        positions[offset + 1] =
+          point.y + binormal.y * (side * 0.045 + expansion)
+        positions[offset + 2] =
+          point.z + binormal.z * (side * 0.045 + expansion)
+        alphas[vertex] = alpha
+      }
     }
-
-    // gentle turbulence bob, easing off as it flies away
-    const clock = state.clock.elapsedTime
-    const bob = 1 - s * 0.6
-    g.position.y += Math.sin(clock * 1.0) * 0.06 * bob
-    g.position.z += Math.sin(clock * 0.45) * 0.07 * bob
-    g.rotation.x += Math.sin(clock * 0.6) * 0.025 * bob
-    g.rotation.z += Math.cos(clock * 0.7) * 0.03 * bob
-
-    if (Math.abs(fade - lastFade.current) > 0.002) {
-      for (const m of mats) m.opacity = fade
-      lastFade.current = fade
-    }
+    positionAttribute.needsUpdate = true
+    alphaAttribute.needsUpdate = true
   })
 
-  return <primitive object={model} ref={ref} />
+  return (
+    <points
+      frustumCulled={false}
+      geometry={geometry}
+      material={material}
+    />
+  )
+}
+
+function PlaneRig({
+  onReady,
+}: {
+  onReady: () => void
+}) {
+  const ref = useRef<THREE.Group>(null)
+  const progressSpring = useRef(new Spring(82, 2 * Math.sqrt(82)))
+  const bankSpring = useRef(new Spring(74, 2 * Math.sqrt(74)))
+  const pathProgress = useRef(0)
+  const point = useMemo(() => new THREE.Vector3(), [])
+  const tangent = useMemo(() => new THREE.Vector3(), [])
+  const previousTangent = useMemo(() => new THREE.Vector3(), [])
+  const nextTangent = useMemo(() => new THREE.Vector3(), [])
+  const lateralAxis = useMemo(() => new THREE.Vector3(), [])
+  const upAxis = useMemo(() => new THREE.Vector3(), [])
+  const turnAxis = useMemo(() => new THREE.Vector3(), [])
+  const basis = useMemo(() => new THREE.Matrix4(), [])
+  const pathRotation = useMemo(() => new THREE.Quaternion(), [])
+  const bankRotation = useMemo(() => new THREE.Quaternion(), [])
+  const pitchRotation = useMemo(() => new THREE.Quaternion(), [])
+
+  useFrame((state, delta) => {
+    const group = ref.current
+    if (!group) return
+
+    const reducedMotion = landingScroll.reducedMotion
+    const target = landingScroll.scenes.flight
+    const t = reducedMotion
+      ? progressSpring.current.snap(target)
+      : progressSpring.current.step(target, delta)
+    const visibility = 1 - THREE.MathUtils.smoothstep(t, 0.94, 0.998)
+    group.visible = visibility > 0.005
+    if (!group.visible) return
+
+    if (t <= CLIMB_START) {
+      pathProgress.current = 0
+      const zoom = THREE.MathUtils.smoothstep(t, ZOOM_START, ZOOM_END)
+      group.position.lerpVectors(CLOSE.pos, SIDE.pos, zoom)
+      group.quaternion.copy(Q_CLOSE).slerp(Q_SIDE, zoom)
+      group.scale.setScalar(THREE.MathUtils.lerp(CLOSE.scale, SIDE.scale, zoom))
+      if (!reducedMotion) {
+        group.position.y += Math.sin(state.clock.elapsedTime * 0.65) * 0.028
+        group.rotation.z += Math.sin(state.clock.elapsedTime * 0.42) * 0.012
+      }
+      return
+    }
+
+    const u = THREE.MathUtils.smootherstep(
+      t,
+      CLIMB_START,
+      CLIMB_END,
+    )
+    pathProgress.current = u
+    Q_PATH.getPointAt(u, point)
+    Q_PATH.getTangentAt(u, tangent)
+    Q_PATH.getTangentAt(Math.max(0, u - 0.008), previousTangent)
+    Q_PATH.getTangentAt(Math.min(1, u + 0.008), nextTangent)
+    group.position.copy(point)
+
+    lateralAxis.crossVectors(tangent, THREE.Object3D.DEFAULT_UP)
+    if (lateralAxis.lengthSq() < 0.0001) lateralAxis.set(0, 0, 1)
+    lateralAxis.normalize()
+    upAxis.crossVectors(lateralAxis, tangent).normalize()
+    basis.makeBasis(tangent, upAxis, lateralAxis)
+    pathRotation.setFromRotationMatrix(basis)
+
+    turnAxis.crossVectors(previousTangent, nextTangent)
+    const signedCurvature =
+      turnAxis.z * previousTangent.angleTo(nextTangent)
+    const targetBank = THREE.MathUtils.clamp(
+      -signedCurvature * 42,
+      THREE.MathUtils.degToRad(-55),
+      THREE.MathUtils.degToRad(55),
+    )
+    const bank = reducedMotion
+      ? bankSpring.current.snap(targetBank)
+      : bankSpring.current.step(targetBank, delta)
+    bankRotation.setFromAxisAngle(tangent, bank)
+    pathRotation.premultiply(bankRotation)
+
+    const entryPitch =
+      Math.sin(
+        THREE.MathUtils.smoothstep(u, 0, 0.25) * Math.PI,
+      ) * THREE.MathUtils.degToRad(2)
+    const exitPitch =
+      THREE.MathUtils.smoothstep(u, 0.7, 1) *
+      THREE.MathUtils.degToRad(-1.5)
+    pitchRotation.setFromAxisAngle(lateralAxis, entryPitch + exitPitch)
+    pathRotation.premultiply(pitchRotation)
+
+    const entryBlend = THREE.MathUtils.smoothstep(u, 0, 0.1)
+    group.quaternion.copy(Q_SIDE).slerp(pathRotation, entryBlend)
+    const scaleProgress = THREE.MathUtils.smoothstep(u, 0.08, 1)
+    group.scale.setScalar(
+      THREE.MathUtils.lerp(SIDE.scale, 0.18, scaleProgress),
+    )
+  })
+
+  return (
+    <>
+      <Contrail progress={pathProgress} />
+      <group ref={ref}>
+        <Suspense fallback={null}>
+          <GeneratedAirliner onReady={onReady} />
+        </Suspense>
+      </group>
+    </>
+  )
 }
 
 export function HeroPlane3D() {
-  const progressRef = useRef(0)
-
-  useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
-    let ticking = false
-    const compute = () => {
-      const span = window.innerHeight * 1.7
-      progressRef.current = Math.min(1, Math.max(0, window.scrollY / span))
-      ticking = false
-    }
-    const onScroll = () => {
-      if (!ticking) {
-        ticking = true
-        requestAnimationFrame(compute)
-      }
-    }
-    compute()
-    window.addEventListener("scroll", onScroll, { passive: true })
-    return () => window.removeEventListener("scroll", onScroll)
+  const layerRef = useRef<HTMLDivElement>(null)
+  const unregisterCanvasRef = useRef<null | (() => void)>(null)
+  const [modelReady, setModelReady] = useState(false)
+  const markReady = useCallback(() => {
+    markLandingAssetReady("airliner")
+    setModelReady(true)
   }, [])
 
-  if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return null
+  useEffect(
+    () => {
+      const unregisterFrame = registerLandingFrame(() => {
+        const layer = layerRef.current
+        if (!layer) return
+        const progress = landingScroll.scenes.flight
+        const exit = THREE.MathUtils.smoothstep(progress, 0.9, 0.995)
+        const visible =
+          landingScroll.active.airliner &&
+          !landingScroll.reducedMotion &&
+          exit < 0.999
+        layer.style.opacity = visible ? String(1 - exit) : "0"
+        layer.style.visibility = visible ? "visible" : "hidden"
+      })
+
+      return () => {
+        unregisterFrame()
+        unregisterCanvasRef.current?.()
+        unregisterCanvasRef.current = null
+      }
+    },
+    [],
+  )
 
   return (
-    <div aria-hidden style={{ position: "fixed", inset: 0, zIndex: 3, pointerEvents: "none" }}>
-      <Canvas camera={{ position: [0, 0, 6], fov: 42 }} dpr={[1, 2]} gl={{ antialias: true, alpha: true }} style={{ width: "100%", height: "100%" }}>
-        <ambientLight intensity={0.85} />
-        <directionalLight position={[3, 5, 4]} intensity={1.6} color="#FFF6E6" />
-        <directionalLight position={[-4, -1, 2]} intensity={0.45} color="#C9B8F0" />
-        <directionalLight position={[0, -3, 1]} intensity={0.3} color="#EDE4D0" />
-        <Airliner progressRef={progressRef} />
+    <div
+      ref={layerRef}
+      aria-hidden="true"
+      className={`ae-plane-layer${modelReady ? " is-model-ready" : ""}`}
+    >
+      <Image
+        alt=""
+        className="ae-plane-poster"
+        fill
+        priority
+        sizes="100vw"
+        src="/images/aeolus-airliner-poster.webp"
+      />
+      <Canvas
+        camera={{ position: [0.55, -0.28, 8.6], fov: 32 }}
+        dpr={[1, 2]}
+        frameloop="never"
+        gl={{
+          alpha: true,
+          antialias: false,
+          powerPreference: "high-performance",
+          toneMapping: THREE.ACESFilmicToneMapping,
+        }}
+        onCreated={(state) => {
+          const { gl } = state
+          gl.outputColorSpace = THREE.SRGBColorSpace
+          gl.toneMappingExposure = 1.1
+          unregisterCanvasRef.current?.()
+          unregisterCanvasRef.current = registerThreeRoot(
+            "airliner",
+            state,
+            () =>
+              landingScroll.active.airliner &&
+              !landingScroll.reducedMotion,
+          )
+        }}
+      >
+        <CanvasBudget />
+        <StudioEnvironment />
+        <hemisphereLight args={["#fff8e9", "#18101e", 0.42]} />
+        <directionalLight
+          castShadow
+          color="#fff7e8"
+          intensity={1.45}
+          position={[4.8, 6.2, 5.4]}
+        />
+        <spotLight
+          angle={0.48}
+          color="#d8c6ff"
+          intensity={14}
+          penumbra={0.82}
+          position={[-4, 2.6, 4]}
+        />
+        <PlaneRig onReady={markReady} />
       </Canvas>
     </div>
   )
