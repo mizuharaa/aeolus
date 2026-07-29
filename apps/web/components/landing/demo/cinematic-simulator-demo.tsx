@@ -39,6 +39,12 @@ import {
   bezAngle,
   bezPoint,
 } from "@/components/landing/demo/demo-data"
+import {
+  landingScroll,
+  registerLandingFrame,
+  resetLandingScene,
+  setLandingSceneActive,
+} from "@/lib/scroll"
 
 const STATUS = [
   { label: "Nominal", color: "var(--dk-teal)" },
@@ -67,7 +73,6 @@ const SCENE_STARTS = [0, 7.8, 15.2, 18.4]
 export function CinematicSimulatorDemo() {
   const rootRef = useRef<HTMLElement>(null)
   const tlRef = useRef<gsap.core.Timeline | null>(null)
-  const [scene, setScene] = useState(0)
   const [staticMode, setStaticMode] = useState(false)
   const sceneRef = useRef(0)
   // 0 nominal · 1 disrupted/hold · 2 recovering · 3 stable — drives the plane loop
@@ -135,18 +140,13 @@ export function CinematicSimulatorDemo() {
         // thin out background traffic on small screens for headroom
         if (mobile) geo.forEach((f, i) => { if (f.role === "bg" && i % 2 === 1 && planes[i]) planes[i].style.display = "none" })
 
-        let raf = 0
-        let last = 0
         let running = false
         const paint = (i: number, c: string) => {
           if (rt[i].color !== c) { rt[i].color = c; if (planes[i]) planes[i].style.color = c }
         }
-        const frame = (now: number) => {
+        const frame = (now: number, delta: number) => {
           if (!running) return
-          if (!last) last = now
-          let dt = (now - last) / 1000
-          last = now
-          if (dt > 0.1) dt = 0.1 // clamp after a tab-away
+          const dt = Math.min(delta, 1 / 30)
           const phase = phaseRef.current
           for (let i = 0; i < geo.length; i++) {
             const el = planes[i]
@@ -168,10 +168,16 @@ export function CinematicSimulatorDemo() {
             paint(i, held ? "var(--dk-amber)" : onReroute && phase === 2 ? "var(--dk-amber)" : "#5B3FA8")
             if (holds[i]) holds[i].style.opacity = held ? "1" : "0"
           }
-          raf = requestAnimationFrame(frame)
         }
-        const startFlights = () => { if (!running) { running = true; last = 0; raf = requestAnimationFrame(frame) } }
-        const stopFlights = () => { running = false; if (raf) cancelAnimationFrame(raf) }
+        const unregisterFlightFrame = registerLandingFrame((time, delta) => {
+          frame(time * 1000, delta)
+        })
+        const startFlights = () => {
+          running = true
+        }
+        const stopFlights = () => {
+          running = false
+        }
 
         const tl = gsap.timeline({
           paused: true,
@@ -186,7 +192,13 @@ export function CinematicSimulatorDemo() {
             const s = t < SCENE_STARTS[1] ? 0 : t < SCENE_STARTS[2] ? 1 : t < SCENE_STARTS[3] ? 2 : 3
             if (s !== sceneRef.current) {
               sceneRef.current = s
-              setScene(s)
+              root.dataset.demoScene = String(s)
+              ;(q(".dm-rail-icon") as HTMLElement[]).forEach((element, index) => {
+                element.dataset.active = String(RAIL_ACTIVE[s] === index)
+              })
+              ;(q(".dm-cap") as HTMLElement[]).forEach((element, index) => {
+                element.dataset.active = String(s === index)
+              })
             }
           },
         })
@@ -340,19 +352,43 @@ export function CinematicSimulatorDemo() {
 
         let deviceTrigger: ScrollTrigger | null = null
         let visibilityTrigger: ScrollTrigger | null = null
-        let deviceRaf = 0
+        let unregisterDeviceFrame: null | (() => void) = null
+        let deviceTween: gsap.core.Tween | null = null
 
         if (mobile) {
           gsap.set(q(".dm-laptop-rig"), { clearProps: "transform" })
           gsap.set(q(".dm-laptop-lid"), { clearProps: "transform" })
           gsap.set(q(".dm-product-surface"), { opacity: 1, scale: 1, yPercent: 0 })
           gsap.set(q(".dm-captions-row"), { opacity: 1, y: 0 })
-          visibilityTrigger = ScrollTrigger.create({
-            trigger: root,
-            start: "top 78%",
-            end: "bottom 18%",
-            onToggle: (self) => syncLivePlayback(self.isActive),
-          })
+          deviceTween = gsap.fromTo(
+            landingScroll.scenes,
+            { demo: 0 },
+            {
+              demo: 1,
+              ease: "none",
+              scrollTrigger: {
+                trigger: root,
+                start: "top top",
+                end: "+=180%",
+                scrub: 1.2,
+                pin: true,
+                pinSpacing: true,
+                anticipatePin: 1,
+                invalidateOnRefresh: true,
+                fastScrollEnd: true,
+                onToggle: (self) =>
+                  setLandingSceneActive("macbook", self.isActive),
+                onUpdate: () =>
+                  syncLivePlayback(
+                    landingScroll.scenes.demo >= 0.12 &&
+                      landingScroll.scenes.demo < 0.96,
+                  ),
+                onLeave: () => syncLivePlayback(false),
+                onLeaveBack: () => syncLivePlayback(false),
+              },
+            },
+          )
+          visibilityTrigger = deviceTween.scrollTrigger ?? null
         } else {
           const rig = q(".dm-laptop-rig")[0] as HTMLElement
           const lid = q(".dm-laptop-lid")[0] as HTMLElement
@@ -381,8 +417,6 @@ export function CinematicSimulatorDemo() {
             baseAngleVelocity: 0,
             targetBaseAngle: 89.5,
           }
-          let deviceLast = 0
-
           const spring = (
             value: "angle" | "scale" | "y" | "baseAngle",
             velocity:
@@ -410,10 +444,10 @@ export function CinematicSimulatorDemo() {
             base.style.transform = `rotateX(${device.baseAngle.toFixed(3)}deg) translateZ(0.08rem)`
           }
 
-          const tickDevice = (now: number) => {
-            if (!deviceLast) deviceLast = now
-            const dt = Math.min((now - deviceLast) / 1000, 0.034)
-            deviceLast = now
+          let deviceFrameActive = false
+          const tickDevice = (delta: number) => {
+            if (!deviceFrameActive) return
+            const dt = Math.min(delta, 1 / 30)
             spring("angle", "angleVelocity", "targetAngle", 150, 23, dt)
             spring("scale", "scaleVelocity", "targetScale", 92, 20, dt)
             spring("y", "yVelocity", "targetY", 92, 20, dt)
@@ -431,55 +465,82 @@ export function CinematicSimulatorDemo() {
               Math.abs(device.baseAngleVelocity) < 0.015
 
             if (settled) {
-              deviceRaf = 0
-              deviceLast = 0
+              deviceFrameActive = false
               return
             }
-            deviceRaf = requestAnimationFrame(tickDevice)
           }
 
           const wakeDevice = () => {
-            if (!deviceRaf) deviceRaf = requestAnimationFrame(tickDevice)
+            deviceFrameActive = true
           }
+          unregisterDeviceFrame = registerLandingFrame((_, delta) =>
+            tickDevice(delta),
+          )
 
           gsap.set(captions, { opacity: 0, y: 18 })
           renderDevice()
 
           // One pin owns the physical hinge, the screen dolly, and a long
           // live-console dwell. Reverse scroll updates the same spring targets.
-          deviceTrigger = ScrollTrigger.create({
-            trigger: root,
-            start: "top top",
-            end: "+=520%",
-            pin: q(".dm-pin")[0],
-            pinSpacing: true,
-            anticipatePin: 1,
-            invalidateOnRefresh: true,
-            onUpdate: (self) => {
-              const progress = self.progress
-              const opening = smoothstep(0.075, 0.43, progress)
-              const focus = smoothstep(0.54, 0.72, progress)
-              const copyExit = smoothstep(0.025, 0.14, progress)
-              const captionEntry = smoothstep(0.66, 0.74, progress)
+          deviceTween = gsap.fromTo(
+            landingScroll.scenes,
+            { demo: 0 },
+            {
+              demo: 1,
+              ease: "none",
+              scrollTrigger: {
+                trigger: root,
+                start: "top top",
+                end: "+=520%",
+                scrub: 1.2,
+                pin: true,
+                pinSpacing: true,
+                anticipatePin: 1,
+                invalidateOnRefresh: true,
+                fastScrollEnd: true,
+                onToggle: (self) =>
+                  setLandingSceneActive("macbook", self.isActive),
+                onUpdate: () => {
+                  const progress = landingScroll.scenes.demo
+                  const opening = smoothstep(0.075, 0.43, progress)
+                  const focus = smoothstep(0.54, 0.72, progress)
+                  const copyExit = smoothstep(0.025, 0.14, progress)
+                  const captionEntry = smoothstep(0.66, 0.74, progress)
 
-              device.targetAngle = 91.5 - opening * 91.5
-              device.targetScale = 0.72 + opening * 0.08 + focus * 0.285
-              device.targetY = -18 + opening * 6 + focus * 12
-              device.targetBaseAngle = 89.5 - opening * 19.5
-              headline.style.opacity = String(1 - copyExit)
-              headline.style.transform = `translate3d(0, ${(-copyExit * 9).toFixed(3)}%, 0)`
-              captions.style.opacity = String(captionEntry)
-              captions.style.transform = `translate3d(0, ${(18 * (1 - captionEntry)).toFixed(3)}px, 0)`
-              base.style.opacity = String(1 - focus * 0.82)
-              screen.style.opacity = String(opening)
-              deck.style.opacity = String(opening)
+                  device.targetAngle = 91.5 - opening * 91.5
+                  device.targetScale =
+                    0.72 + opening * 0.08 + focus * 0.285
+                  device.targetY = -18 + opening * 6 + focus * 12
+                  device.targetBaseAngle = 89.5 - opening * 19.5
+                  headline.style.opacity = String(1 - copyExit)
+                  headline.style.transform = `translate3d(0, ${(
+                    -copyExit * 9
+                  ).toFixed(3)}%, 0)`
+                  captions.style.opacity = String(captionEntry)
+                  captions.style.transform = `translate3d(0, ${(
+                    18 *
+                    (1 - captionEntry)
+                  ).toFixed(3)}px, 0)`
+                  base.style.opacity = String(1 - focus * 0.82)
+                  screen.style.opacity = String(opening)
+                  deck.style.opacity = String(opening)
 
-              wakeDevice()
-              syncLivePlayback(progress >= 0.68 && progress < 0.995)
+                  wakeDevice()
+                  syncLivePlayback(progress >= 0.68 && progress < 0.995)
+                },
+                onLeave: () => {
+                  syncLivePlayback(false)
+                  setLandingSceneActive("macbook", false)
+                },
+                onLeaveBack: () => {
+                  syncLivePlayback(false)
+                  setLandingSceneActive("macbook", false)
+                },
+                onEnterBack: () => setLandingSceneActive("macbook", true),
+              },
             },
-            onLeave: () => syncLivePlayback(false),
-            onLeaveBack: () => syncLivePlayback(false),
-          })
+          )
+          deviceTrigger = deviceTween.scrollTrigger ?? null
         }
 
         const onResize = () => tl.invalidate()
@@ -489,9 +550,13 @@ export function CinematicSimulatorDemo() {
           window.removeEventListener("resize", onResize)
           syncLivePlayback(false)
           stopFlights()
-          if (deviceRaf) cancelAnimationFrame(deviceRaf)
+          unregisterFlightFrame()
+          unregisterDeviceFrame?.()
           visibilityTrigger?.kill()
           deviceTrigger?.kill()
+          deviceTween?.kill()
+          resetLandingScene("demo")
+          setLandingSceneActive("macbook", false)
           tl.kill()
           if (tlRef.current === tl) tlRef.current = null
         }
@@ -604,17 +669,16 @@ export function CinematicSimulatorDemo() {
                 }}
               >
                 {RAIL_ICONS.map((Icon, i) => {
-                  const active = RAIL_ACTIVE[staticMode ? 3 : scene] === i
+                  const active = RAIL_ACTIVE[staticMode ? 3 : 0] === i
                   return (
                     <span
                       key={i}
+                      className="dm-rail-icon"
+                      data-active={active}
                       style={{
                         display: "inline-flex",
                         padding: 7,
                         borderRadius: 8,
-                        color: active ? "var(--dk-teal)" : "var(--dk-muted)",
-                        background: active ? "rgba(91, 63, 168, 0.10)" : "transparent",
-                        transition: "color 300ms ease, background 300ms ease",
                       }}
                     >
                       <Icon style={{ width: 15, height: 15 }} strokeWidth={1.75} />
@@ -916,7 +980,7 @@ export function CinematicSimulatorDemo() {
         {/* caption chips — auto-advance with playback; click to seek */}
         <div className="dm-captions-row" style={{ opacity: staticMode ? 1 : 0 }}>
           {DEMO_STEPS.map((s, i) => {
-            const active = staticMode || scene === i
+            const active = staticMode || i === 0
             return (
               <button
                 key={s.n}

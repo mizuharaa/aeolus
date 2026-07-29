@@ -15,12 +15,18 @@
  *      accelerates upward and away.
  */
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef } from "react"
 import { Canvas, useFrame, useThree } from "@react-three/fiber"
 import * as THREE from "three"
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js"
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js"
-import { gsap } from "@/components/landing/gsap"
+import {
+  landingScroll,
+  markLandingAssetReady,
+  registerLandingFrame,
+  registerThreeRoot,
+} from "@/lib/scroll"
+import { damp, Spring } from "@/lib/spring"
 
 // ── palette: night business class (reference: dark sculpted ceiling, cool
 //    LED spine, warm amber pools on cognac leather + cream shells) ────────
@@ -420,46 +426,105 @@ function buildCabin() {
   return root
 }
 
-// Camera begins on the center aisle so the first frame reads as a complete
-// premium cabin, then arcs across the seats and phases through the far wall.
+// Arc-length sampling keeps speed even through unequally spaced control
+// points. The gaze follows its own softer spring so the body leads the look.
 const CAM_START = new THREE.Vector3(6.25, -0.05, WALL_B_Z / 2)
-const CAM_MID = new THREE.Vector3(1.25, 0.08, WALL_B_Z / 2)
-const CAM_END = new THREE.Vector3(0.25, 0.02, 7.4)
-const LOOK_START = new THREE.Vector3(-0.8, -0.34, WALL_B_Z / 2)
-const LOOK_MID = new THREE.Vector3(-1.8, -0.3, WALL_B_Z / 2)
-const LOOK_END = new THREE.Vector3(0.25, -0.05, 1.2)
-const CAM_PATH = new THREE.QuadraticBezierCurve3(CAM_START, CAM_MID, CAM_END)
-const LOOK_PATH = new THREE.QuadraticBezierCurve3(LOOK_START, LOOK_MID, LOOK_END)
+const CAM_PATH = new THREE.CatmullRomCurve3(
+  [
+    CAM_START,
+    new THREE.Vector3(4.45, 0.02, WALL_B_Z / 2),
+    new THREE.Vector3(2.2, 0.08, WALL_B_Z / 2),
+    new THREE.Vector3(0.5, 0.12, WALL_B_Z / 2 + 0.25),
+    new THREE.Vector3(-0.08, 0.16, WALL_B_Z + 0.55),
+    new THREE.Vector3(0.25, 0.22, 7.4),
+  ],
+  false,
+  "catmullrom",
+  0.5,
+)
+const LOOK_PATH = new THREE.CatmullRomCurve3(
+  [
+    new THREE.Vector3(-0.8, -0.34, WALL_B_Z / 2),
+    new THREE.Vector3(-1.15, -0.32, WALL_B_Z / 2),
+    new THREE.Vector3(-1.8, -0.3, WALL_B_Z / 2),
+    new THREE.Vector3(-1.2, -0.22, WALL_B_Z / 2 + 0.35),
+    new THREE.Vector3(0.05, -0.08, 1.4),
+    new THREE.Vector3(0.25, -0.05, 1.2),
+  ],
+  false,
+  "catmullrom",
+  0.5,
+)
 
-function CabinScene({
-  progressRef,
-  reducedMotion,
-}: {
-  progressRef: React.MutableRefObject<number>
-  reducedMotion: boolean
-}) {
+function CabinScene() {
   const cabin = useMemo(buildCabin, [])
-  const cur = useRef(0)
+  const pathSpring = useRef(new Spring(92, 2 * Math.sqrt(92)))
+  const lookSpring = useRef(new Spring(62, 2 * Math.sqrt(62)))
+  const rollRef = useRef(0)
   const cameraPoint = useMemo(() => new THREE.Vector3(), [])
   const lookPoint = useMemo(() => new THREE.Vector3(), [])
+  const tangent = useMemo(() => new THREE.Vector3(), [])
+  const previousTangent = useMemo(() => new THREE.Vector3(), [])
+  const lateral = useMemo(() => new THREE.Vector3(), [])
+  const right = useMemo(() => new THREE.Vector3(), [])
+
+  useEffect(() => {
+    markLandingAssetReady("cabin")
+  }, [])
 
   useFrame((state, delta) => {
     const cam = state.camera
-    const k = 3.6
-    if (Math.abs(progressRef.current - cur.current) > 0.35) cur.current = progressRef.current
-    else cur.current += (progressRef.current - cur.current) * (1 - Math.exp(-k * Math.min(delta, 0.05)))
-    const s = THREE.MathUtils.smoothstep(cur.current, 0, 1)
+    const reducedMotion = landingScroll.reducedMotion
+    const target = THREE.MathUtils.smoothstep(
+      landingScroll.scenes.flight,
+      0.02,
+      0.43,
+    )
+    const pathT = reducedMotion
+      ? pathSpring.current.snap(target)
+      : pathSpring.current.step(target, delta)
+    const lookT = reducedMotion
+      ? lookSpring.current.snap(target)
+      : lookSpring.current.step(target, delta)
 
     const clock = state.clock.elapsedTime
-    // dolly back with a gentle lateral pan; light turbulence sway on top
-    const swayX = reducedMotion ? 0 : Math.sin(clock * 0.5) * 0.03
-    const swayY = reducedMotion ? 0 : Math.sin(clock * 0.8) * 0.03
-    CAM_PATH.getPoint(s, cameraPoint)
-    LOOK_PATH.getPoint(s, lookPoint)
+    const noiseFade = 1 - THREE.MathUtils.smoothstep(pathT, 0.68, 0.94)
+    const swayX = reducedMotion
+      ? 0
+      : (Math.sin(clock * 0.35) * 0.004 +
+          Math.sin(clock * 0.08 + 1.2) * 0.012) *
+        noiseFade
+    const swayY = reducedMotion
+      ? 0
+      : (Math.sin(clock * 0.42 + 0.8) * 0.003 +
+          Math.sin(clock * 0.09) * 0.01) *
+        noiseFade
+    CAM_PATH.getPointAt(pathT, cameraPoint)
+    LOOK_PATH.getPointAt(lookT, lookPoint)
     cam.position.copy(cameraPoint)
     cam.position.x += swayX
     cam.position.y += swayY
     cam.lookAt(lookPoint)
+
+    CAM_PATH.getTangentAt(pathT, tangent)
+    CAM_PATH.getTangentAt(Math.max(0, pathT - 0.012), previousTangent)
+    lateral.copy(tangent).sub(previousTangent)
+    right.crossVectors(tangent, cam.up).normalize()
+    const targetRoll = THREE.MathUtils.clamp(
+      -lateral.dot(right) * 5.4,
+      -0.11,
+      0.11,
+    )
+    rollRef.current = reducedMotion
+      ? 0
+      : damp(rollRef.current, targetRoll, 4, delta)
+    cam.rotateZ(rollRef.current)
+
+    if (cam instanceof THREE.PerspectiveCamera) {
+      const targetFov = THREE.MathUtils.lerp(38, 30, pathT)
+      cam.fov = reducedMotion ? targetFov : damp(cam.fov, targetFov, 5, delta)
+      cam.updateProjectionMatrix()
+    }
 
     // idle life: the brass table lamps breathe — a slow, warm candle-like
     // glow cycle, each lamp on its own phase
@@ -506,103 +571,53 @@ function CabinScene({
 }
 
 export function CabinOpening() {
+  const layerRef = useRef<HTMLDivElement>(null)
   const skyRef = useRef<HTMLDivElement>(null)
   const cabinRef = useRef<HTMLDivElement>(null)
   const sloganRef = useRef<HTMLDivElement>(null)
-  const progressRef = useRef(0)
-  const [reducedMotion, setReducedMotion] = useState(false)
-  const [renderActive, setRenderActive] = useState(true)
+  const unregisterCanvasRef = useRef<null | (() => void)>(null)
 
   useEffect(() => {
-    const media = window.matchMedia("(prefers-reduced-motion: reduce)")
-    const sync = () => setReducedMotion(media.matches)
-    sync()
-    media.addEventListener("change", sync)
-    return () => media.removeEventListener("change", sync)
-  }, [])
+    const smooth = (value: number, start: number, end: number) =>
+      THREE.MathUtils.smoothstep(value, start, end)
+    const paint = () => {
+      const progress = landingScroll.scenes.flight
+      const copyExit = smooth(progress, 0.025, 0.16)
+      const cabinExit = smooth(progress, 0.38, 0.5)
+      const skyExit = smooth(progress, 0.5, 0.63)
+      const visible = progress < 0.66
 
-  useEffect(() => {
-    let ticking = false
-    let current = true
-    const compute = () => {
-      const next = window.scrollY < window.innerHeight * 0.72
-      if (next !== current) {
-        current = next
-        setRenderActive(next)
+      if (layerRef.current) {
+        layerRef.current.style.visibility = visible ? "visible" : "hidden"
       }
-      ticking = false
-    }
-    const onScroll = () => {
-      if (ticking) return
-      ticking = true
-      requestAnimationFrame(compute)
-    }
-    compute()
-    window.addEventListener("scroll", onScroll, { passive: true })
-    return () => window.removeEventListener("scroll", onScroll)
-  }, [])
-
-  useLayoutEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      const syncStaticState = () => {
-        const hasLeftOpening = window.scrollY > window.innerHeight * 0.18
-        progressRef.current = hasLeftOpening ? 1 : 0
-        for (const layer of [skyRef.current, cabinRef.current, sloganRef.current]) {
-          if (!layer) continue
-          layer.style.visibility = hasLeftOpening ? "hidden" : "visible"
-          layer.style.opacity = hasLeftOpening ? "0" : "1"
-        }
+      if (sloganRef.current) {
+        sloganRef.current.style.opacity = String(1 - copyExit)
+        sloganRef.current.style.transform = `translate3d(0, ${(
+          -48 * copyExit
+        ).toFixed(3)}px, 0)`
       }
-      syncStaticState()
-      window.addEventListener("scroll", syncStaticState, { passive: true })
-      return () => window.removeEventListener("scroll", syncStaticState)
-    }
-
-    // camera progress: the fly-back completes over the first 0.55 viewports
-    let ticking = false
-    const compute = () => {
-      progressRef.current = Math.min(1, Math.max(0, window.scrollY / (window.innerHeight * 0.55)))
-      ticking = false
-    }
-    const onScroll = () => {
-      if (!ticking) {
-        ticking = true
-        requestAnimationFrame(compute)
+      if (cabinRef.current) {
+        cabinRef.current.style.opacity = String(1 - cabinExit)
+        cabinRef.current.style.visibility =
+          cabinExit > 0.995 ? "hidden" : "visible"
+      }
+      if (skyRef.current) {
+        skyRef.current.style.opacity = String(1 - skyExit)
+        skyRef.current.style.visibility =
+          skyExit > 0.995 ? "hidden" : "visible"
       }
     }
-    compute()
-    window.addEventListener("scroll", onScroll, { passive: true })
-
-    const ctx = gsap.context(() => {
-      const vh = () => window.innerHeight
-      // slogan lifts away first
-      gsap.to(sloganRef.current, {
-        autoAlpha: 0,
-        y: -60,
-        ease: "power2.in",
-        scrollTrigger: { start: 0, end: () => vh() * 0.2, scrub: 0.5 },
-      })
-      // cabin falls away right after the camera phases through the far wall
-      gsap.to(cabinRef.current, {
-        autoAlpha: 0,
-        ease: "power1.inOut",
-        scrollTrigger: { start: () => vh() * 0.34, end: () => vh() * 0.48, scrub: 0.5 },
-      })
-      // the sky lifts as the zoom-out continues into the exterior closeup
-      gsap.to(skyRef.current, {
-        autoAlpha: 0,
-        ease: "power1.inOut",
-        scrollTrigger: { start: () => vh() * 0.5, end: () => vh() * 0.62, scrub: 0.5 },
-      })
-    })
+    paint()
+    const unregisterFrame = registerLandingFrame(paint)
     return () => {
-      window.removeEventListener("scroll", onScroll)
-      ctx.revert()
+      unregisterFrame()
+      unregisterCanvasRef.current?.()
+      unregisterCanvasRef.current = null
     }
   }, [])
 
   return (
-    <div className={`co-opening-layer${renderActive ? "" : " is-render-inactive"}`}>
+    <div ref={layerRef} className="co-opening-layer">
       {/* open sky: gradient, sun, drifting clouds — seen through the windows,
           then full-bleed once the cabin falls away */}
       <div
@@ -652,23 +667,32 @@ export function CabinOpening() {
       <div ref={cabinRef} style={{ position: "absolute", inset: 0 }}>
         <Canvas
           aria-hidden="true"
-          camera={{ position: CAM_START.toArray(), fov: 42 }}
-          dpr={[0.8, 1.35]}
-          frameloop={renderActive ? "always" : "never"}
+          camera={{ position: CAM_START.toArray(), fov: 38 }}
+          dpr={[1, 2]}
+          frameloop="never"
           gl={{
-            antialias: true,
+            antialias: false,
             alpha: true,
             powerPreference: "high-performance",
             toneMapping: THREE.ACESFilmicToneMapping,
           }}
-          onCreated={({ gl }) => {
+          onCreated={(state) => {
+            const { gl } = state
             gl.outputColorSpace = THREE.SRGBColorSpace
-            gl.toneMappingExposure = 0.88
+            gl.toneMappingExposure = 1.02
+            unregisterCanvasRef.current?.()
+            unregisterCanvasRef.current = registerThreeRoot(
+              "cabin",
+              state,
+              () =>
+                landingScroll.active.cabin &&
+                !landingScroll.reducedMotion,
+            )
           }}
           shadows
           style={{ width: "100%", height: "100%" }}
         >
-          <CabinScene progressRef={progressRef} reducedMotion={reducedMotion} />
+          <CabinScene />
         </Canvas>
         {/* soft photographic vignette, like the reference shot */}
         <div

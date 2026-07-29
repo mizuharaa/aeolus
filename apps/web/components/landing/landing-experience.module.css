@@ -56,7 +56,8 @@
 
 .experience :global(.ae-flight-intro) {
   position: relative;
-  min-height: 150svh;
+  width: 100%;
+  min-height: 100dvh;
   pointer-events: none;
 }
 
@@ -1008,6 +1009,19 @@
   color: var(--flight-paper);
   border-color: var(--flight-amber);
   background: color-mix(in oklch, var(--flight-violet) 18%, transparent);
+}
+
+.experience :global(.dm-rail-icon) {
+  color: var(--dk-muted);
+  background: transparent;
+  transition:
+    color var(--flight-dur-short) var(--flight-ease-out),
+    background-color var(--flight-dur-short) var(--flight-ease-out);
+}
+
+.experience :global(.dm-rail-icon[data-active="true"]) {
+  color: var(--dk-teal);
+  background: color-mix(in oklch, var(--flight-violet) 10%, transparent);
 }
 
 .experience :global(.dm-section[data-static="true"] .dm-laptop-rig) {

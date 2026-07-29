@@ -30,6 +30,7 @@ import { TrustedBy } from "@/components/landing/trusted-by"
 import { FinalCTAStage } from "@/components/landing/final-cta-stage"
 import { LandingFooter } from "@/components/landing/footer"
 import { Rise } from "@/components/landing/motion"
+import { mountLandingScroll } from "@/lib/scroll"
 
 // 3D layers only on the client
 const CabinOpening = dynamic(
@@ -60,6 +61,8 @@ const NIGHT = {
 
 export function LandingScrollExperience() {
   const wrapRef = useRef<HTMLElement>(null)
+
+  useLayoutEffect(() => mountLandingScroll(), [])
 
   useEffect(() => {
     const wrap = wrapRef.current
@@ -134,14 +137,28 @@ export function LandingScrollExperience() {
           ...vars,
           ease: "none",
           immediateRender: false,
-          scrollTrigger: { trigger, start, end, scrub: true },
+          scrollTrigger: {
+            trigger,
+            start,
+            end,
+            scrub: 1.2,
+            invalidateOnRefresh: true,
+            fastScrollEnd: true,
+          },
         })
         if (navFill)
           gsap.to(navFill, {
             backgroundColor: navBg,
             ease: "none",
             immediateRender: false,
-            scrollTrigger: { trigger, start, end, scrub: true },
+            scrollTrigger: {
+              trigger,
+              start,
+              end,
+              scrub: 1.2,
+              invalidateOnRefresh: true,
+              fastScrollEnd: true,
+            },
           })
       }
 
@@ -161,7 +178,14 @@ export function LandingScrollExperience() {
           opacity: 0,
           ease: "none",
           immediateRender: false,
-          scrollTrigger: { trigger: "#cta", start: "top 78%", end: "top 22%", scrub: true },
+          scrollTrigger: {
+            trigger: "#cta",
+            start: "top 78%",
+            end: "top 22%",
+            scrub: 1.2,
+            invalidateOnRefresh: true,
+            fastScrollEnd: true,
+          },
         })
     }, wrap)
 

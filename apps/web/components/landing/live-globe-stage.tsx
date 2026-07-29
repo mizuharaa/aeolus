@@ -16,6 +16,12 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { GLOBE_EVENTS, type GlobeEvent, type GlobeEventKind } from "@/components/landing/earth-globe-3d"
 import { gsap, ScrollTrigger } from "@/components/landing/gsap"
 import { HighlightSwipe, SplitReveal } from "@/components/landing/type-fx"
+import {
+  landingScroll,
+  registerLandingFrame,
+  resetLandingScene,
+  setLandingSceneActive,
+} from "@/lib/scroll"
 
 const EarthGlobe3D = dynamic(
   () => import("@/components/landing/earth-globe-3d").then((module) => module.EarthGlobe3D),
@@ -68,35 +74,46 @@ export function LiveGlobeStage() {
   const feedInteractingRef = useRef(false)
   const [activeIndex, setActiveIndex] = useState(0)
   const [globeReady, setGlobeReady] = useState(false)
-  const [eventsActive, setEventsActive] = useState(false)
   const activeEvent = GLOBE_EVENTS[activeIndex]
   const markGlobeReady = useCallback(() => setGlobeReady(true), [])
-
-  useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setEventsActive(true)
-    }
-  }, [])
 
   const selectEvent = useCallback((event: GlobeEvent) => {
     const next = GLOBE_EVENTS.findIndex((item) => item.id === event.id)
     if (next < 0) return
     pauseUntilRef.current = Date.now() + 12_000
-    setEventsActive(true)
     setActiveIndex(next)
   }, [])
 
   useEffect(() => {
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    if (reduced || !eventsActive) return
-
     const timer = window.setInterval(() => {
+      if (
+        landingScroll.reducedMotion ||
+        landingScroll.scenes.globe < 0.26
+      ) {
+        return
+      }
       if (feedInteractingRef.current || Date.now() < pauseUntilRef.current) return
       setActiveIndex((index) => (index + 1) % GLOBE_EVENTS.length)
     }, 6_400)
 
     return () => window.clearInterval(timer)
-  }, [eventsActive])
+  }, [])
+
+  useEffect(() => {
+    const root = rootRef.current
+    if (!root) return
+    return registerLandingFrame(() => {
+      const eventsActive =
+        landingScroll.reducedMotion || landingScroll.scenes.globe >= 0.26
+      root.dataset.eventsActive = String(eventsActive)
+      const notification = root.querySelector<HTMLElement>(
+        ".ae-globe-notification",
+      )
+      if (notification) {
+        notification.dataset.active = String(eventsActive)
+      }
+    })
+  }, [])
 
   useLayoutEffect(() => {
     const root = rootRef.current
@@ -115,29 +132,29 @@ export function LiveGlobeStage() {
         const cue = root.querySelector(".ae-globe-cue")
         if (!copy || !orbit || !eventCopy || !notification || !feed || !dashboard) return
 
-        let activated = false
-
         const timeline = gsap.timeline({
           defaults: { ease: "none" },
           scrollTrigger: {
             trigger: root,
             start: "top top",
             end: "+=165%",
-            scrub: 0.45,
-            pin: root.querySelector(".ae-globe-pin"),
+            scrub: 1.2,
+            pin: true,
             pinSpacing: true,
             anticipatePin: 1,
             invalidateOnRefresh: true,
-            onUpdate: (self) => {
-              const next = self.progress >= 0.26
-              if (next === activated) return
-              activated = next
-              setEventsActive(next)
+            fastScrollEnd: true,
+            onToggle: (self) => {
+              setLandingSceneActive("globe", self.isActive)
             },
+            onEnterBack: () => setLandingSceneActive("globe", true),
+            onLeave: () => setLandingSceneActive("globe", false),
+            onLeaveBack: () => setLandingSceneActive("globe", false),
           },
         })
 
         timeline
+          .to(landingScroll.scenes, { globe: 1, duration: 1 }, 0)
           .to(copy, { yPercent: -14, opacity: 0, duration: 0.16 }, 0.08)
           .to(orbit, { xPercent: -39, yPercent: 3, scale: 1.12, duration: 0.38 }, 0.04)
           .fromTo(
@@ -159,9 +176,10 @@ export function LiveGlobeStage() {
         if (cue) timeline.to(cue, { opacity: 0, duration: 0.18 }, 0.2)
 
         return () => {
-          setEventsActive(false)
           timeline.scrollTrigger?.kill()
           timeline.kill()
+          resetLandingScene("globe")
+          setLandingSceneActive("globe", false)
         }
       },
     )
@@ -169,16 +187,55 @@ export function LiveGlobeStage() {
     mm.add(
       "(max-width: 39.99rem) and (prefers-reduced-motion: no-preference)",
       () => {
-        const trigger = ScrollTrigger.create({
-          trigger: root,
-          start: "top 45%",
-          onEnter: () => setEventsActive(true),
-          onEnterBack: () => setEventsActive(true),
-          onLeaveBack: () => setEventsActive(false),
-        })
-        return () => trigger.kill()
+        const tween = gsap.fromTo(
+          landingScroll.scenes,
+          { globe: 0 },
+          {
+            globe: 1,
+            ease: "none",
+            scrollTrigger: {
+              trigger: root,
+              start: "top top",
+              end: "+=130%",
+              scrub: 1.2,
+              pin: true,
+              pinSpacing: true,
+              anticipatePin: 1,
+              invalidateOnRefresh: true,
+              fastScrollEnd: true,
+              onToggle: (self) =>
+                setLandingSceneActive("globe", self.isActive),
+              onLeave: () => setLandingSceneActive("globe", false),
+              onEnterBack: () => setLandingSceneActive("globe", true),
+              onLeaveBack: () => setLandingSceneActive("globe", false),
+            },
+          },
+        )
+        return () => {
+          tween.kill()
+          resetLandingScene("globe")
+          setLandingSceneActive("globe", false)
+        }
       },
     )
+
+    mm.add("(prefers-reduced-motion: reduce)", () => {
+      landingScroll.scenes.globe = 1
+      const trigger = ScrollTrigger.create({
+        trigger: root,
+        start: "top bottom",
+        end: "bottom top",
+        invalidateOnRefresh: true,
+        fastScrollEnd: true,
+        onToggle: (self) => {
+          setLandingSceneActive("globe", self.isActive)
+        },
+      })
+      return () => {
+        trigger.kill()
+        setLandingSceneActive("globe", false)
+      }
+    })
 
     return () => mm.revert()
   }, [])
@@ -188,7 +245,7 @@ export function LiveGlobeStage() {
       id="network"
       ref={rootRef}
       className="ae-globe-section"
-      data-events-active={eventsActive}
+      data-events-active="false"
       aria-label="Live simulated network events"
     >
       <div className="ae-globe-pin">
@@ -249,12 +306,11 @@ export function LiveGlobeStage() {
           </div>
           <EarthGlobe3D
             activeEvent={activeEvent}
-            eventsActive={eventsActive}
             onReady={markGlobeReady}
           />
           <div
             className="ae-globe-notification"
-            data-active={eventsActive}
+            data-active="false"
             role="status"
             aria-live="off"
           >

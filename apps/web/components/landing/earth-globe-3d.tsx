@@ -4,6 +4,11 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react"
 import { Canvas, type ThreeEvent, useFrame, useLoader } from "@react-three/fiber"
 import { useTexture } from "@react-three/drei"
 import * as THREE from "three"
+import {
+  landingScroll,
+  markLandingAssetReady,
+  registerThreeRoot,
+} from "@/lib/scroll"
 
 export type GlobeEventKind = "closure" | "storm" | "cyber" | "ash" | "crew"
 
@@ -460,15 +465,15 @@ function CrewEffect({ color }: { color: string }) {
 
 function EventEffect({
   event,
-  active,
+  selected,
   reducedMotion,
 }: {
   event: GlobeEvent
-  active: boolean
+  selected: boolean
   reducedMotion: boolean
 }) {
   const pulseRef = useRef<THREE.Group>(null)
-  const amountRef = useRef(active ? 1 : 0)
+  const amountRef = useRef(0)
   const point = useMemo(() => latLonToVector3(event.lat, event.lon, EARTH_RADIUS + 0.015), [event.lat, event.lon])
   const rotation = useMemo(
     () => new THREE.Quaternion().setFromUnitVectors(OUT, point.clone().normalize()),
@@ -479,10 +484,15 @@ function EventEffect({
   useFrame(({ clock }, delta) => {
     const group = pulseRef.current
     if (!group) return
-    const target = active ? 1 : 0
-    amountRef.current +=
-      (target - amountRef.current) *
-      (1 - Math.exp(-Math.min(delta, 0.05) * 4.8))
+    const eventsActive =
+      landingScroll.reducedMotion || landingScroll.scenes.globe >= 0.26
+    const target = selected && eventsActive ? 1 : 0
+    amountRef.current = THREE.MathUtils.damp(
+      amountRef.current,
+      target,
+      4.8,
+      Math.min(delta, 1 / 30),
+    )
     const amount = amountRef.current
     group.visible = amount > 0.008
     if (!group.visible) return
@@ -515,12 +525,10 @@ function EventEffect({
 
 function EarthModel({
   activeEvent,
-  eventsActive,
   onReady,
   reducedMotion,
 }: {
   activeEvent: GlobeEvent
-  eventsActive: boolean
   onReady?: () => void
   reducedMotion: boolean
 }) {
@@ -559,6 +567,7 @@ function EarthModel({
     albedo.anisotropy = 6
     normal.colorSpace = THREE.NoColorSpace
     normal.anisotropy = 4
+    markLandingAssetReady("earth")
     onReady?.()
   }, [albedo, normal, onReady])
 
@@ -576,6 +585,8 @@ function EarthModel({
   useFrame((_, delta) => {
     const group = planetRef.current
     if (!group) return
+    const eventsActive =
+      landingScroll.reducedMotion || landingScroll.scenes.globe >= 0.26
     const now = performance.now() / 1000
     const targetY = -activeEvent.lon * DEG - Math.PI / 2
     const targetX = THREE.MathUtils.clamp(activeEvent.lat * DEG, -0.92, 0.92)
@@ -651,7 +662,7 @@ function EarthModel({
         <EventEffect
           key={event.id}
           event={event}
-          active={eventsActive && event.id === activeEvent.id}
+          selected={event.id === activeEvent.id}
           reducedMotion={reducedMotion}
         />
       ))}
@@ -661,12 +672,10 @@ function EarthModel({
 
 function EarthScene({
   activeEvent,
-  eventsActive,
   onReady,
   reducedMotion,
 }: {
   activeEvent: GlobeEvent
-  eventsActive: boolean
   onReady?: () => void
   reducedMotion: boolean
 }) {
@@ -677,7 +686,6 @@ function EarthScene({
       <directionalLight position={[-4, -1.5, 1]} intensity={0.34} color="#7892B2" />
       <EarthModel
         activeEvent={activeEvent}
-        eventsActive={eventsActive}
         onReady={onReady}
         reducedMotion={reducedMotion}
       />
@@ -687,46 +695,47 @@ function EarthScene({
 
 export function EarthGlobe3D({
   activeEvent,
-  eventsActive = false,
   onReady,
 }: {
   activeEvent: GlobeEvent
-  eventsActive?: boolean
   onReady?: () => void
 }) {
   const reducedMotion = useReducedMotionPreference()
   const rootRef = useRef<HTMLDivElement>(null)
-  const [visible, setVisible] = useState(true)
+  const unregisterCanvasRef = useRef<null | (() => void)>(null)
 
-  useEffect(() => {
-    const root = rootRef.current
-    if (!root) return
-    const observer = new IntersectionObserver(
-      ([entry]) => setVisible(entry.isIntersecting),
-      { rootMargin: "20% 0px", threshold: 0.01 },
-    )
-    observer.observe(root)
-    return () => observer.disconnect()
-  }, [])
+  useEffect(
+    () => () => {
+      unregisterCanvasRef.current?.()
+      unregisterCanvasRef.current = null
+    },
+    [],
+  )
 
   return (
     <div ref={rootRef} className="ae-globe-canvas">
       <Canvas
         aria-label="Interactive textured Earth showing a simulated airline disruption"
         camera={{ position: [0, 0.12, 7.8], fov: 32, near: 0.1, far: 80 }}
-        dpr={[0.8, 1.35]}
-        frameloop={visible ? "always" : "never"}
-        gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
-        onCreated={({ gl }) => {
+        dpr={[1, 2]}
+        frameloop="never"
+        gl={{ antialias: false, alpha: true, powerPreference: "high-performance" }}
+        onCreated={(state) => {
+          const { gl } = state
           gl.outputColorSpace = THREE.SRGBColorSpace
           gl.toneMapping = THREE.ACESFilmicToneMapping
           gl.toneMappingExposure = 0.96
+          unregisterCanvasRef.current?.()
+          unregisterCanvasRef.current = registerThreeRoot(
+            "globe",
+            state,
+            () => landingScroll.active.globe,
+          )
         }}
       >
         <Suspense fallback={null}>
           <EarthScene
             activeEvent={activeEvent}
-            eventsActive={eventsActive}
             onReady={onReady}
             reducedMotion={reducedMotion}
           />

@@ -1,4 +1,5 @@
 @import 'leaflet/dist/leaflet.css';
+@import 'lenis/dist/lenis.css';
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @tailwind base;

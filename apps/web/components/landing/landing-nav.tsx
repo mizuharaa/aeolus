@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 import { useEffect, useRef } from "react"
+import { landingScroll, registerLandingFrame } from "@/lib/scroll"
 
 /**
  * N9 edge navigation: identity at the left edge, one quiet operational
@@ -15,30 +16,19 @@ export function LandingNav() {
     const nav = navRef.current
     if (!nav) return
 
-    let frame = 0
     const apply = () => {
-      const viewport = window.innerHeight
       const progress = Math.min(
         1,
-        Math.max(0, (window.scrollY - viewport * 0.22) / (viewport * 0.24)),
+        Math.max(0, (landingScroll.scenes.flight - 0.08) / 0.12),
       )
       const eased = progress * progress * (3 - 2 * progress)
       nav.style.opacity = String(eased)
       nav.style.transform = `translateY(${(1 - eased) * -12}px)`
       nav.style.pointerEvents = eased > 0.5 ? "auto" : "none"
-      frame = 0
-    }
-    const onScroll = () => {
-      if (frame) return
-      frame = window.requestAnimationFrame(apply)
     }
 
     apply()
-    window.addEventListener("scroll", onScroll, { passive: true })
-    return () => {
-      window.removeEventListener("scroll", onScroll)
-      if (frame) window.cancelAnimationFrame(frame)
-    }
+    return registerLandingFrame(apply)
   }, [])
 
   return (

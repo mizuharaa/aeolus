@@ -26,7 +26,12 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import Image from "next/image"
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js"
 import * as THREE from "three"
-import { gsap } from "@/components/landing/gsap"
+import {
+  landingScroll,
+  markLandingAssetReady,
+  registerThreeRoot,
+} from "@/lib/scroll"
+import { Spring } from "@/lib/spring"
 
 function StudioEnvironment() {
   const { gl, scene } = useThree()
@@ -422,16 +427,12 @@ function orientationFromTangent(tangent: THREE.Vector3, bank: number) {
 }
 
 function PlaneRig({
-  progressRef,
-  reducedMotion,
   onReady,
 }: {
-  progressRef: React.MutableRefObject<number>
-  reducedMotion: boolean
   onReady: () => void
 }) {
   const ref = useRef<THREE.Group>(null)
-  const current = useRef(0)
+  const progressSpring = useRef(new Spring(82, 2 * Math.sqrt(82)))
   const point = useMemo(() => new THREE.Vector3(), [])
   const tangent = useMemo(() => new THREE.Vector3(), [])
 
@@ -439,16 +440,11 @@ function PlaneRig({
     const group = ref.current
     if (!group) return
 
-    const target = progressRef.current
-    const damping = reducedMotion ? 16 : 4.2
-    if (Math.abs(target - current.current) > 0.34) {
-      current.current = target
-    } else {
-      current.current +=
-        (target - current.current) *
-        (1 - Math.exp(-damping * Math.min(delta, 0.05)))
-    }
-    const t = current.current
+    const reducedMotion = landingScroll.reducedMotion
+    const target = landingScroll.scenes.flight
+    const t = reducedMotion
+      ? progressSpring.current.snap(target)
+      : progressSpring.current.step(target, delta)
     const visibility = 1 - THREE.MathUtils.smoothstep(t, 0.9, 0.995)
     group.visible = visibility > 0.005
     if (!group.visible) return
@@ -490,167 +486,26 @@ function PlaneRig({
   )
 }
 
-function lockScroll() {
-  const stop = (event: Event) => event.preventDefault()
-  const stopKeys = (event: KeyboardEvent) => {
-    if (["ArrowDown", "ArrowUp", "PageDown", "PageUp", "Home", "End", " "].includes(event.key)) {
-      event.preventDefault()
-    }
-  }
-  window.addEventListener("wheel", stop, { passive: false })
-  window.addEventListener("touchmove", stop, { passive: false })
-  window.addEventListener("keydown", stopKeys)
-
-  return () => {
-    window.removeEventListener("wheel", stop)
-    window.removeEventListener("touchmove", stop)
-    window.removeEventListener("keydown", stopKeys)
-  }
-}
-
 export function HeroPlane3D() {
-  const progressRef = useRef(0)
-  const playedRef = useRef(false)
-  const runningRef = useRef(false)
-  const unlockRef = useRef<null | (() => void)>(null)
+  const unregisterCanvasRef = useRef<null | (() => void)>(null)
   const [modelReady, setModelReady] = useState(false)
-  const [reducedMotion, setReducedMotion] = useState(false)
-  const [renderActive, setRenderActive] = useState(true)
-  const markReady = useCallback(() => setModelReady(true), [])
-
-  useEffect(() => {
-    const media = window.matchMedia("(prefers-reduced-motion: reduce)")
-    const sync = () => setReducedMotion(media.matches)
-    sync()
-    media.addEventListener("change", sync)
-    return () => media.removeEventListener("change", sync)
+  const markReady = useCallback(() => {
+    markLandingAssetReady("airliner")
+    setModelReady(true)
   }, [])
 
-  useEffect(() => {
-    let ticking = false
-    let current = true
-    const compute = () => {
-      const identityTop =
-        document.querySelector<HTMLElement>("#identity")?.offsetTop ??
-        window.innerHeight * 1.5
-      const next = window.scrollY < identityTop - 2
-      if (next !== current) {
-        current = next
-        setRenderActive(next)
-      }
-      ticking = false
-    }
-    const onScroll = () => {
-      if (ticking) return
-      ticking = true
-      requestAnimationFrame(compute)
-    }
-    compute()
-    window.addEventListener("scroll", onScroll, { passive: true })
-    return () => window.removeEventListener("scroll", onScroll)
-  }, [])
-
-  useEffect(() => {
-    let ticking = false
-    let flightTween: ReturnType<typeof gsap.to> | undefined
-    let handoffTimeline: gsap.core.Timeline | undefined
-    let overrideUntil = 0
-
-    const compute = () => {
-      const raw = THREE.MathUtils.clamp(
-        window.scrollY / (window.innerHeight * 1.46),
-        0,
-        1,
-      )
-
-      if (!runningRef.current && performance.now() > overrideUntil) {
-        progressRef.current = reducedMotion ? (raw < 0.55 ? raw : 1) : raw
-      }
-
-      if (
-        !reducedMotion &&
-        !playedRef.current &&
-        !runningRef.current &&
-        raw >= 0.5 &&
-        window.scrollY < window.innerHeight * 1.08
-      ) {
-        playedRef.current = true
-        runningRef.current = true
-        unlockRef.current = lockScroll()
-        const flight = { progress: Math.max(raw, 0.5) }
-        flightTween = gsap.to(flight, {
-          progress: 1,
-          duration: 3.05,
-          ease: "power2.inOut",
-          onUpdate: () => {
-            progressRef.current = flight.progress
-          },
-          onComplete: () => {
-            progressRef.current = 1
-            const identity = document.querySelector<HTMLElement>("#identity")
-            const network = document.querySelector<HTMLElement>("#network")
-            const identityY = identity
-              ? identity.getBoundingClientRect().top + window.scrollY
-              : window.scrollY
-            const networkY = network
-              ? network.getBoundingClientRect().top + window.scrollY
-              : identityY
-            const scrollPosition = { y: window.scrollY }
-            const paintScroll = () => {
-              window.scrollTo({ top: scrollPosition.y, behavior: "auto" })
-            }
-
-            handoffTimeline = gsap.timeline({
-              onComplete: () => {
-                runningRef.current = false
-                unlockRef.current?.()
-                unlockRef.current = null
-                overrideUntil = performance.now() + 900
-              },
-            })
-            handoffTimeline
-              .to(scrollPosition, {
-                y: identityY,
-                duration: 0.95,
-                ease: "power2.inOut",
-                onUpdate: paintScroll,
-              })
-              .to({}, { duration: 1.3 })
-              .to(scrollPosition, {
-                y: networkY,
-                duration: 1.15,
-                ease: "power2.inOut",
-                onUpdate: paintScroll,
-              })
-          },
-        })
-      }
-
-      ticking = false
-    }
-
-    const onScroll = () => {
-      if (ticking) return
-      ticking = true
-      requestAnimationFrame(compute)
-    }
-
-    compute()
-    window.addEventListener("scroll", onScroll, { passive: true })
-    return () => {
-      window.removeEventListener("scroll", onScroll)
-      flightTween?.kill()
-      handoffTimeline?.kill()
-      unlockRef.current?.()
-      unlockRef.current = null
-      runningRef.current = false
-    }
-  }, [reducedMotion])
+  useEffect(
+    () => () => {
+      unregisterCanvasRef.current?.()
+      unregisterCanvasRef.current = null
+    },
+    [],
+  )
 
   return (
     <div
       aria-hidden="true"
-      className={`ae-plane-layer${modelReady ? " is-model-ready" : ""}${renderActive ? "" : " is-render-inactive"}`}
+      className={`ae-plane-layer${modelReady ? " is-model-ready" : ""}`}
     >
       <Image
         alt=""
@@ -662,17 +517,26 @@ export function HeroPlane3D() {
       />
       <Canvas
         camera={{ position: [0.55, -0.28, 8.6], fov: 32 }}
-        dpr={[0.8, 1.35]}
-        frameloop={renderActive ? "always" : "never"}
+        dpr={[1, 2]}
+        frameloop="never"
         gl={{
           alpha: true,
-          antialias: true,
+          antialias: false,
           powerPreference: "high-performance",
           toneMapping: THREE.ACESFilmicToneMapping,
         }}
-        onCreated={({ gl }) => {
+        onCreated={(state) => {
+          const { gl } = state
           gl.outputColorSpace = THREE.SRGBColorSpace
-          gl.toneMappingExposure = 0.8
+          gl.toneMappingExposure = 1.1
+          unregisterCanvasRef.current?.()
+          unregisterCanvasRef.current = registerThreeRoot(
+            "airliner",
+            state,
+            () =>
+              landingScroll.active.airliner &&
+              !landingScroll.reducedMotion,
+          )
         }}
       >
         <StudioEnvironment />
@@ -690,11 +554,7 @@ export function HeroPlane3D() {
           penumbra={0.82}
           position={[-4, 2.6, 4]}
         />
-        <PlaneRig
-          onReady={markReady}
-          progressRef={progressRef}
-          reducedMotion={reducedMotion}
-        />
+        <PlaneRig onReady={markReady} />
       </Canvas>
     </div>
   )
