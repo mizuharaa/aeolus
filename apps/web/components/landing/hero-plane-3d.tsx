@@ -29,6 +29,7 @@ import * as THREE from "three"
 import {
   landingScroll,
   markLandingAssetReady,
+  registerLandingFrame,
   registerThreeRoot,
 } from "@/lib/scroll"
 import { Spring } from "@/lib/spring"
@@ -487,6 +488,7 @@ function PlaneRig({
 }
 
 export function HeroPlane3D() {
+  const layerRef = useRef<HTMLDivElement>(null)
   const unregisterCanvasRef = useRef<null | (() => void)>(null)
   const [modelReady, setModelReady] = useState(false)
   const markReady = useCallback(() => {
@@ -495,15 +497,32 @@ export function HeroPlane3D() {
   }, [])
 
   useEffect(
-    () => () => {
-      unregisterCanvasRef.current?.()
-      unregisterCanvasRef.current = null
+    () => {
+      const unregisterFrame = registerLandingFrame(() => {
+        const layer = layerRef.current
+        if (!layer) return
+        const progress = landingScroll.scenes.flight
+        const exit = THREE.MathUtils.smoothstep(progress, 0.9, 0.995)
+        const visible =
+          landingScroll.active.airliner &&
+          !landingScroll.reducedMotion &&
+          exit < 0.999
+        layer.style.opacity = visible ? String(1 - exit) : "0"
+        layer.style.visibility = visible ? "visible" : "hidden"
+      })
+
+      return () => {
+        unregisterFrame()
+        unregisterCanvasRef.current?.()
+        unregisterCanvasRef.current = null
+      }
     },
     [],
   )
 
   return (
     <div
+      ref={layerRef}
       aria-hidden="true"
       className={`ae-plane-layer${modelReady ? " is-model-ready" : ""}`}
     >

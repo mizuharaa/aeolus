@@ -11,6 +11,9 @@ type LandingFrame = (time: number, delta: number) => void
 type ThreeRootRegistration = {
   state: RootState
   active: () => boolean
+  primeFrames: number
+  tailFrames: number
+  wasActive: boolean
 }
 
 /**
@@ -67,8 +70,17 @@ const renderFrame = (time: number) => {
   landingScroll.delta = delta
 
   frameCallbacks.forEach((callback) => callback(time, delta))
-  threeRoots.forEach(({ state, active }) => {
-    if (active()) advance(nowMs, false, state)
+  threeRoots.forEach((registration) => {
+    const active = registration.active()
+    if (registration.wasActive && !active) registration.tailFrames = 48
+    if (registration.primeFrames > 0 || registration.tailFrames > 0 || active) {
+      advance(nowMs, false, registration.state)
+      registration.primeFrames = Math.max(0, registration.primeFrames - 1)
+      if (!active) {
+        registration.tailFrames = Math.max(0, registration.tailFrames - 1)
+      }
+    }
+    registration.wasActive = active
   })
 }
 
@@ -103,6 +115,13 @@ export function mountLandingScroll() {
     gestureOrientation: "vertical",
     autoRaf: false,
   })
+  if (process.env.NODE_ENV !== "production") {
+    ;(
+      window as typeof window & {
+        __aeolusLenis?: Lenis
+      }
+    ).__aeolusLenis = lenis
+  }
   removeLenisListener = lenis.on("scroll", syncLenisState)
   syncLenisState(lenis)
 
@@ -124,6 +143,13 @@ function unmountLandingScroll() {
   removeLenisListener?.()
   removeReducedMotionListener?.()
   lenis?.destroy()
+  if (process.env.NODE_ENV !== "production") {
+    delete (
+      window as typeof window & {
+        __aeolusLenis?: Lenis
+      }
+    ).__aeolusLenis
+  }
   lenis = null
   removeLenisListener = null
   removeReducedMotionListener = null
@@ -146,11 +172,17 @@ export function registerThreeRoot(
   state: RootState,
   active: () => boolean = () => landingScroll.active[id],
 ) {
-  const registration = { state, active }
+  // Html portals and post-processing subscriptions mount just after the
+  // canvas root. A short shared-clock warmup lets those late subscriptions
+  // settle without giving each canvas its own RAF loop.
+  const registration = {
+    state,
+    active,
+    primeFrames: 12,
+    tailFrames: 0,
+    wasActive: active(),
+  }
   threeRoots.set(id, registration)
-
-  // Paint a deterministic first frame even when the scene starts off-screen.
-  advance(performance.now(), false, state)
 
   return () => {
     if (threeRoots.get(id) === registration) threeRoots.delete(id)
