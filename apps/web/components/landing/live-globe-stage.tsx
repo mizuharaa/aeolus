@@ -99,34 +99,18 @@ function syncEventUi(root: HTMLElement) {
 
 export function LiveGlobeStage() {
   const rootRef = useRef<HTMLElement>(null)
-  const pauseUntilRef = useRef(0)
-  const feedInteractingRef = useRef(false)
   const lastEventVersionRef = useRef(globeEventRuntime.version)
   const [globeReady, setGlobeReady] = useState(false)
   const shouldMountGlobe = useNearViewport(rootRef)
   const markGlobeReady = useCallback(() => setGlobeReady(true), [])
 
   const selectEvent = useCallback((next: number) => {
-    pauseUntilRef.current = Date.now() + 12_000
     setGlobeEventIndex(next)
     if (rootRef.current) syncEventUi(rootRef.current)
   }, [])
 
   useEffect(() => {
     if (rootRef.current) syncEventUi(rootRef.current)
-    const timer = window.setInterval(() => {
-      if (
-        landingScroll.reducedMotion ||
-        landingScroll.scenes.globe < 0.26
-      ) {
-        return
-      }
-      if (feedInteractingRef.current || Date.now() < pauseUntilRef.current) return
-      setGlobeEventIndex(globeEventRuntime.activeIndex + 1)
-      if (rootRef.current) syncEventUi(rootRef.current)
-    }, 6_400)
-
-    return () => window.clearInterval(timer)
   }, [])
 
   useEffect(() => {
@@ -291,7 +275,6 @@ export function LiveGlobeStage() {
           <SplitReveal
             as="h2"
             className="ae-globe-title"
-            mode="reversible"
             start="top 82%"
             stagger={0.075}
           >
@@ -382,22 +365,6 @@ export function LiveGlobeStage() {
         <aside
           className="ae-event-feed"
           aria-label="Synthetic event feed"
-          onPointerEnter={() => {
-            feedInteractingRef.current = true
-          }}
-          onPointerLeave={(event) => {
-            if (!event.currentTarget.contains(document.activeElement)) {
-              feedInteractingRef.current = false
-            }
-          }}
-          onFocusCapture={() => {
-            feedInteractingRef.current = true
-          }}
-          onBlurCapture={(event) => {
-            if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
-              feedInteractingRef.current = false
-            }
-          }}
         >
           <header>
             <span>Synthetic event feed</span>

@@ -10,10 +10,12 @@
  * network, labelled as such — not real customer claims.
  */
 
+import { useId } from "react"
+
 const PARTNERS = ["MERIDIAN", "NORTHWIND", "CALDERA AIR", "ALTUS", "VESPER", "HELIOS"]
 
 export function TrustedBy() {
-  const uid = "ae-trusted-carriers"
+  const uid = useId().replace(/[:]/g, "")
   const f = (n: number) => `boil-${uid}-${n}`
 
   return (
@@ -21,7 +23,7 @@ export function TrustedBy() {
       aria-label="Reference carriers"
       style={{
         position: "relative",
-        padding: "clamp(70px, 10dvh, 120px) clamp(20px, 4vw, 56px)",
+        padding: "clamp(70px, 10vh, 120px) clamp(20px, 4vw, 56px)",
         borderTop: "1px solid var(--border)",
       }}
     >
@@ -38,7 +40,7 @@ export function TrustedBy() {
       </svg>
 
       <div style={{ maxWidth: 1480, margin: "0 auto", textAlign: "center" }}>
-        <span className="lp-eyebrow" style={{ display: "block", marginBottom: "clamp(28px, 4dvh, 48px)" }}>
+        <span className="lp-eyebrow" style={{ display: "block", marginBottom: "clamp(28px, 4vh, 48px)" }}>
           05 — Trusted by the best
         </span>
 
@@ -74,7 +76,7 @@ export function TrustedBy() {
 
         <p
           style={{
-            margin: "clamp(30px, 4dvh, 52px) auto 0",
+            margin: "clamp(30px, 4vh, 52px) auto 0",
             maxWidth: 520,
             fontSize: 13,
             lineHeight: 1.6,

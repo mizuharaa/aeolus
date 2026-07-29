@@ -13,23 +13,20 @@
  *   5. metrics count down, teal reroutes re-flow, toast lands, camera
  *      pulls back to the start framing so the loop cuts cleanly
  *
- * A single pinned ScrollTrigger scrubs both the product walkthrough and
- * the physical laptop scene. The OCC surface is live DOM mounted into the
- * screen's 3D hinge group; it is never a reference-frame image. Reverse
- * scroll deterministically restores every dashboard and hinge state.
+ * No scroll scrubbing and no pinning: a ScrollTrigger only plays/pauses
+ * the loop while the section is on screen. Caption steps auto-advance
+ * with the playback; clicking one seeks the video. The "camera" is a
+ * translate/scale transform over a fixed 1500×860 world plane (DemoMap);
+ * values are function-based and re-invalidated on resize. Reduced-motion
+ * renders the final recovered frame as a static figure.
  */
 
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react"
-import dynamic from "next/dynamic"
+import { useEffect, useLayoutEffect, useRef, useState } from "react"
+import { motion, useReducedMotion } from "framer-motion"
 import { CloudLightning, FileText, LayoutGrid, Leaf, Route, Users } from "lucide-react"
 import { gsap, ScrollTrigger } from "@/components/landing/gsap"
 import { AeolusMark } from "@/components/ds/logo"
+import { EASE } from "@/components/landing/motion"
 import { DemoMap } from "@/components/landing/demo/demo-map"
 import { AgentCommandDemo } from "@/components/landing/demo/agent-command-demo"
 import { CursorChoreography } from "@/components/landing/demo/cursor-choreography"
@@ -44,21 +41,6 @@ import {
   bezAngle,
   bezPoint,
 } from "@/components/landing/demo/demo-data"
-import {
-  landingScroll,
-  registerLandingFrame,
-  resetLandingScene,
-  setLandingSceneActive,
-} from "@/lib/scroll"
-import { useNearViewport } from "@/lib/use-near-viewport"
-
-const MacbookStage = dynamic(
-  () =>
-    import("@/components/landing/demo/macbook-stage").then(
-      (module) => module.MacbookStage,
-    ),
-  { ssr: false },
-)
 
 const STATUS = [
   { label: "Nominal", color: "var(--dk-teal)" },
@@ -84,41 +66,31 @@ const EVENT_ROWS = [
 const TOTAL = 25
 const SCENE_STARTS = [0, 7.8, 15.2, 18.4]
 
-const smoothstep = (edge0: number, edge1: number, value: number) => {
-  const x = gsap.utils.clamp(0, 1, (value - edge0) / (edge1 - edge0))
-  return x * x * (3 - 2 * x)
-}
-
 export function CinematicSimulatorDemo() {
   const rootRef = useRef<HTMLElement>(null)
   const tlRef = useRef<gsap.core.Timeline | null>(null)
+  const [scene, setScene] = useState(0)
   const [staticMode, setStaticMode] = useState(false)
-  const [screenReady, setScreenReady] = useState(false)
-  const shouldMountDemo = useNearViewport(rootRef)
   const sceneRef = useRef(0)
   // 0 nominal · 1 disrupted/hold · 2 recovering · 3 stable — drives the plane loop
   const phaseRef = useRef(0)
+  const reduce = useReducedMotion()
 
   useEffect(() => {
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    setStaticMode(reduced)
-  }, [])
-
-  const connectScreen = useCallback((node: HTMLDivElement | null) => {
-    if (node) setScreenReady(true)
+    setStaticMode(window.matchMedia("(prefers-reduced-motion: reduce)").matches)
   }, [])
 
   useLayoutEffect(() => {
     const root = rootRef.current
-    if (!root || staticMode || !screenReady) return
+    if (!root || staticMode) return
 
     const q = gsap.utils.selector(root)
     const mm = gsap.matchMedia()
 
     mm.add(
       {
-        desktop: "(min-width: 40rem) and (prefers-reduced-motion: no-preference)",
-        mobile: "(max-width: 39.99rem) and (prefers-reduced-motion: no-preference)",
+        desktop: "(min-width: 961px) and (prefers-reduced-motion: no-preference)",
+        mobile: "(max-width: 960px) and (prefers-reduced-motion: no-preference)",
       },
       (mctx) => {
         const mobile = Boolean(mctx.conditions?.mobile)
@@ -161,17 +133,22 @@ export function CinematicSimulatorDemo() {
         const planes = q(".dm-plane") as HTMLElement[]
         const glyphs = planes.map((p) => p.querySelector(".dm-plane-glyph") as HTMLElement)
         const holds = planes.map((p) => p.querySelector(".dm-plane-hold") as HTMLElement)
-        const rt = geo.map(() => ({ color: "" }))
+        const rt = geo.map((f) => ({ t: f.phase, speed: 1, color: "" }))
         // thin out background traffic on small screens for headroom
         if (mobile) geo.forEach((f, i) => { if (f.role === "bg" && i % 2 === 1 && planes[i]) planes[i].style.display = "none" })
 
+        let raf = 0
+        let last = 0
         let running = false
         const paint = (i: number, c: string) => {
           if (rt[i].color !== c) { rt[i].color = c; if (planes[i]) planes[i].style.color = c }
         }
-        const frame = () => {
+        const frame = (now: number) => {
           if (!running) return
-          const timelineTime = tlRef.current?.time() ?? 0
+          if (!last) last = now
+          let dt = (now - last) / 1000
+          last = now
+          if (dt > 0.1) dt = 0.1 // clamp after a tab-away
           const phase = phaseRef.current
           for (let i = 0; i < geo.length; i++) {
             const el = planes[i]
@@ -182,29 +159,26 @@ export function CinematicSimulatorDemo() {
             const onReroute = hub && phase >= 2
             const held = hub && phase === 1
             const path = onReroute ? f.reroute : f.primary
-            const movingT = (f.phase + timelineTime / f.dur) % 1
-            const heldT = (f.phase + 9.3 / f.dur) % 1
-            const flightT = held ? heldT : movingT
-            const pt = bezPoint(path, flightT)
-            const bob = held
-              ? Math.sin(timelineTime * 3.4 + i * 1.3) * 2.2
-              : 0
+            const target = held ? 0 : 1
+            s.speed += (target - s.speed) * Math.min(1, dt * 2.2) // eased accel/decel
+            s.t += (dt / f.dur) * s.speed
+            if (s.t >= 1) s.t -= 1
+            const pt = bezPoint(path, s.t)
+            const bob = held ? Math.sin(now / 240 + i * 1.3) * 2.2 : 0
             el.style.transform = `translate(${pt.x}px, ${(pt.y + bob).toFixed(2)}px)`
-            glyphs[i].style.transform = `rotate(${bezAngle(path, flightT).toFixed(1)}deg)`
+            glyphs[i].style.transform = `rotate(${bezAngle(path, s.t).toFixed(1)}deg)`
             paint(i, held ? "var(--dk-amber)" : onReroute && phase === 2 ? "var(--dk-amber)" : "#5B3FA8")
             if (holds[i]) holds[i].style.opacity = held ? "1" : "0"
           }
+          raf = requestAnimationFrame(frame)
         }
-        const unregisterFlightFrame = registerLandingFrame(frame)
-        const startFlights = () => {
-          running = true
-        }
-        const stopFlights = () => {
-          running = false
-        }
+        const startFlights = () => { if (!running) { running = true; last = 0; raf = requestAnimationFrame(frame) } }
+        const stopFlights = () => { running = false; if (raf) cancelAnimationFrame(raf) }
 
         const tl = gsap.timeline({
           paused: true,
+          repeat: -1,
+          repeatDelay: 2.4,
           defaults: { ease: "power2.inOut" },
           onUpdate: () => {
             const t = tl.time()
@@ -214,13 +188,7 @@ export function CinematicSimulatorDemo() {
             const s = t < SCENE_STARTS[1] ? 0 : t < SCENE_STARTS[2] ? 1 : t < SCENE_STARTS[3] ? 2 : 3
             if (s !== sceneRef.current) {
               sceneRef.current = s
-              root.dataset.demoScene = String(s)
-              ;(q(".dm-rail-icon") as HTMLElement[]).forEach((element, index) => {
-                element.dataset.active = String(RAIL_ACTIVE[s] === index)
-              })
-              ;(q(".dm-cap") as HTMLElement[]).forEach((element, index) => {
-                element.dataset.active = String(s === index)
-              })
+              setScene(s)
             }
           },
         })
@@ -359,95 +327,29 @@ export function CinematicSimulatorDemo() {
         }, 22.8)
         tl.set({}, {}, TOTAL)
 
-        const syncScrollPlayback = (progress: number) => {
-          const playback = smoothstep(0.12, 0.7, progress)
-          tl.pause(playback * TOTAL, false)
-          if (progress >= 0.1 && progress < 0.975) startFlights()
-          else stopFlights()
-        }
-
-        let deviceTrigger: ScrollTrigger | null = null
-        let deviceTween: gsap.core.Tween | null = null
-        const headline = q(".dm-headline")[0] as HTMLElement
-        const captions = q(".dm-captions-row")[0] as HTMLElement
-        gsap.set(captions, { opacity: mobile ? 1 : 0, y: mobile ? 0 : 18 })
-        let lastAppliedProgress = Number.NaN
-
-        const applyDemoProgress = () => {
-          const progress = landingScroll.scenes.demo
-          if (Math.abs(progress - lastAppliedProgress) < 0.000001) return
-          lastAppliedProgress = progress
-
-          const copyExit = smoothstep(0.025, 0.13, progress)
-          const captionEntry = mobile
-            ? 1
-            : smoothstep(0.12, 0.2, progress) *
-              (1 - smoothstep(0.8, 0.94, progress))
-
-          headline.style.opacity = String(1 - copyExit)
-          headline.style.transform = `translate3d(0, ${(
-            -copyExit * 9
-          ).toFixed(3)}%, 0)`
-          captions.style.opacity = String(captionEntry)
-          captions.style.transform = `translate3d(0, ${(
-            18 *
-            (1 - captionEntry)
-          ).toFixed(3)}px, 0)`
-          syncScrollPlayback(progress)
-        }
-        applyDemoProgress()
-        const unregisterDemoProgressFrame =
-          registerLandingFrame(applyDemoProgress)
-
-        // One pin owns the live OCC walkthrough and the physical hinge. The
-        // dashboard timeline is sampled from scroll, so reverse scroll is exact.
-        deviceTween = gsap.fromTo(
-          landingScroll.scenes,
-          { demo: 0 },
-          {
-            demo: 1,
-            ease: "none",
-            scrollTrigger: {
-              trigger: root,
-              start: "top top",
-              end: mobile ? "+=260%" : "+=520%",
-              scrub: 1.2,
-              pin: true,
-              pinSpacing: true,
-              anticipatePin: 1,
-              invalidateOnRefresh: true,
-              fastScrollEnd: true,
-              onToggle: (self) =>
-                setLandingSceneActive("macbook", self.isActive),
-              onLeave: () => {
-                stopFlights()
-                setLandingSceneActive("macbook", false)
-              },
-              onLeaveBack: () => {
-                stopFlights()
-                setLandingSceneActive("macbook", false)
-              },
-              onEnterBack: () => setLandingSceneActive("macbook", true),
-            },
+        // play + fly while on screen, pause + halt off screen
+        const st = ScrollTrigger.create({
+          trigger: root,
+          start: "top 75%",
+          end: "bottom 25%",
+          onToggle: (self) => {
+            if (self.isActive) {
+              tl.play()
+              startFlights()
+            } else {
+              tl.pause()
+              stopFlights()
+            }
           },
-        )
-        deviceTrigger = deviceTween.scrollTrigger ?? null
+        })
 
-        const onResize = () => {
-          tl.invalidate()
-          lastAppliedProgress = Number.NaN
-        }
+        const onResize = () => tl.invalidate()
         window.addEventListener("resize", onResize)
 
         return () => {
           window.removeEventListener("resize", onResize)
           stopFlights()
-          unregisterFlightFrame()
-          unregisterDemoProgressFrame()
-          deviceTrigger?.kill()
-          deviceTween?.kill()
-          resetLandingScene("demo")
-          setLandingSceneActive("macbook", false)
+          st.kill()
           tl.kill()
           if (tlRef.current === tl) tlRef.current = null
         }
@@ -456,12 +358,12 @@ export function CinematicSimulatorDemo() {
     )
 
     return () => mm.revert()
-  }, [screenReady, staticMode])
+  }, [staticMode])
 
   const seekTo = (i: number) => {
     const tl = tlRef.current
     if (!tl) return
-    tl.pause(SCENE_STARTS[i] + 0.05)
+    tl.play(SCENE_STARTS[i] + 0.05)
   }
 
   return (
@@ -469,40 +371,85 @@ export function CinematicSimulatorDemo() {
       id="demo"
       ref={rootRef}
       aria-label="Simulator demo"
-      className="dm-section"
-      data-static={staticMode}
-      tabIndex={0}
-      style={{ position: "relative" }}
+      style={{ position: "relative", padding: "clamp(80px, 11vh, 140px) clamp(16px, 3.5vw, 48px)" }}
     >
-      <div className="dm-pin">
-        {/* the text appears first, then dissolves into the animation */}
-        <div className="dm-headline" style={{ display: staticMode ? "none" : undefined }}>
-          <span className="lp-eyebrow" style={{ display: "block", color: "#C9A050" }}>
+      <div
+        className="dm-stage-grid"
+        style={{
+          width: "100%",
+          maxWidth: 1560,
+          margin: "0 auto",
+          display: "grid",
+          gridTemplateColumns: "minmax(240px, 300px) minmax(0, 1fr)",
+          gap: "clamp(24px, 3vw, 48px)",
+          alignItems: "center",
+        }}
+      >
+        {/* caption rail — auto-advances with playback; click to seek */}
+        <aside className="dm-captions">
+          <span className="lp-eyebrow" style={{ display: "block", marginBottom: 20 }}>
             02 — One recovery loop
           </span>
-          <h2 className="dm-headline-title">
-            Trigger a storm.{" "}
-            <span>Wake to a recovered network.</span>
-          </h2>
-          <p className="dm-headline-sub">
-            One full recovery loop — event to committed plan — played inside the real console.
-          </p>
-        </div>
+          <div className="dm-step-list" style={{ display: "grid", gap: 4 }}>
+            {DEMO_STEPS.map((s, i) => {
+              const active = staticMode || scene === i
+              return (
+                <button
+                  key={s.n}
+                  className="dm-step"
+                  onClick={() => !staticMode && seekTo(i)}
+                  style={{
+                    borderColor: active ? "var(--accent-amber)" : "var(--border)",
+                    cursor: staticMode ? "default" : "pointer",
+                    opacity: active ? 1 : 0.45,
+                  }}
+                >
+                  <span style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+                    <span className="lp-eyebrow" style={{ color: active ? "var(--accent-amber)" : undefined }}>{s.n}</span>
+                    <span
+                      className="ed-display"
+                      style={{ fontSize: "clamp(20px, 1.8vw, 27px)", letterSpacing: "-0.02em" }}
+                    >
+                      {s.title}
+                    </span>
+                  </span>
+                  <span
+                    className="dm-step-body"
+                    style={{
+                      display: "block",
+                      marginTop: 6,
+                      fontSize: 13.5,
+                      lineHeight: 1.5,
+                      color: "var(--muted)",
+                      maxWidth: 260,
+                    }}
+                  >
+                    {s.body}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        </aside>
 
-        <div className="dm-product-wrap">
-          {shouldMountDemo ? (
-            <MacbookStage staticMode={staticMode}>
-            <div
-              ref={connectScreen}
-              className="demo-screen dm-frame"
-              style={{
-                display: "flex",
-                flexDirection: "column",
-              }}
-            >
+        {/* the console — one-shot entrance, then the loop plays inside */}
+        <motion.div
+          style={{ perspective: 1600 }}
+          initial={reduce || staticMode ? false : { opacity: 0, y: 48, rotateX: 7 }}
+          whileInView={{ opacity: 1, y: 0, rotateX: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 1.0, ease: EASE }}
+        >
+          <div
+            className="demo-screen dm-frame"
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              height: "clamp(400px, 68vh, 720px)",
+            }}
+          >
             {/* top bar */}
             <div
-              className="dm-status-bar"
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -559,16 +506,17 @@ export function CinematicSimulatorDemo() {
                 }}
               >
                 {RAIL_ICONS.map((Icon, i) => {
-                  const active = RAIL_ACTIVE[staticMode ? 3 : 0] === i
+                  const active = RAIL_ACTIVE[staticMode ? 3 : scene] === i
                   return (
                     <span
                       key={i}
-                      className="dm-rail-icon"
-                      data-active={active}
                       style={{
                         display: "inline-flex",
                         padding: 7,
                         borderRadius: 8,
+                        color: active ? "var(--dk-teal)" : "var(--dk-muted)",
+                        background: active ? "rgba(91, 63, 168, 0.10)" : "transparent",
+                        transition: "color 300ms ease, background 300ms ease",
                       }}
                     >
                       <Icon style={{ width: 15, height: 15 }} strokeWidth={1.75} />
@@ -846,32 +794,9 @@ export function CinematicSimulatorDemo() {
                 }}
               />
             </div>
-            </div>
-            </MacbookStage>
-          ) : (
-            <div className="dm-device-placeholder" aria-hidden="true" />
-          )}
-        </div>
-
-        {/* caption chips — auto-advance with playback; click to seek */}
-        <div className="dm-captions-row" style={{ opacity: staticMode ? 1 : 0 }}>
-          {DEMO_STEPS.map((s, i) => {
-            const active = staticMode || i === 0
-            return (
-              <button
-                key={s.n}
-                className="dm-cap"
-                data-active={active}
-                onClick={() => !staticMode && seekTo(i)}
-                style={{ cursor: staticMode ? "default" : "pointer" }}
-              >
-                <span className="dm-cap-n">{s.n}</span>
-                <span className="dm-cap-title">{s.title}</span>
-              </button>
-            )
-          })}
-        </div>
-      </div>{/* .dm-pin */}
+          </div>
+        </motion.div>
+      </div>
     </section>
   )
 }

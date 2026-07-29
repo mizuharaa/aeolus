@@ -75,10 +75,10 @@ export function FourPlansSection() {
       className="fp-section"
       style={{
         position: "relative",
-        margin: "clamp(40px, 7dvh, 90px) clamp(12px, 3vw, 40px)",
+        margin: "clamp(40px, 7vh, 90px) clamp(12px, 3vw, 40px)",
         borderRadius: "clamp(20px, 3vw, 34px)",
         overflow: "hidden",
-        padding: "clamp(56px, 9dvh, 120px) clamp(22px, 5vw, 76px)",
+        padding: "clamp(56px, 9vh, 120px) clamp(22px, 5vw, 76px)",
         background:
           "#241A38",
         color: "#F4F0FF",
@@ -91,7 +91,7 @@ export function FourPlansSection() {
       <div className="fp-blob" aria-hidden style={{ position: "absolute", top: "34%", right: "28%", width: 300, height: 300, borderRadius: "50%", background: "radial-gradient(circle, rgba(239,175,27,0.30), transparent 70%)", filter: "blur(30px)", pointerEvents: "none" }} />
 
       <div style={{ position: "relative", maxWidth: 1320, margin: "0 auto" }}>
-        <div className="fp-head" style={{ marginBottom: "clamp(30px, 5dvh, 56px)", maxWidth: 760 }}>
+        <div className="fp-head" style={{ marginBottom: "clamp(30px, 5vh, 56px)", maxWidth: 760 }}>
           <span
             style={{
               fontFamily: "var(--ae-font-mono)",

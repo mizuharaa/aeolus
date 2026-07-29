@@ -103,8 +103,8 @@ export function LandingAtmosphere() {
 
   return (
     <div className="lp-atmos" ref={ref} aria-hidden>
-      <WaveCluster bands={TOP} style={{ top: "6%", height: "22dvh" }} />
-      <WaveCluster bands={BOTTOM} style={{ bottom: "4%", height: "26dvh" }} />
+      <WaveCluster bands={TOP} style={{ top: "6%", height: "22vh" }} />
+      <WaveCluster bands={BOTTOM} style={{ bottom: "4%", height: "26vh" }} />
     </div>
   )
 }

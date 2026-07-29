@@ -48,7 +48,7 @@ export function MethodologySection() {
     <section
       id="methodology"
       aria-label="Methodology"
-      style={{ padding: "clamp(90px, 13dvh, 150px) clamp(20px, 4vw, 56px)" }}
+      style={{ padding: "clamp(90px, 13vh, 150px) clamp(20px, 4vw, 56px)" }}
     >
       <div style={{ maxWidth: 1480, margin: "0 auto" }}>
         <div

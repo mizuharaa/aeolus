@@ -61,7 +61,7 @@ export function PricingSection() {
       id="pricing"
       ref={rootRef}
       aria-label="Plans and pricing"
-      style={{ padding: "clamp(72px, 10dvh, 128px) clamp(20px, 4vw, 56px)", maxWidth: 1280, margin: "0 auto" }}
+      style={{ padding: "clamp(72px, 10vh, 128px) clamp(20px, 4vw, 56px)", maxWidth: 1280, margin: "0 auto" }}
     >
       <div style={{ textAlign: "center", marginBottom: 44, maxWidth: 620, marginInline: "auto" }}>
         <span className="lp-eyebrow">05 — Plans &amp; pricing</span>
@@ -86,7 +86,11 @@ export function PricingSection() {
       </div>
 
       <div style={{ display: "flex", justifyContent: "center" }}>
-        <div className="pr-card">
+        <Link
+          href={PLAN.href as import("next").Route}
+          className="pr-card"
+          aria-label={`${PLAN.name} plan — ${PLAN.price} ${PLAN.period}. ${PLAN.cta}`}
+        >
           {/* header row: name/tag + price */}
           <div className="pr-head">
             <div className="pr-head-l">
@@ -114,16 +118,12 @@ export function PricingSection() {
             ))}
           </ul>
 
-          <Link
-            href={PLAN.href as import("next").Route}
-            className="pr-cta"
-            aria-label={`${PLAN.cta} — ${PLAN.name} plan`}
-          >
+          <span className="pr-cta">
             {PLAN.cta}
             <ArrowRight className="pr-arrow" style={{ width: 16, height: 16 }} strokeWidth={2.25} />
-          </Link>
+          </span>
           <span className="pr-note">No sign-up · no credit card · nothing to cancel</span>
-        </div>
+        </Link>
       </div>
 
       <style jsx>{`
@@ -267,20 +267,20 @@ export function PricingSection() {
           padding: 14px 22px;
           font-size: 15px;
           font-weight: 650;
-          text-decoration: none;
           color: var(--bg, #f5f1e8);
           background: var(--ink, #1c1426);
           border-radius: 999px;
-          transition: background 200ms ease, transform 160ms ease;
-          cursor: pointer;
+          transition: background 200ms ease;
         }
-        .pr-cta:hover { background: var(--accent-blue, #5b3fa8); transform: translateY(-1px); }
-        .pr-cta:focus-visible {
-          outline: none;
-          box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-blue, #5b3fa8) 45%, transparent);
+        :global(.pr-card:hover) .pr-cta {
+          background: var(--accent-blue, #5b3fa8);
         }
-        .pr-cta .pr-arrow { transition: transform 200ms cubic-bezier(0.22, 0.9, 0.28, 1); }
-        .pr-cta:hover .pr-arrow { transform: translateX(4px); }
+        :global(.pr-card) .pr-arrow {
+          transition: transform 200ms cubic-bezier(0.22, 0.9, 0.28, 1);
+        }
+        :global(.pr-card:hover) .pr-arrow {
+          transform: translateX(4px);
+        }
 
         .pr-note {
           margin-top: 12px;

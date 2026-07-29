@@ -12,14 +12,14 @@
  * prefers-reduced-motion the page stays on the dawn register end to end.
  */
 
-import { useEffect, useLayoutEffect, useRef } from "react"
-import Link from "next/link"
+import { useLayoutEffect, useRef } from "react"
+import dynamic from "next/dynamic"
 import { gsap } from "@/components/landing/gsap"
 import styles from "@/components/landing/landing-experience.module.css"
 import { LandingNav } from "@/components/landing/landing-nav"
 import { LandingAtmosphere } from "@/components/landing/atmosphere"
-import { FlightIntroStage } from "@/components/landing/flight-intro-stage"
 import { OpeningWordmarkStage } from "@/components/landing/opening-stage"
+import { HeroStatementStage } from "@/components/landing/hero-stage"
 import { LiveGlobeStage } from "@/components/landing/live-globe-stage"
 import { StoryMarquee } from "@/components/landing/marquee"
 import { CinematicSimulatorDemo } from "@/components/landing/demo/cinematic-simulator-demo"
@@ -30,8 +30,17 @@ import { TrustedBy } from "@/components/landing/trusted-by"
 import { FinalCTAStage } from "@/components/landing/final-cta-stage"
 import { LandingFooter } from "@/components/landing/footer"
 import { Rise } from "@/components/landing/motion"
-import { FlightOpeningLite } from "@/components/landing/flight-opening-lite"
 import { mountLandingScroll } from "@/lib/scroll"
+
+// 3D layers only on the client
+const CabinOpening = dynamic(
+  () => import("@/components/landing/cabin-opening").then((m) => m.CabinOpening),
+  { ssr: false },
+)
+const HeroPlane3D = dynamic(
+  () => import("@/components/landing/hero-plane-3d").then((m) => m.HeroPlane3D),
+  { ssr: false },
+)
 
 const NOON = {
   "--bg": "#F7F3EA",
@@ -54,56 +63,6 @@ export function LandingScrollExperience() {
   const wrapRef = useRef<HTMLElement>(null)
 
   useLayoutEffect(() => mountLandingScroll(), [])
-
-  useEffect(() => {
-    const wrap = wrapRef.current
-    if (!wrap) return
-
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)")
-    const precise = window.matchMedia("(hover: hover) and (pointer: fine)")
-    if (reduced.matches || !precise.matches) return
-
-    const cards = Array.from(
-      wrap.querySelectorAll<HTMLElement>(".fp-card, .pr-card, .dm-cap"),
-    )
-    const cleanups = cards.map((card) => {
-      let frame = 0
-      let bounds: DOMRect | null = null
-      card.dataset.aeTilt = "true"
-
-      const enter = () => {
-        bounds = card.getBoundingClientRect()
-      }
-      const move = (event: PointerEvent) => {
-        cancelAnimationFrame(frame)
-        frame = requestAnimationFrame(() => {
-          const rect = bounds ?? card.getBoundingClientRect()
-          const x = (event.clientX - rect.left) / rect.width - 0.5
-          const y = (event.clientY - rect.top) / rect.height - 0.5
-          card.style.transform = `perspective(900px) rotateX(${(-y * 5).toFixed(2)}deg) rotateY(${(x * 6).toFixed(2)}deg) translateY(-3px)`
-        })
-      }
-      const leave = () => {
-        cancelAnimationFrame(frame)
-        bounds = null
-        card.style.transform = ""
-      }
-
-      card.addEventListener("pointerenter", enter)
-      card.addEventListener("pointermove", move)
-      card.addEventListener("pointerleave", leave)
-      return () => {
-        cancelAnimationFrame(frame)
-        card.removeEventListener("pointerenter", enter)
-        card.removeEventListener("pointermove", move)
-        card.removeEventListener("pointerleave", leave)
-        delete card.dataset.aeTilt
-        card.style.transform = ""
-      }
-    })
-
-    return () => cleanups.forEach((cleanup) => cleanup())
-  }, [])
 
   useLayoutEffect(() => {
     const wrap = wrapRef.current
@@ -135,28 +94,14 @@ export function LandingScrollExperience() {
           ...vars,
           ease: "none",
           immediateRender: false,
-          scrollTrigger: {
-            trigger,
-            start,
-            end,
-            scrub: 1.2,
-            invalidateOnRefresh: true,
-            fastScrollEnd: true,
-          },
+          scrollTrigger: { trigger, start, end, scrub: true },
         })
         if (navFill)
           gsap.to(navFill, {
             backgroundColor: navBg,
             ease: "none",
             immediateRender: false,
-            scrollTrigger: {
-              trigger,
-              start,
-              end,
-              scrub: 1.2,
-              invalidateOnRefresh: true,
-              fastScrollEnd: true,
-            },
+            scrollTrigger: { trigger, start, end, scrub: true },
           })
       }
 
@@ -176,14 +121,7 @@ export function LandingScrollExperience() {
           opacity: 0,
           ease: "none",
           immediateRender: false,
-          scrollTrigger: {
-            trigger: "#cta",
-            start: "top 78%",
-            end: "top 22%",
-            scrub: 1.2,
-            invalidateOnRefresh: true,
-            fastScrollEnd: true,
-          },
+          scrollTrigger: { trigger: "#cta", start: "top 78%", end: "top 22%", scrub: true },
         })
     }, wrap)
 
@@ -191,39 +129,27 @@ export function LandingScrollExperience() {
   }, [])
 
   return (
-    <>
-      <style jsx global>{`
-        html,
-        body {
-          overflow-x: clip;
-        }
-      `}</style>
-      <main
-        ref={wrapRef}
-        className={`${styles.experience} ae-landing-experience lp`}
-        style={{ position: "relative" }}
-      >
-        <Link href="/simulator" className="ae-skip-simulator">
-          Skip motion — launch simulator
-        </Link>
-        <LandingAtmosphere />
-        <FlightOpeningLite />
-        <LandingNav />
-        {/* content sits above the fixed atmosphere/plane layers */}
-        <div style={{ position: "relative", zIndex: 2 }}>
-          <FlightIntroStage />
-          <OpeningWordmarkStage />
+    <main ref={wrapRef} className="lp" style={{ position: "relative" }}>
+      <LandingAtmosphere />
+      <HeroPlane3D />
+      <CabinOpening />
+      <LandingNav />
+      {/* content sits above the fixed atmosphere/plane layers */}
+      <div style={{ position: "relative", zIndex: 2 }}>
+        <OpeningWordmarkStage />
+        <HeroStatementStage />
+        <div className={styles.experience}>
           <LiveGlobeStage />
-          <StoryMarquee />
-          <CinematicSimulatorDemo />
-          <Rise><FourPlansSection /></Rise>
-          <MethodologySection />
-          <Rise><PricingSection /></Rise>
-          <Rise><TrustedBy /></Rise>
-          <FinalCTAStage />
-          <LandingFooter />
         </div>
-      </main>
-    </>
+        <StoryMarquee />
+        <CinematicSimulatorDemo />
+        <Rise><FourPlansSection /></Rise>
+        <MethodologySection />
+        <Rise><PricingSection /></Rise>
+        <Rise><TrustedBy /></Rise>
+        <FinalCTAStage />
+        <LandingFooter />
+      </div>
+    </main>
   )
 }

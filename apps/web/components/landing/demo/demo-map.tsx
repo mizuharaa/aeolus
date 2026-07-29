@@ -3,8 +3,7 @@
  * DemoMap — the world plane the demo camera flies over.
  *
  * Layers, back to front:
- *   1. DotCanvas       flat CONUS landmass wash, sampled from the registered
- *                      Natural Earth water mask
+ *   1. DotCanvas       flat CONUS landmass wash, sampled from earth-mask.png
  *   2. route graph     faint always-on arcs for every flight (the network)
  *   3. cascade layer   pink hub routes, drawn out as the closure propagates
  *   4. reroute layer   teal re-flow arcs, drawn out as recovery commits
@@ -43,7 +42,7 @@ function DotCanvas() {
     if (!g) return
 
     const img = new Image()
-    img.src = "/textures/earth-water-mask.png"
+    img.src = "/textures/earth-mask.png"
     img.onload = () => {
       const mw = 720
       const mh = 360

@@ -15,7 +15,7 @@ export function HeroStatementStage() {
       aria-label="Airline recovery, simulated live"
       style={{
         position: "relative",
-        padding: "clamp(90px, 14dvh, 160px) clamp(20px, 4vw, 56px)",
+        padding: "clamp(90px, 14vh, 160px) clamp(20px, 4vw, 56px)",
       }}
     >
       <div style={{ maxWidth: 1480, margin: "0 auto" }}>
@@ -29,8 +29,8 @@ export function HeroStatementStage() {
           style={{ fontSize: "clamp(52px, 8.6vw, 138px)", maxWidth: 1220 }}
         >
           Airline recovery,{" "}
-          <em className="ed-serif ae-highlight-script">
-            <HighlightSwipe coverage={1} height="94%">simulated live.</HighlightSwipe>
+          <em className="ed-serif" style={{ color: "var(--accent-blue)", fontStyle: "italic" }}>
+            <HighlightSwipe coverage={1} height="64%">simulated live.</HighlightSwipe>
           </em>
         </SplitReveal>
 
@@ -41,7 +41,7 @@ export function HeroStatementStage() {
             alignItems: "flex-end",
             gap: 40,
             flexWrap: "wrap",
-            marginTop: "clamp(36px, 6dvh, 64px)",
+            marginTop: "clamp(36px, 6vh, 64px)",
           }}
         >
           <Rise>

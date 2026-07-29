@@ -348,7 +348,7 @@ function Atmosphere({
 function StarField({ reducedMotion }: { reducedMotion: boolean }) {
   const pointsRef = useRef<THREE.Points>(null)
   const { geometry, material } = useMemo(() => {
-    const count = 4000
+    const count = 1200
     const positions = new Float32Array(count * 3)
     const sizes = new Float32Array(count)
     const phases = new Float32Array(count)
@@ -379,15 +379,13 @@ function StarField({ reducedMotion }: { reducedMotion: boolean }) {
       transparent: true,
       depthWrite: false,
       toneMapped: false,
-      uniforms: { uTime: { value: 0 } },
       vertexShader: `
-        uniform float uTime;
         attribute float aSize;
         attribute float aPhase;
         varying float vPulse;
         void main() {
           vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-          vPulse = 0.72 + sin(uTime * 0.45 + aPhase) * 0.22;
+          vPulse = 0.72 + sin(aPhase) * 0.08;
           gl_PointSize = aSize * (86.0 / max(6.0, -mvPosition.z));
           gl_Position = projectionMatrix * mvPosition;
         }
@@ -404,11 +402,10 @@ function StarField({ reducedMotion }: { reducedMotion: boolean }) {
     return { geometry: starGeometry, material: starMaterial }
   }, [])
 
-  useFrame(({ clock }) => {
-    material.uniforms.uTime.value = reducedMotion ? 0 : clock.elapsedTime
+  useFrame(() => {
     if (!pointsRef.current) return
-    const progress = landingScroll.scenes.globe
-    pointsRef.current.rotation.y = progress * 0.026 + (reducedMotion ? 0 : clock.elapsedTime * 0.0007)
+    const progress = reducedMotion ? 0 : landingScroll.scenes.globe
+    pointsRef.current.rotation.y = progress * 0.026
     pointsRef.current.rotation.x = progress * -0.012
   })
 
@@ -502,8 +499,8 @@ function EventColumn({
             if (uKind > 0.5 && uKind < 1.5) {
               body *= 0.62 + sin(height * 26.0 - uTime * 2.1 + noise * 4.0) * 0.2;
             } else if (uKind > 1.5 && uKind < 2.5) {
-              float scan = step(0.56, fract(height * 13.0 - uTime * 2.6));
-              body *= mix(0.18, 1.0, scan);
+              float scan = sin(height * 12.0 - uTime * 0.45) * 0.5 + 0.5;
+              body *= mix(0.24, 0.58, scan);
             } else if (uKind > 2.5 && uKind < 3.5) {
               body *= smoothstep(0.2, 0.9, noise + height * 0.34);
             } else if (uKind > 3.5) {
@@ -738,7 +735,6 @@ function EventMarker({
     <group ref={rootRef} position={point} quaternion={rotation}>
       <EventColumn event={event} amount={amountRef} reducedMotion={reducedMotion} />
       <EventReticle event={event} amount={amountRef} reducedMotion={reducedMotion} />
-      <EventParticles event={event} amount={amountRef} reducedMotion={reducedMotion} />
     </group>
   )
 }
@@ -852,9 +848,9 @@ function EarthModel({
   const fromEventQuaternionRef = useRef(eventOrientation(GLOBE_EVENTS[0]))
   const toEventQuaternionRef = useRef(eventOrientation(GLOBE_EVENTS[0]))
   const currentEventQuaternionRef = useRef(eventOrientation(GLOBE_EVENTS[0]))
-  const focusSpringRef = useRef(new Spring(92))
-  const eventSpringRef = useRef(new Spring(76))
-  const cameraSpringRef = useRef(new Spring(54))
+  const focusSpringRef = useRef(new Spring(54))
+  const eventSpringRef = useRef(new Spring(28))
+  const cameraSpringRef = useRef(new Spring(34))
   const initializedRef = useRef(false)
   const surfaceShaderRef = useRef<{
     uniforms: Record<string, { value: unknown }>
@@ -970,9 +966,8 @@ function EarthModel({
             float aeSwirl = sin(aeAngle * 6.0 - uAeEventTime * 1.7 + aeDistance * 92.0) * 0.5 + 0.5;
             aePattern = aeBase * aeSwirl * 0.58 + aeRings * 0.34;
           } else if (uAeEventKind < 2.5) {
-            float aeScan = step(0.55, fract((aeX + aeY) * 72.0 - uAeEventTime * 2.6));
-            float aeStutter = step(0.18, fract(uAeEventTime * 7.0));
-            aePattern = aeBase * mix(0.12, 0.68, aeScan * aeStutter) + aeRings * 0.26;
+            float aeScan = sin((aeX + aeY) * 68.0 - uAeEventTime * 0.7) * 0.5 + 0.5;
+            aePattern = aeBase * mix(0.12, 0.46, aeScan) + aeRings * 0.18;
           } else if (uAeEventKind < 3.5) {
             float aePlume = smoothstep(0.2, 0.85, aeHash(floor(vec2(aeX, aeY) * 210.0) + floor(uAeEventTime * 0.45)));
             aePattern = aeBase * mix(0.1, 0.48, aePlume) + aeRings * 0.22;
@@ -1168,7 +1163,6 @@ function EarthModel({
           reducedMotion={reducedMotion}
         />
       ))}
-      <CrewRoute reducedMotion={reducedMotion} />
     </group>
   )
 }

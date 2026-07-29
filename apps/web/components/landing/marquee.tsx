@@ -39,7 +39,7 @@ export function StoryMarquee() {
       ref={rootRef}
       aria-hidden
       className="lp-marquee"
-      style={{ padding: "clamp(20px, 4dvh, 44px) 0", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}
+      style={{ padding: "clamp(20px, 4vh, 44px) 0", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}
     >
       <div ref={trackRef} className="lp-marquee-track">
         {Array.from({ length: 4 }).map((_, copy) =>
