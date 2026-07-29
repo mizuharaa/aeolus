@@ -964,15 +964,29 @@ function EarthModel({
     initializedRef.current = true
   }
 
-  const [albedo, normal, waterMask, roughness, nightLights, clouds, borders] = useTexture([
-    "/textures/earth-blue-marble.jpg",
-    "/textures/earth-normal.jpg",
-    "/textures/earth-water-mask.png",
-    "/textures/earth-roughness.png",
-    "/textures/earth-night-lights.png",
-    "/textures/earth-clouds.png",
-    "/textures/earth-borders.png",
-  ])
+  const lowTextureTier = quality.tier === "low"
+  const textureUrls = lowTextureTier
+    ? [
+        "/textures/earth-blue-marble-mobile.jpg",
+        "/textures/earth-normal-mobile.jpg",
+        "/textures/earth-water-mask-mobile.png",
+        "/textures/earth-roughness-mobile.png",
+        "/textures/earth-night-lights-mobile.png",
+        "/textures/earth-borders-mobile.png",
+      ]
+    : [
+        "/textures/earth-blue-marble.jpg",
+        "/textures/earth-normal.jpg",
+        "/textures/earth-water-mask.png",
+        "/textures/earth-roughness.png",
+        "/textures/earth-night-lights.png",
+        "/textures/earth-clouds.png",
+        "/textures/earth-borders.png",
+      ]
+  const loadedTextures = useTexture(textureUrls) as THREE.Texture[]
+  const [albedo, normal, waterMask, roughness, nightLights] = loadedTextures
+  const clouds = lowTextureTier ? null : loadedTextures[5]
+  const borders = lowTextureTier ? loadedTextures[5] : loadedTextures[6]
   const globeMaterial = useMemo(() => {
     const material = new THREE.MeshPhysicalMaterial({
       map: albedo,
@@ -1083,15 +1097,15 @@ function EarthModel({
     waterMask.colorSpace = THREE.NoColorSpace
     roughness.colorSpace = THREE.NoColorSpace
     nightLights.colorSpace = THREE.NoColorSpace
-    clouds.colorSpace = THREE.NoColorSpace
+    if (clouds) clouds.colorSpace = THREE.NoColorSpace
     borders.colorSpace = THREE.SRGBColorSpace
     normal.anisotropy = 6
     waterMask.anisotropy = 4
     roughness.anisotropy = 4
     nightLights.anisotropy = 4
-    clouds.anisotropy = 4
+    if (clouds) clouds.anisotropy = 4
     borders.anisotropy = 4
-    clouds.wrapS = THREE.RepeatWrapping
+    if (clouds) clouds.wrapS = THREE.RepeatWrapping
     markLandingAssetReady("earth")
     onReady?.()
   }, [albedo, borders, clouds, nightLights, normal, onReady, roughness, waterMask])
@@ -1230,7 +1244,7 @@ function EarthModel({
         <sphereGeometry args={[EARTH_RADIUS, 128, 96]} />
       </mesh>
       <NightLights texture={nightLights} />
-      {quality.clouds ? (
+      {quality.clouds && clouds ? (
         <CloudLayer texture={clouds} reducedMotion={reducedMotion} />
       ) : null}
       <CountryBorders texture={borders} />

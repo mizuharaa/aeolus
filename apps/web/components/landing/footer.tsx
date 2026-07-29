@@ -30,6 +30,16 @@ export function LandingFooter() {
           <p className="ae-footer-note">
             Open-source OCC reference · research artifact · not a substitute for
             production operations software.
+            <br />
+            Aircraft model created with{" "}
+            <a
+              href="https://www.meshy.ai/"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Meshy
+            </a>{" "}
+            · CC BY 4.0.
           </p>
         </div>
       </div>

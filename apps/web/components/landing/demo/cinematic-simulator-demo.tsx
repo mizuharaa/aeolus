@@ -491,6 +491,7 @@ export function CinematicSimulatorDemo() {
             >
             {/* top bar */}
             <div
+              className="dm-status-bar"
               style={{
                 display: "flex",
                 alignItems: "center",

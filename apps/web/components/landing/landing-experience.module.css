@@ -1136,6 +1136,11 @@
   line-height: 1.55;
 }
 
+.experience :global(.ae-footer-note a) {
+  color: inherit;
+  text-underline-offset: 0.18em;
+}
+
 @media (max-width: 39.99rem) {
   .experience:global(.ae-landing-experience) :global(.dm-section) {
     padding-block: clamp(4rem, 12dvh, 6rem);
@@ -1410,5 +1415,16 @@
 
   .experience :global(.ae-globe-pin) {
     height: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) and (min-width: 40rem) {
+  .experience :global(.ae-globe-section),
+  .experience :global(.ae-globe-pin) {
+    min-height: 42rem;
+  }
+
+  .experience :global(.ae-globe-pin) {
+    height: 100dvh;
   }
 }

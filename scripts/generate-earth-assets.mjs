@@ -32,6 +32,8 @@ const WIDTH = 4096
 const HEIGHT = 2048
 const CLOUD_WIDTH = 2048
 const CLOUD_HEIGHT = 1024
+const MOBILE_WIDTH = 2048
+const MOBILE_HEIGHT = 1024
 
 const sources = {
   albedo:
@@ -156,6 +158,25 @@ async function buildMapOverlays() {
     .toFile(resolve(outputRoot, "earth-roughness.png"))
 }
 
+async function buildMobileTextures() {
+  const variants = [
+    ["earth-blue-marble.jpg", "earth-blue-marble-mobile.jpg", MOBILE_WIDTH, MOBILE_HEIGHT],
+    ["earth-normal.jpg", "earth-normal-mobile.jpg", 1024, 512],
+    ["earth-water-mask.png", "earth-water-mask-mobile.png", MOBILE_WIDTH, MOBILE_HEIGHT],
+    ["earth-roughness.png", "earth-roughness-mobile.png", MOBILE_WIDTH, MOBILE_HEIGHT],
+    ["earth-night-lights.png", "earth-night-lights-mobile.png", MOBILE_WIDTH, MOBILE_HEIGHT],
+    ["earth-borders.png", "earth-borders-mobile.png", MOBILE_WIDTH, MOBILE_HEIGHT],
+  ]
+
+  await Promise.all(
+    variants.map(([source, output, width, height]) =>
+      sharp(resolve(outputRoot, source))
+        .resize(width, height, { fit: "fill" })
+        .toFile(resolve(outputRoot, output)),
+    ),
+  )
+}
+
 async function main() {
   const [albedoSource, nightSource, cloudSource] = await Promise.all([
     download(sources.albedo),
@@ -185,6 +206,7 @@ async function main() {
     .toFile(resolve(outputRoot, "earth-clouds.png"))
 
   await buildMapOverlays()
+  await buildMobileTextures()
 
   const manifest = {
     projection: "equirectangular",
@@ -215,4 +237,9 @@ async function main() {
   )
 }
 
-await main()
+if (process.argv.includes("--mobile-only")) {
+  await buildMobileTextures()
+  console.log("Generated half-resolution Earth texture maps.")
+} else {
+  await main()
+}

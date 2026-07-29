@@ -212,8 +212,8 @@ function LaptopModel({
         (1 - smoothstep(0.68, 0.9, progress))
     const dolly = dollySpring.current.step(focus, delta)
     if (rigRef.current) {
-      rigRef.current.scale.setScalar(0.88 + dolly * 0.12 - closeAmount * 0.035)
-      rigRef.current.position.y = -0.14 + dolly * 0.1
+      rigRef.current.scale.setScalar(0.88 + dolly * 0.09 - closeAmount * 0.035)
+      rigRef.current.position.y = -0.16 + dolly * 0.06
       roll.current = damp(
         roll.current,
         (landingScroll.direction || 0) * 0.006 * (1 - closeAmount),
@@ -223,8 +223,8 @@ function LaptopModel({
       rigRef.current.rotation.z = roll.current
     }
 
-    const targetCameraY = 2.26 - dolly * 0.18 + closeAmount * 0.08
-    const targetCameraZ = 4.56 - dolly * 0.46 + closeAmount * 0.16
+    const targetCameraY = 2.26 - dolly * 0.12 + closeAmount * 0.08
+    const targetCameraZ = 4.56 - dolly * 0.34 + closeAmount * 0.16
     camera.position.y = damp(camera.position.y, targetCameraY, 6, delta)
     camera.position.z = damp(camera.position.z, targetCameraZ, 6, delta)
     camera.lookAt(0, 0.72, -0.03)

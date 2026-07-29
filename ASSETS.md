@@ -15,6 +15,12 @@ repository scripts; their source and transformation are listed alongside them.
 | `apps/web/public/textures/earth-roughness.png` | Derived from Natural Earth coastlines | Natural Earth public-domain map data. | Inverted and range-compressed water mask: matte land, restrained glossy ocean. |
 | `apps/web/public/textures/earth-borders.png` | `apps/web/public/data/ne-110m-admin-0-countries.json` | Natural Earth public-domain map data. | Rasterized into the exact same 4096×2048 equirectangular UV space as the albedo so borders cannot drift from coastlines. |
 | `apps/web/public/textures/earth-normal.jpg` | NASA Blue Marble Next Generation topography derivative (original source metadata dates the map to 2005) | NASA imagery; generally not subject to copyright in the United States. Credit NASA. | Existing 2048×1024 terrain normal map; used at restrained strength. |
+| `apps/web/public/textures/earth-assets.json` | Repository-authored build metadata for the sources above | Project-authored metadata; repository license. | Records source checksums plus the Greenwich, equator/dateline, and Bering Strait projection checkpoints used to verify border/coastline alignment. |
+| `apps/web/public/data/ne-110m-admin-0-countries.json` | [Natural Earth Admin 0 Countries](https://www.naturalearthdata.com/downloads/110m-cultural-vectors/110m-admin-0-countries/) | Natural Earth public-domain map data. | Source GeoJSON for the co-projected country-border raster and ocean mask. |
+
+The `earth-*-mobile` variants carry the same rights as their registered source
+rows. `scripts/generate-earth-assets.mjs --mobile-only` deterministically halves
+the desktop dimensions; the low-capability tier does not request the cloud map.
 
 NASA source usage follows the [NASA Images and Media Usage
 Guidelines](https://www.nasa.gov/nasa-brand-center/images-and-media/). NASA is
@@ -37,4 +43,19 @@ the brief's CC0 fallback. No Higgsfield credits were consumed.
 | `apps/web/public/textures/cabin/walnut-*` | [ambientCG Wood 027](https://ambientcg.com/view?id=Wood027) | Creative Commons CC0 1.0; attribution not required. | 1K color, OpenGL normal, and roughness maps converted to WebP. Used beneath a clearcoat layer on console and dado surfaces. |
 
 The complete shipped cabin texture library is approximately 1.74 MB. Original
-1K JPG packages are intentionally not shipped.
+1K JPG packages are intentionally not shipped. Each `*-mobile.webp` file is a
+deterministic half-resolution derivative carrying the same CC0 rights, generated
+by `scripts/generate-cabin-mobile-assets.mjs`.
+
+## Aircraft and device
+
+| Shipped asset | Source | Rights / license | Transformation and use |
+| --- | --- | --- | --- |
+| `apps/web/public/models/aeolus-airliner.glb` | Project-generated image-to-3D model created with Meshy from the Aeolus aircraft concept | Creative Commons Attribution 4.0 (CC BY 4.0), the conservative license applied to Meshy free-plan output. Attribution appears in the site footer. | Reoriented, normalized, and upgraded at runtime from standard materials to clear-coated physical aircraft materials. |
+| `apps/web/public/images/aeolus-airliner-poster.webp` | Repository-authored render of `aeolus-airliner.glb` | CC BY 4.0 as a derivative of the Meshy aircraft model. | Lightweight first-paint and reduced-motion poster; replaced by the live GLB after load. |
+| Procedural cabin geometry and MacBook-style OCC device | Authored in the Aeolus source with Three.js primitives and canvas textures | Project-authored; repository license. No third-party 3D model is embedded. | Instanced cabin geometry, physical hinge, keyboard normal-style canvas texture, aluminum materials, and live DOM dashboard surface. |
+
+Meshy output licensing was checked against the [Meshy ownership
+guidance](https://help.meshy.ai/en/articles/10137554-what-is-the-ownership-of-the-generated-models).
+Because the generating account tier is not preserved in repository history, the
+more restrictive free-plan CC BY 4.0 terms are applied.

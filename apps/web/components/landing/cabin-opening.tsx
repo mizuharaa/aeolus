@@ -76,6 +76,10 @@ const CABIN_TEXTURE_URLS = [
   "/textures/cabin/walnut-roughness.webp",
 ] as const
 
+const CABIN_TEXTURE_URLS_MOBILE = CABIN_TEXTURE_URLS.map((url) =>
+  url.replace(/\.webp$/, "-mobile.webp"),
+)
+
 type CabinMaterials = {
   leather: THREE.MeshPhysicalMaterial
   leatherAccent: THREE.MeshPhysicalMaterial
@@ -1064,7 +1068,11 @@ function CabinPostProcessing() {
 }
 
 function CabinScene() {
-  const textures = useTexture([...CABIN_TEXTURE_URLS]) as THREE.Texture[]
+  const textureUrls =
+    getLandingQualityProfile().tier === "low"
+      ? CABIN_TEXTURE_URLS_MOBILE
+      : CABIN_TEXTURE_URLS
+  const textures = useTexture([...textureUrls]) as THREE.Texture[]
   const materials = useMemo(
     () => createCabinMaterials(textures),
     [textures],
@@ -1219,7 +1227,11 @@ function CabinScene() {
   )
 }
 
-CABIN_TEXTURE_URLS.forEach((url) => useTexture.preload(url))
+const CABIN_PRELOAD_URLS =
+  getLandingQualityProfile().tier === "low"
+    ? CABIN_TEXTURE_URLS_MOBILE
+    : CABIN_TEXTURE_URLS
+CABIN_PRELOAD_URLS.forEach((url) => useTexture.preload(url))
 
 export function CabinOpening() {
   const layerRef = useRef<HTMLDivElement>(null)
