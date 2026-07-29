@@ -1,7 +1,7 @@
 "use client"
 
 import { Suspense, useEffect, useMemo, useRef, useState } from "react"
-import { Canvas, type ThreeEvent, useFrame, useLoader } from "@react-three/fiber"
+import { Canvas, type ThreeEvent, useFrame } from "@react-three/fiber"
 import { useTexture } from "@react-three/drei"
 import * as THREE from "three"
 import {
@@ -94,18 +94,15 @@ const OUT = new THREE.Vector3(0, 0, 1)
 
 useTexture.preload("/textures/earth-blue-marble.jpg")
 useTexture.preload("/textures/earth-normal.jpg")
+useTexture.preload("/textures/earth-water-mask.png")
+useTexture.preload("/textures/earth-roughness.png")
+useTexture.preload("/textures/earth-night-lights.png")
+useTexture.preload("/textures/earth-clouds.png")
+useTexture.preload("/textures/earth-borders.png")
 
 const EVENT_SIGNAL_COLOR = "#E4A728"
 const RUNWAY_SURFACE_COLOR = "#2A2112"
-const COUNTRY_DATA_URL = "/data/ne-110m-admin-0-countries.json"
-
-type LonLat = [number, number]
-type CountryGeometry =
-  | { type: "Polygon"; coordinates: LonLat[][] }
-  | { type: "MultiPolygon"; coordinates: LonLat[][][] }
-type CountryCollection = {
-  features: Array<{ geometry: CountryGeometry | null }>
-}
+const SUN_DIRECTION = new THREE.Vector3()
 
 function useReducedMotionPreference() {
   const [reduced, setReduced] = useState(false)
@@ -131,65 +128,158 @@ function latLonToVector3(lat: number, lon: number, radius = EARTH_RADIUS) {
   )
 }
 
-function CountryBorders() {
-  const source = useLoader(THREE.FileLoader, COUNTRY_DATA_URL)
-  const geometry = useMemo(() => {
-    const raw =
-      typeof source === "string"
-        ? source
-        : new TextDecoder().decode(source as ArrayBuffer)
-    const collection = JSON.parse(raw) as CountryCollection
-    const positions: number[] = []
+function updateSunDirection(time: number, target = SUN_DIRECTION) {
+  const drift = time * 0.018
+  return target
+    .set(Math.cos(drift) * 0.78, 0.28 + Math.sin(drift * 0.63) * 0.09, 0.58)
+    .normalize()
+}
 
-    const appendRing = (ring: LonLat[]) => {
-      for (let index = 1; index < ring.length; index += 1) {
-        const previous = ring[index - 1]
-        const current = ring[index]
-        if (!previous || !current) continue
-        // Dateline-wrapping polygon edges otherwise draw a chord through
-        // the globe. The adjacent segment on the opposite side closes it.
-        if (Math.abs(current[0] - previous[0]) > 180) continue
-        const a = latLonToVector3(previous[1], previous[0], EARTH_RADIUS + 0.022)
-        const b = latLonToVector3(current[1], current[0], EARTH_RADIUS + 0.022)
-        positions.push(a.x, a.y, a.z, b.x, b.y, b.z)
-      }
-    }
-
-    for (const feature of collection.features) {
-      const shape = feature.geometry
-      if (!shape) continue
-      if (shape.type === "Polygon") {
-        shape.coordinates.forEach(appendRing)
-      } else {
-        shape.coordinates.forEach((polygon) => polygon.forEach(appendRing))
-      }
-    }
-
-    const result = new THREE.BufferGeometry()
-    result.setAttribute(
-      "position",
-      new THREE.Float32BufferAttribute(positions, 3),
-    )
-    result.computeBoundingSphere()
-    return result
-  }, [source])
-
-  useEffect(() => () => geometry.dispose(), [geometry])
-
+function CountryBorders({ texture }: { texture: THREE.Texture }) {
   return (
-    <lineSegments geometry={geometry} renderOrder={4}>
-      <lineBasicMaterial
-        color={EVENT_SIGNAL_COLOR}
+    <mesh scale={1.0028} renderOrder={5}>
+      <sphereGeometry args={[EARTH_RADIUS, 128, 96]} />
+      <meshBasicMaterial
+        map={texture}
         transparent
-        opacity={0.38}
+        opacity={0.72}
+        alphaTest={0.025}
         depthWrite={false}
+        blending={THREE.NormalBlending}
         toneMapped={false}
       />
-    </lineSegments>
+    </mesh>
   )
 }
 
-function Atmosphere() {
+function NightLights({ texture }: { texture: THREE.Texture }) {
+  const material = useMemo(
+    () =>
+      new THREE.ShaderMaterial({
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        toneMapped: false,
+        uniforms: {
+          uMap: { value: texture },
+          uSunDirection: { value: new THREE.Vector3(0.78, 0.28, 0.58).normalize() },
+          uColor: { value: new THREE.Color("#FFC46B") },
+          uIntensity: { value: 0.9 },
+        },
+        vertexShader: `
+          varying vec2 vUv;
+          varying vec3 vWorldNormal;
+          void main() {
+            vUv = uv;
+            vWorldNormal = normalize(mat3(modelMatrix) * normal);
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }
+        `,
+        fragmentShader: `
+          uniform sampler2D uMap;
+          uniform vec3 uSunDirection;
+          uniform vec3 uColor;
+          uniform float uIntensity;
+          varying vec2 vUv;
+          varying vec3 vWorldNormal;
+          void main() {
+            float ndl = dot(normalize(vWorldNormal), normalize(uSunDirection));
+            float night = 1.0 - smoothstep(-0.15, 0.15, ndl);
+            float lightMap = pow(texture2D(uMap, vUv).r, 1.18);
+            float strength = lightMap * night * uIntensity;
+            if (strength < 0.008) discard;
+            gl_FragColor = vec4(uColor * strength * 1.3, strength);
+          }
+        `,
+      }),
+    [texture],
+  )
+
+  useFrame(({ clock }) => {
+    updateSunDirection(clock.elapsedTime, material.uniforms.uSunDirection.value)
+  })
+
+  useEffect(() => () => material.dispose(), [material])
+
+  return (
+    <mesh scale={1.0016} material={material} renderOrder={3}>
+      <sphereGeometry args={[EARTH_RADIUS, 128, 96]} />
+    </mesh>
+  )
+}
+
+function CloudLayer({
+  texture,
+  reducedMotion,
+}: {
+  texture: THREE.Texture
+  reducedMotion: boolean
+}) {
+  const meshRef = useRef<THREE.Mesh>(null)
+  const material = useMemo(
+    () =>
+      new THREE.ShaderMaterial({
+        transparent: true,
+        depthWrite: false,
+        uniforms: {
+          uMap: { value: texture },
+          uSunDirection: { value: new THREE.Vector3(0.78, 0.28, 0.58).normalize() },
+          uOpacity: { value: 0.34 },
+        },
+        vertexShader: `
+          varying vec2 vUv;
+          varying vec3 vWorldNormal;
+          varying vec3 vWorldPosition;
+          void main() {
+            vUv = uv;
+            vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+            vWorldPosition = worldPosition.xyz;
+            vWorldNormal = normalize(mat3(modelMatrix) * normal);
+            gl_Position = projectionMatrix * viewMatrix * worldPosition;
+          }
+        `,
+        fragmentShader: `
+          uniform sampler2D uMap;
+          uniform vec3 uSunDirection;
+          uniform float uOpacity;
+          varying vec2 vUv;
+          varying vec3 vWorldNormal;
+          varying vec3 vWorldPosition;
+          void main() {
+            float clouds = pow(texture2D(uMap, vUv).r, 1.12);
+            float ndl = dot(normalize(vWorldNormal), normalize(uSunDirection));
+            float daylight = smoothstep(-0.22, 0.4, ndl);
+            vec3 viewDirection = normalize(cameraPosition - vWorldPosition);
+            float rim = pow(1.0 - max(dot(normalize(vWorldNormal), viewDirection), 0.0), 2.2);
+            vec3 nightCloud = vec3(0.15, 0.18, 0.24);
+            vec3 dayCloud = vec3(0.88, 0.92, 0.98);
+            vec3 color = mix(nightCloud, dayCloud, daylight) + rim * vec3(0.12, 0.19, 0.28);
+            float alpha = clouds * uOpacity * mix(0.36, 1.0, daylight);
+            if (alpha < 0.008) discard;
+            gl_FragColor = vec4(color, alpha);
+          }
+        `,
+      }),
+    [texture],
+  )
+
+  useFrame(({ clock }, delta) => {
+    updateSunDirection(clock.elapsedTime, material.uniforms.uSunDirection.value)
+    if (!reducedMotion && meshRef.current) {
+      meshRef.current.rotation.y += Math.min(delta, 1 / 30) * 0.009
+    }
+  })
+
+  useEffect(() => () => material.dispose(), [material])
+
+  return (
+    <mesh ref={meshRef} scale={1.007} material={material} renderOrder={2}>
+      <sphereGeometry args={[EARTH_RADIUS, 96, 72]} />
+    </mesh>
+  )
+}
+
+function Atmosphere({ reducedMotion }: { reducedMotion: boolean }) {
   const material = useMemo(
     () =>
       new THREE.ShaderMaterial({
@@ -198,38 +288,200 @@ function Atmosphere() {
         depthWrite: false,
         blending: THREE.AdditiveBlending,
         uniforms: {
-          glowColor: { value: new THREE.Color("#6FA8E7") },
+          uTime: { value: 0 },
+          uSunDirection: { value: new THREE.Vector3(0.78, 0.28, 0.58).normalize() },
+          uIndigo: { value: new THREE.Color("#33206F") },
+          uCyan: { value: new THREE.Color("#4FD8E8") },
+          uViolet: { value: new THREE.Color("#8E68ED") },
+          uAmber: { value: new THREE.Color("#F5C572") },
         },
         vertexShader: `
-          varying vec3 vNormal;
+          varying vec3 vWorldNormal;
+          varying vec3 vLocalNormal;
           varying vec3 vWorldPosition;
           void main() {
-            vNormal = normalize(normalMatrix * normal);
+            vLocalNormal = normalize(normal);
             vec4 worldPosition = modelMatrix * vec4(position, 1.0);
             vWorldPosition = worldPosition.xyz;
+            vWorldNormal = normalize(mat3(modelMatrix) * normal);
             gl_Position = projectionMatrix * viewMatrix * worldPosition;
           }
         `,
         fragmentShader: `
-          uniform vec3 glowColor;
-          varying vec3 vNormal;
+          uniform float uTime;
+          uniform vec3 uSunDirection;
+          uniform vec3 uIndigo;
+          uniform vec3 uCyan;
+          uniform vec3 uViolet;
+          uniform vec3 uAmber;
+          varying vec3 vWorldNormal;
+          varying vec3 vLocalNormal;
           varying vec3 vWorldPosition;
+
+          float hash31(vec3 p) {
+            p = fract(p * 0.1031);
+            p += dot(p, p.yzx + 33.33);
+            return fract((p.x + p.y) * p.z);
+          }
+
+          float noise31(vec3 p) {
+            vec3 i = floor(p);
+            vec3 f = fract(p);
+            f = f * f * (3.0 - 2.0 * f);
+            return mix(
+              mix(mix(hash31(i), hash31(i + vec3(1,0,0)), f.x),
+                  mix(hash31(i + vec3(0,1,0)), hash31(i + vec3(1,1,0)), f.x), f.y),
+              mix(mix(hash31(i + vec3(0,0,1)), hash31(i + vec3(1,0,1)), f.x),
+                  mix(hash31(i + vec3(0,1,1)), hash31(i + vec3(1,1,1)), f.x), f.y),
+              f.z
+            );
+          }
+
+          float fbm(vec3 p) {
+            float value = 0.0;
+            float amplitude = 0.55;
+            for (int i = 0; i < 4; i++) {
+              value += noise31(p) * amplitude;
+              p = p * 2.03 + 7.17;
+              amplitude *= 0.48;
+            }
+            return value;
+          }
+
           void main() {
             vec3 viewDirection = normalize(cameraPosition - vWorldPosition);
-            float fresnel = pow(1.0 - max(dot(vNormal, viewDirection), 0.0), 5.2);
-            gl_FragColor = vec4(glowColor, fresnel * 0.22);
+            vec3 worldNormal = normalize(vWorldNormal);
+            float ndv = dot(worldNormal, viewDirection);
+            float fresnel = pow(1.0 - abs(ndv), 3.2);
+            float limb = smoothstep(0.38, 0.94, fresnel);
+            float sunSide = smoothstep(-0.1, 0.62, dot(worldNormal, normalize(uSunDirection)));
+
+            vec3 spectrum = mix(uIndigo, uCyan, smoothstep(0.0, 0.38, fresnel));
+            spectrum = mix(spectrum, uViolet, smoothstep(0.38, 0.72, fresnel));
+            spectrum = mix(spectrum, uAmber, smoothstep(0.78, 1.0, fresnel) * sunSide);
+
+            float latitude = vLocalNormal.y;
+            float w1 = sin(latitude * 34.0 + uTime * 0.55) * 0.5 + 0.5;
+            float w2 = sin(latitude * 61.0 - uTime * 0.31 + fbm(vLocalNormal * 2.0) * 2.4) * 0.5 + 0.5;
+            float wave = mix(w1, w2, 0.45) * limb * 0.22;
+
+            float polar = smoothstep(0.62, 0.92, abs(latitude));
+            float auroraNoise = smoothstep(0.5, 0.88, fbm(vLocalNormal * 8.0 + vec3(0.0, uTime * 0.035, 0.0)));
+            vec3 auroraColor = mix(vec3(0.23, 0.93, 0.65), uViolet, smoothstep(0.75, 0.98, abs(latitude)));
+            float aurora = polar * auroraNoise * limb * 0.22;
+
+            float latGrid = 1.0 - smoothstep(0.0, 0.045, abs(sin(asin(clamp(vLocalNormal.y, -1.0, 1.0)) * 18.0)));
+            float lonGrid = 1.0 - smoothstep(0.0, 0.045, abs(sin(atan(vLocalNormal.z, vLocalNormal.x) * 18.0)));
+            float graticule = max(latGrid, lonGrid) * smoothstep(0.72, 0.98, fresnel) * 0.04;
+
+            vec3 color = spectrum * (fresnel * 1.24 + wave);
+            color += auroraColor * aurora;
+            color += uCyan * graticule;
+            float alpha = clamp(fresnel * 0.68 + wave * 0.42 + aurora + graticule, 0.0, 0.76);
+            gl_FragColor = vec4(color, alpha);
           }
         `,
       }),
     [],
   )
 
+  useFrame(({ clock }) => {
+    material.uniforms.uTime.value = reducedMotion ? 0 : clock.elapsedTime
+    updateSunDirection(clock.elapsedTime, material.uniforms.uSunDirection.value)
+  })
+
   useEffect(() => () => material.dispose(), [material])
 
   return (
-    <mesh scale={1.028} material={material}>
-      <sphereGeometry args={[EARTH_RADIUS, 64, 48]} />
+    <mesh scale={1.04} material={material} renderOrder={7}>
+      <sphereGeometry args={[EARTH_RADIUS, 96, 72]} />
     </mesh>
+  )
+}
+
+function StarField({ reducedMotion }: { reducedMotion: boolean }) {
+  const pointsRef = useRef<THREE.Points>(null)
+  const { geometry, material } = useMemo(() => {
+    const count = 4000
+    const positions = new Float32Array(count * 3)
+    const sizes = new Float32Array(count)
+    const phases = new Float32Array(count)
+    let seed = 9147
+    const random = () => {
+      seed = (seed * 16807) % 2147483647
+      return (seed - 1) / 2147483646
+    }
+
+    for (let index = 0; index < count; index += 1) {
+      const z = random() * 2 - 1
+      const azimuth = random() * Math.PI * 2
+      const radius = 28 + random() * 34
+      const radial = Math.sqrt(1 - z * z)
+      positions[index * 3] = Math.cos(azimuth) * radial * radius
+      positions[index * 3 + 1] = z * radius
+      positions[index * 3 + 2] = Math.sin(azimuth) * radial * radius
+      sizes[index] = 0.65 + Math.pow(random(), 5) * 2.9
+      phases[index] = random() * Math.PI * 2
+    }
+
+    const starGeometry = new THREE.BufferGeometry()
+    starGeometry.setAttribute("position", new THREE.BufferAttribute(positions, 3))
+    starGeometry.setAttribute("aSize", new THREE.BufferAttribute(sizes, 1))
+    starGeometry.setAttribute("aPhase", new THREE.BufferAttribute(phases, 1))
+
+    const starMaterial = new THREE.ShaderMaterial({
+      transparent: true,
+      depthWrite: false,
+      toneMapped: false,
+      uniforms: { uTime: { value: 0 } },
+      vertexShader: `
+        uniform float uTime;
+        attribute float aSize;
+        attribute float aPhase;
+        varying float vPulse;
+        void main() {
+          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+          vPulse = 0.72 + sin(uTime * 0.45 + aPhase) * 0.22;
+          gl_PointSize = aSize * (86.0 / max(6.0, -mvPosition.z));
+          gl_Position = projectionMatrix * mvPosition;
+        }
+      `,
+      fragmentShader: `
+        varying float vPulse;
+        void main() {
+          vec2 point = gl_PointCoord - 0.5;
+          float alpha = (1.0 - smoothstep(0.08, 0.5, length(point))) * vPulse;
+          gl_FragColor = vec4(vec3(0.78, 0.82, 0.94), alpha * 0.62);
+        }
+      `,
+    })
+    return { geometry: starGeometry, material: starMaterial }
+  }, [])
+
+  useFrame(({ clock }) => {
+    material.uniforms.uTime.value = reducedMotion ? 0 : clock.elapsedTime
+    if (!pointsRef.current) return
+    const progress = landingScroll.scenes.globe
+    pointsRef.current.rotation.y = progress * 0.026 + (reducedMotion ? 0 : clock.elapsedTime * 0.0007)
+    pointsRef.current.rotation.x = progress * -0.012
+  })
+
+  useEffect(
+    () => () => {
+      geometry.dispose()
+      material.dispose()
+    },
+    [geometry, material],
+  )
+
+  return (
+    <points
+      ref={pointsRef}
+      geometry={geometry}
+      material={material}
+      frustumCulled={false}
+      renderOrder={-10}
+    />
   )
 }
 
@@ -534,42 +786,50 @@ function EarthModel({
 }) {
   const planetRef = useRef<THREE.Group>(null)
   const drag = useRef({ active: false, x: 0, y: 0, until: 0 })
-  const [albedo, normal] = useTexture([
+  const [albedo, normal, waterMask, roughness, nightLights, clouds, borders] = useTexture([
     "/textures/earth-blue-marble.jpg",
     "/textures/earth-normal.jpg",
+    "/textures/earth-water-mask.png",
+    "/textures/earth-roughness.png",
+    "/textures/earth-night-lights.png",
+    "/textures/earth-clouds.png",
+    "/textures/earth-borders.png",
   ])
   const globeMaterial = useMemo(() => {
-    const material = new THREE.MeshStandardMaterial({
+    const material = new THREE.MeshPhysicalMaterial({
       map: albedo,
       normalMap: normal,
-      normalScale: new THREE.Vector2(0.075, 0.075),
-      color: new THREE.Color("#D8DDD8"),
-      roughness: 0.84,
+      normalScale: new THREE.Vector2(0.34, 0.34),
+      roughnessMap: roughness,
+      roughness: 1,
       metalness: 0,
+      ior: 1.34,
+      specularIntensity: 0.92,
+      specularIntensityMap: waterMask,
+      specularColor: new THREE.Color("#D8ECFF"),
     })
-
-    material.onBeforeCompile = (shader) => {
-      shader.fragmentShader = shader.fragmentShader.replace(
-        "#include <map_fragment>",
-        `
-          #include <map_fragment>
-          float aeLuma = dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722));
-          diffuseColor.rgb = mix(vec3(aeLuma), diffuseColor.rgb, 0.84);
-        `,
-      )
-    }
-    material.customProgramCacheKey = () => "aeolus-natural-earth-v2"
     return material
-  }, [albedo, normal])
+  }, [albedo, normal, roughness, waterMask])
 
   useEffect(() => {
     albedo.colorSpace = THREE.SRGBColorSpace
-    albedo.anisotropy = 6
+    albedo.anisotropy = 8
     normal.colorSpace = THREE.NoColorSpace
-    normal.anisotropy = 4
+    waterMask.colorSpace = THREE.NoColorSpace
+    roughness.colorSpace = THREE.NoColorSpace
+    nightLights.colorSpace = THREE.NoColorSpace
+    clouds.colorSpace = THREE.NoColorSpace
+    borders.colorSpace = THREE.SRGBColorSpace
+    normal.anisotropy = 6
+    waterMask.anisotropy = 4
+    roughness.anisotropy = 4
+    nightLights.anisotropy = 4
+    clouds.anisotropy = 4
+    borders.anisotropy = 4
+    clouds.wrapS = THREE.RepeatWrapping
     markLandingAssetReady("earth")
     onReady?.()
-  }, [albedo, normal, onReady])
+  }, [albedo, borders, clouds, nightLights, normal, onReady, roughness, waterMask])
 
   useEffect(
     () => () => {
@@ -593,8 +853,12 @@ function EarthModel({
 
     if (!eventsActive) {
       const idleX = -0.12
-      const damping = 1 - Math.exp(-delta * 2.2)
-      group.rotation.x += (idleX - group.rotation.x) * damping
+      group.rotation.x = THREE.MathUtils.damp(
+        group.rotation.x,
+        idleX,
+        2.2,
+        Math.min(delta, 1 / 30),
+      )
       if (!reducedMotion && !drag.current.active) {
         group.rotation.y += delta * 0.075
       }
@@ -616,9 +880,19 @@ function EarthModel({
       Math.sin(targetY - group.rotation.y),
       Math.cos(targetY - group.rotation.y),
     )
-    const damping = 1 - Math.exp(-delta * 1.55)
-    group.rotation.y += yDifference * damping
-    group.rotation.x += (targetX - group.rotation.x) * damping
+    const clampedDelta = Math.min(delta, 1 / 30)
+    group.rotation.y = THREE.MathUtils.damp(
+      group.rotation.y,
+      group.rotation.y + yDifference,
+      1.55,
+      clampedDelta,
+    )
+    group.rotation.x = THREE.MathUtils.damp(
+      group.rotation.x,
+      targetX,
+      1.55,
+      clampedDelta,
+    )
   })
 
   const handlePointerDown = (event: ThreeEvent<PointerEvent>) => {
@@ -654,10 +928,12 @@ function EarthModel({
       onPointerCancel={handlePointerUp}
     >
       <mesh castShadow receiveShadow material={globeMaterial}>
-        <sphereGeometry args={[EARTH_RADIUS, 64, 48]} />
+        <sphereGeometry args={[EARTH_RADIUS, 128, 96]} />
       </mesh>
-      <CountryBorders />
-      <Atmosphere />
+      <NightLights texture={nightLights} />
+      <CloudLayer texture={clouds} reducedMotion={reducedMotion} />
+      <CountryBorders texture={borders} />
+      <Atmosphere reducedMotion={reducedMotion} />
       {GLOBE_EVENTS.map((event) => (
         <EventEffect
           key={event.id}
@@ -667,6 +943,34 @@ function EarthModel({
         />
       ))}
     </group>
+  )
+}
+
+function EarthLighting({ reducedMotion }: { reducedMotion: boolean }) {
+  const keyRef = useRef<THREE.DirectionalLight>(null)
+  const sun = useMemo(() => new THREE.Vector3(), [])
+
+  useFrame(({ clock }) => {
+    const time = reducedMotion ? 0 : clock.elapsedTime
+    updateSunDirection(time, sun)
+    keyRef.current?.position.copy(sun).multiplyScalar(8)
+  })
+
+  return (
+    <>
+      <hemisphereLight args={["#AFC3D6", "#08070E", 0.2]} />
+      <directionalLight
+        ref={keyRef}
+        position={[6.2, 2.2, 4.6]}
+        intensity={3.15}
+        color="#FFF1D7"
+      />
+      <directionalLight
+        position={[-4, -1.8, 1]}
+        intensity={0.08}
+        color="#506E9A"
+      />
+    </>
   )
 }
 
@@ -681,9 +985,8 @@ function EarthScene({
 }) {
   return (
     <>
-      <hemisphereLight args={["#D8E5EE", "#151D2B", 0.86]} />
-      <directionalLight position={[5, 2.4, 5]} intensity={2.55} color="#F7EAD1" />
-      <directionalLight position={[-4, -1.5, 1]} intensity={0.34} color="#7892B2" />
+      <StarField reducedMotion={reducedMotion} />
+      <EarthLighting reducedMotion={reducedMotion} />
       <EarthModel
         activeEvent={activeEvent}
         onReady={onReady}

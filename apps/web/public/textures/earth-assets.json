@@ -1,0 +1,43 @@
+{
+  "projection": "equirectangular",
+  "dimensions": {
+    "width": 4096,
+    "height": 2048
+  },
+  "sources": {
+    "albedo": "https://eoimages.gsfc.nasa.gov/images/imagerecords/73000/73909/world.topo.bathy.200412.3x5400x2700.jpg",
+    "night": "https://eoimages.gsfc.nasa.gov/images/imagerecords/144000/144897/BlackMarble_2016_01deg_gray.jpg",
+    "clouds": "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_clouds_1024.png"
+  },
+  "sourceChecksums": {
+    "albedo": "a9f0088972dee025",
+    "night": "4d2158f59123dadf",
+    "clouds": "5f9612e4f4040975"
+  },
+  "validation": {
+    "greenwich": {
+      "lon": 0,
+      "lat": 51.4779,
+      "pixel": [
+        2048,
+        438.29589333333337
+      ]
+    },
+    "datelineEquator": {
+      "lon": 180,
+      "lat": 0,
+      "pixel": [
+        4096,
+        1024
+      ]
+    },
+    "beringStrait": {
+      "lon": -168.9,
+      "lat": 65.8,
+      "pixel": [
+        126.29333333333327,
+        275.34222222222223
+      ]
+    }
+  }
+}
