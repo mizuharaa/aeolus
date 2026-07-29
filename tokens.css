@@ -4,24 +4,33 @@
  */
 :root {
   /* Colour */
-  --color-paper: oklch(95.5% 0.018 82);
+  --color-ink-900: oklch(13.9% 0.0227 298.19);
+  --color-ink-800: oklch(18.61% 0.0305 295.55);
+  --color-ink-700: oklch(22.91% 0.0459 293.97);
+  --color-paper: oklch(95.63% 0.0143 84.58);
+  --color-paper-hi: oklch(98.87% 0.0126 86.83);
   --color-paper-2: oklch(91.5% 0.025 78);
   --color-paper-3: oklch(88% 0.03 78);
-  --color-ink: oklch(17% 0.026 307);
+  --color-ink: var(--color-ink-900);
   --color-ink-2: oklch(36% 0.024 78);
   --color-muted: oklch(54% 0.02 78);
   --color-neutral: oklch(38% 0.018 78);
   --color-rule: oklch(84% 0.018 78);
   --color-rule-2: oklch(76% 0.02 78);
-  --color-accent: oklch(72% 0.15 77);
-  --color-accent-ink: oklch(14% 0.025 307);
-  --color-focus: oklch(73% 0.16 77);
-  --color-night: oklch(14% 0.032 307);
-  --color-night-2: oklch(20% 0.042 303);
+  --color-amber-500: oklch(76.49% 0.1399 72.95);
+  --color-amber-300: oklch(84.89% 0.1151 79.92);
+  --color-violet-500: oklch(53.56% 0.2153 287.5);
+  --color-violet-300: oklch(70.9% 0.1592 293.54);
+  --color-cyan: oklch(81.5% 0.118 206.15);
+  --color-accent: var(--color-amber-500);
+  --color-accent-ink: var(--color-ink-900);
+  --color-focus: var(--color-amber-300);
+  --color-night: var(--color-ink-900);
+  --color-night-2: var(--color-ink-800);
   --color-night-rule: oklch(72% 0.035 290 / 0.22);
-  --color-plum: oklch(48% 0.19 298);
-  --color-violet: oklch(61% 0.16 300);
-  --color-rose: oklch(58% 0.18 9);
+  --color-plum: var(--color-violet-500);
+  --color-violet: var(--color-violet-500);
+  --color-rose: oklch(62.47% 0.1947 3.52);
   --color-blue: oklch(68% 0.12 242);
   --color-error: oklch(60% 0.2 24);
   --color-success: oklch(62% 0.13 155);
@@ -40,7 +49,8 @@
   --text-lg: 1.375rem;
   --text-xl: 1.75rem;
   --text-2xl: 2.25rem;
-  --text-display: clamp(3rem, 6vw + 1rem, 6.5rem);
+  --text-display: clamp(3.2rem, 1.5rem + 6vw, 7.5rem);
+  --text-step-0: clamp(0.95rem, 0.9rem + 0.2vw, 1.05rem);
 
   /* Four-point spacing */
   --space-3xs: 0.25rem;

@@ -263,7 +263,7 @@ export function LiveGlobeStage() {
             Airline recovery,
             <em className="ed-serif ae-globe-script">
               {" "}
-              <HighlightSwipe coverage={1} height="62%">
+              <HighlightSwipe coverage={1} height="94%">
                 simulated live.
               </HighlightSwipe>
             </em>

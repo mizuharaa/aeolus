@@ -29,8 +29,8 @@ export function HeroStatementStage() {
           style={{ fontSize: "clamp(52px, 8.6vw, 138px)", maxWidth: 1220 }}
         >
           Airline recovery,{" "}
-          <em className="ed-serif" style={{ color: "var(--accent-blue)", fontStyle: "italic" }}>
-            <HighlightSwipe coverage={1} height="64%">simulated live.</HighlightSwipe>
+          <em className="ed-serif ae-highlight-script">
+            <HighlightSwipe coverage={1} height="94%">simulated live.</HighlightSwipe>
           </em>
         </SplitReveal>
 

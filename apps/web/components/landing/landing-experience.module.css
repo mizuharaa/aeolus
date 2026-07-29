@@ -9,18 +9,23 @@
  * explicit brief exception: established Fraunces italic identity phrase restored on the landing only
  */
 .experience {
-  --flight-paper: var(--color-paper, oklch(95.5% 0.018 82));
+  --flight-paper: var(--color-paper, oklch(95.63% 0.0143 84.58));
+  --flight-paper-hi: var(--color-paper-hi, oklch(98.87% 0.0126 86.83));
   --flight-paper-2: var(--color-paper-2, oklch(91.5% 0.025 78));
-  --flight-ink: var(--color-ink, oklch(17% 0.026 307));
+  --flight-ink: var(--color-ink, oklch(13.9% 0.0227 298.19));
   --flight-ink-2: var(--color-ink-2, oklch(36% 0.024 78));
   --flight-rule: var(--color-rule-2, oklch(76% 0.02 78));
-  --flight-night: var(--color-night, oklch(14% 0.032 307));
-  --flight-night-2: var(--color-night-2, oklch(20% 0.042 303));
+  --flight-night: var(--color-night, oklch(13.9% 0.0227 298.19));
+  --flight-night-2: var(--color-night-2, oklch(18.61% 0.0305 295.55));
+  --flight-night-3: var(--color-ink-700, oklch(22.91% 0.0459 293.97));
   --flight-night-rule: var(--color-night-rule, oklch(72% 0.035 290 / 0.22));
-  --flight-plum: var(--color-plum, oklch(48% 0.19 298));
-  --flight-violet: var(--color-violet, oklch(61% 0.16 300));
-  --flight-amber: var(--color-accent, oklch(72% 0.15 77));
-  --flight-rose: var(--color-rose, oklch(58% 0.18 9));
+  --flight-plum: var(--color-plum, oklch(53.56% 0.2153 287.5));
+  --flight-violet: var(--color-violet, oklch(53.56% 0.2153 287.5));
+  --flight-violet-soft: var(--color-violet-300, oklch(70.9% 0.1592 293.54));
+  --flight-amber: var(--color-accent, oklch(76.49% 0.1399 72.95));
+  --flight-amber-soft: var(--color-amber-300, oklch(84.89% 0.1151 79.92));
+  --flight-cyan: var(--color-cyan, oklch(81.5% 0.118 206.15));
+  --flight-rose: var(--color-rose, oklch(62.47% 0.1947 3.52));
   --flight-blue: var(--color-blue, oklch(68% 0.12 242));
   --flight-focus: var(--color-focus, oklch(73% 0.16 77));
   --flight-error: var(--color-error, oklch(60% 0.2 24));
@@ -40,6 +45,25 @@
   --flight-gutter: var(--space-fluid-gutter, clamp(1rem, 4vw, 3.5rem));
   min-width: 0;
   overflow-x: clip;
+}
+
+.experience :global(.ae-highlight-script),
+.experience :global(.ae-globe-script) {
+  color: var(--flight-ink);
+  font-family: "Fraunces", Georgia, "Times New Roman", serif;
+  font-style: italic;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+}
+
+.experience :global(.hl-swipe) {
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.experience :global(.hl-band) {
+  box-shadow: inset 0 1px color-mix(in oklch, var(--flight-paper-hi) 18%, transparent);
+  will-change: clip-path;
 }
 
 .experience :global(.ae-sr-only) {
@@ -384,7 +408,10 @@
   position: absolute;
   inset: 0;
   z-index: -2;
-  background: var(--flight-night);
+  background:
+    radial-gradient(circle at 28% 20%, color-mix(in oklch, var(--flight-violet) 12%, transparent), transparent 38%),
+    radial-gradient(circle at 82% 78%, color-mix(in oklch, var(--flight-amber) 8%, transparent), transparent 34%),
+    var(--flight-night);
 }
 
 .experience :global(.ae-globe-surface::after) {
@@ -437,10 +464,8 @@
 }
 
 .experience :global(.ae-globe-script) {
-  color: var(--flight-violet);
-  font-style: italic;
-  font-weight: 600;
-  letter-spacing: -0.035em;
+  display: inline-block;
+  padding-block: 0.06em;
 }
 
 .experience :global(.ae-globe-copy > p) {
@@ -810,6 +835,8 @@
 .experience:global(.ae-landing-experience) :global(.dm-section) {
   margin-top: clamp(2rem, 8svh, 6rem);
   background:
+    radial-gradient(circle at 18% 12%, color-mix(in oklch, var(--flight-violet) 10%, transparent), transparent 34%),
+    radial-gradient(circle at 86% 84%, color-mix(in oklch, var(--flight-amber) 7%, transparent), transparent 30%),
     linear-gradient(180deg, color-mix(in oklch, var(--flight-night-2) 78%, var(--flight-night)) 0%, var(--flight-night) 100%);
 }
 
