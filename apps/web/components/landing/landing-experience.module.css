@@ -499,6 +499,10 @@
   animation: ae-event-swap var(--flight-dur-long) var(--flight-ease-out) both;
 }
 
+.experience :global([data-event-view][hidden]) {
+  display: none !important;
+}
+
 .experience :global(.ae-globe-event-copy h3) {
   display: grid;
   max-width: 10ch;
@@ -516,6 +520,22 @@
 
 .experience :global(.ae-globe-event-copy h3 span) {
   color: var(--flight-amber);
+}
+
+.experience :global(.ae-event-copy-swap[data-tone="rose"] h3 span) {
+  color: var(--flight-rose);
+}
+
+.experience :global(.ae-event-copy-swap[data-tone="cyan"] h3 span) {
+  color: var(--flight-cyan);
+}
+
+.experience :global(.ae-event-copy-swap[data-tone="violet"] h3 span) {
+  color: var(--flight-violet-soft);
+}
+
+.experience :global(.ae-event-copy-swap[data-tone="paper"] h3 span) {
+  color: var(--flight-paper-hi);
 }
 
 .experience :global(.ae-globe-event-copy p) {
@@ -629,8 +649,12 @@
   color: var(--flight-rose);
 }
 
-.experience :global(.ae-globe-notification span[data-tone="slate"]) {
-  color: var(--flight-blue);
+.experience :global(.ae-globe-notification span[data-tone="cyan"]) {
+  color: var(--flight-cyan);
+}
+
+.experience :global(.ae-globe-notification span[data-tone="paper"]) {
+  color: var(--flight-paper);
 }
 
 .experience :global(.ae-globe-notification strong) {
@@ -720,8 +744,12 @@
   --event-color: var(--flight-rose);
 }
 
-.experience :global(.ae-event-feed-button[data-tone="slate"]) {
-  --event-color: var(--flight-blue);
+.experience :global(.ae-event-feed-button[data-tone="cyan"]) {
+  --event-color: var(--flight-cyan);
+}
+
+.experience :global(.ae-event-feed-button[data-tone="paper"]) {
+  --event-color: var(--flight-paper);
 }
 
 .experience :global(.ae-event-feed-button > svg) {

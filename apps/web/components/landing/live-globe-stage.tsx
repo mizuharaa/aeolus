@@ -13,7 +13,13 @@ import {
   type LucideIcon,
 } from "lucide-react"
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react"
-import { GLOBE_EVENTS, type GlobeEvent, type GlobeEventKind } from "@/components/landing/earth-globe-3d"
+import {
+  GLOBE_EVENTS,
+  globeEventRuntime,
+  setGlobeEventIndex,
+  type GlobeEvent,
+  type GlobeEventKind,
+} from "@/components/landing/earth-globe-3d"
 import { gsap, ScrollTrigger } from "@/components/landing/gsap"
 import { HighlightSwipe, SplitReveal } from "@/components/landing/type-fx"
 import {
@@ -38,23 +44,26 @@ const EVENT_ICONS: Record<GlobeEventKind, LucideIcon> = {
 
 function EventFeedButton({
   event,
-  active,
+  eventIndex,
   onSelect,
 }: {
   event: GlobeEvent
-  active: boolean
-  onSelect: (event: GlobeEvent) => void
+  eventIndex: number
+  onSelect: (eventIndex: number) => void
 }) {
   const Icon = EVENT_ICONS[event.kind]
+  const active = eventIndex === 0
 
   return (
     <button
       type="button"
       className="ae-event-feed-button"
+      data-event-button
+      data-event-index={eventIndex}
       data-tone={event.tone}
       data-active={active}
       aria-pressed={active}
-      onClick={() => onSelect(event)}
+      onClick={() => onSelect(eventIndex)}
     >
       <Icon aria-hidden size={18} strokeWidth={1.8} />
       <span>
@@ -68,23 +77,41 @@ function EventFeedButton({
   )
 }
 
+function syncEventUi(root: HTMLElement) {
+  const activeIndex = globeEventRuntime.activeIndex
+  root.dataset.activeEvent = String(activeIndex)
+
+  root.querySelectorAll<HTMLElement>("[data-event-button]").forEach((element) => {
+    const active = Number(element.dataset.eventIndex) === activeIndex
+    element.dataset.active = String(active)
+    element.setAttribute("aria-pressed", String(active))
+    const status = element.querySelector("i")
+    if (status) status.textContent = active ? "Viewing" : "Trigger"
+  })
+
+  root.querySelectorAll<HTMLElement>("[data-event-view]").forEach((element) => {
+    const active = Number(element.dataset.eventIndex) === activeIndex
+    element.hidden = !active
+    element.dataset.active = String(active)
+  })
+}
+
 export function LiveGlobeStage() {
   const rootRef = useRef<HTMLElement>(null)
   const pauseUntilRef = useRef(0)
   const feedInteractingRef = useRef(false)
-  const [activeIndex, setActiveIndex] = useState(0)
+  const lastEventVersionRef = useRef(globeEventRuntime.version)
   const [globeReady, setGlobeReady] = useState(false)
-  const activeEvent = GLOBE_EVENTS[activeIndex]
   const markGlobeReady = useCallback(() => setGlobeReady(true), [])
 
-  const selectEvent = useCallback((event: GlobeEvent) => {
-    const next = GLOBE_EVENTS.findIndex((item) => item.id === event.id)
-    if (next < 0) return
+  const selectEvent = useCallback((next: number) => {
     pauseUntilRef.current = Date.now() + 12_000
-    setActiveIndex(next)
+    setGlobeEventIndex(next)
+    if (rootRef.current) syncEventUi(rootRef.current)
   }, [])
 
   useEffect(() => {
+    if (rootRef.current) syncEventUi(rootRef.current)
     const timer = window.setInterval(() => {
       if (
         landingScroll.reducedMotion ||
@@ -93,7 +120,8 @@ export function LiveGlobeStage() {
         return
       }
       if (feedInteractingRef.current || Date.now() < pauseUntilRef.current) return
-      setActiveIndex((index) => (index + 1) % GLOBE_EVENTS.length)
+      setGlobeEventIndex(globeEventRuntime.activeIndex + 1)
+      if (rootRef.current) syncEventUi(rootRef.current)
     }, 6_400)
 
     return () => window.clearInterval(timer)
@@ -103,6 +131,10 @@ export function LiveGlobeStage() {
     const root = rootRef.current
     if (!root) return
     return registerLandingFrame(() => {
+      if (lastEventVersionRef.current !== globeEventRuntime.version) {
+        lastEventVersionRef.current = globeEventRuntime.version
+        syncEventUi(root)
+      }
       const eventsActive =
         landingScroll.reducedMotion || landingScroll.scenes.globe >= 0.26
       root.dataset.eventsActive = String(eventsActive)
@@ -286,42 +318,58 @@ export function LiveGlobeStage() {
         </div>
 
         <div className="ae-globe-event-copy" aria-live="polite">
-          <div key={activeEvent.id} className="ae-event-copy-swap">
-            <span className="ae-live-label">
-              Active scenario · {activeEvent.airport}
-            </span>
-            <h3>
-              {activeEvent.title}
-              <span>{activeEvent.city}</span>
-            </h3>
-            <p>
-              {activeEvent.effect}. {activeEvent.response}.
-            </p>
-          </div>
+          {GLOBE_EVENTS.map((event, eventIndex) => (
+            <div
+              key={event.id}
+              className="ae-event-copy-swap"
+              data-event-view
+              data-event-index={eventIndex}
+              data-active={eventIndex === 0}
+              data-tone={event.tone}
+              hidden={eventIndex !== 0}
+            >
+              <span className="ae-live-label">
+                Active scenario · {event.airport}
+              </span>
+              <h3>
+                {event.title}
+                <span>{event.city}</span>
+              </h3>
+              <p>
+                {event.effect}. {event.response}.
+              </p>
+            </div>
+          ))}
         </div>
 
         <div className="ae-globe-orbit" data-ready={globeReady}>
           <div className="ae-globe-fallback" aria-hidden>
             <span />
           </div>
-          <EarthGlobe3D
-            activeEvent={activeEvent}
-            onReady={markGlobeReady}
-          />
+          <EarthGlobe3D onReady={markGlobeReady} />
           <div
             className="ae-globe-notification"
             data-active="false"
             role="status"
             aria-live="off"
           >
-            <div key={activeEvent.id} className="ae-event-notification-swap">
-              <span data-tone={activeEvent.tone}>{activeEvent.title}</span>
-              <strong>
-                {activeEvent.airport} · {activeEvent.city}
-              </strong>
-              <p>{activeEvent.effect}</p>
-              <small>{activeEvent.response}</small>
-            </div>
+            {GLOBE_EVENTS.map((event, eventIndex) => (
+              <div
+                key={event.id}
+                className="ae-event-notification-swap"
+                data-event-view
+                data-event-index={eventIndex}
+                data-active={eventIndex === 0}
+                hidden={eventIndex !== 0}
+              >
+                <span data-tone={event.tone}>{event.title}</span>
+                <strong>
+                  {event.airport} · {event.city}
+                </strong>
+                <p>{event.effect}</p>
+                <small>{event.response}</small>
+              </div>
+            ))}
           </div>
           <span className="ae-globe-drag-hint">Drag to inspect</span>
         </div>
@@ -351,11 +399,11 @@ export function LiveGlobeStage() {
             <b>Watching</b>
           </header>
           <div>
-            {GLOBE_EVENTS.map((event) => (
+            {GLOBE_EVENTS.map((event, eventIndex) => (
               <EventFeedButton
                 key={event.id}
                 event={event}
-                active={event.id === activeEvent.id}
+                eventIndex={eventIndex}
                 onSelect={selectEvent}
               />
             ))}
