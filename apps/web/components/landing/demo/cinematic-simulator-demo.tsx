@@ -22,11 +22,9 @@
  */
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react"
-import { motion, useReducedMotion } from "framer-motion"
 import { CloudLightning, FileText, LayoutGrid, Leaf, Route, Users } from "lucide-react"
 import { gsap, ScrollTrigger } from "@/components/landing/gsap"
 import { AeolusMark } from "@/components/ds/logo"
-import { EASE } from "@/components/landing/motion"
 import { DemoMap } from "@/components/landing/demo/demo-map"
 import { AgentCommandDemo } from "@/components/landing/demo/agent-command-demo"
 import { CursorChoreography } from "@/components/landing/demo/cursor-choreography"
@@ -74,10 +72,10 @@ export function CinematicSimulatorDemo() {
   const sceneRef = useRef(0)
   // 0 nominal · 1 disrupted/hold · 2 recovering · 3 stable — drives the plane loop
   const phaseRef = useRef(0)
-  const reduce = useReducedMotion()
 
   useEffect(() => {
-    setStaticMode(window.matchMedia("(prefers-reduced-motion: reduce)").matches)
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    setStaticMode(reduced)
   }, [])
 
   useLayoutEffect(() => {
@@ -89,8 +87,8 @@ export function CinematicSimulatorDemo() {
 
     mm.add(
       {
-        desktop: "(min-width: 961px) and (prefers-reduced-motion: no-preference)",
-        mobile: "(max-width: 960px) and (prefers-reduced-motion: no-preference)",
+        desktop: "(min-width: 40rem) and (prefers-reduced-motion: no-preference)",
+        mobile: "(max-width: 39.99rem) and (prefers-reduced-motion: no-preference)",
       },
       (mctx) => {
         const mobile = Boolean(mctx.conditions?.mobile)
@@ -327,29 +325,173 @@ export function CinematicSimulatorDemo() {
         }, 22.8)
         tl.set({}, {}, TOTAL)
 
-        // play + fly while on screen, pause + halt off screen
-        const st = ScrollTrigger.create({
-          trigger: root,
-          start: "top 75%",
-          end: "bottom 25%",
-          onToggle: (self) => {
-            if (self.isActive) {
-              tl.play()
-              startFlights()
-            } else {
-              tl.pause()
-              stopFlights()
+        let liveActive = false
+        const syncLivePlayback = (active: boolean) => {
+          if (active === liveActive) return
+          liveActive = active
+          if (active) {
+            tl.play()
+            startFlights()
+          } else {
+            tl.pause()
+            stopFlights()
+          }
+        }
+
+        let deviceTrigger: ScrollTrigger | null = null
+        let visibilityTrigger: ScrollTrigger | null = null
+        let deviceRaf = 0
+
+        if (mobile) {
+          gsap.set(q(".dm-laptop-rig"), { clearProps: "transform" })
+          gsap.set(q(".dm-laptop-lid"), { clearProps: "transform" })
+          gsap.set(q(".dm-product-surface"), { opacity: 1, scale: 1, yPercent: 0 })
+          gsap.set(q(".dm-captions-row"), { opacity: 1, y: 0 })
+          visibilityTrigger = ScrollTrigger.create({
+            trigger: root,
+            start: "top 78%",
+            end: "bottom 18%",
+            onToggle: (self) => syncLivePlayback(self.isActive),
+          })
+        } else {
+          const rig = q(".dm-laptop-rig")[0] as HTMLElement
+          const lid = q(".dm-laptop-lid")[0] as HTMLElement
+          const base = q(".dm-laptop-base")[0] as HTMLElement
+          const screen = q(".dm-laptop-screen")[0] as HTMLElement
+          const deck = q(".dm-laptop-deck")[0] as HTMLElement
+          const headline = q(".dm-headline")[0] as HTMLElement
+          const captions = q(".dm-captions-row")[0] as HTMLElement
+
+          const smoothstep = (edge0: number, edge1: number, value: number) => {
+            const x = gsap.utils.clamp(0, 1, (value - edge0) / (edge1 - edge0))
+            return x * x * (3 - 2 * x)
+          }
+
+          const device = {
+            angle: 91.5,
+            angleVelocity: 0,
+            targetAngle: 91.5,
+            scale: 0.72,
+            scaleVelocity: 0,
+            targetScale: 0.72,
+            y: -18,
+            yVelocity: 0,
+            targetY: -18,
+            baseAngle: 89.5,
+            baseAngleVelocity: 0,
+            targetBaseAngle: 89.5,
+          }
+          let deviceLast = 0
+
+          const spring = (
+            value: "angle" | "scale" | "y" | "baseAngle",
+            velocity:
+              | "angleVelocity"
+              | "scaleVelocity"
+              | "yVelocity"
+              | "baseAngleVelocity",
+            target:
+              | "targetAngle"
+              | "targetScale"
+              | "targetY"
+              | "targetBaseAngle",
+            stiffness: number,
+            damping: number,
+            dt: number,
+          ) => {
+            device[velocity] += (device[target] - device[value]) * stiffness * dt
+            device[velocity] *= Math.exp(-damping * dt)
+            device[value] += device[velocity] * dt
+          }
+
+          const renderDevice = () => {
+            lid.style.transform = `rotateX(${device.angle.toFixed(3)}deg)`
+            rig.style.transform = `translate3d(0, ${device.y.toFixed(3)}%, 0) scale(${device.scale.toFixed(5)})`
+            base.style.transform = `rotateX(${device.baseAngle.toFixed(3)}deg) translateZ(0.08rem)`
+          }
+
+          const tickDevice = (now: number) => {
+            if (!deviceLast) deviceLast = now
+            const dt = Math.min((now - deviceLast) / 1000, 0.034)
+            deviceLast = now
+            spring("angle", "angleVelocity", "targetAngle", 150, 23, dt)
+            spring("scale", "scaleVelocity", "targetScale", 92, 20, dt)
+            spring("y", "yVelocity", "targetY", 92, 20, dt)
+            spring("baseAngle", "baseAngleVelocity", "targetBaseAngle", 118, 22, dt)
+            renderDevice()
+
+            const settled =
+              Math.abs(device.targetAngle - device.angle) < 0.015 &&
+              Math.abs(device.angleVelocity) < 0.015 &&
+              Math.abs(device.targetScale - device.scale) < 0.0001 &&
+              Math.abs(device.scaleVelocity) < 0.0001 &&
+              Math.abs(device.targetY - device.y) < 0.001 &&
+              Math.abs(device.yVelocity) < 0.001 &&
+              Math.abs(device.targetBaseAngle - device.baseAngle) < 0.015 &&
+              Math.abs(device.baseAngleVelocity) < 0.015
+
+            if (settled) {
+              deviceRaf = 0
+              deviceLast = 0
+              return
             }
-          },
-        })
+            deviceRaf = requestAnimationFrame(tickDevice)
+          }
+
+          const wakeDevice = () => {
+            if (!deviceRaf) deviceRaf = requestAnimationFrame(tickDevice)
+          }
+
+          gsap.set(captions, { opacity: 0, y: 18 })
+          renderDevice()
+
+          // One pin owns the physical hinge, the screen dolly, and a long
+          // live-console dwell. Reverse scroll updates the same spring targets.
+          deviceTrigger = ScrollTrigger.create({
+            trigger: root,
+            start: "top top",
+            end: "+=520%",
+            pin: q(".dm-pin")[0],
+            pinSpacing: true,
+            anticipatePin: 1,
+            invalidateOnRefresh: true,
+            onUpdate: (self) => {
+              const progress = self.progress
+              const opening = smoothstep(0.075, 0.43, progress)
+              const focus = smoothstep(0.54, 0.72, progress)
+              const copyExit = smoothstep(0.025, 0.14, progress)
+              const captionEntry = smoothstep(0.66, 0.74, progress)
+
+              device.targetAngle = 91.5 - opening * 91.5
+              device.targetScale = 0.72 + opening * 0.08 + focus * 0.285
+              device.targetY = -18 + opening * 6 + focus * 12
+              device.targetBaseAngle = 89.5 - opening * 19.5
+              headline.style.opacity = String(1 - copyExit)
+              headline.style.transform = `translate3d(0, ${(-copyExit * 9).toFixed(3)}%, 0)`
+              captions.style.opacity = String(captionEntry)
+              captions.style.transform = `translate3d(0, ${(18 * (1 - captionEntry)).toFixed(3)}px, 0)`
+              base.style.opacity = String(1 - focus * 0.82)
+              screen.style.opacity = String(opening)
+              deck.style.opacity = String(opening)
+
+              wakeDevice()
+              syncLivePlayback(progress >= 0.68 && progress < 0.995)
+            },
+            onLeave: () => syncLivePlayback(false),
+            onLeaveBack: () => syncLivePlayback(false),
+          })
+        }
 
         const onResize = () => tl.invalidate()
         window.addEventListener("resize", onResize)
 
         return () => {
           window.removeEventListener("resize", onResize)
+          syncLivePlayback(false)
           stopFlights()
-          st.kill()
+          if (deviceRaf) cancelAnimationFrame(deviceRaf)
+          visibilityTrigger?.kill()
+          deviceTrigger?.kill()
           tl.kill()
           if (tlRef.current === tl) tlRef.current = null
         }
@@ -371,83 +513,39 @@ export function CinematicSimulatorDemo() {
       id="demo"
       ref={rootRef}
       aria-label="Simulator demo"
-      style={{ position: "relative", padding: "clamp(80px, 11vh, 140px) clamp(16px, 3.5vw, 48px)" }}
+      className="dm-section"
+      data-static={staticMode}
+      style={{ position: "relative" }}
     >
-      <div
-        className="dm-stage-grid"
-        style={{
-          width: "100%",
-          maxWidth: 1560,
-          margin: "0 auto",
-          display: "grid",
-          gridTemplateColumns: "minmax(240px, 300px) minmax(0, 1fr)",
-          gap: "clamp(24px, 3vw, 48px)",
-          alignItems: "center",
-        }}
-      >
-        {/* caption rail — auto-advances with playback; click to seek */}
-        <aside className="dm-captions">
-          <span className="lp-eyebrow" style={{ display: "block", marginBottom: 20 }}>
+      <div className="dm-pin">
+        {/* the text appears first, then dissolves into the animation */}
+        <div className="dm-headline" style={{ display: staticMode ? "none" : undefined }}>
+          <span className="lp-eyebrow" style={{ display: "block", color: "#C9A050" }}>
             02 — One recovery loop
           </span>
-          <div className="dm-step-list" style={{ display: "grid", gap: 4 }}>
-            {DEMO_STEPS.map((s, i) => {
-              const active = staticMode || scene === i
-              return (
-                <button
-                  key={s.n}
-                  className="dm-step"
-                  onClick={() => !staticMode && seekTo(i)}
-                  style={{
-                    borderColor: active ? "var(--accent-amber)" : "var(--border)",
-                    cursor: staticMode ? "default" : "pointer",
-                    opacity: active ? 1 : 0.45,
-                  }}
-                >
-                  <span style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-                    <span className="lp-eyebrow" style={{ color: active ? "var(--accent-amber)" : undefined }}>{s.n}</span>
-                    <span
-                      className="ed-display"
-                      style={{ fontSize: "clamp(20px, 1.8vw, 27px)", letterSpacing: "-0.02em" }}
-                    >
-                      {s.title}
-                    </span>
-                  </span>
-                  <span
-                    className="dm-step-body"
-                    style={{
-                      display: "block",
-                      marginTop: 6,
-                      fontSize: 13.5,
-                      lineHeight: 1.5,
-                      color: "var(--muted)",
-                      maxWidth: 260,
-                    }}
-                  >
-                    {s.body}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
-        </aside>
+          <h2 className="dm-headline-title">
+            Trigger a storm.{" "}
+            <span>Wake to a recovered network.</span>
+          </h2>
+          <p className="dm-headline-sub">
+            One full recovery loop — event to committed plan — played inside the real console.
+          </p>
+        </div>
 
-        {/* the console — one-shot entrance, then the loop plays inside */}
-        <motion.div
-          style={{ perspective: 1600 }}
-          initial={reduce || staticMode ? false : { opacity: 0, y: 48, rotateX: 7 }}
-          whileInView={{ opacity: 1, y: 0, rotateX: 0 }}
-          viewport={{ once: true, margin: "-60px" }}
-          transition={{ duration: 1.0, ease: EASE }}
-        >
-          <div
-            className="demo-screen dm-frame"
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              height: "clamp(400px, 68vh, 720px)",
-            }}
-          >
+        <div className="dm-product-wrap">
+          <div className="dm-laptop-rig">
+            <div className="dm-laptop-lid">
+              <div className="dm-laptop-shell">
+                <span className="dm-laptop-sensor" aria-hidden="true" />
+                <div className="dm-laptop-screen">
+                  <div className="dm-product-surface">
+                    <div
+                      className="demo-screen dm-frame"
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                      }}
+                    >
             {/* top bar */}
             <div
               style={{
@@ -794,9 +892,46 @@ export function CinematicSimulatorDemo() {
                 }}
               />
             </div>
-          </div>
-        </motion.div>
-      </div>
+                    </div>{/* .demo-screen */}
+                  </div>{/* .dm-product-surface */}
+                </div>{/* .dm-laptop-screen */}
+              </div>{/* .dm-laptop-shell */}
+            </div>{/* .dm-laptop-lid */}
+
+            <div className="dm-laptop-base" aria-hidden="true">
+              <span className="dm-laptop-hinge" />
+              <div className="dm-laptop-deck">
+                <div className="dm-laptop-keyboard">
+                  {Array.from({ length: 56 }, (_, index) => (
+                    <i key={index} />
+                  ))}
+                </div>
+                <span className="dm-laptop-trackpad" />
+              </div>
+              <span className="dm-laptop-front-edge" />
+            </div>
+          </div>{/* .dm-laptop-rig */}
+        </div>{/* .dm-product-wrap */}
+
+        {/* caption chips — auto-advance with playback; click to seek */}
+        <div className="dm-captions-row" style={{ opacity: staticMode ? 1 : 0 }}>
+          {DEMO_STEPS.map((s, i) => {
+            const active = staticMode || scene === i
+            return (
+              <button
+                key={s.n}
+                className="dm-cap"
+                data-active={active}
+                onClick={() => !staticMode && seekTo(i)}
+                style={{ cursor: staticMode ? "default" : "pointer" }}
+              >
+                <span className="dm-cap-n">{s.n}</span>
+                <span className="dm-cap-title">{s.title}</span>
+              </button>
+            )
+          })}
+        </div>
+      </div>{/* .dm-pin */}
     </section>
   )
 }

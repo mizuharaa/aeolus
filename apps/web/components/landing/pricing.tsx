@@ -86,11 +86,7 @@ export function PricingSection() {
       </div>
 
       <div style={{ display: "flex", justifyContent: "center" }}>
-        <Link
-          href={PLAN.href as import("next").Route}
-          className="pr-card"
-          aria-label={`${PLAN.name} plan — ${PLAN.price} ${PLAN.period}. ${PLAN.cta}`}
-        >
+        <div className="pr-card">
           {/* header row: name/tag + price */}
           <div className="pr-head">
             <div className="pr-head-l">
@@ -118,12 +114,16 @@ export function PricingSection() {
             ))}
           </ul>
 
-          <span className="pr-cta">
+          <Link
+            href={PLAN.href as import("next").Route}
+            className="pr-cta"
+            aria-label={`${PLAN.cta} — ${PLAN.name} plan`}
+          >
             {PLAN.cta}
             <ArrowRight className="pr-arrow" style={{ width: 16, height: 16 }} strokeWidth={2.25} />
-          </span>
+          </Link>
           <span className="pr-note">No sign-up · no credit card · nothing to cancel</span>
-        </Link>
+        </div>
       </div>
 
       <style jsx>{`
@@ -267,20 +267,20 @@ export function PricingSection() {
           padding: 14px 22px;
           font-size: 15px;
           font-weight: 650;
+          text-decoration: none;
           color: var(--bg, #f5f1e8);
           background: var(--ink, #1c1426);
           border-radius: 999px;
-          transition: background 200ms ease;
+          transition: background 200ms ease, transform 160ms ease;
+          cursor: pointer;
         }
-        :global(.pr-card:hover) .pr-cta {
-          background: var(--accent-blue, #5b3fa8);
+        .pr-cta:hover { background: var(--accent-blue, #5b3fa8); transform: translateY(-1px); }
+        .pr-cta:focus-visible {
+          outline: none;
+          box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-blue, #5b3fa8) 45%, transparent);
         }
-        :global(.pr-card) .pr-arrow {
-          transition: transform 200ms cubic-bezier(0.22, 0.9, 0.28, 1);
-        }
-        :global(.pr-card:hover) .pr-arrow {
-          transform: translateX(4px);
-        }
+        .pr-cta .pr-arrow { transition: transform 200ms cubic-bezier(0.22, 0.9, 0.28, 1); }
+        .pr-cta:hover .pr-arrow { transform: translateX(4px); }
 
         .pr-note {
           margin-top: 12px;

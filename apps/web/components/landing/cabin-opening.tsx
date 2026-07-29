@@ -16,8 +16,10 @@
  */
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
-import { Canvas, useFrame } from "@react-three/fiber"
+import { Canvas, useFrame, useThree } from "@react-three/fiber"
 import * as THREE from "three"
+import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js"
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js"
 import { gsap } from "@/components/landing/gsap"
 
 // ── palette: night business class (reference: dark sculpted ceiling, cool
@@ -50,14 +52,45 @@ function roundedRect(w: number, h: number, r: number) {
   return s
 }
 
-function mat(color: string, opts: Partial<THREE.MeshStandardMaterialParameters> = {}) {
-  return new THREE.MeshStandardMaterial({
+function mat(color: string, opts: Partial<THREE.MeshPhysicalMaterialParameters> = {}) {
+  return new THREE.MeshPhysicalMaterial({
     color,
-    roughness: 0.75,
+    roughness: 0.62,
+    metalness: 0.08,
+    clearcoat: 0.28,
+    clearcoatRoughness: 0.36,
     emissive: color,
-    emissiveIntensity: 0.1,
+    emissiveIntensity: 0.035,
     ...opts,
   })
+}
+
+function softBox(width: number, height: number, depth: number, radius = 0.045) {
+  return new RoundedBoxGeometry(width, height, depth, 3, Math.min(radius, width / 4, height / 4, depth / 4))
+}
+
+function CabinEnvironment() {
+  const { gl, scene } = useThree()
+
+  useEffect(() => {
+    const previous = scene.environment
+    const previousIntensity = scene.environmentIntensity
+    const pmrem = new THREE.PMREMGenerator(gl)
+    const room = new RoomEnvironment()
+    const target = pmrem.fromScene(room, 0.03)
+    scene.environment = target.texture
+    scene.environmentIntensity = 0.48
+    room.dispose()
+
+    return () => {
+      scene.environment = previous
+      scene.environmentIntensity = previousIntensity
+      target.dispose()
+      pmrem.dispose()
+    }
+  }, [gl, scene])
+
+  return null
 }
 
 /**
@@ -77,9 +110,9 @@ function seat(withLamp = false) {
   const cream = mat("#F4EDDE", { roughness: 0.9 })
 
   // wide seat cushion with channel seams
-  const base = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.18, 0.62), leather)
+  const base = new THREE.Mesh(softBox(0.62, 0.18, 0.62, 0.07), leather)
   base.position.set(0.02, 0, 0)
-  const baseFront = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.18, 0.62), leatherLit)
+  const baseFront = new THREE.Mesh(softBox(0.12, 0.18, 0.62, 0.045), leatherLit)
   baseFront.position.set(0.3, -0.01, 0)
   g.add(base, baseFront)
   for (const z of [-0.18, 0, 0.18]) {
@@ -89,7 +122,7 @@ function seat(withLamp = false) {
   }
 
   // reclined leather backrest with vertical channels
-  const back = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.92, 0.58), leather)
+  const back = new THREE.Mesh(softBox(0.2, 0.92, 0.58, 0.075), leather)
   back.position.set(-0.28, 0.46, 0)
   back.rotation.z = -0.18
   g.add(back)
@@ -100,18 +133,18 @@ function seat(withLamp = false) {
     g.add(ch)
   }
   // plush cream headrest pillow
-  const pillow = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.22, 0.42), cream)
+  const pillow = new THREE.Mesh(softBox(0.16, 0.22, 0.42, 0.07), cream)
   pillow.position.set(-0.36, 0.98, 0)
   pillow.rotation.z = -0.18
   g.add(pillow)
 
   // cream privacy shell wrapping the back + sides (the pod)
-  const shellBack = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.15, 0.78), shell)
+  const shellBack = new THREE.Mesh(softBox(0.08, 1.15, 0.78, 0.035), shell)
   shellBack.position.set(-0.5, 0.5, 0)
   shellBack.rotation.z = -0.12
   g.add(shellBack)
   for (const side of [1, -1] as const) {
-    const wing = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.95, 0.05), shell)
+    const wing = new THREE.Mesh(softBox(0.55, 0.95, 0.05, 0.02), shell)
     wing.position.set(-0.22, 0.42, side * 0.4)
     wing.rotation.z = -0.06
     g.add(wing)
@@ -124,7 +157,7 @@ function seat(withLamp = false) {
 
   // walnut console armrests with brass inlay
   for (const side of [1, -1] as const) {
-    const console_ = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.3, 0.16), walnut)
+    const console_ = new THREE.Mesh(softBox(0.72, 0.3, 0.16, 0.055), walnut)
     console_.position.set(0.02, 0.22, side * 0.39)
     g.add(console_)
     const top = new THREE.Mesh(new THREE.BoxGeometry(0.74, 0.03, 0.18), mat("#5E4633", { roughness: 0.4 }))
@@ -136,7 +169,7 @@ function seat(withLamp = false) {
   }
 
   // leather ottoman ahead of the seat
-  const ottoman = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.16, 0.5), leather)
+  const ottoman = new THREE.Mesh(softBox(0.34, 0.16, 0.5, 0.06), leather)
   ottoman.position.set(0.62, -0.04, 0)
   g.add(ottoman)
   const ottomanSeam = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.02, 0.51), leatherLit)
@@ -194,7 +227,7 @@ function suitcase(color: string) {
   const g = new THREE.Group()
   const shell = mat(color, { roughness: 0.55 })
   const trim = mat(ARMREST, { roughness: 0.7, emissiveIntensity: 0.1 })
-  const body = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.4, 0.3), shell)
+  const body = new THREE.Mesh(softBox(0.55, 0.4, 0.3, 0.065), shell)
   const handle = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.06, 0.05), trim)
   handle.position.set(0, 0.24, 0)
   const band = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.05, 0.31), trim)
@@ -260,7 +293,7 @@ function buildCabin() {
 
   // ceiling: dark sculpted slab with a cool blue-white LED spine down the
   // aisle (the reference shot's signature) + soft amber wash strips
-  const ceil = new THREE.Mesh(new THREE.BoxGeometry(30, 0.15, WALL_B_Z + 1), mat("#2B2733", { roughness: 0.6 }))
+  const ceil = new THREE.Mesh(softBox(30, 0.15, WALL_B_Z + 1, 0.06), mat("#2B2733", { roughness: 0.52 }))
   ceil.position.set(0, 2.6, WALL_B_Z / 2)
   root.add(ceil)
   const spine = new THREE.Mesh(
@@ -284,7 +317,7 @@ function buildCabin() {
     [0.75, 1],
     [WALL_B_Z - 0.75, -1],
   ] as const) {
-    const bin = new THREE.Mesh(new THREE.BoxGeometry(26, 0.95, 1.15), mat("#332E3B", { roughness: 0.55 }))
+    const bin = new THREE.Mesh(softBox(26, 0.95, 1.15, 0.16), mat("#332E3B", { roughness: 0.5, clearcoat: 0.38 }))
     bin.position.set(0, 2.0, z)
     bin.rotation.x = 0.3 * flip
     root.add(bin)
@@ -305,11 +338,11 @@ function buildCabin() {
   // one OPEN bin on the near wall: dark cavity, raised door, luggage inside
   {
     const z = 0.75
-    const cavity = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.6, 0.7), mat("#59544A", { emissiveIntensity: 0.05, roughness: 0.9 }))
+    const cavity = new THREE.Mesh(softBox(2.0, 0.6, 0.7, 0.08), mat("#59544A", { emissiveIntensity: 0.05, roughness: 0.86 }))
     cavity.position.set(2.05, 2.05, z + 0.28)
     cavity.rotation.x = 0.3
     root.add(cavity)
-    const door = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.55, 0.06), mat("#3B3544", { roughness: 0.55 }))
+    const door = new THREE.Mesh(softBox(2.0, 0.55, 0.06, 0.025), mat("#3B3544", { roughness: 0.5, clearcoat: 0.42 }))
     door.position.set(2.05, 2.62, z + 0.72)
     door.rotation.x = -1.15 // swung up + out
     root.add(door)
@@ -378,42 +411,37 @@ function buildCabin() {
     root.add(shade)
   }
 
+  root.traverse((object) => {
+    if (!(object instanceof THREE.Mesh)) return
+    object.castShadow = true
+    object.receiveShadow = true
+  })
+
   return root
 }
 
-/** Typewriter for the opening slogan — the plain sentences key on, then the
- * gold serif closer fades in. Idle life on the very first screen. */
-function SloganTypewriter() {
-  const LEAD = "Trigger a hub closure. Watch the delay cascade spread. "
-  const [n, setN] = useState(0)
-  useEffect(() => {
-    if (n >= LEAD.length) return
-    const t = window.setTimeout(() => setN(n + 1), 34)
-    return () => window.clearTimeout(t)
-  }, [n, LEAD.length])
-  const done = n >= LEAD.length
-  return (
-    <>
-      {LEAD.slice(0, n)}
-      {!done && <span style={{ opacity: 0.7 }}>▍</span>}
-      <span
-        className="ed-serif"
-        style={{ color: "#C9A050", opacity: done ? 1 : 0, transition: "opacity 600ms ease" }}
-      >
-        Recover the network.
-      </span>
-    </>
-  )
-}
+// Camera begins on the center aisle so the first frame reads as a complete
+// premium cabin, then arcs across the seats and phases through the far wall.
+const CAM_START = new THREE.Vector3(6.25, -0.05, WALL_B_Z / 2)
+const CAM_MID = new THREE.Vector3(1.25, 0.08, WALL_B_Z / 2)
+const CAM_END = new THREE.Vector3(0.25, 0.02, 7.4)
+const LOOK_START = new THREE.Vector3(-0.8, -0.34, WALL_B_Z / 2)
+const LOOK_MID = new THREE.Vector3(-1.8, -0.3, WALL_B_Z / 2)
+const LOOK_END = new THREE.Vector3(0.25, -0.05, 1.2)
+const CAM_PATH = new THREE.QuadraticBezierCurve3(CAM_START, CAM_MID, CAM_END)
+const LOOK_PATH = new THREE.QuadraticBezierCurve3(LOOK_START, LOOK_MID, LOOK_END)
 
-// camera path: close to the window row → back across the aisle → out
-// through the far wall's centre window
-const CAM_START_Z = 2.3
-const CAM_END_Z = 7.4
-
-function CabinScene({ progressRef }: { progressRef: React.MutableRefObject<number> }) {
+function CabinScene({
+  progressRef,
+  reducedMotion,
+}: {
+  progressRef: React.MutableRefObject<number>
+  reducedMotion: boolean
+}) {
   const cabin = useMemo(buildCabin, [])
   const cur = useRef(0)
+  const cameraPoint = useMemo(() => new THREE.Vector3(), [])
+  const lookPoint = useMemo(() => new THREE.Vector3(), [])
 
   useFrame((state, delta) => {
     const cam = state.camera
@@ -424,17 +452,19 @@ function CabinScene({ progressRef }: { progressRef: React.MutableRefObject<numbe
 
     const clock = state.clock.elapsedTime
     // dolly back with a gentle lateral pan; light turbulence sway on top
-    cam.position.set(
-      THREE.MathUtils.lerp(-0.3, 0.25, s) + Math.sin(clock * 0.5) * 0.03,
-      Math.sin(clock * 0.8) * 0.03,
-      THREE.MathUtils.lerp(CAM_START_Z, CAM_END_Z, s),
-    )
-    cam.lookAt(cam.position.x, 0, cam.position.z - 6)
+    const swayX = reducedMotion ? 0 : Math.sin(clock * 0.5) * 0.03
+    const swayY = reducedMotion ? 0 : Math.sin(clock * 0.8) * 0.03
+    CAM_PATH.getPoint(s, cameraPoint)
+    LOOK_PATH.getPoint(s, lookPoint)
+    cam.position.copy(cameraPoint)
+    cam.position.x += swayX
+    cam.position.y += swayY
+    cam.lookAt(lookPoint)
 
     // idle life: the brass table lamps breathe — a slow, warm candle-like
     // glow cycle, each lamp on its own phase
     const lampMats = cabin.userData.lampMats as THREE.MeshStandardMaterial[] | undefined
-    if (lampMats) {
+    if (lampMats && !reducedMotion) {
       lampMats.forEach((m, i) => {
         m.emissiveIntensity = 1.5 + Math.sin(clock * 1.3 + i * 1.7) * 0.35
       })
@@ -443,20 +473,33 @@ function CabinScene({ progressRef }: { progressRef: React.MutableRefObject<numbe
 
   return (
     <>
-      {/* night cabin: dim warm ambient so darks stay dark */}
-      <ambientLight intensity={0.32} color="#FFD9A8" />
-      {/* cool LED spine key from directly above the aisle */}
-      <pointLight position={[0, 2.4, 1.4]} intensity={2.6} color="#BFD9FF" distance={7} />
-      <pointLight position={[0, 2.4, 3.4]} intensity={2.0} color="#BFD9FF" distance={7} />
-      {/* dusk light through the porthole rows */}
-      <directionalLight position={[0.5, 1.2, -4]} intensity={0.7} color="#9FB8E8" />
-      <directionalLight position={[-0.5, 1.0, 9]} intensity={0.5} color="#9FB8E8" />
-      {/* warm amber pools on the seats + aisle (the hotel-bar glow) */}
-      <pointLight position={[0, -0.6, 2.2]} intensity={1.6} color="#FFBE72" distance={6} />
-      <pointLight position={[2.4, -0.4, 1.0]} intensity={1.5} color="#FFCE7A" distance={4.5} />
-      <pointLight position={[-2.4, -0.4, 1.0]} intensity={1.5} color="#FFCE7A" distance={4.5} />
-      <pointLight position={[2.4, -0.4, 3.6]} intensity={1.2} color="#FFCE7A" distance={4.5} />
-      <pointLight position={[-2.4, -0.4, 3.6]} intensity={1.2} color="#FFCE7A" distance={4.5} />
+      <CabinEnvironment />
+      <hemisphereLight args={["#ffe7c3", "#170f1d", 0.44]} />
+      <directionalLight
+        castShadow
+        color="#d9e9ff"
+        intensity={1.15}
+        position={[1.5, 4.2, -3.5]}
+      />
+      <rectAreaLight
+        color="#c8deff"
+        height={0.45}
+        intensity={3.2}
+        position={[0, 2.38, 2.35]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        width={10}
+      />
+      <rectAreaLight
+        color="#ffd394"
+        height={1.5}
+        intensity={3.8}
+        position={[0, 0.15, 1.4]}
+        rotation={[0, Math.PI, 0]}
+        width={9}
+      />
+      <pointLight color="#ffbd70" distance={7} intensity={8} position={[0, -0.2, 2.2]} />
+      <pointLight color="#ffcf89" distance={5} intensity={6} position={[2.5, 0.1, 1.0]} />
+      <pointLight color="#ffcf89" distance={5} intensity={6} position={[-2.5, 0.1, 3.7]} />
       <primitive object={cabin} />
     </>
   )
@@ -467,9 +510,53 @@ export function CabinOpening() {
   const cabinRef = useRef<HTMLDivElement>(null)
   const sloganRef = useRef<HTMLDivElement>(null)
   const progressRef = useRef(0)
+  const [reducedMotion, setReducedMotion] = useState(false)
+  const [renderActive, setRenderActive] = useState(true)
+
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)")
+    const sync = () => setReducedMotion(media.matches)
+    sync()
+    media.addEventListener("change", sync)
+    return () => media.removeEventListener("change", sync)
+  }, [])
+
+  useEffect(() => {
+    let ticking = false
+    let current = true
+    const compute = () => {
+      const next = window.scrollY < window.innerHeight * 0.72
+      if (next !== current) {
+        current = next
+        setRenderActive(next)
+      }
+      ticking = false
+    }
+    const onScroll = () => {
+      if (ticking) return
+      ticking = true
+      requestAnimationFrame(compute)
+    }
+    compute()
+    window.addEventListener("scroll", onScroll, { passive: true })
+    return () => window.removeEventListener("scroll", onScroll)
+  }, [])
 
   useLayoutEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      const syncStaticState = () => {
+        const hasLeftOpening = window.scrollY > window.innerHeight * 0.18
+        progressRef.current = hasLeftOpening ? 1 : 0
+        for (const layer of [skyRef.current, cabinRef.current, sloganRef.current]) {
+          if (!layer) continue
+          layer.style.visibility = hasLeftOpening ? "hidden" : "visible"
+          layer.style.opacity = hasLeftOpening ? "0" : "1"
+        }
+      }
+      syncStaticState()
+      window.addEventListener("scroll", syncStaticState, { passive: true })
+      return () => window.removeEventListener("scroll", syncStaticState)
+    }
 
     // camera progress: the fly-back completes over the first 0.55 viewports
     let ticking = false
@@ -514,11 +601,8 @@ export function CabinOpening() {
     }
   }, [])
 
-  if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches)
-    return null
-
   return (
-    <div aria-hidden style={{ position: "fixed", inset: 0, zIndex: 49, pointerEvents: "none" }}>
+    <div className={`co-opening-layer${renderActive ? "" : " is-render-inactive"}`}>
       {/* open sky: gradient, sun, drifting clouds — seen through the windows,
           then full-bleed once the cabin falls away */}
       <div
@@ -567,12 +651,24 @@ export function CabinOpening() {
       {/* the white cabin interior */}
       <div ref={cabinRef} style={{ position: "absolute", inset: 0 }}>
         <Canvas
-          camera={{ position: [-0.3, 0, CAM_START_Z], fov: 46 }}
-          dpr={[1, 2]}
-          gl={{ antialias: true, alpha: true }}
+          aria-hidden="true"
+          camera={{ position: CAM_START.toArray(), fov: 42 }}
+          dpr={[0.8, 1.35]}
+          frameloop={renderActive ? "always" : "never"}
+          gl={{
+            antialias: true,
+            alpha: true,
+            powerPreference: "high-performance",
+            toneMapping: THREE.ACESFilmicToneMapping,
+          }}
+          onCreated={({ gl }) => {
+            gl.outputColorSpace = THREE.SRGBColorSpace
+            gl.toneMappingExposure = 0.88
+          }}
+          shadows
           style={{ width: "100%", height: "100%" }}
         >
-          <CabinScene progressRef={progressRef} />
+          <CabinScene progressRef={progressRef} reducedMotion={reducedMotion} />
         </Canvas>
         {/* soft photographic vignette, like the reference shot */}
         <div
@@ -584,28 +680,29 @@ export function CabinOpening() {
         />
       </div>
 
-      {/* AEOLUS slogan, on screen before the scroll trigger */}
-      <div
-        ref={sloganRef}
-        style={{
-          position: "absolute",
-          left: 0,
-          right: 0,
-          bottom: "7vh",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: 14,
-          textAlign: "center",
-          color: "#F1ECE1",
-          textShadow: "0 1px 12px rgba(12,9,7,0.6)",
-        }}
-      >
-        <span className="lp-eyebrow" style={{ color: "#F1ECE1", letterSpacing: "0.3em" }}>AEOLUS</span>
-        <p style={{ margin: 0, fontSize: "clamp(15px, 1.6vw, 20px)", fontWeight: 500, maxWidth: 560, lineHeight: 1.5, minHeight: "1.5em" }}>
-          <SloganTypewriter />
+      <div ref={sloganRef} className="co-intro-copy">
+        <header className="co-intro-heading">
+          <span className="ae-live-label co-reveal">
+            <span>01 — Inside the decision</span>
+          </span>
+          <h1 className="co-intro-title" aria-label="Inside every recovery">
+            <span className="co-reveal">
+              <span>Inside every</span>
+            </span>
+            <span className="co-reveal">
+              <span>recovery.</span>
+            </span>
+          </h1>
+        </header>
+        <p className="co-reveal">
+          <span>
+            Every seat connects to an aircraft, a legal crew, and a live network.
+            Aeolus makes those constraints visible before the first decision.
+          </span>
         </p>
-        <span className="lp-eyebrow" style={{ color: "rgba(241,236,225,0.6)", marginTop: 6 }}>Scroll ↓</span>
+        <span className="co-scroll-cue co-reveal">
+          <span>Scroll to open the airframe ↓</span>
+        </span>
       </div>
 
       <style>{`
@@ -627,6 +724,9 @@ export function CabinOpening() {
         @keyframes co-drift {
           from { transform: translateX(0); }
           to { transform: translateX(175vw); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .co-cumulus { animation: none; }
         }
       `}</style>
     </div>

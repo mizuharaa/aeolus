@@ -1,3 +1,13 @@
 [
+  {
+    "date": "2026-07-28",
+    "scope": "page",
+    "macrostructure": "Feature Stack (cabin/airframe → wordmark interlude → H2 split globe → F2 pinned event theatre)",
+    "theme": "studied-DNA (project design.md — Aeolus editorial)",
+    "enrichment": "performance-gated WebGL cabin and PBR aircraft, natural raster Earth with amber Natural Earth borders and a custom runway-closure beacon, plus a transform-built physical laptop with an inertial hinge opening onto the live OCC simulator",
+    "nav": "N9 edge-minimal",
+    "footer": "Ft5 statement",
+    "brief": "Cinematic cabin-to-airframe flow, slower shallow Q-flight with an AEOLUS identity dwell, two-stage split-to-centre Earth theatre, reversible clip motion, restrained card tilt, and a single pinned physical-laptop-to-live-OCC demo"
+  },
   { "date": "2026-07-15", "scope": "app", "macrostructure": "Workbench (app console)", "theme": "studied-DNA (project design.md — control-tower editorial)", "enrichment": "none", "brief": "Aeolus one-world redesign: simulator adopts landing paper/ink; collision-proof map instrument column; event ledger rows; status dots retired for text" }
 ]

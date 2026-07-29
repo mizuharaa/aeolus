@@ -25,6 +25,8 @@ export function SplitReveal({
   delay = 0,
   stagger = 0.09,
   start = "top 85%",
+  end = "top 46%",
+  mode = "once",
 }: {
   children: ReactNode
   as?: keyof HTMLElementTagNameMap
@@ -33,6 +35,8 @@ export function SplitReveal({
   delay?: number
   stagger?: number
   start?: string
+  end?: string
+  mode?: "once" | "reversible" | "scrub"
 }) {
   const ref = useRef<HTMLElement>(null)
 
@@ -41,28 +45,50 @@ export function SplitReveal({
     if (!el || prefersReduced()) return
 
     let split: SplitText | undefined
+    let disposed = false
     const ctx = gsap.context(() => {
       gsap.set(el, { autoAlpha: 0 })
       document.fonts.ready.then(() => {
-        if (!ref.current) return
-        split = new SplitText(el, { type: "lines", mask: "lines", linesClass: "lp-line" })
-        gsap.set(el, { autoAlpha: 1 })
-        gsap.from(split.lines, {
-          yPercent: 115,
-          duration: 1.0,
-          ease: "power4.out",
-          stagger,
-          delay,
-          scrollTrigger: { trigger: el, start, once: true },
+        if (!ref.current || disposed) return
+        ctx.add(() => {
+          split = new SplitText(el, { type: "lines", mask: "lines", linesClass: "lp-line" })
+          gsap.set(el, { autoAlpha: 1 })
+
+          if (mode === "scrub") {
+            gsap.fromTo(
+              split.lines,
+              { yPercent: 115 },
+              {
+                yPercent: 0,
+                ease: "none",
+                stagger,
+                scrollTrigger: { trigger: el, start, end, scrub: 0.65 },
+              },
+            )
+            return
+          }
+
+          gsap.from(split.lines, {
+            yPercent: 115,
+            duration: 1.0,
+            ease: "power4.out",
+            stagger,
+            delay,
+            scrollTrigger:
+              mode === "reversible"
+                ? { trigger: el, start, toggleActions: "play none none reverse" }
+                : { trigger: el, start, once: true },
+          })
         })
       })
     }, el)
 
     return () => {
+      disposed = true
       split?.revert()
       ctx.revert()
     }
-  }, [delay, stagger, start])
+  }, [delay, end, mode, stagger, start])
 
   // createElement instead of JSX: `as` is a runtime tag name and TS can't
   // reconcile the polymorphic ref through JSX generics.

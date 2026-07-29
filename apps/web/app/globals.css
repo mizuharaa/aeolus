@@ -1152,3 +1152,149 @@
 .dm-evrow-hot, .dm-plan { transition: transform 180ms cubic-bezier(0.22,0.9,0.28,1), background 160ms ease, border-color 160ms ease, box-shadow 180ms ease; }
 .dm-plan:hover { transform: translateY(-2px); border-color: var(--dk-teal) !important; box-shadow: 0 8px 20px -12px rgba(91, 63, 168, 0.5); }
 .dm-events .dm-evrow-hot:hover { background: rgba(193, 58, 107, 0.07); }
+
+/* ══════════════════════════════════════════════════════════════════
+   The MacBook stage — the #2 demo, rebuilt as a device that opens and
+   zooms on scroll. Dark plum "theater" so the machine pops; the lid
+   rotates open on scrub, then the whole rig zooms into the screen.
+   ══════════════════════════════════════════════════════════════════ */
+
+.dm-section {
+  background:
+    radial-gradient(120% 80% at 50% -10%, rgba(139,111,208,0.16), transparent 60%),
+    radial-gradient(90% 70% at 85% 110%, rgba(201,160,80,0.10), transparent 55%),
+    #171021;
+}
+.dm-pin {
+  position: relative;
+  height: 100vh;
+  display: flex;
+  align-items: center;      /* the MacBook is always vertically centred */
+  justify-content: center;
+  padding: 0 clamp(16px, 4vw, 56px);
+  overflow: hidden;
+}
+
+/* headline is an OVERLAY centred over the machine — it never pushes the
+   MacBook off-centre; it just fades away to reveal it. */
+.dm-headline {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0 24px;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+.dm-headline-title {
+  margin: 14px 0 12px;
+  font-family: var(--ae-font-display);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.02;
+  font-size: clamp(30px, 5.2vw, 68px);
+  color: #F1ECE1;
+}
+.dm-headline-title .ed-serif { color: #C9A050; }
+.dm-headline-sub {
+  margin: 0 auto;
+  max-width: 520px;
+  font-size: clamp(14px, 1.4vw, 17px);
+  line-height: 1.6;
+  color: #A79FB6;
+}
+
+/* the device — a space-gray laptop frame, drawn in CSS. Width is also
+   capped by viewport height (× 1.6) so the 16:10 screen never goes fat on
+   short/wide screens. */
+.dm-mac-wrap { position: relative; z-index: 2; perspective: 2400px; will-change: transform; }
+.dm-mac { position: relative; width: min(80vw, 900px, 128vh); transform-origin: center 46%; will-change: transform; }
+
+/* lid = aluminium screen assembly. Rotates open from the hinge. */
+.dm-mac-lid {
+  transform-origin: bottom center;
+  transform: rotateX(-90deg);           /* closed by default; scrub/staticMode opens */
+  will-change: transform;
+  border-radius: 20px 20px 7px 7px;
+  padding: 9px 9px 10px;
+  /* brushed space-gray aluminium edge */
+  background: linear-gradient(158deg, #74747c 0%, #45454c 16%, #35353b 50%, #45454c 84%, #24242a 100%);
+  box-shadow:
+    0 44px 100px -34px rgba(0,0,0,0.78),
+    inset 0 1px 0 rgba(255,255,255,0.14),
+    inset 0 -1px 0 rgba(0,0,0,0.55);
+}
+.dm-mac-bezel {
+  position: relative;
+  border-radius: 12px 12px 4px 4px;
+  background: #0a0a0d;
+  padding: 14px 4px 4px;    /* thicker top for the notch */
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05), inset 0 0 34px rgba(0,0,0,0.9);
+}
+.dm-notch {
+  position: absolute; top: 4px; left: 50%; transform: translateX(-50%);
+  width: 132px; height: 8px; border-radius: 0 0 8px 8px;
+  background: #0a0a0d; z-index: 3;
+}
+/* the screen holds a true 16:10 panel so the machine never looks squat */
+.dm-mac-bezel .demo-screen { border-radius: 5px; aspect-ratio: 16 / 10; }
+
+/* base = the aluminium deck seen edge-on when open, with the front cutout */
+.dm-mac-base {
+  position: relative;
+  height: clamp(15px, 2vh, 24px);
+  width: 107%;
+  margin-left: -3.5%;
+  border-radius: 2px 2px 16px 16px;
+  background: linear-gradient(180deg, #64646c 0%, #43434a 22%, #2c2c33 62%, #1b1b21 100%);
+  box-shadow: 0 32px 54px -22px rgba(0,0,0,0.85), inset 0 1px 0 rgba(255,255,255,0.16);
+}
+/* the dark hinge shadow line across the back of the deck */
+.dm-mac-hinge {
+  position: absolute; top: 0; left: 7%; right: 7%; height: 3px;
+  border-radius: 0 0 4px 4px;
+  background: linear-gradient(180deg, #0c0c0f, #34343b);
+}
+/* the semicircular finger cutout at the front centre */
+.dm-mac-notch-cut {
+  position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 15%; height: 8px; border-radius: 0 0 40px 40px;
+  background: rgba(0,0,0,0.42);
+}
+
+/* caption chips — a bottom overlay, so they never shift the machine */
+.dm-captions-row {
+  position: absolute;
+  left: 0; right: 0; bottom: clamp(20px, 5vh, 46px);
+  z-index: 6;
+  display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
+  padding: 0 24px;
+  will-change: transform, opacity;
+}
+.dm-cap {
+  display: inline-flex; align-items: center; gap: 9px;
+  padding: 9px 14px; border-radius: 999px; cursor: pointer;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(201,160,80,0.16);
+  color: #C4BBD4;
+  font-family: var(--ae-font-body); font-size: 13px; font-weight: 550;
+  transition: border-color 180ms ease, background 180ms ease, color 180ms ease;
+}
+.dm-cap[data-active="true"] {
+  background: rgba(139,111,208,0.16);
+  border-color: #C9A050;
+  color: #F1ECE1;
+}
+.dm-cap .dm-cap-n {
+  font-family: var(--ae-font-mono); font-size: 10.5px; font-weight: 600;
+  letter-spacing: 0.08em; color: #C9A050;
+}
+
+@media (max-width: 720px) {
+  .dm-headline-sub { display: none; }
+  .dm-cap-title { display: none; }
+}

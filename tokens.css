@@ -1,0 +1,79 @@
+/* Hallmark system stamp
+ * genre: editorial control tower · tone: cinematic, operational, exact
+ * palette anchor: deep plum · structural fingerprint: Feature Stack with pinned spatial theatre
+ */
+:root {
+  /* Colour */
+  --color-paper: oklch(95.5% 0.018 82);
+  --color-paper-2: oklch(91.5% 0.025 78);
+  --color-paper-3: oklch(88% 0.03 78);
+  --color-ink: oklch(17% 0.026 307);
+  --color-ink-2: oklch(36% 0.024 78);
+  --color-muted: oklch(54% 0.02 78);
+  --color-neutral: oklch(38% 0.018 78);
+  --color-rule: oklch(84% 0.018 78);
+  --color-rule-2: oklch(76% 0.02 78);
+  --color-accent: oklch(72% 0.15 77);
+  --color-accent-ink: oklch(14% 0.025 307);
+  --color-focus: oklch(73% 0.16 77);
+  --color-night: oklch(14% 0.032 307);
+  --color-night-2: oklch(20% 0.042 303);
+  --color-night-rule: oklch(72% 0.035 290 / 0.22);
+  --color-plum: oklch(48% 0.19 298);
+  --color-violet: oklch(61% 0.16 300);
+  --color-rose: oklch(58% 0.18 9);
+  --color-blue: oklch(68% 0.12 242);
+  --color-error: oklch(60% 0.2 24);
+  --color-success: oklch(62% 0.13 155);
+
+  /* Typography */
+  --font-display: "Inter Display", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Inter", "Inter Display", ui-sans-serif, system-ui, sans-serif;
+  --font-outlier: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --display-weight: 800;
+  --display-style: normal;
+  --tracking-display: -0.045em;
+  --tracking-label: 0.1em;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-md: 1.125rem;
+  --text-lg: 1.375rem;
+  --text-xl: 1.75rem;
+  --text-2xl: 2.25rem;
+  --text-display: clamp(3rem, 6vw + 1rem, 6.5rem);
+
+  /* Four-point spacing */
+  --space-3xs: 0.25rem;
+  --space-2xs: 0.5rem;
+  --space-xs: 0.75rem;
+  --space-sm: 1rem;
+  --space-md: 1.5rem;
+  --space-lg: 2rem;
+  --space-xl: 3rem;
+  --space-2xl: 4.5rem;
+  --space-3xl: 7rem;
+  --space-4xl: 11rem;
+  --space-5xl: 14rem;
+  --space-fluid-gutter: clamp(1rem, 4vw, 3.5rem);
+
+  /* Rules, radii, shadow */
+  --rule-hair: 0.5px;
+  --rule-fine: 1px;
+  --radius-card: 0.625rem;
+  --radius-pill: 999px;
+  --radius-input: 0.5rem;
+  --shadow-card: 0 1.5rem 4rem -2rem oklch(3% 0.02 300 / 0.38);
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-micro: 120ms;
+  --dur-short: 220ms;
+  --dur-long: 420ms;
+
+  /* Fixed navigation */
+  --banner-height: 64px;
+  --z-sticky: 20;
+  --z-sticky-nav: 60;
+}

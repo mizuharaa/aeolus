@@ -82,28 +82,54 @@ export function MaskedWordmark({
     if (!root) return
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
 
+    const animations: gsap.core.Tween[] = []
     const ctx = gsap.context(() => {
       ribbons.forEach((r, i) => {
         // one tween drives BOTH copies (faint + clipped) of ribbon i
         const nodes = root.querySelectorAll(`[data-rb="${i}"]`)
-        gsap.fromTo(
-          nodes,
-          { x: r.reverse ? -W : 0 },
-          { x: r.reverse ? 0 : -W, duration: r.duration, ease: "none", repeat: -1 },
+        animations.push(
+          gsap.fromTo(
+            nodes,
+            { x: r.reverse ? -W : 0 },
+            {
+              x: r.reverse ? 0 : -W,
+              duration: r.duration,
+              ease: "none",
+              repeat: -1,
+              paused: true,
+            },
+          ),
         )
         // vertical swell on top of the travel — the band rises and falls
         // like a waveform / an aircraft riding gentle turbulence
         const s = SWELL[i % SWELL.length]
-        gsap.to(nodes, {
-          y: s.y,
-          duration: s.dur,
-          ease: "sine.inOut",
-          yoyo: true,
-          repeat: -1,
-        })
+        animations.push(
+          gsap.to(nodes, {
+            y: s.y,
+            duration: s.dur,
+            ease: "sine.inOut",
+            yoyo: true,
+            repeat: -1,
+            paused: true,
+          }),
+        )
       })
     }, root)
-    return () => ctx.revert()
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        for (const animation of animations) {
+          if (entry.isIntersecting) animation.resume()
+          else animation.pause()
+        }
+      },
+      { rootMargin: "16% 0px", threshold: 0.01 },
+    )
+    observer.observe(root)
+
+    return () => {
+      observer.disconnect()
+      ctx.revert()
+    }
   }, [ribbons])
 
   const textAttrs = {
