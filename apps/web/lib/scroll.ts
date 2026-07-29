@@ -59,7 +59,7 @@ export const landingScroll = {
 
 const frameCallbacks = new Set<LandingFrame>()
 const threeRoots = new Map<LandingCanvas, ThreeRootRegistration>()
-const requiredAssets = new Set(["cabin", "airliner"])
+const requiredAssets = new Set<string>()
 const readyAssets = new Set<string>()
 
 let lenis: Lenis | null = null
@@ -253,6 +253,7 @@ export function mountLandingScroll() {
   gsap.ticker.add(driveScroll, false, true)
   gsap.ticker.add(renderFrame)
   gsap.ticker.lagSmoothing(0)
+  queueLandingRefresh()
 
   return unmountLandingScroll
 }

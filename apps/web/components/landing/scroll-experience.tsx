@@ -13,7 +13,6 @@
  */
 
 import { useEffect, useLayoutEffect, useRef } from "react"
-import dynamic from "next/dynamic"
 import Link from "next/link"
 import { gsap } from "@/components/landing/gsap"
 import styles from "@/components/landing/landing-experience.module.css"
@@ -31,17 +30,8 @@ import { TrustedBy } from "@/components/landing/trusted-by"
 import { FinalCTAStage } from "@/components/landing/final-cta-stage"
 import { LandingFooter } from "@/components/landing/footer"
 import { Rise } from "@/components/landing/motion"
+import { FlightOpeningLite } from "@/components/landing/flight-opening-lite"
 import { mountLandingScroll } from "@/lib/scroll"
-
-// 3D layers only on the client
-const CabinOpening = dynamic(
-  () => import("@/components/landing/cabin-opening").then((m) => m.CabinOpening),
-  { ssr: false },
-)
-const HeroPlane3D = dynamic(
-  () => import("@/components/landing/hero-plane-3d").then((m) => m.HeroPlane3D),
-  { ssr: false },
-)
 
 const NOON = {
   "--bg": "#F7F3EA",
@@ -217,8 +207,7 @@ export function LandingScrollExperience() {
           Skip motion — launch simulator
         </Link>
         <LandingAtmosphere />
-        <HeroPlane3D />
-        <CabinOpening />
+        <FlightOpeningLite />
         <LandingNav />
         {/* content sits above the fixed atmosphere/plane layers */}
         <div style={{ position: "relative", zIndex: 2 }}>
