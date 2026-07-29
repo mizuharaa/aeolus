@@ -108,6 +108,7 @@ export function FlightIntroStage() {
       ref={rootRef}
       className="ae-flight-intro"
       aria-label="From cabin to airframe"
+      tabIndex={0}
     >
       <h1 className="ae-sr-only">Airline recovery starts inside the aircraft and reaches the whole network.</h1>
       <div className="ae-flight-cue" aria-hidden>

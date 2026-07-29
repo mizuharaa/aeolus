@@ -17,7 +17,7 @@
 
 import { useEffect, useMemo, useRef } from "react"
 import { Canvas, useFrame, useThree } from "@react-three/fiber"
-import { AdaptiveDpr, AdaptiveEvents, useTexture } from "@react-three/drei"
+import { useTexture } from "@react-three/drei"
 import {
   Bloom,
   ChromaticAberration,
@@ -34,12 +34,14 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js"
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js"
 import {
+  getLandingQualityProfile,
   landingScroll,
   markLandingAssetReady,
   registerLandingFrame,
   registerThreeRoot,
 } from "@/lib/scroll"
 import { damp, Spring } from "@/lib/spring"
+import { CanvasBudget } from "@/components/landing/canvas-budget"
 
 // ── palette: night business class (reference: dark sculpted ceiling, cool
 //    LED spine, warm amber pools on cognac leather + cream shells) ────────
@@ -996,6 +998,39 @@ function WindowLightShafts() {
 }
 
 function CabinPostProcessing() {
+  const post = getLandingQualityProfile().post
+
+  if (post === "mobile") {
+    return (
+      <EffectComposer multisampling={0}>
+        <Bloom
+          intensity={0.28}
+          luminanceThreshold={0.88}
+          mipmapBlur
+        />
+        <SMAA />
+      </EffectComposer>
+    )
+  }
+
+  if (post === "balanced") {
+    return (
+      <EffectComposer multisampling={0}>
+        <N8AO
+          aoRadius={0.54}
+          distanceFalloff={0.6}
+          intensity={1.6}
+        />
+        <Bloom
+          intensity={0.34}
+          luminanceThreshold={0.87}
+          mipmapBlur
+        />
+        <SMAA />
+      </EffectComposer>
+    )
+  }
+
   return (
     <EffectComposer multisampling={0}>
       <N8AO
@@ -1308,8 +1343,7 @@ export function CabinOpening() {
           shadows
           style={{ width: "100%", height: "100%" }}
         >
-          <AdaptiveDpr pixelated />
-          <AdaptiveEvents />
+          <CanvasBudget />
           <CabinScene />
         </Canvas>
         {/* soft photographic vignette, like the reference shot */}

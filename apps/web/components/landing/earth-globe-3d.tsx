@@ -5,11 +5,13 @@ import { Canvas, type ThreeEvent, useFrame } from "@react-three/fiber"
 import { useTexture } from "@react-three/drei"
 import * as THREE from "three"
 import {
+  getLandingQualityProfile,
   landingScroll,
   markLandingAssetReady,
   registerThreeRoot,
 } from "@/lib/scroll"
 import { Spring } from "@/lib/spring"
+import { CanvasBudget } from "@/components/landing/canvas-budget"
 
 export type GlobeEventKind = "closure" | "storm" | "cyber" | "ash" | "crew"
 
@@ -307,7 +309,13 @@ function CloudLayer({
   )
 }
 
-function Atmosphere({ reducedMotion }: { reducedMotion: boolean }) {
+function Atmosphere({
+  reducedMotion,
+  aurora,
+}: {
+  reducedMotion: boolean
+  aurora: boolean
+}) {
   const material = useMemo(
     () =>
       new THREE.ShaderMaterial({
@@ -322,6 +330,7 @@ function Atmosphere({ reducedMotion }: { reducedMotion: boolean }) {
           uCyan: { value: new THREE.Color("#4FD8E8") },
           uViolet: { value: new THREE.Color("#8E68ED") },
           uAmber: { value: new THREE.Color("#F5C572") },
+          uAuroraStrength: { value: aurora ? 1 : 0 },
         },
         vertexShader: `
           varying vec3 vWorldNormal;
@@ -342,6 +351,7 @@ function Atmosphere({ reducedMotion }: { reducedMotion: boolean }) {
           uniform vec3 uCyan;
           uniform vec3 uViolet;
           uniform vec3 uAmber;
+          uniform float uAuroraStrength;
           varying vec3 vWorldNormal;
           varying vec3 vLocalNormal;
           varying vec3 vWorldPosition;
@@ -396,7 +406,7 @@ function Atmosphere({ reducedMotion }: { reducedMotion: boolean }) {
             float polar = smoothstep(0.62, 0.92, abs(latitude));
             float auroraNoise = smoothstep(0.5, 0.88, fbm(vLocalNormal * 8.0 + vec3(0.0, uTime * 0.035, 0.0)));
             vec3 auroraColor = mix(vec3(0.23, 0.93, 0.65), uViolet, smoothstep(0.75, 0.98, abs(latitude)));
-            float aurora = polar * auroraNoise * limb * 0.22;
+            float aurora = polar * auroraNoise * limb * 0.22 * uAuroraStrength;
 
             float latGrid = 1.0 - smoothstep(0.0, 0.045, abs(sin(asin(clamp(vLocalNormal.y, -1.0, 1.0)) * 18.0)));
             float lonGrid = 1.0 - smoothstep(0.0, 0.045, abs(sin(atan(vLocalNormal.z, vLocalNormal.x) * 18.0)));
@@ -410,7 +420,7 @@ function Atmosphere({ reducedMotion }: { reducedMotion: boolean }) {
           }
         `,
       }),
-    [],
+    [aurora],
   )
 
   useFrame(({ clock }) => {
@@ -919,6 +929,7 @@ function EarthModel({
   onReady?: () => void
   reducedMotion: boolean
 }) {
+  const quality = getLandingQualityProfile()
   const planetRef = useRef<THREE.Group>(null)
   const drag = useRef({
     active: false,
@@ -1219,9 +1230,14 @@ function EarthModel({
         <sphereGeometry args={[EARTH_RADIUS, 128, 96]} />
       </mesh>
       <NightLights texture={nightLights} />
-      <CloudLayer texture={clouds} reducedMotion={reducedMotion} />
+      {quality.clouds ? (
+        <CloudLayer texture={clouds} reducedMotion={reducedMotion} />
+      ) : null}
       <CountryBorders texture={borders} />
-      <Atmosphere reducedMotion={reducedMotion} />
+      <Atmosphere
+        reducedMotion={reducedMotion}
+        aurora={quality.aurora}
+      />
       {GLOBE_EVENTS.map((event, index) => (
         <EventMarker
           key={event.id}
@@ -1320,6 +1336,7 @@ export function EarthGlobe3D({
           )
         }}
       >
+        <CanvasBudget />
         <Suspense fallback={null}>
           <EarthScene
             onReady={onReady}

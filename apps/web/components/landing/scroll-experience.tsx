@@ -14,6 +14,7 @@
 
 import { useEffect, useLayoutEffect, useRef } from "react"
 import dynamic from "next/dynamic"
+import Link from "next/link"
 import { gsap } from "@/components/landing/gsap"
 import styles from "@/components/landing/landing-experience.module.css"
 import { LandingNav } from "@/components/landing/landing-nav"
@@ -205,6 +206,9 @@ export function LandingScrollExperience() {
         className={`${styles.experience} ae-landing-experience lp`}
         style={{ position: "relative" }}
       >
+        <Link href="/simulator" className="ae-skip-simulator">
+          Skip motion — launch simulator
+        </Link>
         <LandingAtmosphere />
         <HeroPlane3D />
         <CabinOpening />

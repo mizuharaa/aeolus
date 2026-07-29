@@ -6,6 +6,15 @@ import { gsap, ScrollTrigger } from "@/components/landing/gsap"
 
 export type LandingScene = "flight" | "identity" | "globe" | "demo"
 export type LandingCanvas = "cabin" | "airliner" | "globe" | "macbook"
+export type LandingQualityTier = "high" | "balanced" | "low"
+
+export type LandingQualityProfile = {
+  tier: LandingQualityTier
+  dprMax: 1 | 1.5 | 2
+  post: "full" | "balanced" | "mobile"
+  clouds: boolean
+  aurora: boolean
+}
 
 type LandingFrame = (time: number, delta: number) => void
 type ThreeRootRegistration = {
@@ -39,6 +48,13 @@ export const landingScroll = {
     globe: false,
     macbook: false,
   } satisfies Record<LandingCanvas, boolean>,
+  quality: {
+    tier: "high",
+    dprMax: 2,
+    post: "full",
+    clouds: true,
+    aurora: true,
+  } as LandingQualityProfile,
 }
 
 const frameCallbacks = new Set<LandingFrame>()
@@ -52,6 +68,101 @@ let refreshQueued = false
 let lastFrameMs = 0
 let removeReducedMotionListener: (() => void) | null = null
 let removeLenisListener: (() => void) | null = null
+let qualityProbeFrame = 0
+let capabilityProfileResolved = false
+
+const QUALITY_PROFILES: Record<LandingQualityTier, LandingQualityProfile> = {
+  high: {
+    tier: "high",
+    dprMax: 2,
+    post: "full",
+    clouds: true,
+    aurora: true,
+  },
+  balanced: {
+    tier: "balanced",
+    dprMax: 1.5,
+    post: "balanced",
+    clouds: true,
+    aurora: true,
+  },
+  low: {
+    tier: "low",
+    dprMax: 1,
+    post: "mobile",
+    clouds: false,
+    aurora: false,
+  },
+}
+
+const QUALITY_RANK: Record<LandingQualityTier, number> = {
+  low: 0,
+  balanced: 1,
+  high: 2,
+}
+
+function detectCapabilityTier(): LandingQualityTier {
+  if (typeof window === "undefined") return "high"
+
+  const memory =
+    (navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 8
+  const cores = navigator.hardwareConcurrency || 8
+  const coarsePointer = window.matchMedia("(pointer: coarse)").matches
+  const compactViewport = Math.min(window.innerWidth, window.innerHeight) < 760
+
+  if (memory <= 4 || cores <= 4 || (coarsePointer && compactViewport)) {
+    return "low"
+  }
+  if (memory <= 8 || cores <= 8 || coarsePointer || window.innerWidth < 1024) {
+    return "balanced"
+  }
+  return "high"
+}
+
+function applyQualityProfile(tier: LandingQualityTier) {
+  const next = QUALITY_PROFILES[tier]
+  Object.assign(landingScroll.quality, next)
+  threeRoots.forEach(({ state }) => state.setDpr(next.dprMax))
+}
+
+export function getLandingQualityProfile(): LandingQualityProfile {
+  if (!capabilityProfileResolved && typeof window !== "undefined") {
+    capabilityProfileResolved = true
+    applyQualityProfile(detectCapabilityTier())
+  }
+  return landingScroll.quality
+}
+
+export function setLandingQualityTier(
+  tier: LandingQualityTier,
+  options: { allowUpgrade?: boolean } = {},
+) {
+  const current = landingScroll.quality.tier
+  if (!options.allowUpgrade && QUALITY_RANK[tier] >= QUALITY_RANK[current]) return
+  applyQualityProfile(tier)
+}
+
+function startCapabilityProbe() {
+  if (document.visibilityState !== "visible") return
+  const startedAt = performance.now()
+  let frameCount = 0
+
+  const sample = (now: number) => {
+    frameCount += 1
+    const elapsed = now - startedAt
+    if (elapsed < 500) {
+      qualityProbeFrame = window.requestAnimationFrame(sample)
+      return
+    }
+
+    qualityProbeFrame = 0
+    const fps = (frameCount * 1000) / Math.max(elapsed, 1)
+    if (fps < 42) setLandingQualityTier("low")
+    else if (fps < 55) setLandingQualityTier("balanced")
+  }
+
+  qualityProbeFrame = window.requestAnimationFrame(sample)
+}
 
 const driveScroll = (time: number) => {
   const instance = lenis
@@ -106,6 +217,9 @@ export function mountLandingScroll() {
   removeReducedMotionListener = () =>
     motionPreference.removeEventListener("change", syncMotionPreference)
 
+  getLandingQualityProfile()
+  startCapabilityProbe()
+
   lenis = new Lenis({
     lerp: 0.085,
     wheelMultiplier: 0.9,
@@ -154,6 +268,7 @@ function unmountLandingScroll() {
   gsap.ticker.remove(renderFrame)
   removeLenisListener?.()
   removeReducedMotionListener?.()
+  if (qualityProbeFrame) window.cancelAnimationFrame(qualityProbeFrame)
   lenis?.destroy()
   if (process.env.NODE_ENV !== "production") {
     delete (
@@ -177,6 +292,7 @@ function unmountLandingScroll() {
   lenis = null
   removeLenisListener = null
   removeReducedMotionListener = null
+  qualityProbeFrame = 0
   lastFrameMs = 0
 }
 
@@ -207,6 +323,7 @@ export function registerThreeRoot(
     wasActive: active(),
   }
   threeRoots.set(id, registration)
+  state.setDpr(getLandingQualityProfile().dprMax)
 
   return () => {
     if (threeRoots.get(id) === registration) threeRoots.delete(id)

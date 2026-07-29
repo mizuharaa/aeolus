@@ -21,6 +21,7 @@ import {
   registerThreeRoot,
 } from "@/lib/scroll"
 import { Spring, damp } from "@/lib/spring"
+import { CanvasBudget } from "@/components/landing/canvas-budget"
 
 const BODY_WIDTH = 3.126
 const BODY_DEPTH = 2.212
@@ -497,6 +498,7 @@ export function MacbookStage({
         shadows
         onCreated={registerRoot}
       >
+        <CanvasBudget />
         <color attach="background" args={["#0a0711"]} />
         <ambientLight intensity={0.24} color="#ded8ef" />
         <directionalLight

@@ -279,6 +279,7 @@ export function LiveGlobeStage() {
       className="ae-globe-section"
       data-events-active="false"
       aria-label="Live simulated network events"
+      tabIndex={0}
     >
       <div className="ae-globe-pin">
         <div className="ae-globe-surface" aria-hidden />

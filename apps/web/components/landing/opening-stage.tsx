@@ -81,6 +81,7 @@ export function OpeningWordmarkStage() {
       ref={rootRef}
       className="ae-identity-stage"
       aria-label="Aeolus"
+      tabIndex={0}
     >
       <div ref={stageRef} className="ae-identity-sticky">
       {/* the flying dart is now the 3D HeroPlane3D layer (see scroll-experience) */}

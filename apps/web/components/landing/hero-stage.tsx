@@ -15,7 +15,7 @@ export function HeroStatementStage() {
       aria-label="Airline recovery, simulated live"
       style={{
         position: "relative",
-        padding: "clamp(90px, 14vh, 160px) clamp(20px, 4vw, 56px)",
+        padding: "clamp(90px, 14dvh, 160px) clamp(20px, 4vw, 56px)",
       }}
     >
       <div style={{ maxWidth: 1480, margin: "0 auto" }}>
@@ -41,7 +41,7 @@ export function HeroStatementStage() {
             alignItems: "flex-end",
             gap: 40,
             flexWrap: "wrap",
-            marginTop: "clamp(36px, 6vh, 64px)",
+            marginTop: "clamp(36px, 6dvh, 64px)",
           }}
         >
           <Rise>

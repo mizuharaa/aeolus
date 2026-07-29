@@ -33,6 +33,7 @@ import {
   registerThreeRoot,
 } from "@/lib/scroll"
 import { Spring } from "@/lib/spring"
+import { CanvasBudget } from "@/components/landing/canvas-budget"
 
 function StudioEnvironment() {
   const { gl, scene } = useThree()
@@ -738,6 +739,7 @@ export function HeroPlane3D() {
           )
         }}
       >
+        <CanvasBudget />
         <StudioEnvironment />
         <hemisphereLight args={["#fff8e9", "#18101e", 0.42]} />
         <directionalLight

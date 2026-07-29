@@ -61,7 +61,7 @@ export function PricingSection() {
       id="pricing"
       ref={rootRef}
       aria-label="Plans and pricing"
-      style={{ padding: "clamp(72px, 10vh, 128px) clamp(20px, 4vw, 56px)", maxWidth: 1280, margin: "0 auto" }}
+      style={{ padding: "clamp(72px, 10dvh, 128px) clamp(20px, 4vw, 56px)", maxWidth: 1280, margin: "0 auto" }}
     >
       <div style={{ textAlign: "center", marginBottom: 44, maxWidth: 620, marginInline: "auto" }}>
         <span className="lp-eyebrow">05 — Plans &amp; pricing</span>

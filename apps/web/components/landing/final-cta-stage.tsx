@@ -28,7 +28,7 @@ export function FinalCTAStage() {
       aria-label="Run a disruption"
       style={{
         position: "relative",
-        padding: "clamp(90px, 14vh, 170px) clamp(20px, 4vw, 56px) clamp(60px, 8vh, 100px)",
+        padding: "clamp(90px, 14dvh, 170px) clamp(20px, 4vw, 56px) clamp(60px, 8dvh, 100px)",
       }}
     >
       <DriftPlane from={{ left: "-5%", top: "26%" }} to={{ left: "102%", top: "8%" }} rotate={[2, 16]} size={30} color="var(--accent-amber)" bob={7} />
@@ -48,7 +48,7 @@ export function FinalCTAStage() {
             gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
             gap: "clamp(32px, 4vw, 72px)",
             alignItems: "center",
-            marginTop: "clamp(40px, 6vh, 72px)",
+            marginTop: "clamp(40px, 6dvh, 72px)",
           }}
           className="lp-cta-split"
         >

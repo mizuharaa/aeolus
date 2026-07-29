@@ -619,7 +619,36 @@
   color: var(--ink);
   font-family: var(--ae-font-body);
   overflow-x: clip;
-  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.lp .ae-skip-simulator {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 120;
+  padding: 0.72rem 1rem;
+  border: 1px solid rgba(255, 251, 242, 0.32);
+  border-radius: 999px;
+  background: #0a0711;
+  color: #fffbf2;
+  font: 650 0.82rem/1 var(--ae-font-body);
+  text-decoration: none;
+  transform: translateY(calc(-100% - 1.5rem));
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.lp .ae-skip-simulator:focus-visible {
+  transform: translateY(0);
+}
+
+.lp :where(a, button, [tabindex]):focus-visible {
+  outline: 3px solid #f5c572;
+  outline-offset: 4px;
+}
+
+.lp section[tabindex]:focus-visible {
+  outline-offset: -5px;
 }
 
 /* ── Landing atmosphere — flat color waves, no blur, no gradient smears.
@@ -1169,7 +1198,7 @@
 }
 .dm-pin {
   position: relative;
-  height: 100vh;
+  height: 100dvh;
   display: flex;
   align-items: center;      /* the MacBook is always vertically centred */
   justify-content: center;
@@ -1214,7 +1243,7 @@
    capped by viewport height (× 1.6) so the 16:10 screen never goes fat on
    short/wide screens. */
 .dm-mac-wrap { position: relative; z-index: 2; perspective: 2400px; will-change: transform; }
-.dm-mac { position: relative; width: min(80vw, 900px, 128vh); transform-origin: center 46%; will-change: transform; }
+.dm-mac { position: relative; width: min(80vw, 900px, 128dvh); transform-origin: center 46%; will-change: transform; }
 
 /* lid = aluminium screen assembly. Rotates open from the hinge. */
 .dm-mac-lid {
@@ -1248,7 +1277,7 @@
 /* base = the aluminium deck seen edge-on when open, with the front cutout */
 .dm-mac-base {
   position: relative;
-  height: clamp(15px, 2vh, 24px);
+  height: clamp(15px, 2dvh, 24px);
   width: 107%;
   margin-left: -3.5%;
   border-radius: 2px 2px 16px 16px;
@@ -1271,7 +1300,7 @@
 /* caption chips — a bottom overlay, so they never shift the machine */
 .dm-captions-row {
   position: absolute;
-  left: 0; right: 0; bottom: clamp(20px, 5vh, 46px);
+  left: 0; right: 0; bottom: clamp(20px, 5dvh, 46px);
   z-index: 6;
   display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
   padding: 0 24px;

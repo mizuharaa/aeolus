@@ -125,7 +125,7 @@
 .experience :global(.ae-flight-cue) {
   position: absolute;
   inset-inline: var(--flight-gutter);
-  top: 78svh;
+  top: 78dvh;
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -149,7 +149,7 @@
 .experience :global(.ae-identity-stage) {
   position: relative;
   z-index: 7;
-  min-height: 132svh;
+  min-height: 132dvh;
   color: var(--flight-ink);
   background: var(--flight-paper);
 }
@@ -158,13 +158,13 @@
   position: sticky;
   top: 0;
   display: flex;
-  height: 100svh;
+  height: 100dvh;
   min-height: 36rem;
   flex-direction: column;
   justify-content: center;
-  gap: clamp(1.5rem, 4.5svh, 3.5rem);
+  gap: clamp(1.5rem, 4.5dvh, 3.5rem);
   overflow: clip;
-  padding: clamp(5.5rem, 11svh, 7.5rem) var(--flight-gutter) clamp(2rem, 6svh, 4rem);
+  padding: clamp(5.5rem, 11dvh, 7.5rem) var(--flight-gutter) clamp(2rem, 6dvh, 4rem);
 }
 
 .experience :global(.ae-identity-eyebrow),
@@ -304,7 +304,7 @@
 .experience :global(.co-intro-copy) {
   position: absolute;
   inset-inline: var(--flight-gutter);
-  bottom: clamp(1.5rem, 6svh, 4.5rem);
+  bottom: clamp(1.5rem, 6dvh, 4.5rem);
   z-index: 3;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -400,7 +400,7 @@
   position: relative;
   min-height: auto;
   overflow: clip;
-  padding: clamp(5.5rem, 12svh, 8rem) var(--flight-gutter) 4rem;
+  padding: clamp(5.5rem, 12dvh, 8rem) var(--flight-gutter) 4rem;
   isolation: isolate;
 }
 
@@ -561,7 +561,7 @@
   position: relative;
   z-index: 2;
   width: 100%;
-  height: min(72svh, 38rem);
+  height: min(72dvh, 38rem);
   min-height: 27rem;
   margin-top: 1.5rem;
   cursor: grab;
@@ -850,18 +850,18 @@
 }
 
 .experience :global(.ae-globe-exit) {
-  height: clamp(5rem, 16svh, 10rem);
+  height: clamp(5rem, 16dvh, 10rem);
   background: linear-gradient(180deg, var(--flight-night), var(--bg));
 }
 
 .experience:global(.ae-landing-experience) :global(.lp-marquee) {
-  margin-block: clamp(3rem, 10svh, 8rem);
-  padding-block: clamp(2.5rem, 7svh, 5rem) !important;
+  margin-block: clamp(3rem, 10dvh, 8rem);
+  padding-block: clamp(2.5rem, 7dvh, 5rem) !important;
 }
 
 /* Product stage: a physical hinge opens the actual live OCC surface. */
 .experience:global(.ae-landing-experience) :global(.dm-section) {
-  margin-top: clamp(2rem, 8svh, 6rem);
+  margin-top: clamp(2rem, 8dvh, 6rem);
   background:
     radial-gradient(circle at 18% 12%, color-mix(in oklch, var(--flight-violet) 10%, transparent), transparent 34%),
     radial-gradient(circle at 86% 84%, color-mix(in oklch, var(--flight-amber) 7%, transparent), transparent 30%),
@@ -869,8 +869,8 @@
 }
 
 .experience:global(.ae-landing-experience) :global(.dm-pin) {
-  min-height: 100svh;
-  height: 100svh;
+  min-height: 100dvh;
+  height: 100dvh;
   padding-inline: var(--flight-gutter);
 }
 
@@ -1051,7 +1051,7 @@
 /* Ft5 statement — close the narrative instead of opening a sitemap. */
 .experience :global(.ae-footer-statement) {
   position: relative;
-  padding: clamp(5rem, 12svh, 9rem) var(--flight-gutter) 2rem;
+  padding: clamp(5rem, 12dvh, 9rem) var(--flight-gutter) 2rem;
   color: var(--flight-paper);
   border-top: 1px solid var(--flight-night-rule);
   background: var(--flight-night);
@@ -1084,7 +1084,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 1.5rem;
-  margin-top: clamp(3.5rem, 7svh, 6rem);
+  margin-top: clamp(3.5rem, 7dvh, 6rem);
   padding-top: 1.25rem;
   border-top: 1px solid var(--flight-night-rule);
 }
@@ -1138,7 +1138,7 @@
 
 @media (max-width: 39.99rem) {
   .experience:global(.ae-landing-experience) :global(.dm-section) {
-    padding-block: clamp(4rem, 12svh, 6rem);
+    padding-block: clamp(4rem, 12dvh, 6rem);
   }
 
   .experience:global(.ae-landing-experience) :global(.dm-pin) {
@@ -1209,7 +1209,7 @@
 
 @media (min-width: 40rem) {
   .experience :global(.ae-flight-cue) {
-    top: 82svh;
+    top: 82dvh;
   }
 
   .experience :global(.co-intro-copy) {
@@ -1237,7 +1237,7 @@
   }
 
   .experience :global(.ae-globe-pin) {
-    height: 100svh;
+    height: 100dvh;
     min-height: 42rem;
     padding: 0;
   }
@@ -1245,14 +1245,14 @@
   .experience :global(.ae-globe-copy) {
     position: absolute;
     inset-inline-start: var(--flight-gutter);
-    top: clamp(6.5rem, 15svh, 10rem);
+    top: clamp(6.5rem, 15dvh, 10rem);
     width: min(43%, 41rem);
   }
 
   .experience :global(.ae-globe-event-copy) {
     position: absolute;
     inset-inline: 50% auto;
-    top: clamp(4.75rem, 10svh, 7rem);
+    top: clamp(4.75rem, 10dvh, 7rem);
     width: min(38rem, 58vw);
     margin: 0;
     opacity: 0;
@@ -1271,7 +1271,7 @@
 
   .experience :global(.ae-globe-notification) {
     inset-inline-start: 8%;
-    bottom: clamp(8.5rem, 16svh, 10rem);
+    bottom: clamp(8.5rem, 16dvh, 10rem);
     opacity: 0;
   }
 

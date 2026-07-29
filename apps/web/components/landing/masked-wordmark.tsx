@@ -13,7 +13,7 @@
  * editorial type set tight against the margins, not a centered slogan.
  */
 
-import { useId, useLayoutEffect, useRef, type CSSProperties } from "react"
+import { useLayoutEffect, useRef, type CSSProperties } from "react"
 import { gsap } from "@/components/landing/gsap"
 
 const W = 1000 // viewBox width — ribbons loop with period W
@@ -61,6 +61,15 @@ const SWELL = [
   { y: 12, dur: 4.4 },
 ]
 
+function stableSvgId(value: string) {
+  let hash = 2166136261
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index)
+    hash = Math.imul(hash, 16777619)
+  }
+  return `ae-mask-${(hash >>> 0).toString(36)}`
+}
+
 export function MaskedWordmark({
   text = "AEOLUS",
   className,
@@ -74,7 +83,7 @@ export function MaskedWordmark({
   outsideOpacity?: number
   ribbons?: Ribbon[]
 }) {
-  const id = useId().replace(/[^a-zA-Z0-9]/g, "")
+  const id = stableSvgId(text)
   const rootRef = useRef<SVGSVGElement>(null)
 
   useLayoutEffect(() => {

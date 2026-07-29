@@ -449,6 +449,7 @@ export function CinematicSimulatorDemo() {
       aria-label="Simulator demo"
       className="dm-section"
       data-static={staticMode}
+      tabIndex={0}
       style={{ position: "relative" }}
     >
       <div className="dm-pin">
