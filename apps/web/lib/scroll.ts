@@ -119,8 +119,20 @@ export function mountLandingScroll() {
     ;(
       window as typeof window & {
         __aeolusLenis?: Lenis
+        __aeolusLandingScroll?: typeof landingScroll
+        __aeolusScrollTrigger?: typeof ScrollTrigger
       }
     ).__aeolusLenis = lenis
+    ;(
+      window as typeof window & {
+        __aeolusLandingScroll?: typeof landingScroll
+      }
+    ).__aeolusLandingScroll = landingScroll
+    ;(
+      window as typeof window & {
+        __aeolusScrollTrigger?: typeof ScrollTrigger
+      }
+    ).__aeolusScrollTrigger = ScrollTrigger
   }
   removeLenisListener = lenis.on("scroll", syncLenisState)
   syncLenisState(lenis)
@@ -147,8 +159,20 @@ function unmountLandingScroll() {
     delete (
       window as typeof window & {
         __aeolusLenis?: Lenis
+        __aeolusLandingScroll?: typeof landingScroll
+        __aeolusScrollTrigger?: typeof ScrollTrigger
       }
     ).__aeolusLenis
+    delete (
+      window as typeof window & {
+        __aeolusLandingScroll?: typeof landingScroll
+      }
+    ).__aeolusLandingScroll
+    delete (
+      window as typeof window & {
+        __aeolusScrollTrigger?: typeof ScrollTrigger
+      }
+    ).__aeolusScrollTrigger
   }
   lenis = null
   removeLenisListener = null

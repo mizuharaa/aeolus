@@ -33,16 +33,30 @@ export function FlightIntroStage() {
           scrollTrigger: {
             trigger: root,
             start: "top top",
-            end: "+=320%",
+            end: "+=400%",
             scrub: 1.2,
             pin: true,
             pinSpacing: true,
             anticipatePin: 1,
             invalidateOnRefresh: true,
             fastScrollEnd: true,
+            onUpdate: (self) => {
+              setLandingSceneActive(
+                "cabin",
+                self.isActive && self.progress < 0.54,
+              )
+              setLandingSceneActive(
+                "airliner",
+                self.isActive &&
+                  self.progress > 0.18 &&
+                  self.progress < 0.999,
+              )
+            },
             onToggle: (self) => {
-              setLandingSceneActive("cabin", self.isActive)
-              setLandingSceneActive("airliner", self.isActive)
+              if (!self.isActive) {
+                setLandingSceneActive("cabin", false)
+                setLandingSceneActive("airliner", false)
+              }
             },
             onLeave: () => {
               setLandingSceneActive("cabin", false)
