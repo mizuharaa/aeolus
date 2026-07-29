@@ -19,7 +19,7 @@ import {
   setGlobeEventIndex,
   type GlobeEvent,
   type GlobeEventKind,
-} from "@/components/landing/earth-globe-3d"
+} from "@/components/landing/globe-events"
 import { gsap, ScrollTrigger } from "@/components/landing/gsap"
 import { HighlightSwipe, SplitReveal } from "@/components/landing/type-fx"
 import {
@@ -28,6 +28,7 @@ import {
   resetLandingScene,
   setLandingSceneActive,
 } from "@/lib/scroll"
+import { useNearViewport } from "@/lib/use-near-viewport"
 
 const EarthGlobe3D = dynamic(
   () => import("@/components/landing/earth-globe-3d").then((module) => module.EarthGlobe3D),
@@ -102,6 +103,7 @@ export function LiveGlobeStage() {
   const feedInteractingRef = useRef(false)
   const lastEventVersionRef = useRef(globeEventRuntime.version)
   const [globeReady, setGlobeReady] = useState(false)
+  const shouldMountGlobe = useNearViewport(rootRef)
   const markGlobeReady = useCallback(() => setGlobeReady(true), [])
 
   const selectEvent = useCallback((next: number) => {
@@ -347,7 +349,9 @@ export function LiveGlobeStage() {
           <div className="ae-globe-fallback" aria-hidden>
             <span />
           </div>
-          <EarthGlobe3D onReady={markGlobeReady} />
+          {shouldMountGlobe ? (
+            <EarthGlobe3D onReady={markGlobeReady} />
+          ) : null}
           <div
             className="ae-globe-notification"
             data-active="false"

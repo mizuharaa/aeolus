@@ -10,7 +10,7 @@ export type LandingQualityTier = "high" | "balanced" | "low"
 
 export type LandingQualityProfile = {
   tier: LandingQualityTier
-  dprMax: 1 | 1.5 | 2
+  dprMax: 1 | 1.25 | 1.5
   post: "full" | "balanced" | "mobile"
   clouds: boolean
   aurora: boolean
@@ -44,22 +44,22 @@ export const landingScroll = {
   } satisfies Record<LandingScene, number>,
   active: {
     cabin: true,
-    airliner: true,
+    airliner: false,
     globe: false,
     macbook: false,
   } satisfies Record<LandingCanvas, boolean>,
   quality: {
-    tier: "high",
-    dprMax: 2,
-    post: "full",
-    clouds: true,
-    aurora: true,
+    tier: "balanced",
+    dprMax: 1.25,
+    post: "mobile",
+    clouds: false,
+    aurora: false,
   } as LandingQualityProfile,
 }
 
 const frameCallbacks = new Set<LandingFrame>()
 const threeRoots = new Map<LandingCanvas, ThreeRootRegistration>()
-const requiredAssets = new Set(["cabin", "airliner", "earth"])
+const requiredAssets = new Set(["cabin", "airliner"])
 const readyAssets = new Set<string>()
 
 let lenis: Lenis | null = null
@@ -74,17 +74,17 @@ let capabilityProfileResolved = false
 const QUALITY_PROFILES: Record<LandingQualityTier, LandingQualityProfile> = {
   high: {
     tier: "high",
-    dprMax: 2,
-    post: "full",
+    dprMax: 1.5,
+    post: "balanced",
     clouds: true,
     aurora: true,
   },
   balanced: {
     tier: "balanced",
-    dprMax: 1.5,
-    post: "balanced",
-    clouds: true,
-    aurora: true,
+    dprMax: 1.25,
+    post: "mobile",
+    clouds: false,
+    aurora: false,
   },
   low: {
     tier: "low",
@@ -113,10 +113,7 @@ function detectCapabilityTier(): LandingQualityTier {
   if (memory <= 4 || cores <= 4 || (coarsePointer && compactViewport)) {
     return "low"
   }
-  if (memory <= 8 || cores <= 8 || coarsePointer || window.innerWidth < 1024) {
-    return "balanced"
-  }
-  return "high"
+  return "balanced"
 }
 
 function applyQualityProfile(tier: LandingQualityTier) {
@@ -183,7 +180,7 @@ const renderFrame = (time: number) => {
   frameCallbacks.forEach((callback) => callback(time, delta))
   threeRoots.forEach((registration) => {
     const active = registration.active()
-    if (registration.wasActive && !active) registration.tailFrames = 48
+    if (registration.wasActive && !active) registration.tailFrames = 12
     if (registration.primeFrames > 0 || registration.tailFrames > 0 || active) {
       advance(nowMs, false, registration.state)
       registration.primeFrames = Math.max(0, registration.primeFrames - 1)
@@ -318,7 +315,7 @@ export function registerThreeRoot(
   const registration = {
     state,
     active,
-    primeFrames: 12,
+    primeFrames: 4,
     tailFrames: 0,
     wasActive: active(),
   }

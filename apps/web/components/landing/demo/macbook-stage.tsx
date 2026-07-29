@@ -486,7 +486,7 @@ export function MacbookStage({
     <div className="dm-macbook-stage" aria-label="Aeolus OCC dashboard on a closing laptop">
       <Canvas
         frameloop="never"
-        dpr={[1, 2]}
+        dpr={[1, 1.5]}
         camera={{ position: [0, 2.26, 4.56], fov: 28, near: 0.1, far: 30 }}
         gl={{
           antialias: false,

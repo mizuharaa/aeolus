@@ -5,6 +5,12 @@ import { Canvas, type ThreeEvent, useFrame } from "@react-three/fiber"
 import { useTexture } from "@react-three/drei"
 import * as THREE from "three"
 import {
+  GLOBE_EVENTS,
+  globeEventRuntime,
+  type GlobeEvent,
+  type GlobeEventKind,
+} from "@/components/landing/globe-events"
+import {
   getLandingQualityProfile,
   landingScroll,
   markLandingAssetReady,
@@ -13,107 +19,9 @@ import {
 import { Spring } from "@/lib/spring"
 import { CanvasBudget } from "@/components/landing/canvas-budget"
 
-export type GlobeEventKind = "closure" | "storm" | "cyber" | "ash" | "crew"
-
-export type GlobeEvent = {
-  id: string
-  kind: GlobeEventKind
-  city: string
-  airport: string
-  lat: number
-  lon: number
-  title: string
-  effect: string
-  response: string
-  tone: "amber" | "violet" | "rose" | "cyan" | "paper"
-}
-
-export const GLOBE_EVENTS: GlobeEvent[] = [
-  {
-    id: "ord-closure",
-    kind: "closure",
-    city: "Chicago",
-    airport: "KORD",
-    lat: 41.9742,
-    lon: -87.9073,
-    title: "Hub closure",
-    effect: "Departure bank held",
-    response: "Recovery plans recomputing",
-    tone: "rose",
-  },
-  {
-    id: "mnl-storm",
-    kind: "storm",
-    city: "Manila",
-    airport: "RPLL",
-    lat: 14.5086,
-    lon: 121.0198,
-    title: "Convective storm",
-    effect: "Arrival flow compressed",
-    response: "Weather alternates active",
-    tone: "cyan",
-  },
-  {
-    id: "sin-cyber",
-    kind: "cyber",
-    city: "Singapore",
-    airport: "WSSS",
-    lat: 1.3644,
-    lon: 103.9915,
-    title: "Cyber disruption",
-    effect: "Dispatch link isolated",
-    response: "Manual control channel open",
-    tone: "violet",
-  },
-  {
-    id: "kef-ash",
-    kind: "ash",
-    city: "Keflavík",
-    airport: "BIKF",
-    lat: 63.985,
-    lon: -22.6056,
-    title: "Volcanic ash",
-    effect: "North Atlantic tracks constrained",
-    response: "Route exposure recalculating",
-    tone: "amber",
-  },
-  {
-    id: "lhr-crew",
-    kind: "crew",
-    city: "London",
-    airport: "EGLL",
-    lat: 51.47,
-    lon: -0.4543,
-    title: "Crew displacement",
-    effect: "Legality window tightening",
-    response: "Reserve pairings ranked",
-    tone: "paper",
-  },
-]
-
-export const globeEventRuntime = {
-  activeIndex: 0,
-  version: 0,
-}
-
-export function setGlobeEventIndex(index: number) {
-  const next = ((index % GLOBE_EVENTS.length) + GLOBE_EVENTS.length) % GLOBE_EVENTS.length
-  if (next === globeEventRuntime.activeIndex) return
-  globeEventRuntime.activeIndex = next
-  globeEventRuntime.version += 1
-}
-
 const DEG = Math.PI / 180
 const EARTH_RADIUS = 2.18
 const OUT = new THREE.Vector3(0, 0, 1)
-
-useTexture.preload("/textures/earth-blue-marble.jpg")
-useTexture.preload("/textures/earth-normal.jpg")
-useTexture.preload("/textures/earth-water-mask.png")
-useTexture.preload("/textures/earth-roughness.png")
-useTexture.preload("/textures/earth-night-lights.png")
-useTexture.preload("/textures/earth-clouds.png")
-useTexture.preload("/textures/earth-borders.png")
 
 const EVENT_COLORS: Record<GlobeEventKind, string> = {
   closure: "#E0457B",
@@ -964,8 +872,8 @@ function EarthModel({
     initializedRef.current = true
   }
 
-  const lowTextureTier = quality.tier === "low"
-  const textureUrls = lowTextureTier
+  const compactTextureTier = quality.tier !== "high"
+  const textureUrls = compactTextureTier
     ? [
         "/textures/earth-blue-marble-mobile.jpg",
         "/textures/earth-normal-mobile.jpg",
@@ -985,8 +893,8 @@ function EarthModel({
       ]
   const loadedTextures = useTexture(textureUrls) as THREE.Texture[]
   const [albedo, normal, waterMask, roughness, nightLights] = loadedTextures
-  const clouds = lowTextureTier ? null : loadedTextures[5]
-  const borders = lowTextureTier ? loadedTextures[5] : loadedTextures[6]
+  const clouds = compactTextureTier ? null : loadedTextures[5]
+  const borders = compactTextureTier ? loadedTextures[5] : loadedTextures[6]
   const globeMaterial = useMemo(() => {
     const material = new THREE.MeshPhysicalMaterial({
       map: albedo,
@@ -1334,7 +1242,7 @@ export function EarthGlobe3D({
       <Canvas
         aria-label="Interactive textured Earth showing a simulated airline disruption"
         camera={{ position: [0, 0.12, 7.8], fov: 32, near: 0.1, far: 80 }}
-        dpr={[1, 2]}
+        dpr={[1, 1.5]}
         frameloop="never"
         gl={{ antialias: false, alpha: true, powerPreference: "high-performance" }}
         onCreated={(state) => {

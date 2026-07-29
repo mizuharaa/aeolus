@@ -65,18 +65,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link rel="preconnect" href="https://rsms.me" crossOrigin="anonymous" />
         {/*
-          ONE typeface family: Inter (+ Inter Display, its optical-size
-          variant for headlines) served variable from rsms.me. JetBrains
-          Mono is reserved for code blocks, flight IDs, and tabular ops
-          data — it is not a display font.
-        */}
-        <link href="https://rsms.me/inter/inter.css" rel="stylesheet" />
-        {/*
-          JetBrains Mono — code, flight IDs, tabular ops data.
-          Fraunces (italic only) — the landing's editorial serif accent;
-          used nowhere inside the simulator app.
+          Inter is self-hosted and subset by next/font. JetBrains Mono is
+          reserved for data; Fraunces remains the landing identity accent.
         */}
         <link
           href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Fraunces:ital,opsz,wght@1,9..144,400..600&display=swap"
@@ -92,7 +83,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             closeButton
             toastOptions={{
               style: {
-                fontFamily: 'Inter, "Inter Display", system-ui, sans-serif',
+                fontFamily: "var(--ae-font-body)",
                 fontSize: 13,
                 fontWeight: 500,
                 borderRadius: 10,

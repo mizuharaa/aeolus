@@ -717,7 +717,7 @@ export function HeroPlane3D() {
       />
       <Canvas
         camera={{ position: [0.55, -0.28, 8.6], fov: 32 }}
-        dpr={[1, 2]}
+        dpr={[1, 1.5]}
         frameloop="never"
         gl={{
           alpha: true,

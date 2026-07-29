@@ -78,12 +78,16 @@ export function LandingScrollExperience() {
     )
     const cleanups = cards.map((card) => {
       let frame = 0
+      let bounds: DOMRect | null = null
       card.dataset.aeTilt = "true"
 
+      const enter = () => {
+        bounds = card.getBoundingClientRect()
+      }
       const move = (event: PointerEvent) => {
         cancelAnimationFrame(frame)
         frame = requestAnimationFrame(() => {
-          const rect = card.getBoundingClientRect()
+          const rect = bounds ?? card.getBoundingClientRect()
           const x = (event.clientX - rect.left) / rect.width - 0.5
           const y = (event.clientY - rect.top) / rect.height - 0.5
           card.style.transform = `perspective(900px) rotateX(${(-y * 5).toFixed(2)}deg) rotateY(${(x * 6).toFixed(2)}deg) translateY(-3px)`
@@ -91,13 +95,16 @@ export function LandingScrollExperience() {
       }
       const leave = () => {
         cancelAnimationFrame(frame)
+        bounds = null
         card.style.transform = ""
       }
 
+      card.addEventListener("pointerenter", enter)
       card.addEventListener("pointermove", move)
       card.addEventListener("pointerleave", leave)
       return () => {
         cancelAnimationFrame(frame)
+        card.removeEventListener("pointerenter", enter)
         card.removeEventListener("pointermove", move)
         card.removeEventListener("pointerleave", leave)
         delete card.dataset.aeTilt

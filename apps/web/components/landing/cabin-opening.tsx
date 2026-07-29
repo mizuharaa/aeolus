@@ -1069,7 +1069,7 @@ function CabinPostProcessing() {
 
 function CabinScene() {
   const textureUrls =
-    getLandingQualityProfile().tier === "low"
+    getLandingQualityProfile().tier !== "high"
       ? CABIN_TEXTURE_URLS_MOBILE
       : CABIN_TEXTURE_URLS
   const textures = useTexture([...textureUrls]) as THREE.Texture[]
@@ -1228,7 +1228,7 @@ function CabinScene() {
 }
 
 const CABIN_PRELOAD_URLS =
-  getLandingQualityProfile().tier === "low"
+  getLandingQualityProfile().tier !== "high"
     ? CABIN_TEXTURE_URLS_MOBILE
     : CABIN_TEXTURE_URLS
 CABIN_PRELOAD_URLS.forEach((url) => useTexture.preload(url))
@@ -1331,7 +1331,7 @@ export function CabinOpening() {
         <Canvas
           aria-hidden="true"
           camera={{ position: CAM_START.toArray(), fov: 38 }}
-          dpr={[1, 2]}
+          dpr={[1, 1.5]}
           frameloop="never"
           gl={{
             antialias: false,

@@ -26,13 +26,13 @@ import {
   useRef,
   useState,
 } from "react"
+import dynamic from "next/dynamic"
 import { CloudLightning, FileText, LayoutGrid, Leaf, Route, Users } from "lucide-react"
 import { gsap, ScrollTrigger } from "@/components/landing/gsap"
 import { AeolusMark } from "@/components/ds/logo"
 import { DemoMap } from "@/components/landing/demo/demo-map"
 import { AgentCommandDemo } from "@/components/landing/demo/agent-command-demo"
 import { CursorChoreography } from "@/components/landing/demo/cursor-choreography"
-import { MacbookStage } from "@/components/landing/demo/macbook-stage"
 import {
   AGENT_COMMAND,
   DEMO_STEPS,
@@ -50,6 +50,15 @@ import {
   resetLandingScene,
   setLandingSceneActive,
 } from "@/lib/scroll"
+import { useNearViewport } from "@/lib/use-near-viewport"
+
+const MacbookStage = dynamic(
+  () =>
+    import("@/components/landing/demo/macbook-stage").then(
+      (module) => module.MacbookStage,
+    ),
+  { ssr: false },
+)
 
 const STATUS = [
   { label: "Nominal", color: "var(--dk-teal)" },
@@ -85,6 +94,7 @@ export function CinematicSimulatorDemo() {
   const tlRef = useRef<gsap.core.Timeline | null>(null)
   const [staticMode, setStaticMode] = useState(false)
   const [screenReady, setScreenReady] = useState(false)
+  const shouldMountDemo = useNearViewport(rootRef)
   const sceneRef = useRef(0)
   // 0 nominal · 1 disrupted/hold · 2 recovering · 3 stable — drives the plane loop
   const phaseRef = useRef(0)
@@ -480,7 +490,8 @@ export function CinematicSimulatorDemo() {
         </div>
 
         <div className="dm-product-wrap">
-          <MacbookStage staticMode={staticMode}>
+          {shouldMountDemo ? (
+            <MacbookStage staticMode={staticMode}>
             <div
               ref={connectScreen}
               className="demo-screen dm-frame"
@@ -836,7 +847,10 @@ export function CinematicSimulatorDemo() {
               />
             </div>
             </div>
-          </MacbookStage>
+            </MacbookStage>
+          ) : (
+            <div className="dm-device-placeholder" aria-hidden="true" />
+          )}
         </div>
 
         {/* caption chips — auto-advance with playback; click to seek */}

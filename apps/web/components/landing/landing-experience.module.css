@@ -899,6 +899,16 @@
   min-height: 34rem;
 }
 
+.experience :global(.dm-device-placeholder) {
+  width: 100%;
+  height: 100%;
+  contain: strict;
+  border: 1px solid color-mix(in oklch, var(--flight-paper) 12%, transparent);
+  background:
+    radial-gradient(circle at 24% 14%, color-mix(in oklch, var(--flight-violet) 8%, transparent), transparent 36%),
+    var(--flight-night);
+}
+
 .experience :global(.dm-macbook-stage) {
   position: relative;
   isolation: isolate;
