@@ -1261,7 +1261,7 @@
 
   .experience :global(.ae-globe-orbit) {
     position: absolute;
-    inset-inline-end: -5%;
+    inset-inline-end: 0;
     top: 4%;
     width: 62%;
     height: 88%;

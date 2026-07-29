@@ -361,6 +361,33 @@ export function CinematicSimulatorDemo() {
         const headline = q(".dm-headline")[0] as HTMLElement
         const captions = q(".dm-captions-row")[0] as HTMLElement
         gsap.set(captions, { opacity: mobile ? 1 : 0, y: mobile ? 0 : 18 })
+        let lastAppliedProgress = Number.NaN
+
+        const applyDemoProgress = () => {
+          const progress = landingScroll.scenes.demo
+          if (Math.abs(progress - lastAppliedProgress) < 0.000001) return
+          lastAppliedProgress = progress
+
+          const copyExit = smoothstep(0.025, 0.13, progress)
+          const captionEntry = mobile
+            ? 1
+            : smoothstep(0.12, 0.2, progress) *
+              (1 - smoothstep(0.8, 0.94, progress))
+
+          headline.style.opacity = String(1 - copyExit)
+          headline.style.transform = `translate3d(0, ${(
+            -copyExit * 9
+          ).toFixed(3)}%, 0)`
+          captions.style.opacity = String(captionEntry)
+          captions.style.transform = `translate3d(0, ${(
+            18 *
+            (1 - captionEntry)
+          ).toFixed(3)}px, 0)`
+          syncScrollPlayback(progress)
+        }
+        applyDemoProgress()
+        const unregisterDemoProgressFrame =
+          registerLandingFrame(applyDemoProgress)
 
         // One pin owns the live OCC walkthrough and the physical hinge. The
         // dashboard timeline is sampled from scroll, so reverse scroll is exact.
@@ -382,25 +409,6 @@ export function CinematicSimulatorDemo() {
               fastScrollEnd: true,
               onToggle: (self) =>
                 setLandingSceneActive("macbook", self.isActive),
-              onUpdate: () => {
-                const progress = landingScroll.scenes.demo
-                const copyExit = smoothstep(0.025, 0.13, progress)
-                const captionEntry = mobile
-                  ? 1
-                  : smoothstep(0.12, 0.2, progress) *
-                    (1 - smoothstep(0.8, 0.94, progress))
-
-                headline.style.opacity = String(1 - copyExit)
-                headline.style.transform = `translate3d(0, ${(
-                  -copyExit * 9
-                ).toFixed(3)}%, 0)`
-                captions.style.opacity = String(captionEntry)
-                captions.style.transform = `translate3d(0, ${(
-                  18 *
-                  (1 - captionEntry)
-                ).toFixed(3)}px, 0)`
-                syncScrollPlayback(progress)
-              },
               onLeave: () => {
                 stopFlights()
                 setLandingSceneActive("macbook", false)
@@ -415,13 +423,17 @@ export function CinematicSimulatorDemo() {
         )
         deviceTrigger = deviceTween.scrollTrigger ?? null
 
-        const onResize = () => tl.invalidate()
+        const onResize = () => {
+          tl.invalidate()
+          lastAppliedProgress = Number.NaN
+        }
         window.addEventListener("resize", onResize)
 
         return () => {
           window.removeEventListener("resize", onResize)
           stopFlights()
           unregisterFlightFrame()
+          unregisterDemoProgressFrame()
           deviceTrigger?.kill()
           deviceTween?.kill()
           resetLandingScene("demo")
