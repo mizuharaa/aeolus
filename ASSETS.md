@@ -19,3 +19,22 @@ repository scripts; their source and transformation are listed alongside them.
 NASA source usage follows the [NASA Images and Media Usage
 Guidelines](https://www.nasa.gov/nasa-brand-center/images-and-media/). NASA is
 credited as the imagery source; Aeolus does not imply NASA endorsement.
+
+## Cabin material library
+
+Higgsfield was authenticated for this pass, but the connected account rejected
+CLI generation with `only_mcp_usage_on_trial_is_available` and this runtime did
+not expose a callable Higgsfield MCP generation tool. The cabin therefore uses
+the brief's CC0 fallback. No Higgsfield credits were consumed.
+
+| Shipped asset family | Source | Rights / license | Transformation and use |
+| --- | --- | --- | --- |
+| `apps/web/public/textures/cabin/leather-*` | [ambientCG Leather 038](https://ambientcg.com/view?id=Leather038) | Creative Commons CC0 1.0; attribution not required. | 1K color, OpenGL normal, and roughness maps converted to WebP. Used on cognac seat backs, cushions, and ottomans. |
+| `apps/web/public/textures/cabin/fabric-*` | [ambientCG Fabric 019](https://ambientcg.com/view?id=Fabric019) | Creative Commons CC0 1.0; attribution not required. | 1K color, OpenGL normal, and roughness maps converted to WebP. Used on high-sheen fabric headrests and throws. |
+| `apps/web/public/textures/cabin/carpet-*` | [ambientCG Carpet 001](https://ambientcg.com/view?id=Carpet001) | Creative Commons CC0 1.0; attribution not required. | Downsampled to 512×512 and converted to WebP for the tiled floor and aisle runner. |
+| `apps/web/public/textures/cabin/brushed-metal-*` | [ambientCG Metal 012](https://ambientcg.com/view?id=Metal012) | Creative Commons CC0 1.0; attribution not required. | 1K OpenGL normal and roughness maps converted to WebP. Used with gold-tinted physical metal on seat rails, inlays, and aisle trim. |
+| `apps/web/public/textures/cabin/sidewall-*` | [ambientCG Plastic 006](https://ambientcg.com/view?id=Plastic006) | Creative Commons CC0 1.0; attribution not required. | 1K OpenGL normal and roughness maps converted to WebP; color is authored in-engine. Used as restrained pebble grain on sidewalls, window reveals, bins, and pod shells. |
+| `apps/web/public/textures/cabin/walnut-*` | [ambientCG Wood 027](https://ambientcg.com/view?id=Wood027) | Creative Commons CC0 1.0; attribution not required. | 1K color, OpenGL normal, and roughness maps converted to WebP. Used beneath a clearcoat layer on console and dado surfaces. |
+
+The complete shipped cabin texture library is approximately 1.74 MB. Original
+1K JPG packages are intentionally not shipped.
