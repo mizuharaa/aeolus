@@ -955,11 +955,19 @@
   gap: 0.18rem;
 }
 
+/* Explicit, not `inherit`. The event name is the primary label of the row and
+   it was resolving to near-black ink (#1C1426) on this dark panel — about
+   1.1:1, i.e. invisible on four of the five rows. Never leave the one piece of
+   text that carries the row's meaning depending on an inherited chain. */
 .experience :global(.ae-event-feed-button b) {
-  color: inherit;
+  color: color-mix(in oklch, var(--flight-paper) 88%, transparent);
   font-size: 0.83rem;
   line-height: 1.15;
   white-space: nowrap;
+}
+
+.experience :global(.ae-event-feed-button[data-active="true"] b) {
+  color: var(--flight-paper);
 }
 
 .experience :global(.ae-event-feed-button small) {

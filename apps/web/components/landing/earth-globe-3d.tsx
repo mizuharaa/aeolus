@@ -80,11 +80,15 @@ function eventOrientation(event: GlobeEvent) {
   return new THREE.Quaternion().setFromRotationMatrix(basis).invert()
 }
 
-function updateSunDirection(time: number, target = SUN_DIRECTION) {
-  const drift = time * 0.018
-  return target
-    .set(Math.cos(drift) * 0.78, 0.28 + Math.sin(drift * 0.63) * 0.09, 0.58)
-    .normalize()
+/**
+ * The sun is FIXED. It used to drift at 0.018 rad/s, which crawled the day/night
+ * terminator across the sphere for as long as the page was open — a permanent
+ * idle animation nobody asked for, on the one element large enough that its
+ * shading change is visible in peripheral vision. `time` is kept in the
+ * signature so the callers below read unchanged; it is deliberately unused.
+ */
+function updateSunDirection(_time: number, target = SUN_DIRECTION) {
+  return target.set(0.78, 0.28, 0.58).normalize()
 }
 
 function CountryBorders({ texture }: { texture: THREE.Texture }) {
@@ -341,9 +345,13 @@ function Atmosphere({ reducedMotion }: { reducedMotion: boolean }) {
     [],
   )
 
-  useFrame(({ clock }) => {
-    material.uniforms.uTime.value = reducedMotion ? 0 : clock.elapsedTime
-    updateSunDirection(clock.elapsedTime, material.uniforms.uSunDirection.value)
+  // uTime stays 0 for everyone, not just reduced-motion users. It drove two
+  // counter-rotating sine bands (0.55 and 0.31 rad/s) and a scrolling aurora
+  // noise across the atmosphere limb — a bright rim shimmering permanently
+  // around the whole sphere. This is the halo in peripheral vision that reads
+  // as the page flickering even when you are looking at the copy.
+  useFrame(() => {
+    updateSunDirection(0, material.uniforms.uSunDirection.value)
   })
 
   useEffect(() => () => material.dispose(), [material])
@@ -446,273 +454,51 @@ const EVENT_KIND_CODE: Record<GlobeEventKind, number> = {
   crew: 4,
 }
 
-function EventColumn({
+/**
+ * EventMarker — a STATIC mark on the surface. No time input, anywhere.
+ *
+ * This replaces five components totalling ~390 lines: `EventColumn` (an
+ * additively-blended plume cylinder whose body was multiplied by
+ * `sin(height * 26 - uTime * 2.1)`), `EventReticle` (corner brackets rocking on
+ * `sin(time * 0.52)`), plus `EventParticles` and `CrewRoute`, which were both
+ * dead code — defined, animated in review, and never rendered.
+ *
+ * Two things were wrong with that rig and they had the same cause. Every event
+ * kept its full VFX stack alive permanently at 11% strength, not just the
+ * selected one, so five plumes and five sets of brackets animated forever: that
+ * is the flicker, and those faint pink brackets scattered over the ocean are
+ * what it looked like when it was working as written. An earlier pass pinned
+ * `uAeEventTime` to 0 in the globe's own decal shader and recorded the flashing
+ * as fixed, but never touched these, which is why nothing appeared to change.
+ *
+ * What remains: the surface decal (a static disc and edge ring drawn by the
+ * globe material, already time-free) marks the active event, and this component
+ * adds a plain ring at every site so the other four are locatable. Selection
+ * still eases — that is a state change with an end, not an idle loop — and
+ * under reduced motion it snaps instead.
+ */
+function EventMarker({
   event,
-  amount,
-  reducedMotion,
+  index,
 }: {
   event: GlobeEvent
-  amount: React.MutableRefObject<number>
-  reducedMotion: boolean
+  index: number
 }) {
+  const rootRef = useRef<THREE.Group>(null)
   const material = useMemo(
     () =>
-      new THREE.ShaderMaterial({
-        transparent: true,
-        depthWrite: false,
-        side: THREE.DoubleSide,
-        blending: THREE.AdditiveBlending,
-        toneMapped: false,
-        uniforms: {
-          uTime: { value: 0 },
-          uStrength: { value: 0 },
-          uKind: { value: EVENT_KIND_CODE[event.kind] },
-          uColor: { value: new THREE.Color(EVENT_COLORS[event.kind]) },
-        },
-        vertexShader: `
-          varying vec3 vLocalPosition;
-          varying vec2 vUv;
-          void main() {
-            vLocalPosition = position;
-            vUv = uv;
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-          }
-        `,
-        fragmentShader: `
-          uniform float uTime;
-          uniform float uStrength;
-          uniform float uKind;
-          uniform vec3 uColor;
-          varying vec3 vLocalPosition;
-          varying vec2 vUv;
-
-          float hash21(vec2 p) {
-            p = fract(p * vec2(123.34, 456.21));
-            p += dot(p, p + 45.32);
-            return fract(p.x * p.y);
-          }
-
-          float noise21(vec2 p) {
-            vec2 i = floor(p);
-            vec2 f = fract(p);
-            f = f * f * (3.0 - 2.0 * f);
-            return mix(mix(hash21(i), hash21(i + vec2(1,0)), f.x),
-                       mix(hash21(i + vec2(0,1)), hash21(i + vec2(1,1)), f.x), f.y);
-          }
-
-          void main() {
-            float height = clamp(vUv.y, 0.0, 1.0);
-            float edge = 1.0 - smoothstep(0.18, 0.5, abs(vUv.x - 0.5));
-            float noise = noise21(vec2(vUv.x * 8.0, height * 6.0 - uTime * 0.55));
-            float body = edge * pow(1.0 - height, 1.35) * mix(0.52, 1.0, noise);
-
-            if (uKind > 0.5 && uKind < 1.5) {
-              body *= 0.62 + sin(height * 26.0 - uTime * 2.1 + noise * 4.0) * 0.2;
-            } else if (uKind > 1.5 && uKind < 2.5) {
-              float scan = sin(height * 12.0 - uTime * 0.45) * 0.5 + 0.5;
-              body *= mix(0.24, 0.58, scan);
-            } else if (uKind > 2.5 && uKind < 3.5) {
-              body *= smoothstep(0.2, 0.9, noise + height * 0.34);
-            } else if (uKind > 3.5) {
-              body *= 0.18;
-            }
-
-            float alpha = body * uStrength * 0.42;
-            if (alpha < 0.006) discard;
-            gl_FragColor = vec4(uColor * (0.8 + noise * 0.55), alpha);
-          }
-        `,
-      }),
-    [event.kind],
-  )
-
-  useFrame(({ clock }) => {
-    material.uniforms.uTime.value = reducedMotion ? 0 : clock.elapsedTime
-    material.uniforms.uStrength.value = amount.current
-  })
-
-  useEffect(() => () => material.dispose(), [material])
-
-  return (
-    <mesh position={[0, 0, 0.37]} rotation={[Math.PI / 2, 0, 0]} material={material}>
-      <cylinderGeometry args={[0.018, 0.105, 0.72, 24, 1, true]} />
-    </mesh>
-  )
-}
-
-function EventReticle({
-  event,
-  amount,
-  reducedMotion,
-}: {
-  event: GlobeEvent
-  amount: React.MutableRefObject<number>
-  reducedMotion: boolean
-}) {
-  const groupRef = useRef<THREE.Group>(null)
-  const material = useMemo(
-    () =>
-      new THREE.LineBasicMaterial({
-        color: EVENT_COLORS[event.kind],
+      new THREE.MeshBasicMaterial({
+        color: EVENT_PIGMENT,
         transparent: true,
         opacity: 0,
         depthWrite: false,
         toneMapped: false,
+        side: THREE.DoubleSide,
       }),
-    [event.kind],
+    [],
   )
-  const geometry = useMemo(() => {
-    const radius = 0.24
-    const edge = 0.075
-    const positions = new Float32Array([
-      -radius, radius - edge, 0, -radius, radius, 0,
-      -radius, radius, 0, -radius + edge, radius, 0,
-      radius - edge, radius, 0, radius, radius, 0,
-      radius, radius, 0, radius, radius - edge, 0,
-      radius, -radius + edge, 0, radius, -radius, 0,
-      radius, -radius, 0, radius - edge, -radius, 0,
-      -radius + edge, -radius, 0, -radius, -radius, 0,
-      -radius, -radius, 0, -radius, -radius + edge, 0,
-    ])
-    const result = new THREE.BufferGeometry()
-    result.setAttribute("position", new THREE.BufferAttribute(positions, 3))
-    return result
-  }, [])
-
-  useFrame(({ clock }) => {
-    material.opacity = amount.current * 0.92
-    if (!groupRef.current) return
-    const time = reducedMotion ? 0 : clock.elapsedTime
-    groupRef.current.rotation.z = Math.sin(time * 0.52) * 0.045
-    groupRef.current.scale.setScalar(0.88 + amount.current * 0.12)
-  })
-
-  useEffect(
-    () => () => {
-      geometry.dispose()
-      material.dispose()
-    },
-    [geometry, material],
-  )
-
-  return (
-    <group ref={groupRef} position={[0, 0, 0.085]}>
-      <lineSegments geometry={geometry} material={material} renderOrder={9} />
-    </group>
-  )
-}
-
-function EventParticles({
-  event,
-  amount,
-  reducedMotion,
-}: {
-  event: GlobeEvent
-  amount: React.MutableRefObject<number>
-  reducedMotion: boolean
-}) {
-  const { geometry, material } = useMemo(() => {
-    const count = event.kind === "ash" ? 144 : 96
-    const positions = new Float32Array(count * 3)
-    const phases = new Float32Array(count)
-    const sizes = new Float32Array(count)
-    let seed = 103 + EVENT_KIND_CODE[event.kind] * 97
-    const random = () => {
-      seed = (seed * 16807) % 2147483647
-      return (seed - 1) / 2147483646
-    }
-
-    for (let index = 0; index < count; index += 1) {
-      const angle = random() * Math.PI * 2
-      const radius = Math.sqrt(random()) * 0.16
-      positions[index * 3] = Math.cos(angle) * radius
-      positions[index * 3 + 1] = Math.sin(angle) * radius
-      positions[index * 3 + 2] = random() * 0.62
-      phases[index] = random()
-      sizes[index] = 0.65 + random() * 1.6
-    }
-
-    const pointGeometry = new THREE.BufferGeometry()
-    pointGeometry.setAttribute("position", new THREE.BufferAttribute(positions, 3))
-    pointGeometry.setAttribute("aPhase", new THREE.BufferAttribute(phases, 1))
-    pointGeometry.setAttribute("aSize", new THREE.BufferAttribute(sizes, 1))
-    const pointMaterial = new THREE.ShaderMaterial({
-      transparent: true,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending,
-      toneMapped: false,
-      uniforms: {
-        uTime: { value: 0 },
-        uStrength: { value: 0 },
-        uKind: { value: EVENT_KIND_CODE[event.kind] },
-        uColor: { value: new THREE.Color(EVENT_COLORS[event.kind]) },
-      },
-      vertexShader: `
-        uniform float uTime;
-        uniform float uStrength;
-        uniform float uKind;
-        attribute float aPhase;
-        attribute float aSize;
-        varying float vAlpha;
-        void main() {
-          vec3 p = position;
-          float cycle = fract(aPhase + uTime * (0.065 + uKind * 0.008));
-          p.z = cycle * 0.68;
-          p.xy *= 0.5 + cycle * 1.35;
-          if (uKind > 0.5 && uKind < 1.5) {
-            float angle = uTime * 0.8 + cycle * 4.0;
-            p.xy = mat2(cos(angle), -sin(angle), sin(angle), cos(angle)) * p.xy;
-          } else if (uKind > 1.5 && uKind < 2.5) {
-          } else if (uKind > 2.5 && uKind < 3.5) {
-            p.x += cycle * cycle * 0.24;
-          }
-          vec4 mvPosition = modelViewMatrix * vec4(p, 1.0);
-          gl_PointSize = aSize * (22.0 / max(1.0, -mvPosition.z));
-          gl_Position = projectionMatrix * mvPosition;
-          vAlpha = (1.0 - cycle) * uStrength;
-        }
-      `,
-      fragmentShader: `
-        uniform vec3 uColor;
-        varying float vAlpha;
-        void main() {
-          float dotShape = 1.0 - smoothstep(0.08, 0.5, length(gl_PointCoord - 0.5));
-          gl_FragColor = vec4(uColor, dotShape * vAlpha * 0.46);
-        }
-      `,
-    })
-    return { geometry: pointGeometry, material: pointMaterial }
-  }, [event.kind])
-
-  useFrame(({ clock }) => {
-    material.uniforms.uTime.value = reducedMotion ? 0 : clock.elapsedTime
-    material.uniforms.uStrength.value = amount.current
-  })
-
-  useEffect(
-    () => () => {
-      geometry.dispose()
-      material.dispose()
-    },
-    [geometry, material],
-  )
-
-  return <points geometry={geometry} material={material} frustumCulled={false} />
-}
-
-function EventMarker({
-  event,
-  index,
-  reducedMotion,
-}: {
-  event: GlobeEvent
-  index: number
-  reducedMotion: boolean
-}) {
-  const rootRef = useRef<THREE.Group>(null)
-  const amountRef = useRef(0)
   const point = useMemo(
-    () => latLonToVector3(event.lat, event.lon, EARTH_RADIUS + 0.014),
+    () => latLonToVector3(event.lat, event.lon, EARTH_RADIUS + 0.012),
     [event.lat, event.lon],
   )
   const rotation = useMemo(
@@ -720,119 +506,35 @@ function EventMarker({
     [point],
   )
 
-  useFrame(({ clock }, delta) => {
+  useFrame((_state, delta) => {
     const group = rootRef.current
     if (!group) return
-    const eventsActive = landingScroll.reducedMotion || landingScroll.scenes.globe >= 0.24
+    const eventsActive =
+      landingScroll.reducedMotion || landingScroll.scenes.globe >= 0.24
     const selected = globeEventRuntime.activeIndex === index
-    const target = eventsActive ? (selected ? 1 : 0.11) : 0
-    amountRef.current = THREE.MathUtils.damp(
-      amountRef.current,
-      target,
-      selected ? 7.2 : 4.2,
-      Math.min(delta, 1 / 30),
-    )
-    const amount = amountRef.current
-    group.visible = amount > 0.006
+    const target = eventsActive ? (selected ? 0.95 : 0.34) : 0
+    material.opacity = landingScroll.reducedMotion
+      ? target
+      : THREE.MathUtils.damp(material.opacity, target, 6, Math.min(delta, 1 / 30))
+    group.visible = material.opacity > 0.006
     if (!group.visible) return
-    const time = reducedMotion ? 0 : clock.elapsedTime
-    const pulse = selected ? 1 + Math.sin(time * 1.6 + index) * 0.018 : 1
-    group.scale.setScalar(pulse)
+    const scaleTarget = selected ? 1 : 0.62
+    group.scale.setScalar(
+      landingScroll.reducedMotion
+        ? scaleTarget
+        : THREE.MathUtils.damp(group.scale.x, scaleTarget, 6, Math.min(delta, 1 / 30)),
+    )
   })
+
+  useEffect(() => () => material.dispose(), [material])
 
   return (
     <group ref={rootRef} position={point} quaternion={rotation}>
-      <EventColumn event={event} amount={amountRef} reducedMotion={reducedMotion} />
-      <EventReticle event={event} amount={amountRef} reducedMotion={reducedMotion} />
+      <mesh material={material} renderOrder={9}>
+        <ringGeometry args={[0.052, 0.064, 48]} />
+      </mesh>
     </group>
   )
-}
-
-function CrewRoute({ reducedMotion }: { reducedMotion: boolean }) {
-  const { geometry, material } = useMemo(() => {
-    const from = latLonToVector3(51.47, -0.4543, 1).normalize()
-    const to = latLonToVector3(41.9742, -87.9073, 1).normalize()
-    const angle = Math.acos(THREE.MathUtils.clamp(from.dot(to), -1, 1))
-    const sinAngle = Math.sin(angle)
-    const count = 72
-    const positions = new Float32Array(count * 3)
-    const progression = new Float32Array(count)
-    for (let index = 0; index < count; index += 1) {
-      const t = index / (count - 1)
-      const a = Math.sin((1 - t) * angle) / sinAngle
-      const b = Math.sin(t * angle) / sinAngle
-      const point = from
-        .clone()
-        .multiplyScalar(a)
-        .add(to.clone().multiplyScalar(b))
-        .normalize()
-        .multiplyScalar(EARTH_RADIUS + 0.035 + Math.sin(Math.PI * t) * 0.12)
-      point.toArray(positions, index * 3)
-      progression[index] = t
-    }
-    const routeGeometry = new THREE.BufferGeometry()
-    routeGeometry.setAttribute("position", new THREE.BufferAttribute(positions, 3))
-    routeGeometry.setAttribute("aT", new THREE.BufferAttribute(progression, 1))
-    const routeMaterial = new THREE.ShaderMaterial({
-      transparent: true,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending,
-      toneMapped: false,
-      uniforms: {
-        uTime: { value: 0 },
-        uStrength: { value: 0 },
-        uColor: { value: new THREE.Color(EVENT_COLORS.crew) },
-      },
-      vertexShader: `
-        uniform float uTime;
-        uniform float uStrength;
-        attribute float aT;
-        varying float vAlpha;
-        void main() {
-          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-          float train = 0.55;
-          float dash = step(0.48, fract(aT * 18.0));
-          gl_PointSize = mix(1.25, 3.5, train) * (62.0 / max(1.0, -mvPosition.z));
-          gl_Position = projectionMatrix * mvPosition;
-          vAlpha = max(dash * 0.28, train) * uStrength;
-        }
-      `,
-      fragmentShader: `
-        uniform vec3 uColor;
-        varying float vAlpha;
-        void main() {
-          float dotShape = 1.0 - smoothstep(0.08, 0.5, length(gl_PointCoord - 0.5));
-          gl_FragColor = vec4(uColor, dotShape * vAlpha);
-        }
-      `,
-    })
-    return { geometry: routeGeometry, material: routeMaterial }
-  }, [])
-
-  useFrame(({ clock }, delta) => {
-    material.uniforms.uTime.value = reducedMotion ? 0 : clock.elapsedTime
-    const target =
-      (landingScroll.reducedMotion || landingScroll.scenes.globe >= 0.24) &&
-      GLOBE_EVENTS[globeEventRuntime.activeIndex]?.kind === "crew"
-        ? 1
-        : 0
-    material.uniforms.uStrength.value = THREE.MathUtils.damp(
-      material.uniforms.uStrength.value,
-      target,
-      6,
-      Math.min(delta, 1 / 30),
-    )
-  })
-
-  useEffect(
-    () => () => {
-      geometry.dispose()
-      material.dispose()
-    },
-    [geometry, material],
-  )
-
-  return <points geometry={geometry} material={material} frustumCulled={false} />
 }
 
 function EarthModel({
@@ -1149,12 +851,7 @@ function EarthModel({
         reducedMotion={reducedMotion}
       />
       {GLOBE_EVENTS.map((event, index) => (
-        <EventMarker
-          key={event.id}
-          event={event}
-          index={index}
-          reducedMotion={reducedMotion}
-        />
+        <EventMarker key={event.id} event={event} index={index} />
       ))}
     </group>
   )
