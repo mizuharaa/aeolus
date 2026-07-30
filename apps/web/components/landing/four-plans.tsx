@@ -102,14 +102,14 @@ export function FourPlansSection() {
               color: "rgba(244,240,255,0.72)",
             }}
           >
-            03 — One disruption, four ways out
+            One disruption, four ways out
           </span>
           <h2
             className="ed-display"
             style={{ fontSize: "clamp(34px, 5.4vw, 82px)", color: "#FFFFFF", marginTop: 18 }}
           >
             Four plans, ranked in{" "}
-            <em className="ed-serif" style={{ color: "#FFD98A", fontStyle: "italic" }}>
+            <em className="ed-serif" style={{ color: "#FFD98A" }}>
               8 milliseconds.
             </em>
           </h2>

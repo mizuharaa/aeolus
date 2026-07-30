@@ -62,9 +62,6 @@ export function MethodologySection() {
           }}
         >
           <div>
-            <span className="lp-eyebrow" style={{ display: "block", marginBottom: 22 }}>
-              04 — Methodology
-            </span>
             <SplitReveal
               as="h2"
               className="ed-display"

@@ -1,23 +1,27 @@
 "use client"
 /**
- * HeroPlane3D — a SLEEK commercial airliner (three.js): pearl-white crown over
- * a champagne belly joined at a gold waterline, spline-curved low-mounted
- * wings with root fairings and swept winglets, lathed engine nacelles with
- * gold intake lips + fans + spinners, a royal-plum tail with one gold sweep,
- * a smooth dark cockpit visor, and warm-lit cabin windows. Every silhouette
- * edge is curved/beveled — no box corners. No text anywhere.
+ * HeroPlane3D — the textured airliner, flown down THROUGH the AEOLUS wordmark.
  *
- * Attachment rule: every part is positioned so its geometry PENETRATES the
- * part it mounts to (wing roots buried in the fuselage, pylons overlapping
- * both wing and nacelle, fin base inside the tail cone) — visible seams or
- * floating parts are geometrically impossible.
+ * The model is the shipped GLB (`/models/aeolus-airliner.glb`): one 30k-vertex
+ * mesh carrying a baked base-colour atlas, a normal map, a metallic-roughness
+ * map and an emissive map — window rows, doors, panel lines, the gold cheatline
+ * and the plum fin are all IN the maps. A previous pass replaced it with a
+ * hand-built lathe-and-extrude model whose materials had no maps at all; that
+ * read as untextured plastic with detached nacelles, so the GLB path is back
+ * and the procedural model is gone.
  *
- * Choreography (revealed by CabinOpening's sky lift, scrubbed by scroll):
- *   - holds a full 3/4 hero view (gentle bob) while the sky lifts,
- *   - then ONE continuous climb — up, banking, away from the viewer — to
- *     park in the top-left corner, fading out by the hero statement.
- * Single segment + frame-rate-independent damping = no joints, no stalls;
- * scrolling back up flies the whole thing in reverse.
+ * Choreography (one pinned scene, scrubbed by scroll):
+ *   0.00–0.20  a close 3/4 hero view holds while the cabin's sky lifts away
+ *   0.20–0.48  pulls out and left to a cruise pose, clearing the lower frame
+ *   0.35–0.62  the AEOLUS wordmark wipes in underneath (IdentityBand)
+ *   0.62–1.00  ONE continuous descent: the aircraft banks right, noses over,
+ *              crosses the wordmark band — passing in front of the letter tops
+ *              and behind their lower halves — and leaves through the bottom
+ *              of the frame at readable scale.
+ *
+ * The pass-through is a stacking trick, not a shader: IdentityBand paints the
+ * same wordmark twice, once under this canvas and once over it, clipped. See
+ * identity-band.tsx.
  */
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber"
@@ -32,8 +36,12 @@ import {
   registerLandingFrame,
   registerThreeRoot,
 } from "@/lib/scroll"
-import { Spring } from "@/lib/spring"
+import { damp } from "@/lib/spring"
 import { CanvasBudget } from "@/components/landing/canvas-budget"
+
+/** Recorded in ASSETS.md. Base colour, normal, metallic-roughness and emissive
+ * are baked into this file — there is no separate texture to wire up. */
+const AIRLINER_MODEL = "/models/aeolus-airliner.glb"
 
 function StudioEnvironment() {
   const { gl, scene } = useThree()
@@ -59,283 +67,10 @@ function StudioEnvironment() {
   return null
 }
 
-/** Build the airliner once. Nose points toward +X. Length ±2.9.
- *
- * Sleek pass: every silhouette edge is a spline, every extrusion beveled,
- * every joint blended with a fairing — no visible box corners anywhere.
- * Livery: pearl-white crown over a champagne belly split by a gold
- * waterline; royal-plum tail with a single gold sweep. */
-function useAirlinerModel() {
-  return useMemo(() => {
-    const group = new THREE.Group()
-
-    // clearcoated pearl — reads as polished paint, not plastic
-    const white = new THREE.MeshPhysicalMaterial({
-      color: "#F9F6EE", metalness: 0.1, roughness: 0.28, clearcoat: 0.8, clearcoatRoughness: 0.25,
-    })
-    const champagne = new THREE.MeshPhysicalMaterial({
-      color: "#D9C9A8", metalness: 0.25, roughness: 0.35, clearcoat: 0.6, clearcoatRoughness: 0.3,
-    })
-    const plum = new THREE.MeshPhysicalMaterial({
-      color: "#5B3FA8", metalness: 0.3, roughness: 0.32, clearcoat: 0.7, clearcoatRoughness: 0.25,
-    })
-    const gold = new THREE.MeshStandardMaterial({ color: "#C9A050", metalness: 0.7, roughness: 0.3 })
-    const wingMat = new THREE.MeshPhysicalMaterial({
-      color: "#E8E2D2", metalness: 0.3, roughness: 0.35, clearcoat: 0.5, clearcoatRoughness: 0.3, side: THREE.DoubleSide,
-    })
-    const glass = new THREE.MeshStandardMaterial({ color: "#141B2E", metalness: 0.6, roughness: 0.12 })
-    // cabin windows glow warm — the lit interior reading through the glass
-    const cabinGlow = new THREE.MeshStandardMaterial({
-      color: "#2A2F3A", metalness: 0.2, roughness: 0.3,
-      emissive: "#FFC98A", emissiveIntensity: 0.55,
-    })
-    const fanMat = new THREE.MeshStandardMaterial({ color: "#2A3038", metalness: 0.85, roughness: 0.3 })
-
-    // ── fuselage: smooth spline-sampled revolve, tail −2.9 → nose +2.9 ──
-    const ctrl = [
-      [0.012, -2.9], [0.09, -2.55], [0.19, -2.05], [0.27, -1.4],
-      [0.305, -0.6], [0.315, 0.3], [0.305, 1.1], [0.285, 1.7],
-      [0.245, 2.2], [0.17, 2.6], [0.06, 2.85], [0.012, 2.9],
-    ].map(([x, y]) => new THREE.Vector2(x, y))
-    const spline = new THREE.SplineCurve(ctrl)
-    const profile = spline.getPoints(64).map((p) => new THREE.Vector2(Math.max(p.x, 0.012), p.y))
-    const fuse = new THREE.Mesh(new THREE.LatheGeometry(profile, 96), white)
-    fuse.rotation.z = -Math.PI / 2
-    group.add(fuse)
-
-    // champagne belly — HALF-lathe (bottom sector) at +1.5% radius, meeting
-    // the pearl crown exactly at the waterline. No z-fighting on top.
-    const bellyProfile = profile.map((p) => new THREE.Vector2(p.x * 1.015, p.y))
-    const belly = new THREE.Mesh(
-      new THREE.LatheGeometry(bellyProfile, 64, Math.PI * 1.5, Math.PI),
-      champagne,
-    )
-    belly.rotation.z = -Math.PI / 2
-    group.add(belly)
-
-    // gold waterline pinstripes riding the seam — slim rounded tubes, not
-    // sharp-edged boxes
-    const mkStripe = (z: number) => {
-      const curve = new THREE.LineCurve3(
-        new THREE.Vector3(-2.35, 0, z),
-        new THREE.Vector3(2.2, 0, z),
-      )
-      return new THREE.Mesh(new THREE.TubeGeometry(curve, 1, 0.018, 8), gold)
-    }
-    group.add(mkStripe(0.317), mkStripe(-0.317))
-
-    // ── wings: curved swept planform (spline leading/trailing edges),
-    //    beveled extrusion, LOW-mounted, root buried in the fuselage ──
-    const wingShape = new THREE.Shape()
-    wingShape.moveTo(0.78, 0) // root leading edge
-    wingShape.lineTo(-0.55, 0) // root trailing edge
-    // trailing edge sweeps back with a gentle inward curve
-    wingShape.quadraticCurveTo(-0.72, 0.9, -1.02, 2.02)
-    wingShape.lineTo(-0.78, 2.05) // tip chord
-    // leading edge curves forward at the root (fillet) then runs straight
-    wingShape.quadraticCurveTo(-0.15, 0.55, 0.78, 0)
-    wingShape.closePath()
-    const wingGeo = new THREE.ExtrudeGeometry(wingShape, {
-      depth: 0.04, bevelEnabled: true, bevelThickness: 0.02, bevelSize: 0.03, bevelSegments: 3,
-    })
-    wingGeo.rotateX(Math.PI / 2) // planform span +Y → +Z (right wing)
-
-    const wingR = new THREE.Mesh(wingGeo, wingMat)
-    wingR.position.set(0, -0.16, 0)
-    wingR.rotation.x = -0.09 // dihedral — tip rises
-    const wingL = new THREE.Mesh(wingGeo.clone().scale(1, 1, -1), wingMat)
-    wingL.position.set(0, -0.16, 0)
-    wingL.rotation.x = 0.09
-    group.add(wingR, wingL)
-
-    // wing-root fairing — a stretched half-capsule blending wing into hull
-    const fairing = new THREE.Mesh(new THREE.SphereGeometry(0.34, 24, 16), champagne)
-    fairing.scale.set(2.2, 0.55, 1.0)
-    fairing.position.set(0.05, -0.26, 0)
-    group.add(fairing)
-
-    // winglets — swept beveled blades curving up from the wingtip
-    const wlShape = new THREE.Shape()
-    wlShape.moveTo(0, 0)
-    wlShape.lineTo(0.24, 0)
-    wlShape.quadraticCurveTo(0.16, 0.18, 0.1, 0.34)
-    wlShape.lineTo(0.0, 0.3)
-    wlShape.quadraticCurveTo(0.02, 0.12, 0, 0)
-    wlShape.closePath()
-    const wlGeo = new THREE.ExtrudeGeometry(wlShape, {
-      depth: 0.02, bevelEnabled: true, bevelThickness: 0.008, bevelSize: 0.012, bevelSegments: 2,
-    })
-    const mkWinglet = (side: 1 | -1) => {
-      const w = new THREE.Mesh(wlGeo, plum)
-      w.position.set(-1.02, 0.02, side * 2.05)
-      w.rotation.x = side * -0.42 // cant outward-up
-      return w
-    }
-    group.add(mkWinglet(1), mkWinglet(-1))
-
-    // ── engines: smooth lathed nacelle (rounded lip → taper → exhaust),
-    //    fan + spinner inside, hung on a faired pylon ──
-    const nacProfile: THREE.Vector2[] = []
-    const nacCtrl = [
-      [0.155, 0.30], [0.172, 0.24], [0.176, 0.1], [0.168, -0.05],
-      [0.15, -0.2], [0.115, -0.30], [0.07, -0.34],
-    ].map(([x, y]) => new THREE.Vector2(x, y))
-    new THREE.SplineCurve(nacCtrl).getPoints(24).forEach((p) => nacProfile.push(p))
-    const mkEngine = (side: 1 | -1) => {
-      const parts: THREE.Object3D[] = []
-      const z = side * 0.85
-
-      const nacelle = new THREE.Mesh(new THREE.LatheGeometry(nacProfile, 48), white)
-      nacelle.rotation.z = -Math.PI / 2
-      nacelle.position.set(0.45, -0.3, z)
-      parts.push(nacelle)
-
-      // gold lip ring on the intake
-      const lip = new THREE.Mesh(new THREE.TorusGeometry(0.163, 0.016, 12, 36), gold)
-      lip.rotation.y = Math.PI / 2
-      lip.position.set(0.75, -0.3, z)
-      parts.push(lip)
-
-      const fan = new THREE.Mesh(new THREE.CylinderGeometry(0.145, 0.145, 0.03, 32), fanMat)
-      fan.rotation.z = Math.PI / 2
-      fan.position.set(0.72, -0.3, z)
-      parts.push(fan)
-
-      const spinner = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.1, 20), champagne)
-      spinner.rotation.z = -Math.PI / 2
-      spinner.position.set(0.77, -0.3, z)
-      parts.push(spinner)
-
-      const exhaust = new THREE.Mesh(new THREE.ConeGeometry(0.075, 0.18, 20), fanMat)
-      exhaust.rotation.z = Math.PI / 2 // point −X (aft)
-      exhaust.position.set(0.08, -0.3, z)
-      parts.push(exhaust)
-
-      // pylon — a squashed capsule spanning wing underside into nacelle top
-      const pylon = new THREE.Mesh(new THREE.CapsuleGeometry(0.055, 0.3, 4, 12), white)
-      pylon.rotation.z = Math.PI / 2 - 0.18
-      pylon.scale.set(1, 1, 0.7)
-      pylon.position.set(0.2, -0.18, z)
-      parts.push(pylon)
-
-      return parts
-    }
-    group.add(...mkEngine(1), ...mkEngine(-1))
-
-    // ── tail fin: royal plum, curved swept edges, beveled, base buried ──
-    const finShape = new THREE.Shape()
-    finShape.moveTo(-1.85, 0)
-    finShape.lineTo(-2.85, 0)
-    // trailing edge sweeps up with a slight curve, rounded tip
-    finShape.quadraticCurveTo(-3.0, 0.55, -3.0, 1.1)
-    finShape.quadraticCurveTo(-2.99, 1.16, -2.92, 1.16)
-    finShape.lineTo(-2.58, 1.14)
-    // leading edge curves down into the spine (dorsal fillet)
-    finShape.quadraticCurveTo(-2.2, 0.6, -1.85, 0)
-    finShape.closePath()
-    const fin = new THREE.Mesh(
-      new THREE.ExtrudeGeometry(finShape, {
-        depth: 0.04, bevelEnabled: true, bevelThickness: 0.012, bevelSize: 0.016, bevelSegments: 2,
-      }),
-      plum,
-    )
-    fin.position.set(0, 0.05, -0.02) // base sunk into the fuselage
-    group.add(fin)
-
-    // single gold sweep across the plum fin — quiet, premium
-    const sweep = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.07, 0.09), gold)
-    sweep.position.set(-2.62, 0.78, 0)
-    sweep.rotation.z = 0.5
-    group.add(sweep)
-
-    // ── horizontal stabilisers: curved swept planforms, beveled ──
-    const stabShape = new THREE.Shape()
-    stabShape.moveTo(-2.35, 0)
-    stabShape.lineTo(-2.85, 0)
-    stabShape.quadraticCurveTo(-2.98, 0.4, -2.99, 0.72)
-    stabShape.lineTo(-2.8, 0.74)
-    stabShape.quadraticCurveTo(-2.55, 0.35, -2.35, 0)
-    stabShape.closePath()
-    const stabGeo = new THREE.ExtrudeGeometry(stabShape, {
-      depth: 0.025, bevelEnabled: true, bevelThickness: 0.008, bevelSize: 0.012, bevelSegments: 2,
-    })
-    stabGeo.rotateX(Math.PI / 2)
-    const stabR = new THREE.Mesh(stabGeo, wingMat)
-    stabR.position.set(0, 0.06, 0)
-    stabR.rotation.x = -0.12
-    const stabL = new THREE.Mesh(stabGeo.clone().scale(1, 1, -1), wingMat)
-    stabL.position.set(0, 0.06, 0)
-    stabL.rotation.x = 0.12
-    group.add(stabR, stabL)
-
-    // ── cockpit: one smooth dark visor band wrapping the nose (the modern
-    //    "mask" look) instead of flat panes ──
-    const visor = new THREE.Mesh(new THREE.SphereGeometry(0.245, 48, 24, 0, Math.PI * 2, 0.9, 0.55), glass)
-    visor.rotation.z = -Math.PI / 2 - 0.32
-    visor.scale.set(1, 1.6, 1)
-    visor.position.set(2.22, 0.06, 0)
-    group.add(visor)
-
-    // ── cabin windows: two warm-lit rows (the interior showing through) ──
-    const portGeo = new THREE.SphereGeometry(0.026, 10, 8)
-    for (let i = 0; i < 16; i++) {
-      const x = 1.7 - i * 0.21
-      for (const side of [1, -1] as const) {
-        const w = new THREE.Mesh(portGeo, cabinGlow)
-        w.position.set(x, 0.10, side * 0.287)
-        w.scale.set(1, 1.25, 0.35)
-        group.add(w)
-      }
-    }
-
-    return group
-  }, [])
-}
-
-const CLOSE = {
-  pos: new THREE.Vector3(0.72, -0.2, 1.3),
-  rot: new THREE.Euler(0.08, -0.28, 0),
-  scale: 2.16,
-}
-const SIDE = {
-  pos: new THREE.Vector3(-0.1, 0.06, 0),
-  rot: new THREE.Euler(0.09, -0.42, 0.015),
-  scale: 0.66,
-}
-const ZOOM_START = 0.22
-const ZOOM_END = 0.48
-const CLIMB_START = 0.62
-const CLIMB_END = 0.985
-const Q_CLOSE = new THREE.Quaternion().setFromEuler(CLOSE.rot)
-const Q_SIDE = new THREE.Quaternion().setFromEuler(SIDE.rot)
-const Q_PATH = new THREE.CatmullRomCurve3(
-  [
-    SIDE.pos.clone(),
-    new THREE.Vector3(0.62, 0.16, -0.34),
-    new THREE.Vector3(0.92, 0.68, -0.72),
-    new THREE.Vector3(0.5, 1.14, -1.08),
-    new THREE.Vector3(-0.34, 1.32, -1.46),
-    new THREE.Vector3(-1.16, 1.08, -1.84),
-    new THREE.Vector3(-1.52, 0.48, -2.24),
-    new THREE.Vector3(-1.24, -0.18, -2.64),
-    new THREE.Vector3(-0.45, -0.5, -3.04),
-    new THREE.Vector3(0.46, -0.34, -3.42),
-    new THREE.Vector3(0.92, 0.2, -3.82),
-    new THREE.Vector3(0.52, -0.24, -4.22),
-    new THREE.Vector3(1.58, -0.92, -5.12),
-    new THREE.Vector3(4.4, -1.92, -7.8),
-  ],
-  false,
-  "catmullrom",
-  0.58,
-)
-const Q_FRAMES = Q_PATH.computeFrenetFrames(400, false)
-
-function ProceduralAirliner() {
-  const model = useAirlinerModel()
-  return <primitive object={model} />
-}
-
+/**
+ * Upgrade a loaded standard material to physical so the airframe reads as
+ * polished paint under the studio environment, keeping every baked map.
+ */
 function physicalFromStandard(source: THREE.MeshStandardMaterial) {
   const upgraded = new THREE.MeshPhysicalMaterial({
     color: source.color,
@@ -368,13 +103,15 @@ function physicalFromStandard(source: THREE.MeshStandardMaterial) {
     upgraded.emissiveMap,
     upgraded.aoMap,
   ]) {
+    // The airframe is seen at a shallow angle for most of the descent, which is
+    // exactly where an unfiltered map turns the window row into aliasing noise.
     if (texture) texture.anisotropy = 8
   }
   return upgraded
 }
 
 function GeneratedAirliner({ onReady }: { onReady: () => void }) {
-  const { scene } = useGLTF("/models/aeolus-airliner.glb")
+  const { scene } = useGLTF(AIRLINER_MODEL)
   const model = useMemo(() => {
     const clone = scene.clone(true)
     clone.traverse((object) => {
@@ -401,8 +138,8 @@ function GeneratedAirliner({ onReady }: { onReady: () => void }) {
 
     const wrapper = new THREE.Group()
     wrapper.add(clone)
-    // Meshy inferred the source image with its nose on local -X. Normalize
-    // that axis once so every flight quaternion can treat +X as forward.
+    // The source model has its nose on local −X. Normalise that once here so
+    // every flight quaternion downstream can treat +X as forward.
     wrapper.rotation.y = Math.PI
     return wrapper
   }, [scene])
@@ -412,7 +149,9 @@ function GeneratedAirliner({ onReady }: { onReady: () => void }) {
     return () => {
       model.traverse((object) => {
         if (!(object instanceof THREE.Mesh)) return
-        const materials = Array.isArray(object.material) ? object.material : [object.material]
+        const materials = Array.isArray(object.material)
+          ? object.material
+          : [object.material]
         for (const material of materials) material.dispose()
       })
     }
@@ -421,7 +160,83 @@ function GeneratedAirliner({ onReady }: { onReady: () => void }) {
   return <primitive object={model} />
 }
 
-useGLTF.preload("/models/aeolus-airliner.glb")
+useGLTF.preload(AIRLINER_MODEL)
+
+const CLOSE = {
+  pos: new THREE.Vector3(0.72, -0.2, 1.3),
+  rot: new THREE.Euler(0.08, -0.28, 0),
+  scale: 2.16,
+}
+/**
+ * Cruise pose. Held high and left of centre on purpose: the wordmark wipes in
+ * across the middle of the frame under the aircraft, and the descent needs a
+ * full diagonal of travel before it reaches the letters. A centred cruise pose
+ * left the plane already sitting on the type with nowhere to fall from.
+ */
+const SIDE = {
+  pos: new THREE.Vector3(-1.12, 1.44, -0.2),
+  rot: new THREE.Euler(0.07, -0.44, 0.015),
+  scale: 0.62,
+}
+const ZOOM_START = 0.2
+const ZOOM_END = 0.48
+const CLIMB_START = 0.62
+const CLIMB_END = 0.985
+const Q_CLOSE = new THREE.Quaternion().setFromEuler(CLOSE.rot)
+const Q_SIDE = new THREE.Quaternion().setFromEuler(SIDE.rot)
+/**
+ * Descent path — one continuous arc that banks right, noses over, crosses the
+ * AEOLUS wordmark band and leaves through the BOTTOM of the frame.
+ *
+ * The camera sits at (0.55, −0.28, 8.6) with a 32° fov looking at the origin,
+ * so at the z=0 plane the frame is roughly y ∈ [−2.47, 2.47] and the wordmark
+ * band — centred in the viewport — occupies about y ∈ [−0.8, 0.8]. Control
+ * points 4 through 6 are what put the aircraft inside that band; keep them if
+ * the band's height in identity-band.tsx changes, or the pass-through misses.
+ *
+ * Monotone by construction, which is the fix for the old "violent shake": the
+ * previous path reversed direction five times in y and four times in x, so the
+ * aircraft was flying a weave exactly as authored. Here x only advances right,
+ * y crests once at the second point and then only falls, and z only creeps
+ * toward the camera so the silhouette holds its size on the way out.
+ */
+const Q_PATH = new THREE.CatmullRomCurve3(
+  [
+    SIDE.pos.clone(),
+    new THREE.Vector3(-0.74, 1.5, -0.12),
+    new THREE.Vector3(-0.34, 1.28, -0.02),
+    new THREE.Vector3(0.02, 0.84, 0.12),
+    new THREE.Vector3(0.3, 0.22, 0.26),
+    new THREE.Vector3(0.52, -0.46, 0.42),
+    new THREE.Vector3(0.7, -1.24, 0.6),
+    new THREE.Vector3(0.84, -2.12, 0.78),
+    new THREE.Vector3(0.94, -3.08, 0.96),
+  ],
+  false,
+  "catmullrom",
+  0.5,
+)
+const Q_FRAMES = Q_PATH.computeFrenetFrames(400, false)
+
+/**
+ * Bank and pitch are AUTHORED functions of path progress, not derived from the
+ * curve's curvature.
+ *
+ * The old rig took a ±0.008 finite difference of `getTangentAt` and multiplied
+ * the result by 42. `getTangentAt` reads an arc-length lookup table with 200
+ * divisions, so a ±0.008 step lands barely one division apart and the estimate
+ * quantises — that quantisation noise, amplified 42× and clamped at ±55°, is
+ * what snapped the roll between extremes every frame. A closed-form profile
+ * cannot jitter no matter how the curve is sampled.
+ */
+const bankAt = (u: number) =>
+  THREE.MathUtils.degToRad(26) * Math.sin(Math.PI * Math.min(u / 0.52, 1)) -
+  THREE.MathUtils.degToRad(9) * THREE.MathUtils.smoothstep(u, 0.55, 1)
+// Only a light nose-down trim: the descending tangent already supplies most of
+// the dive attitude, and stacking 17° on top read as a near-vertical plunge.
+const pitchAt = (u: number) =>
+  THREE.MathUtils.degToRad(3) * Math.sin(Math.PI * Math.min(u / 0.3, 1)) -
+  THREE.MathUtils.degToRad(7) * THREE.MathUtils.smoothstep(u, 0.34, 0.92)
 
 const CONTRAIL_SAMPLES = 120
 
@@ -564,16 +379,16 @@ function PlaneRig({
   onReady: () => void
 }) {
   const ref = useRef<THREE.Group>(null)
-  const progressSpring = useRef(new Spring(82, 2 * Math.sqrt(82)))
-  const bankSpring = useRef(new Spring(74, 2 * Math.sqrt(74)))
+  // One filter, not three. Scroll already passes through Lenis (lerp 0.085)
+  // and a ScrollTrigger scrub of 1.2; stacking a second-order spring on top of
+  // those added visible rubber-banding on every direction change. A single
+  // frame-rate-independent damp is enough to absorb dropped frames.
+  const smoothed = useRef(0)
   const pathProgress = useRef(0)
   const point = useMemo(() => new THREE.Vector3(), [])
   const tangent = useMemo(() => new THREE.Vector3(), [])
-  const previousTangent = useMemo(() => new THREE.Vector3(), [])
-  const nextTangent = useMemo(() => new THREE.Vector3(), [])
   const lateralAxis = useMemo(() => new THREE.Vector3(), [])
   const upAxis = useMemo(() => new THREE.Vector3(), [])
-  const turnAxis = useMemo(() => new THREE.Vector3(), [])
   const basis = useMemo(() => new THREE.Matrix4(), [])
   const pathRotation = useMemo(() => new THREE.Quaternion(), [])
   const bankRotation = useMemo(() => new THREE.Quaternion(), [])
@@ -585,10 +400,13 @@ function PlaneRig({
 
     const reducedMotion = landingScroll.reducedMotion
     const target = landingScroll.scenes.flight
-    const t = reducedMotion
-      ? progressSpring.current.snap(target)
-      : progressSpring.current.step(target, delta)
-    const visibility = 1 - THREE.MathUtils.smoothstep(t, 0.94, 0.998)
+    if (reducedMotion) smoothed.current = target
+    else smoothed.current = damp(smoothed.current, target, 14, delta)
+    const t = smoothed.current
+    // The aircraft leaves through the bottom of the frame, so it does not need
+    // to be faded out — this is only a safety net for a very fast flick past
+    // the end of the pin.
+    const visibility = 1 - THREE.MathUtils.smoothstep(t, 0.975, 1)
     group.visible = visibility > 0.005
     if (!group.visible) return
 
@@ -599,22 +417,17 @@ function PlaneRig({
       group.quaternion.copy(Q_CLOSE).slerp(Q_SIDE, zoom)
       group.scale.setScalar(THREE.MathUtils.lerp(CLOSE.scale, SIDE.scale, zoom))
       if (!reducedMotion) {
-        group.position.y += Math.sin(state.clock.elapsedTime * 0.65) * 0.028
-        group.rotation.z += Math.sin(state.clock.elapsedTime * 0.42) * 0.012
+        // Assign, never accumulate: `+=` on a quaternion-derived euler is how
+        // an idle bob turns into drift.
+        group.position.y += Math.sin(state.clock.elapsedTime * 0.55) * 0.018
       }
       return
     }
 
-    const u = THREE.MathUtils.smootherstep(
-      t,
-      CLIMB_START,
-      CLIMB_END,
-    )
+    const u = THREE.MathUtils.smootherstep(t, CLIMB_START, CLIMB_END)
     pathProgress.current = u
     Q_PATH.getPointAt(u, point)
     Q_PATH.getTangentAt(u, tangent)
-    Q_PATH.getTangentAt(Math.max(0, u - 0.008), previousTangent)
-    Q_PATH.getTangentAt(Math.min(1, u + 0.008), nextTangent)
     group.position.copy(point)
 
     lateralAxis.crossVectors(tangent, THREE.Object3D.DEFAULT_UP)
@@ -624,35 +437,17 @@ function PlaneRig({
     basis.makeBasis(tangent, upAxis, lateralAxis)
     pathRotation.setFromRotationMatrix(basis)
 
-    turnAxis.crossVectors(previousTangent, nextTangent)
-    const signedCurvature =
-      turnAxis.z * previousTangent.angleTo(nextTangent)
-    const targetBank = THREE.MathUtils.clamp(
-      -signedCurvature * 42,
-      THREE.MathUtils.degToRad(-55),
-      THREE.MathUtils.degToRad(55),
-    )
-    const bank = reducedMotion
-      ? bankSpring.current.snap(targetBank)
-      : bankSpring.current.step(targetBank, delta)
-    bankRotation.setFromAxisAngle(tangent, bank)
+    bankRotation.setFromAxisAngle(tangent, bankAt(u))
     pathRotation.premultiply(bankRotation)
-
-    const entryPitch =
-      Math.sin(
-        THREE.MathUtils.smoothstep(u, 0, 0.25) * Math.PI,
-      ) * THREE.MathUtils.degToRad(2)
-    const exitPitch =
-      THREE.MathUtils.smoothstep(u, 0.7, 1) *
-      THREE.MathUtils.degToRad(-1.5)
-    pitchRotation.setFromAxisAngle(lateralAxis, entryPitch + exitPitch)
+    pitchRotation.setFromAxisAngle(lateralAxis, pitchAt(u))
     pathRotation.premultiply(pitchRotation)
 
-    const entryBlend = THREE.MathUtils.smoothstep(u, 0, 0.1)
+    const entryBlend = THREE.MathUtils.smoothstep(u, 0, 0.12)
     group.quaternion.copy(Q_SIDE).slerp(pathRotation, entryBlend)
-    const scaleProgress = THREE.MathUtils.smoothstep(u, 0.08, 1)
+    // Stays a readable aircraft all the way out instead of shrinking to a
+    // speck — it exits the frame at size, which is what sells the downward pull.
     group.scale.setScalar(
-      THREE.MathUtils.lerp(SIDE.scale, 0.18, scaleProgress),
+      THREE.MathUtils.lerp(SIDE.scale, 0.52, THREE.MathUtils.smoothstep(u, 0.1, 0.75)),
     )
   })
 
@@ -683,7 +478,10 @@ export function HeroPlane3D() {
         const layer = layerRef.current
         if (!layer) return
         const progress = landingScroll.scenes.flight
-        const exit = THREE.MathUtils.smoothstep(progress, 0.9, 0.995)
+        // Starts only once the airframe is already below the frame bottom
+        // (u ≈ 0.93 on the path). Fading from 0.9 dissolved it in mid-air,
+        // which killed the whole point of exiting through the bottom.
+        const exit = THREE.MathUtils.smoothstep(progress, 0.95, 0.999)
         const visible =
           landingScroll.active.airliner &&
           !landingScroll.reducedMotion &&

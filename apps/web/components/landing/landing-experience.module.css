@@ -9,16 +9,21 @@
  * explicit brief exception: established Fraunces italic identity phrase restored on the landing only
  */
 .experience {
-  --flight-paper: var(--color-paper, oklch(95.63% 0.0143 84.58));
-  --flight-paper-hi: var(--color-paper-hi, oklch(98.87% 0.0126 86.83));
-  --flight-paper-2: var(--color-paper-2, oklch(91.5% 0.025 78));
-  --flight-ink: var(--color-ink, oklch(13.9% 0.0227 298.19));
-  --flight-ink-2: var(--color-ink-2, oklch(36% 0.024 78));
-  --flight-rule: var(--color-rule-2, oklch(76% 0.02 78));
-  --flight-night: var(--color-night, oklch(13.9% 0.0227 298.19));
-  --flight-night-2: var(--color-night-2, oklch(18.61% 0.0305 295.55));
-  --flight-night-3: var(--color-ink-700, oklch(22.91% 0.0459 293.97));
-  --flight-night-rule: var(--color-night-rule, oklch(72% 0.035 290 / 0.22));
+  /* `--color-*` is never defined anywhere, so these FALLBACKS are the real
+     palette. They were warm-beige (chroma 0.014–0.025 at hue 78–86), which is
+     where the landing's beige actually came from. Now near-neutral: lightness
+     preserved, chroma pulled to a trace, hue moved off tan. Accents below keep
+     their full chroma — they carry the meaning. */
+  --flight-paper: var(--color-paper, oklch(98.2% 0.0018 270));
+  --flight-paper-hi: var(--color-paper-hi, oklch(100% 0 0));
+  --flight-paper-2: var(--color-paper-2, oklch(95.4% 0.0026 270));
+  --flight-ink: var(--color-ink, oklch(12.6% 0.005 280));
+  --flight-ink-2: var(--color-ink-2, oklch(42% 0.006 280));
+  --flight-rule: var(--color-rule-2, oklch(78% 0.004 280));
+  --flight-night: var(--color-night, oklch(11.8% 0.005 280));
+  --flight-night-2: var(--color-night-2, oklch(16.2% 0.007 280));
+  --flight-night-3: var(--color-ink-700, oklch(21.4% 0.009 280));
+  --flight-night-rule: var(--color-night-rule, oklch(72% 0.006 280 / 0.2));
   --flight-plum: var(--color-plum, oklch(53.56% 0.2153 287.5));
   --flight-violet: var(--color-violet, oklch(53.56% 0.2153 287.5));
   --flight-violet-soft: var(--color-violet-300, oklch(70.9% 0.1592 293.54));
@@ -47,13 +52,14 @@
   overflow-x: clip;
 }
 
+/* Roman display, not an italic serif — see `.ed-serif` in globals.css. */
 .experience :global(.ae-highlight-script),
 .experience :global(.ae-globe-script) {
   color: var(--flight-ink);
-  font-family: "Fraunces", Georgia, "Times New Roman", serif;
-  font-style: italic;
-  font-weight: 600;
-  letter-spacing: -0.035em;
+  font-family: var(--ae-font-display);
+  font-style: normal;
+  font-weight: 800;
+  letter-spacing: -0.04em;
 }
 
 .experience :global(.hl-swipe) {
@@ -83,6 +89,26 @@
   width: 100%;
   min-height: 100dvh;
   pointer-events: none;
+}
+
+/* Reduced motion opens on the identity band, not on a blank pinned screen.
+   CabinOpening returns null and HeroPlane3D forces opacity 0 for these users,
+   so without this the first viewport of the page was bare paper. The band's own
+   reduced-motion rules turn it from an overlay into ordinary content. */
+@media (prefers-reduced-motion: reduce) {
+  .experience :global(.ae-flight-intro) {
+    display: grid;
+    align-content: center;
+    min-height: auto;
+    pointer-events: auto;
+  }
+
+  .experience :global(.ae-flight-cue) {
+    position: relative;
+    top: auto;
+    justify-content: flex-start;
+    margin-top: 1.5rem;
+  }
 }
 
 .experience :global(.ae-plane-layer) {
@@ -145,49 +171,69 @@
   background: var(--flight-rule);
 }
 
-/* The restored Aeolus identity gets a full quiet beat after the aircraft exits. */
-.experience :global(.ae-identity-stage) {
-  position: relative;
-  z-index: 7;
-  min-height: 132dvh;
+/* ── Identity band: the wordmark the aircraft flies through ───────────────────
+   Two fixed layers straddle the aircraft's canvas (z-index 3): the readable
+   wordmark behind it, and a clipped duplicate in front of it. Both share the
+   SAME geometry so they align by construction — see identity-band.tsx. Do not
+   give either layer padding or a transform that the other does not get, or the
+   seam between them becomes visible as the aircraft crosses. */
+.experience :global(.ae-wm-layer) {
+  position: fixed;
+  inset: 0;
   color: var(--flight-ink);
-  background: var(--flight-paper);
+  pointer-events: none;
+  will-change: opacity;
 }
 
-.experience :global(.ae-identity-sticky) {
-  position: sticky;
-  top: 0;
-  display: flex;
-  height: 100dvh;
-  min-height: 36rem;
-  flex-direction: column;
-  justify-content: center;
-  gap: clamp(1.5rem, 4.5dvh, 3.5rem);
-  overflow: clip;
-  padding: clamp(5.5rem, 11dvh, 7.5rem) var(--flight-gutter) clamp(2rem, 6dvh, 4rem);
+.experience :global(.ae-wm-layer--back) {
+  z-index: 1;
 }
 
-.experience :global(.ae-identity-eyebrow),
-.experience :global(.ae-identity-baseline) {
+.experience :global(.ae-wm-layer--front) {
+  z-index: 4;
+}
+
+/* Centred on the viewport, not on its own content column: the descent crosses
+   the frame at world y=0, which projects to exactly 50% height. */
+.experience :global(.ae-wm-band) {
+  position: absolute;
+  inset-inline: 0;
+  top: 50%;
+  height: clamp(9rem, 20vw, 19rem);
+  translate: 0 -50%;
+  /* The reveal is a left-to-right wipe both layers perform identically. */
+  clip-path: inset(0 calc((1 - var(--ae-wm-reveal, 1)) * 100%) 0 0);
+}
+
+/* 52% keeps the lower ~61% of the cap height in front of the aircraft. The
+   letters occupy 24.8%–95.2% of this box (baseline 238, cap height ~176 in a
+   250-unit viewBox), so this line lands just above the letters' midpoint. */
+.experience :global(.ae-wm-layer--front) :global(.ae-wm-band) {
+  clip-path: inset(52% calc((1 - var(--ae-wm-reveal, 1)) * 100%) 0 0);
+}
+
+.experience :global(.ae-wm-eyebrow),
+.experience :global(.ae-wm-baseline) {
+  position: absolute;
+  inset-inline: var(--flight-gutter);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
 }
 
-.experience :global(.ae-identity-wordmark) {
-  width: calc(100% + (var(--flight-gutter) * 2));
-  margin-inline-start: calc(var(--flight-gutter) * -1);
-  will-change: transform, clip-path;
+.experience :global(.ae-wm-eyebrow) {
+  top: clamp(5rem, 12dvh, 7rem);
 }
 
-.experience :global(.ae-identity-baseline) {
+.experience :global(.ae-wm-baseline) {
+  bottom: clamp(2rem, 7dvh, 4rem);
   align-items: flex-end;
   padding-top: 1.35rem;
   border-top: 1px solid var(--border);
 }
 
-.experience :global(.ae-identity-baseline p) {
+.experience :global(.ae-wm-baseline p) {
   max-width: 34rem;
   margin: 0;
   color: var(--flight-ink);
@@ -196,13 +242,44 @@
   line-height: 1.5;
 }
 
-.experience :global(.ae-identity-cue) {
+.experience :global(.ae-wm-cue) {
   display: inline-flex;
   min-height: 2.75rem;
   align-items: center;
   gap: 0.5rem;
   color: var(--flight-ink);
   white-space: nowrap;
+}
+
+/* Reduced motion has no aircraft to occlude, so the band stops being an
+   overlay and becomes the section's own content — otherwise these users get a
+   pinned blank page where the identity beat should be. */
+@media (prefers-reduced-motion: reduce) {
+  .experience :global(.ae-wm-layer) {
+    position: relative;
+    display: grid;
+    align-content: center;
+    gap: clamp(1.5rem, 4dvh, 3rem);
+    min-height: 76dvh;
+    padding-block: clamp(3rem, 8dvh, 5rem);
+  }
+
+  .experience :global(.ae-wm-layer--front) {
+    display: none;
+  }
+
+  .experience :global(.ae-wm-band) {
+    position: relative;
+    top: auto;
+    translate: none;
+    clip-path: none;
+  }
+
+  .experience :global(.ae-wm-eyebrow),
+  .experience :global(.ae-wm-baseline) {
+    position: relative;
+    inset: auto;
+  }
 }
 
 .experience :global([data-ae-tilt="true"]) {
@@ -668,24 +745,11 @@
   text-shadow: 0 0.08em 0.35em color-mix(in oklch, var(--flight-night) 76%, transparent);
 }
 
+/* One disruption pigment across the whole event theatre — marker, index row and
+   this headline. The four per-tone overrides that used to sit here are gone
+   with the rest of the rainbow. */
 .experience :global(.ae-globe-event-copy h3 span) {
-  color: var(--flight-amber);
-}
-
-.experience :global(.ae-event-copy-swap[data-tone="rose"] h3 span) {
   color: var(--flight-rose);
-}
-
-.experience :global(.ae-event-copy-swap[data-tone="cyan"] h3 span) {
-  color: var(--flight-cyan);
-}
-
-.experience :global(.ae-event-copy-swap[data-tone="violet"] h3 span) {
-  color: var(--flight-violet-soft);
-}
-
-.experience :global(.ae-event-copy-swap[data-tone="paper"] h3 span) {
-  color: var(--flight-paper-hi);
 }
 
 .experience :global(.ae-globe-event-copy p) {
@@ -783,28 +847,12 @@
 
 .experience :global(.ae-globe-notification span) {
   width: fit-content;
-  color: var(--flight-amber);
+  color: var(--flight-rose);
   font-family: var(--ae-font-mono);
   font-size: 0.64rem;
   font-weight: 700;
   letter-spacing: 0.09em;
   text-transform: uppercase;
-}
-
-.experience :global(.ae-globe-notification span[data-tone="violet"]) {
-  color: var(--flight-violet);
-}
-
-.experience :global(.ae-globe-notification span[data-tone="rose"]) {
-  color: var(--flight-rose);
-}
-
-.experience :global(.ae-globe-notification span[data-tone="cyan"]) {
-  color: var(--flight-cyan);
-}
-
-.experience :global(.ae-globe-notification span[data-tone="paper"]) {
-  color: var(--flight-paper);
 }
 
 .experience :global(.ae-globe-notification strong) {
@@ -863,8 +911,11 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
+/* One pigment, not five. The tone scale is gone from both the markers and this
+   index: every row is a disruption, so a per-row hue was decoration wearing a
+   semantic costume. See the note above EVENT_PIGMENT in earth-globe-3d.tsx. */
 .experience :global(.ae-event-feed-button) {
-  --event-color: var(--flight-amber);
+  --event-color: var(--flight-rose);
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   min-width: 0;
@@ -872,7 +923,10 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.65rem 0.2rem;
-  color: color-mix(in oklch, var(--flight-paper) 72%, transparent);
+  /* 82%, not 72%: these rows sit on a dark translucent panel over a photographic
+     globe, and at 72% the inactive titles fell under 4.5:1 against the lighter
+     parts of the imagery behind them. */
+  color: color-mix(in oklch, var(--flight-paper) 82%, transparent);
   border: 1px solid transparent;
   border-top-color: var(--flight-night-rule);
   border-radius: 0;
@@ -886,27 +940,16 @@
     background-color var(--flight-dur-short) var(--flight-ease-out);
 }
 
-.experience :global(.ae-event-feed-button[data-tone="violet"]) {
-  --event-color: var(--flight-violet);
+/* The index numeral. Tabular so the column cannot shimmer between rows. */
+.experience :global(.ae-event-n) {
+  color: color-mix(in oklch, var(--flight-paper) 40%, transparent);
+  font-family: var(--ae-font-mono);
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
 }
 
-.experience :global(.ae-event-feed-button[data-tone="rose"]) {
-  --event-color: var(--flight-rose);
-}
-
-.experience :global(.ae-event-feed-button[data-tone="cyan"]) {
-  --event-color: var(--flight-cyan);
-}
-
-.experience :global(.ae-event-feed-button[data-tone="paper"]) {
-  --event-color: var(--flight-paper);
-}
-
-.experience :global(.ae-event-feed-button > svg) {
-  color: var(--event-color);
-}
-
-.experience :global(.ae-event-feed-button > span) {
+.experience :global(.ae-event-name) {
   display: grid;
   min-width: 0;
   gap: 0.18rem;
@@ -921,9 +964,9 @@
 
 .experience :global(.ae-event-feed-button small) {
   overflow: hidden;
-  color: color-mix(in oklch, var(--flight-paper) 52%, transparent);
+  color: color-mix(in oklch, var(--flight-paper) 68%, transparent);
   font-family: var(--ae-font-mono);
-  font-size: 0.61rem;
+  font-size: 0.63rem;
   letter-spacing: 0.04em;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -947,11 +990,15 @@
   }
 }
 
+/* The active row is the only pigment in the index, and it is carried by the
+   numeral and a rule — not a filled, rounded, tinted card. */
 .experience :global(.ae-event-feed-button[data-active="true"]) {
   color: var(--flight-paper);
-  border-color: color-mix(in oklch, var(--event-color) 42%, var(--flight-night-rule));
-  border-radius: 0.4rem;
-  background: color-mix(in oklch, var(--event-color) 11%, transparent);
+  border-top-color: var(--event-color);
+}
+
+.experience :global(.ae-event-feed-button[data-active="true"]) :global(.ae-event-n) {
+  color: var(--event-color);
 }
 
 .experience :global(.ae-globe-dashboard) {
@@ -1018,35 +1065,71 @@
     linear-gradient(180deg, color-mix(in oklch, var(--flight-night-2) 78%, var(--flight-night)) 0%, var(--flight-night) 100%);
 }
 
+/* One stage, no pin: the device sits centred in a full-height block, the title
+   card and the caption rail ride above it as overlays the HINGE fades. The
+   section used to be pinned for 520vh and scrubbed; it plays on its own clock
+   now, so it only needs its own screen. Nothing here is a card — the section
+   ground IS the studio. */
 .experience:global(.ae-landing-experience) :global(.dm-pin) {
+  position: relative;
+  display: grid;
+  place-items: center;
   min-height: 100dvh;
-  height: 100dvh;
+  padding-block: clamp(4rem, 9dvh, 7rem) clamp(5rem, 11dvh, 8rem);
   padding-inline: var(--flight-gutter);
 }
 
 .experience:global(.ae-landing-experience) :global(.dm-headline) {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  align-content: start;
+  justify-items: center;
+  gap: 0.9rem;
+  padding-block-start: clamp(3.5rem, 13dvh, 7.5rem);
   padding-inline: var(--flight-gutter);
+  text-align: center;
+  pointer-events: none;
+  will-change: opacity, transform;
 }
 
 .experience:global(.ae-landing-experience) :global(.dm-headline-title) {
-  max-width: 16ch;
+  max-width: 18ch;
   min-width: 0;
-  margin-inline: auto;
-  overflow-wrap: anywhere;
+  margin: 0;
+  color: var(--flight-paper);
+  font-family: var(--ae-font-display);
+  font-size: clamp(2.5rem, 5.4vw, 4.25rem);
   font-style: normal;
+  font-weight: 800;
   letter-spacing: -0.045em;
+  line-height: 0.98;
+  text-wrap: balance;
 }
 
 .experience:global(.ae-landing-experience) :global(.dm-headline-title span) {
   color: var(--flight-amber);
 }
 
+.experience:global(.ae-landing-experience) :global(.dm-headline-sub) {
+  max-width: 46ch;
+  margin: 0;
+  color: color-mix(in oklch, var(--flight-paper) 74%, transparent);
+  font-size: clamp(0.95rem, 1.2vw, 1.075rem);
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+
+/* Keep this height in step with the `.dm-laptop-rig` sizing rule — the rig
+   derives its width from the stage height so the device fits both axes. */
 .experience :global(.dm-product-wrap) {
   position: relative;
   z-index: 2;
-  width: min(94vw, 76rem);
-  height: min(78dvh, 50rem);
-  min-height: 34rem;
+  width: min(100%, 76rem);
+  height: min(78dvh, 48rem);
+  min-height: 24rem;
+  margin-inline: auto;
 }
 
 .experience :global(.dm-device-placeholder) {
@@ -1059,108 +1142,276 @@
     var(--flight-night);
 }
 
-.experience :global(.dm-macbook-stage) {
+/* ── Laptop, composited in the DOM ───────────────────────────────────────────
+   The screen is a DESCENDANT of the lid, so every transform that moves the lid
+   moves the screen too. That is the whole point: the previous three.js version
+   projected the chassis through the WebGL frustum and the screen through CSS
+   perspective, the two disagreed, and the screen painted off its own aperture.
+
+   Proportions are a 13" MacBook Air normalised to the body width (30.41cm wide,
+   21.24cm deep): lid and base are BOTH 0.698 of the width. With the base
+   reclined 74deg it foreshortens to 0.698 x cos(74) = 0.192, so the rig box is
+   0.890 tall relative to its width — hence the aspect-ratio, and the lid taking
+   0.698 / 0.890 = 78.4% of it.
+
+   Radii are the MacBook's, expressed as a share of the WIDTH (via the shared
+   --dm-r) rather than in rem, so the curve stays proportional at every size —
+   a fixed rem radius is what made this read as a generic slab at large sizes.
+
+   HIGGSFIELD PLATE SWAP: give `.dm-laptop-lid-shell` and `.dm-laptop-base` a
+   `background-image` and drop their gradient `background` values. Keep the
+   aperture percentages in sync with APERTURE in laptop-stage.tsx. */
+.experience :global(.dm-laptop) {
   position: relative;
-  isolation: isolate;
+  display: grid;
+  place-items: center;
   width: 100%;
   height: 100%;
-  border: 1px solid color-mix(in oklch, var(--flight-paper) 18%, transparent);
-  background:
-    radial-gradient(circle at 23% 12%, color-mix(in oklch, var(--flight-violet) 12%, transparent), transparent 35%),
-    radial-gradient(circle at 82% 82%, color-mix(in oklch, var(--flight-amber) 8%, transparent), transparent 32%),
-    var(--flight-night);
-  box-shadow:
-    0 3rem 7rem -5rem color-mix(in oklch, var(--flight-violet) 54%, transparent),
-    inset 0 1px color-mix(in oklch, var(--flight-paper) 7%, transparent);
-  container-type: inline-size;
+  perspective: 2600px;
+  perspective-origin: 50% 46%;
 }
 
-.experience :global(.dm-macbook-stage canvas) {
-  display: block;
-  width: 100% !important;
-  height: 100% !important;
-}
-
-.experience :global(.dm-screen-html) {
+/* Sized to fit BOTH axes with the settle scale already accounted for. The rig
+   is 0.890 as tall as it is wide and the settle tops out at 1.06, so the height
+   term divides the available height by 1.06 x 0.890 before converting to a
+   width. A width-only rule is what pushed the lid off the top of the frame. */
+.experience :global(.dm-laptop-rig) {
+  --dm-r: 1.15%;
   position: relative;
-  width: 1280px;
-  height: 800px;
-  overflow: hidden;
-  color: var(--dk-text);
-  border-radius: 22px;
-  background: var(--dk-bg);
+  /* 1.10, not 0.943: perspective magnifies the base's NEAR edge, so the deck
+     paints ~90px below the rig's own box. Budgeting only the box let the deck
+     run under the caption rail. */
+  width: min(100%, 62rem, calc(min(78dvh, 48rem) / 1.1));
+  aspect-ratio: 1 / 0.89;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.experience :global(.dm-laptop-lid) {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 78.4%;
+  transform-origin: 50% 100%;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+/* Anodised aluminium: a cool vertical body, a bright top edge catching the key
+   light, and darker rails down both sides where the case curves away. */
+.experience :global(.dm-laptop-lid-shell) {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--dm-r) var(--dm-r) 0.18rem 0.18rem;
+  background:
+    linear-gradient(90deg, rgb(0 0 0 / 34%) 0%, transparent 4%, transparent 96%, rgb(0 0 0 / 34%) 100%),
+    linear-gradient(180deg, #34343b 0%, #1c1c21 8%, #17171b 68%, #121216 100%);
   box-shadow:
-    inset 0 0 0 2px rgb(255 255 255 / 5%),
-    inset 0 0 80px rgb(3 2 8 / 30%);
-  pointer-events: none;
+    inset 0 1px 0 rgb(255 255 255 / 16%),
+    inset 0 0 0 1px rgb(255 255 255 / 7%);
+}
+
+.experience :global(.dm-laptop-aperture) {
+  position: absolute;
+  left: 1.6%;
+  top: 4.3%;
+  width: 96.8%;
+  height: 86.7%;
+  overflow: hidden;
+  /* Corner radius of the panel itself, scaled from the lid's outer curve. */
+  border-radius: 0.55%;
+  background: var(--dk-bg, #0d0d11);
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 70%);
+}
+
+/* The OCC surface renders at 1:1 inside the aperture — it is NOT a 1280x800
+   block scaled down. It used to be, and at a 764px-wide aperture that meant a
+   0.56 scale factor: 9.5px chrome labels painted at 5.3 device px and the whole
+   console read as texture rather than as a product. Filling the aperture keeps
+   every authored size honest, and the aperture is 16:10 so nothing letterboxes. */
+.experience :global(.dm-laptop-screen) {
+  width: 100%;
+  height: 100%;
   will-change: opacity;
 }
 
-.experience :global(.dm-screen-html .demo-screen) {
-  width: 1280px;
-  height: 800px;
+.experience :global(.dm-laptop-screen) :global(.demo-screen) {
+  width: 100%;
+  height: 100%;
   aspect-ratio: auto;
   border: 0;
-  border-radius: inherit;
+  border-radius: 0;
 }
 
-.experience :global(.dm-screen-notch) {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  z-index: 80;
-  width: 136px;
-  height: 22px;
-  border-radius: 0 0 12px 12px;
-  background: #030305;
-  translate: -50% 0;
-  pointer-events: none;
-}
-
-.experience :global(.dm-screen-reflection) {
+/* A single soft sheen raking across the glass. Kept under 4% so it never
+   competes with the dashboard content underneath it. */
+.experience :global(.dm-laptop-glare) {
   position: absolute;
   inset: 0;
-  z-index: 70;
-  background:
-    repeating-linear-gradient(
-      180deg,
-      rgb(255 255 255 / 1.4%) 0,
-      rgb(255 255 255 / 1.4%) 1px,
-      transparent 1px,
-      transparent 4px
-    ),
-    linear-gradient(
-      112deg,
-      transparent 0 38%,
-      rgb(255 255 255 / 6%) 48%,
-      transparent 60%
-    ),
-    radial-gradient(ellipse at center, transparent 55%, rgb(2 1 6 / 16%));
-  mix-blend-mode: screen;
-  opacity: 0.5;
+  background: linear-gradient(
+    104deg,
+    rgb(255 255 255 / 4%) 0 18%,
+    transparent 42%,
+    transparent 100%
+  );
   pointer-events: none;
 }
 
+.experience :global(.dm-laptop-notch) {
+  position: absolute;
+  top: 1.4%;
+  left: 50%;
+  width: 1.4%;
+  height: 1.4%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  /* The camera, not a notch bar: a 13" Air's bezel carries one small lens. */
+  background: radial-gradient(circle at 38% 34%, #3d4550 0%, #14161a 62%);
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 8%);
+  translate: -50% 0;
+}
+
+.experience :global(.dm-laptop-base) {
+  position: absolute;
+  inset-inline: 0;
+  top: 78.4%;
+  height: 78.4%;
+  transform-origin: 50% 0;
+  transform: rotateX(78deg);
+  border-radius: 0.18rem 0.18rem calc(var(--dm-r) * 1.5) calc(var(--dm-r) * 1.5);
+  background:
+    linear-gradient(90deg, rgb(0 0 0 / 30%) 0%, transparent 3.5%, transparent 96.5%, rgb(0 0 0 / 30%) 100%),
+    linear-gradient(180deg, #2f2f36 0%, #212127 34%, #26262d 78%, #3a3a42 100%);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 8%);
+}
+
+/* A recessed well, deliberately not a fake key grid — a wrong-looking keyboard
+   is worse than none. It is lit like a milled recess (dark at the far edge,
+   catching light at the near one) rather than filled flat black, which is what
+   made it read as a hole cut in the deck. */
+.experience :global(.dm-laptop-keyboard) {
+  position: absolute;
+  left: 9%;
+  top: 11%;
+  width: 82%;
+  height: 38%;
+  border-radius: 0.4rem;
+  background: linear-gradient(180deg, #191920 0%, #202028 62%, #2a2a33 100%);
+  box-shadow:
+    inset 0 2px 5px rgb(0 0 0 / 55%),
+    inset 0 -1px 0 rgb(255 255 255 / 7%);
+}
+
+.experience :global(.dm-laptop-trackpad) {
+  position: absolute;
+  left: 33%;
+  top: 56%;
+  width: 34%;
+  height: 30%;
+  border-radius: 0.34rem;
+  background: linear-gradient(180deg, #2a2a32 0%, #32323b 100%);
+  box-shadow:
+    inset 0 1px 3px rgb(0 0 0 / 45%),
+    inset 0 -1px 0 rgb(255 255 255 / 8%);
+}
+
+/* The front lip — the shallow scoop you open the lid from. It is the detail
+   that most says "MacBook" at a glance, and it costs one element. */
+.experience :global(.dm-laptop-lip) {
+  position: absolute;
+  bottom: 0;
+  left: 42%;
+  width: 16%;
+  height: 3.5%;
+  border-radius: 0.3rem 0.3rem 0 0;
+  background: linear-gradient(180deg, rgb(0 0 0 / 42%), rgb(0 0 0 / 12%));
+}
+
+/* Contact shadow on the floor under the deck. Offset and blurred, not a halo. */
+.experience :global(.dm-laptop-shadow) {
+  position: absolute;
+  z-index: -1;
+  left: 6%;
+  top: 96%;
+  width: 88%;
+  height: 9%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 50%, rgb(0 0 0 / 52%), transparent 72%);
+  filter: blur(1.4rem);
+}
+
+/* Reduced motion: present the device already open, no hinge animation. */
+@media (prefers-reduced-motion: reduce) {
+  .experience :global(.dm-laptop-lid) {
+    transform: none !important;
+  }
+  .experience :global(.dm-laptop-rig) {
+    transform: none !important;
+  }
+  .experience :global(.dm-laptop-screen) {
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+}
+
+/* Sits in the section's bottom padding, clear of the reclined base — the rail
+   used to overlap the deck, so the chapter marks read as keys on the keyboard. */
 .experience:global(.ae-landing-experience) :global(.dm-captions-row) {
+  position: absolute;
+  inset-inline: 0;
+  bottom: clamp(0.75rem, 2.5dvh, 1.75rem);
+  z-index: 4;
+  display: flex;
+  justify-content: center;
   gap: 0;
   padding-inline: var(--flight-gutter);
+  will-change: opacity, transform;
 }
 
 .experience:global(.ae-landing-experience) :global(.dm-cap) {
+  display: flex;
   min-height: 2.75rem;
+  min-width: 0;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.5rem 1.05rem;
+  color: color-mix(in oklch, var(--flight-paper) 62%, transparent);
+  border: 0;
+  border-bottom: 2px solid var(--flight-night-rule);
   border-radius: 0;
-  border-color: var(--flight-night-rule);
   background: transparent;
+  font-family: inherit;
+  text-align: start;
+  transition:
+    color var(--flight-dur-short) var(--flight-ease-out),
+    border-color var(--flight-dur-short) var(--flight-ease-out);
 }
 
-.experience:global(.ae-landing-experience) :global(.dm-cap + .dm-cap) {
-  border-inline-start-width: 0;
+.experience:global(.ae-landing-experience) :global(.dm-cap-n) {
+  font-family: var(--ae-font-mono);
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+  opacity: 0.72;
+}
+
+.experience:global(.ae-landing-experience) :global(.dm-cap-title) {
+  overflow: hidden;
+  font-size: 0.83rem;
+  font-weight: 550;
+  letter-spacing: -0.008em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .experience:global(.ae-landing-experience) :global(.dm-cap[data-active="true"]) {
   color: var(--flight-paper);
-  border-color: var(--flight-amber);
-  background: color-mix(in oklch, var(--flight-violet) 18%, transparent);
+  border-bottom-color: var(--flight-amber);
+}
+
+.experience:global(.ae-landing-experience) :global(.dm-cap[data-active="true"]) :global(.dm-cap-n) {
+  color: var(--flight-amber);
+  opacity: 1;
 }
 
 .experience :global(.dm-rail-icon) {
@@ -1354,19 +1605,33 @@
     position: relative;
     inset: auto;
     order: 3;
+    /* Four chapter marks do not fit one 390px row: they were each ellipsised to
+       two letters ("Co…", "Ca…"), which is not a label. Two rows of two. */
+    flex-wrap: wrap;
     padding: 0;
     opacity: 1 !important;
     transform: none !important;
   }
 
-  .experience :global(.ae-identity-eyebrow),
-  .experience :global(.ae-identity-baseline) {
+  .experience:global(.ae-landing-experience) :global(.dm-cap) {
+    flex: 1 1 44%;
+    padding-inline: 0.5rem;
+  }
+
+  .experience :global(.ae-wm-eyebrow),
+  .experience :global(.ae-wm-baseline) {
     align-items: flex-start;
     flex-direction: column;
   }
 
-  .experience :global(.ae-identity-cue) {
+  .experience :global(.ae-wm-cue) {
     align-self: flex-end;
+  }
+
+  /* Portrait phones: the wordmark box would eat the whole frame, leaving the
+     aircraft nowhere to cross it. */
+  .experience :global(.ae-wm-band) {
+    height: clamp(5rem, 26vw, 9rem);
   }
 
   .experience :global(.ae-globe-event-copy),

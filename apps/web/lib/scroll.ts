@@ -5,7 +5,7 @@ import { advance, type RootState } from "@react-three/fiber"
 import { gsap, ScrollTrigger } from "@/components/landing/gsap"
 
 export type LandingScene = "flight" | "identity" | "globe" | "demo"
-export type LandingCanvas = "cabin" | "airliner" | "globe" | "macbook"
+export type LandingCanvas = "cabin" | "airliner" | "globe"
 export type LandingQualityTier = "high" | "balanced" | "low"
 
 export type LandingQualityProfile = {
@@ -46,7 +46,6 @@ export const landingScroll = {
     cabin: true,
     airliner: false,
     globe: false,
-    macbook: false,
   } satisfies Record<LandingCanvas, boolean>,
   quality: {
     tier: "balanced",

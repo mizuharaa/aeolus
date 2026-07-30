@@ -23,12 +23,26 @@ const DEG = Math.PI / 180
 const EARTH_RADIUS = 2.18
 const OUT = new THREE.Vector3(0, 0, 1)
 
+/**
+ * ONE pigment for every event kind.
+ *
+ * This was a five-colour rainbow — pink closure, cyan storm, violet cyber,
+ * amber ash, paper crew — which said, wrongly, that the five differ in kind of
+ * seriousness. They do not: all five are disruptions, and in this design system
+ * accents are semantic, never decorative. What distinguishes them is the label
+ * next to the mark, so the mark itself is disruption-pink in every case and the
+ * globe stops reading as a legend of five hues nobody can decode.
+ *
+ * `kind` still selects the decal's SHAPE inside the marker shader, which is the
+ * distinction that survives being one colour.
+ */
+const EVENT_PIGMENT = "#E0457B"
 const EVENT_COLORS: Record<GlobeEventKind, string> = {
-  closure: "#E0457B",
-  storm: "#4FD8E8",
-  cyber: "#A78BFA",
-  ash: "#E8A33D",
-  crew: "#F5F0E6",
+  closure: EVENT_PIGMENT,
+  storm: EVENT_PIGMENT,
+  cyber: EVENT_PIGMENT,
+  ash: EVENT_PIGMENT,
+  crew: EVENT_PIGMENT,
 }
 const SUN_DIRECTION = new THREE.Vector3()
 
@@ -217,13 +231,7 @@ function CloudLayer({
   )
 }
 
-function Atmosphere({
-  reducedMotion,
-  aurora,
-}: {
-  reducedMotion: boolean
-  aurora: boolean
-}) {
+function Atmosphere({ reducedMotion }: { reducedMotion: boolean }) {
   const material = useMemo(
     () =>
       new THREE.ShaderMaterial({
@@ -238,7 +246,9 @@ function Atmosphere({
           uCyan: { value: new THREE.Color("#4FD8E8") },
           uViolet: { value: new THREE.Color("#8E68ED") },
           uAmber: { value: new THREE.Color("#F5C572") },
-          uAuroraStrength: { value: aurora ? 1 : 0 },
+          // aurora permanently off: a drifting polar colour wash was pure
+          // decoration on a product globe and the noisiest thing on the sphere
+          uAuroraStrength: { value: 0 },
         },
         vertexShader: `
           varying vec3 vWorldNormal;
@@ -328,7 +338,7 @@ function Atmosphere({
           }
         `,
       }),
-    [aurora],
+    [],
   )
 
   useFrame(({ clock }) => {
@@ -385,7 +395,7 @@ function StarField({ reducedMotion }: { reducedMotion: boolean }) {
         varying float vPulse;
         void main() {
           vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-          vPulse = 0.72 + sin(aPhase) * 0.08;
+          vPulse = 0.76;
           gl_PointSize = aSize * (86.0 / max(6.0, -mvPosition.z));
           gl_Position = projectionMatrix * mvPosition;
         }
@@ -653,7 +663,6 @@ function EventParticles({
             float angle = uTime * 0.8 + cycle * 4.0;
             p.xy = mat2(cos(angle), -sin(angle), sin(angle), cos(angle)) * p.xy;
           } else if (uKind > 1.5 && uKind < 2.5) {
-            p.x += step(0.82, fract(uTime * 2.4 + aPhase * 7.0)) * 0.08;
           } else if (uKind > 2.5 && uKind < 3.5) {
             p.x += cycle * cycle * 0.24;
           }
@@ -781,7 +790,7 @@ function CrewRoute({ reducedMotion }: { reducedMotion: boolean }) {
         varying float vAlpha;
         void main() {
           vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-          float train = 1.0 - smoothstep(0.025, 0.11, abs(fract(aT - uTime * 0.08) - 0.5));
+          float train = 0.55;
           float dash = step(0.48, fract(aT * 18.0));
           gl_PointSize = mix(1.25, 3.5, train) * (62.0 / max(1.0, -mvPosition.z));
           gl_Position = projectionMatrix * mvPosition;
@@ -949,32 +958,16 @@ function EarthModel({
           float aeY = dot(aeSurface, aeBitangent);
           float aeAngle = atan(aeY, aeX);
 
+          // ONE STATIC MARK. Every animated term here was removed: three
+          // expanding rings on a fract() loop, a 1.7 rad/s swirl, a scanline, a
+          // hash plume re-rolling twice a second, and rotating dots. Together
+          // they produced the flashing the brief calls out, and none of them
+          // carried information the label does not already state. What is left
+          // is a soft disc and one crisp edge ring — no time input at all, so it
+          // cannot flash, and it is identical under prefers-reduced-motion.
           float aeBase = 1.0 - smoothstep(0.012, 0.052, aeDistance);
           float aeEdge = 1.0 - smoothstep(0.002, 0.009, abs(aeDistance - 0.052));
-          float aeRings = 0.0;
-          for (int aeIndex = 0; aeIndex < 3; aeIndex++) {
-            float aePhase = fract(uAeEventTime * 0.18 + float(aeIndex) * 0.333);
-            float aeRadius = 0.035 + aePhase * 0.22;
-            float aeRing = 1.0 - smoothstep(0.003, 0.012, abs(aeDistance - aeRadius));
-            aeRings += aeRing * (1.0 - aePhase);
-          }
-
-          float aePattern = aeBase;
-          if (uAeEventKind < 0.5) {
-            aePattern = aeBase * 0.22 + aeEdge * 0.86 + aeRings * 0.58;
-          } else if (uAeEventKind < 1.5) {
-            float aeSwirl = sin(aeAngle * 6.0 - uAeEventTime * 1.7 + aeDistance * 92.0) * 0.5 + 0.5;
-            aePattern = aeBase * aeSwirl * 0.58 + aeRings * 0.34;
-          } else if (uAeEventKind < 2.5) {
-            float aeScan = sin((aeX + aeY) * 68.0 - uAeEventTime * 0.7) * 0.5 + 0.5;
-            aePattern = aeBase * mix(0.12, 0.46, aeScan) + aeRings * 0.18;
-          } else if (uAeEventKind < 3.5) {
-            float aePlume = smoothstep(0.2, 0.85, aeHash(floor(vec2(aeX, aeY) * 210.0) + floor(uAeEventTime * 0.45)));
-            aePattern = aeBase * mix(0.1, 0.48, aePlume) + aeRings * 0.22;
-          } else {
-            float aeDots = step(0.68, fract((aeAngle / 6.2831853 + 0.5) * 16.0 - uAeEventTime * 0.12));
-            aePattern = aeBase * 0.08 + aeEdge * aeDots * 0.72 + aeRings * 0.12;
-          }
+          float aePattern = aeBase * 0.3 + aeEdge * 0.8;
 
           float aeEventGlow = clamp(aePattern * uAeEventAmount, 0.0, 1.15);
           diffuseColor.rgb = mix(diffuseColor.rgb, uAeEventColor, clamp(aeEventGlow * 0.24, 0.0, 0.42));
@@ -989,7 +982,7 @@ function EarthModel({
 
       surfaceShaderRef.current = shader
     }
-    material.customProgramCacheKey = () => "aeolus-earth-event-decal-v1"
+    material.customProgramCacheKey = () => "aeolus-earth-event-decal-v2-static"
     return material
   }, [albedo, normal, roughness, waterMask])
 
@@ -1103,7 +1096,8 @@ function EarthModel({
         EVENT_COLORS[activeEvent.kind],
       )
       shader.uniforms.uAeEventAmount.value = focus
-      shader.uniforms.uAeEventTime.value = reducedMotion ? 0 : clock.elapsedTime
+      // held at 0: the decal is static by design (see the shader note above)
+      shader.uniforms.uAeEventTime.value = 0
       shader.uniforms.uAeEventKind.value = EVENT_KIND_CODE[activeEvent.kind]
     }
   })
@@ -1153,7 +1147,6 @@ function EarthModel({
       <CountryBorders texture={borders} />
       <Atmosphere
         reducedMotion={reducedMotion}
-        aurora={quality.aurora}
       />
       {GLOBE_EVENTS.map((event, index) => (
         <EventMarker

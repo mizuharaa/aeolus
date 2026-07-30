@@ -19,17 +19,13 @@ export function HeroStatementStage() {
       }}
     >
       <div style={{ maxWidth: 1480, margin: "0 auto" }}>
-        <span className="lp-eyebrow" style={{ display: "block", marginBottom: 26 }}>
-          01 — The premise
-        </span>
-
         <SplitReveal
           as="h1"
           className="ed-display"
           style={{ fontSize: "clamp(52px, 8.6vw, 138px)", maxWidth: 1220 }}
         >
           Airline recovery,{" "}
-          <em className="ed-serif" style={{ color: "var(--accent-blue)", fontStyle: "italic" }}>
+          <em className="ed-serif" style={{ color: "var(--accent-blue)" }}>
             <HighlightSwipe coverage={1} height="64%">simulated live.</HighlightSwipe>
           </em>
         </SplitReveal>

@@ -40,10 +40,6 @@ export function TrustedBy() {
       </svg>
 
       <div style={{ maxWidth: 1480, margin: "0 auto", textAlign: "center" }}>
-        <span className="lp-eyebrow" style={{ display: "block", marginBottom: "clamp(28px, 4vh, 48px)" }}>
-          05 — Trusted by the best
-        </span>
-
         <div
           className="tb-grid"
           style={{

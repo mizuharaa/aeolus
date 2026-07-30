@@ -34,10 +34,6 @@ export function FinalCTAStage() {
       <DriftPlane from={{ left: "-5%", top: "26%" }} to={{ left: "102%", top: "8%" }} rotate={[2, 16]} size={30} color="var(--accent-amber)" bob={7} />
 
       <div style={{ maxWidth: 1480, margin: "0 auto" }}>
-        <span className="lp-eyebrow" style={{ display: "block", marginBottom: 30 }}>
-          06 — Your turn
-        </span>
-
         <Rise>
           <MaskedWordmark text="RUN A DISRUPTION." outsideOpacity={0.1} />
         </Rise>

@@ -13,10 +13,15 @@
  *   5. metrics count down, teal reroutes re-flow, toast lands, camera
  *      pulls back to the start framing so the loop cuts cleanly
  *
- * A single pinned ScrollTrigger scrubs both the product walkthrough and
- * the physical laptop scene. The OCC surface is live DOM mounted into the
- * screen's 3D hinge group; it is never a reference-frame image. Reverse
- * scroll deterministically restores every dashboard and hinge state.
+ * ── It plays; it is not scrubbed ─────────────────────────────────────────
+ * This used to be a 520vh pin whose timeline was scrubbed by scroll
+ * position, so the console only moved while the user kept scrolling and
+ * stopping mid-gesture froze the agent mid-word. It is a demo video, so it
+ * runs on a wall clock: it starts when the section comes into view, loops,
+ * and pauses when it leaves. The caption chips seek it like chapter marks.
+ *
+ * The OCC surface is live DOM inside the laptop's lid; it is never a
+ * reference-frame image or a baked video.
  */
 
 import {
@@ -27,12 +32,12 @@ import {
   useState,
 } from "react"
 import { CloudLightning, FileText, LayoutGrid, Leaf, Route, Users } from "lucide-react"
-import { gsap, ScrollTrigger } from "@/components/landing/gsap"
+import { gsap } from "@/components/landing/gsap"
 import { AeolusMark } from "@/components/ds/logo"
 import { DemoMap } from "@/components/landing/demo/demo-map"
 import { AgentCommandDemo } from "@/components/landing/demo/agent-command-demo"
 import { CursorChoreography } from "@/components/landing/demo/cursor-choreography"
-import { MacbookStage } from "@/components/landing/demo/macbook-stage"
+import { LaptopStage } from "@/components/landing/demo/laptop-stage"
 import {
   AGENT_COMMAND,
   DEMO_STEPS,
@@ -44,12 +49,7 @@ import {
   bezAngle,
   bezPoint,
 } from "@/components/landing/demo/demo-data"
-import {
-  landingScroll,
-  registerLandingFrame,
-  resetLandingScene,
-  setLandingSceneActive,
-} from "@/lib/scroll"
+import { registerLandingFrame, resetLandingScene } from "@/lib/scroll"
 
 const STATUS = [
   { label: "Nominal", color: "var(--dk-teal)" },
@@ -88,6 +88,12 @@ export function CinematicSimulatorDemo() {
   const sceneRef = useRef(0)
   // 0 nominal · 1 disrupted/hold · 2 recovering · 3 stable — drives the plane loop
   const phaseRef = useRef(0)
+  // Set by the matchMedia effect; called by LaptopStage on every hinge change.
+  // A ref, not state: the hinge updates every frame and this must not re-render.
+  const openHandlerRef = useRef<((open: number) => void) | null>(null)
+  const handleOpenChange = useCallback((open: number) => {
+    openHandlerRef.current?.(open)
+  }, [])
 
   useEffect(() => {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches
@@ -349,95 +355,56 @@ export function CinematicSimulatorDemo() {
         }, 22.8)
         tl.set({}, {}, TOTAL)
 
-        const syncScrollPlayback = (progress: number) => {
-          const playback = smoothstep(0.12, 0.7, progress)
-          tl.pause(playback * TOTAL, false)
-          if (progress >= 0.1 && progress < 0.975) startFlights()
-          else stopFlights()
-        }
-
-        let deviceTrigger: ScrollTrigger | null = null
-        let deviceTween: gsap.core.Tween | null = null
         const headline = q(".dm-headline")[0] as HTMLElement
         const captions = q(".dm-captions-row")[0] as HTMLElement
         gsap.set(captions, { opacity: mobile ? 1 : 0, y: mobile ? 0 : 18 })
-        let lastAppliedProgress = Number.NaN
 
-        const applyDemoProgress = () => {
-          const progress = landingScroll.scenes.demo
-          if (Math.abs(progress - lastAppliedProgress) < 0.000001) return
-          lastAppliedProgress = progress
-
-          const copyExit = smoothstep(0.025, 0.13, progress)
-          const captionEntry = mobile
-            ? 1
-            : smoothstep(0.12, 0.2, progress) *
-              (1 - smoothstep(0.8, 0.94, progress))
-
+        // The title card holds over the closed device and lifts as the lid
+        // opens; the caption rail takes its place once the loop is running.
+        // Both are functions of the HINGE, not of scroll position — the lid
+        // is what tells the viewer the console is live.
+        const applyOpen = (open: number) => {
+          // On mobile the title card is a normal block in the column, not an
+          // overlay: fading it there left its full height as dead space above
+          // the device instead of handing the frame over to it.
+          const copyExit = mobile ? 0 : smoothstep(0.08, 0.55, open)
+          const captionEntry = mobile ? 1 : smoothstep(0.55, 0.95, open)
           headline.style.opacity = String(1 - copyExit)
-          headline.style.transform = `translate3d(0, ${(
-            -copyExit * 9
-          ).toFixed(3)}%, 0)`
+          headline.style.transform = `translate3d(0, ${(-copyExit * 9).toFixed(3)}%, 0)`
           captions.style.opacity = String(captionEntry)
-          captions.style.transform = `translate3d(0, ${(
-            18 *
-            (1 - captionEntry)
-          ).toFixed(3)}px, 0)`
-          syncScrollPlayback(progress)
+          captions.style.transform = `translate3d(0, ${(18 * (1 - captionEntry)).toFixed(3)}px, 0)`
         }
-        applyDemoProgress()
-        const unregisterDemoProgressFrame =
-          registerLandingFrame(applyDemoProgress)
+        applyOpen(0)
+        openHandlerRef.current = applyOpen
 
-        // One pin owns the live OCC walkthrough and the physical hinge. The
-        // dashboard timeline is sampled from scroll, so reverse scroll is exact.
-        deviceTween = gsap.fromTo(
-          landingScroll.scenes,
-          { demo: 0 },
-          {
-            demo: 1,
-            ease: "none",
-            scrollTrigger: {
-              trigger: root,
-              start: "top top",
-              end: mobile ? "+=260%" : "+=520%",
-              scrub: 1.2,
-              pin: true,
-              pinSpacing: true,
-              anticipatePin: 1,
-              invalidateOnRefresh: true,
-              fastScrollEnd: true,
-              onToggle: (self) =>
-                setLandingSceneActive("macbook", self.isActive),
-              onLeave: () => {
-                stopFlights()
-                setLandingSceneActive("macbook", false)
-              },
-              onLeaveBack: () => {
-                stopFlights()
-                setLandingSceneActive("macbook", false)
-              },
-              onEnterBack: () => setLandingSceneActive("macbook", true),
-            },
+        // Playback: a real clock, gated to visibility. `tl.play()` on an
+        // IntersectionObserver rather than a scrub, so the loop keeps its own
+        // pace whether the user scrolls, stops, or sits still.
+        tl.repeat(-1)
+        const observer = new IntersectionObserver(
+          ([entry]) => {
+            if (entry.isIntersecting) {
+              tl.play()
+              startFlights()
+            } else {
+              tl.pause()
+              stopFlights()
+            }
           },
+          { threshold: 0.4 },
         )
-        deviceTrigger = deviceTween.scrollTrigger ?? null
+        observer.observe(root)
 
-        const onResize = () => {
-          tl.invalidate()
-          lastAppliedProgress = Number.NaN
-        }
+        const onResize = () => tl.invalidate()
         window.addEventListener("resize", onResize)
 
         return () => {
           window.removeEventListener("resize", onResize)
+          observer.disconnect()
           stopFlights()
           unregisterFlightFrame()
-          unregisterDemoProgressFrame()
-          deviceTrigger?.kill()
-          deviceTween?.kill()
+          openHandlerRef.current = null
           resetLandingScene("demo")
-          setLandingSceneActive("macbook", false)
           tl.kill()
           if (tlRef.current === tl) tlRef.current = null
         }
@@ -448,10 +415,12 @@ export function CinematicSimulatorDemo() {
     return () => mm.revert()
   }, [screenReady, staticMode])
 
+  /** Chapter seek. Keeps playing from the mark rather than parking there — a
+   *  chapter click on a video scrubs the video, it does not stop it. */
   const seekTo = (i: number) => {
     const tl = tlRef.current
     if (!tl) return
-    tl.pause(SCENE_STARTS[i] + 0.05)
+    tl.play(SCENE_STARTS[i] + 0.05)
   }
 
   return (
@@ -461,15 +430,11 @@ export function CinematicSimulatorDemo() {
       aria-label="Simulator demo"
       className="dm-section"
       data-static={staticMode}
-      tabIndex={0}
       style={{ position: "relative" }}
     >
       <div className="dm-pin">
         {/* the text appears first, then dissolves into the animation */}
         <div className="dm-headline" style={{ display: staticMode ? "none" : undefined }}>
-          <span className="lp-eyebrow" style={{ display: "block", color: "#C9A050" }}>
-            02 — One recovery loop
-          </span>
           <h2 className="dm-headline-title">
             Trigger a storm.{" "}
             <span>Wake to a recovered network.</span>
@@ -480,7 +445,7 @@ export function CinematicSimulatorDemo() {
         </div>
 
         <div className="dm-product-wrap">
-          <MacbookStage staticMode={staticMode}>
+          <LaptopStage staticMode={staticMode} onOpenChange={handleOpenChange}>
             <div
               ref={connectScreen}
               className="demo-screen dm-frame"
@@ -678,7 +643,10 @@ export function CinematicSimulatorDemo() {
                   style={{
                     position: "absolute",
                     top: 12,
-                    left: "50%",
+                    // 25%, not 50%: the toast lands at 22.5s, by which time the
+                    // plan inspector owns the right half of this canvas and a
+                    // centred toast was cut in half by it.
+                    left: "25%",
                     transform: "translateX(-50%)",
                     zIndex: 27,
                     padding: "9px 16px",
@@ -710,8 +678,8 @@ export function CinematicSimulatorDemo() {
                     width: "min(238px, 52%)",
                     display: "flex",
                     flexDirection: "column",
-                    gap: 8,
-                    padding: 12,
+                    gap: 6,
+                    padding: "7px 10px",
                     background: "rgba(255, 255, 255, 0.97)",
                     borderLeft: "1px solid var(--dk-line)",
                     transform: staticMode ? undefined : "translateX(108%)",
@@ -719,7 +687,13 @@ export function CinematicSimulatorDemo() {
                   }}
                 >
                   <span className="demo-chrome-label">Recovery plans · A–D</span>
-                  <div style={{ display: "grid", gap: 7 }}>
+                  {/* Sized to fit: four cards plus the committed block came to
+                      429px inside a 314px panel, so the payoff metrics hung off
+                      the bottom edge. Trimmed padding and leading, not content.
+                      The list is also the flexible child while the committed
+                      block is not, so on a shorter viewport the last plan card
+                      clips before the payoff metrics ever do. */}
+                  <div style={{ display: "grid", gap: 4, minHeight: 0, overflow: "hidden" }}>
                     {PLANS.map((p) => (
                       <div
                         key={p.id}
@@ -727,24 +701,24 @@ export function CinematicSimulatorDemo() {
                         style={{
                           border: `1px solid ${staticMode && p.id === "B" ? "#5B3FA8" : "var(--dk-line)"}`,
                           background: staticMode && p.id === "B" ? "rgba(91, 63, 168, 0.08)" : "var(--dk-panel-2)",
-                          borderRadius: 8,
-                          padding: "8px 10px",
+                          borderRadius: 7,
+                          padding: "4px 8px",
                           opacity: staticMode ? (p.id === "B" ? 1 : 0.55) : 0,
                         }}
                       >
-                        <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-                          <span style={{ fontFamily: "var(--ae-font-display)", fontWeight: 700, fontSize: 14, color: "var(--dk-text)" }}>
+                        <div style={{ display: "flex", alignItems: "baseline", gap: 7 }}>
+                          <span style={{ fontFamily: "var(--ae-font-display)", fontWeight: 700, fontSize: 13, color: "var(--dk-text)" }}>
                             {p.id}
                           </span>
-                          <span style={{ fontSize: 11, color: "var(--dk-muted)", fontWeight: 500 }}>{p.objective}</span>
+                          <span style={{ fontSize: 10.5, color: "var(--dk-muted)", fontWeight: 500 }}>{p.objective}</span>
                         </div>
                         <div
                           style={{
                             display: "flex",
-                            gap: 10,
-                            marginTop: 4,
+                            gap: 9,
+                            marginTop: 1,
                             fontFamily: "var(--ae-font-mono)",
-                            fontSize: 10.5,
+                            fontSize: 10,
                             color: "var(--dk-text)",
                           }}
                         >
@@ -761,29 +735,32 @@ export function CinematicSimulatorDemo() {
                     className="dm-metrics"
                     style={{
                       marginTop: "auto",
+                      flexShrink: 0,
                       borderTop: "1px solid var(--dk-line)",
-                      paddingTop: 10,
+                      paddingTop: 6,
                       display: "grid",
-                      gap: 6,
+                      gap: 3,
                       opacity: staticMode ? 1 : 0,
                     }}
                   >
                     <span className="demo-chrome-label" style={{ color: "var(--dk-teal)" }}>
                       Plan B — committed
                     </span>
+                    {/* "Crew legality · 0 flags" is gone from this block: every
+                        plan card above already shows its own flag count, so the
+                        row restated a number the reader had just been given. */}
                     {[
                       ["Cancellations", <span key="v" className="dm-m-cxl">{staticMode ? "3" : "16"}</span>, "was 16"],
                       ["Pax reaccommodated", <span key="v" className="dm-m-pax">{staticMode ? "4,860" : "0"}</span>, ""],
-                      ["Crew legality", <span key="v">0 flags</span>, "FAR 117"],
                       ["Cost vs no action", <span key="v" className="dm-m-cost">{staticMode ? "−$1.7M" : "−$0.0M"}</span>, ""],
                     ].map(([label, value, note], i) => (
-                      <div key={i} style={{ display: "flex", alignItems: "baseline", gap: 8, fontSize: 11 }}>
+                      <div key={i} style={{ display: "flex", alignItems: "baseline", gap: 8, fontSize: 10.5 }}>
                         <span style={{ color: "var(--dk-muted)", fontWeight: 500 }}>{label}</span>
                         <span
                           style={{
                             marginLeft: "auto",
                             fontFamily: "var(--ae-font-mono)",
-                            fontSize: 11.5,
+                            fontSize: 11,
                             color: "var(--dk-text)",
                           }}
                         >
@@ -835,7 +812,7 @@ export function CinematicSimulatorDemo() {
               />
             </div>
             </div>
-          </MacbookStage>
+          </LaptopStage>
         </div>
 
         {/* caption chips — auto-advance with playback; click to seek */}

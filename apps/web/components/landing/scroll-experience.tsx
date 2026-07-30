@@ -19,7 +19,6 @@ import styles from "@/components/landing/landing-experience.module.css"
 import { LandingNav } from "@/components/landing/landing-nav"
 import { LandingAtmosphere } from "@/components/landing/atmosphere"
 import { FlightIntroStage } from "@/components/landing/flight-intro-stage"
-import { OpeningWordmarkStage } from "@/components/landing/opening-stage"
 import { LiveGlobeStage } from "@/components/landing/live-globe-stage"
 import { StoryMarquee } from "@/components/landing/marquee"
 import { CinematicSimulatorDemo } from "@/components/landing/demo/cinematic-simulator-demo"
@@ -42,21 +41,22 @@ const HeroPlane3D = dynamic(
   { ssr: false },
 )
 
+// Registers follow the `.lp` scope: cool paper, neutral ink. No beige.
 const NOON = {
-  "--bg": "#F7F3EA",
-  "--ink": "#1C1426",
-  "--muted": "#6A6250",
-  "--panel": "#FFFEF9",
-  "--border": "rgba(28, 20, 38, 0.20)",
-  navBg: "rgba(247, 243, 234, 0.94)",
+  "--bg": "#FFFFFF",
+  "--ink": "#0E0E12",
+  "--muted": "#56565F",
+  "--panel": "#FAFAF8",
+  "--border": "rgba(14, 14, 18, 0.18)",
+  navBg: "rgba(255, 255, 255, 0.94)",
 }
 const NIGHT = {
-  "--bg": "#191223",
-  "--ink": "#F1ECE1",
-  "--muted": "#9C93B0",
-  "--panel": "#241B38",
-  "--border": "rgba(241, 236, 225, 0.16)",
-  navBg: "rgba(25, 18, 35, 0.92)",
+  "--bg": "#111116",
+  "--ink": "#F4F4F2",
+  "--muted": "#9A9AA4",
+  "--panel": "#1A1A21",
+  "--border": "rgba(244, 244, 242, 0.16)",
+  navBg: "rgba(17, 17, 22, 0.92)",
 }
 
 export function LandingScrollExperience() {
@@ -129,15 +129,36 @@ export function LandingScrollExperience() {
   }, [])
 
   return (
-    <main ref={wrapRef} className="lp" style={{ position: "relative" }}>
+    // `ae-landing-experience` is the scope root for the module's compound
+    // rules (`.experience.ae-landing-experience …`). It has to sit on the same
+    // element as `styles.experience` AND wrap every landing section — the nav,
+    // the marquee and the CTA buttons all live outside the per-scene wrappers
+    // below, so scoping it to one of those left 38 rules matching nothing.
+    <main
+      ref={wrapRef}
+      className={`lp ${styles.experience} ae-landing-experience`}
+      style={{ position: "relative" }}
+    >
       <LandingAtmosphere />
       <LandingNav />
+      {/* Two rules govern this block and they pull against each other:
+
+          1. The wrapper around FlightIntroStage must NOT set z-index (or any
+             other stacking-context trigger). The AEOLUS band inside it puts one
+             fixed layer UNDER the aircraft's canvas (z 1 vs 3) and one OVER it
+             (z 4) so the descent passes through the letters; a stacking context
+             here would trap all three together and shove the band behind.
+          2. The wrapper must nonetheless EXIST. ScrollTrigger pins #flight-intro
+             by wrapping it in a pin-spacer, and HeroPlane3D / CabinOpening are
+             `next/dynamic ssr:false`, so they mount afterwards and React tries
+             to insert them before their next sibling. With the section as a bare
+             sibling that sibling is now the pin-spacer React never rendered, and
+             the insert throws NotFoundError, killing the whole page. */}
       <div className={styles.experience}>
         <HeroPlane3D />
         <CabinOpening />
-        <div style={{ position: "relative", zIndex: 2 }}>
+        <div>
           <FlightIntroStage />
-          <OpeningWordmarkStage />
         </div>
       </div>
       {/* content sits above the fixed atmosphere and flight layers */}
