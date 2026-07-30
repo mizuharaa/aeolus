@@ -20,8 +20,9 @@ import {
 } from "@/lib/scroll"
 import { useNearViewport } from "@/lib/use-near-viewport"
 
-const EarthGlobe3D = dynamic(
-  () => import("@/components/landing/earth-globe-3d").then((module) => module.EarthGlobe3D),
+// Client-only: the plate rasterises the land mask through a 2D canvas.
+const GlobePlate = dynamic(
+  () => import("@/components/landing/globe-plate").then((module) => module.GlobePlate),
   { ssr: false },
 )
 
@@ -330,7 +331,7 @@ export function LiveGlobeStage() {
             <span />
           </div>
           {shouldMountGlobe ? (
-            <EarthGlobe3D onReady={markGlobeReady} />
+            <GlobePlate onReady={markGlobeReady} onSelect={selectEvent} />
           ) : null}
           {/* polite, not off: the panel's whole job is to announce the event the
               user just triggered, and `aria-live="off"` on a role="status" meant
@@ -354,7 +355,10 @@ export function LiveGlobeStage() {
               </div>
             ))}
           </div>
-          <span className="ae-globe-drag-hint">Drag to inspect</span>
+          {/* "Drag to inspect" is gone with the orbit controls it described.
+              The plate does not rotate under the pointer; it turns to face the
+              event you pick, and the marks say so by being buttons. */}
+          <span className="ae-globe-drag-hint">Select a site</span>
         </div>
 
         <aside

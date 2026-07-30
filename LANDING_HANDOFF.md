@@ -50,7 +50,7 @@ on the laptop's deck (and ellipsising to "Co…" / "Ca…" at 390px).
 | Cabin opening | `cabin-opening.tsx` (634) | **Untouched / problematic** — see Known defects |
 | Airliner descent | `hero-plane-3d.tsx` | Rebuilt on the textured GLB, flies through the wordmark |
 | Identity band | `identity-band.tsx` (new) | Two stacked wordmark layers inside the flight pin; replaces the deleted `opening-stage.tsx` |
-| Globe event theatre | `earth-globe-3d.tsx` (1244) + `live-globe-stage.tsx` | One pigment, editorial index; **still slated for deletion** |
+| Globe event theatre | `globe-plate.tsx` (new) + `live-globe-stage.tsx` | Rebuilt as an orthographic chart; `earth-globe-3d.tsx` **deleted** |
 | Laptop demo | `demo/laptop-stage.tsx` | DOM composite, autoplaying, MacBook proportions |
 
 ### Palette: paper/ink, no beige
@@ -198,25 +198,46 @@ The screen must stay the real OCC DOM — a baked frame is banned (see Rules).
 The current chassis is a **CSS stand-in**, not the chosen deliverable. Its
 keyboard is deliberately a plain recessed well rather than a fake key grid.
 
-### 2. Higgsfield plate — globe (decided, blocked on auth)
+### 2. Globe rebuild — DONE, and no generated plate was needed
 
-Chosen approach: **one generated still globe in the paper/ink world, with the
-five event marks and the feed kept as SVG/DOM overlay** so triggering still
-works. Accepted loss: drag-to-inspect.
+`earth-globe-3d.tsx` (955 lines by then) and 13 Earth texture files (**4.7 MB**)
+are deleted. The replacement is `globe-plate.tsx`: an **orthographic projection
+rasterised in a 2D canvas from `earth-mask.png`** — the same land mask the
+demo's CONUS plate already samples. Dark disc, graphite land, paper coastline
+hairline, 15° graticule, all in the night register.
 
-Removes `earth-globe-3d.tsx` (1244 lines), the three.js dependency for this
-scene, and 7 Earth textures (**5.1 MB**). `live-globe-stage.tsx` needs reworking
-to host the overlay instead of the canvas.
+No Higgsfield generation, no new asset, no licence entry: the mask was already
+in the repo for the demo map, so the scene now costs one 430KB file that was
+being downloaded anyway.
 
-Do this *before* fixing the globe section's layout — see below.
+Three things to know before touching it:
 
-### 3. Globe section layout (partly done)
+- **The plate never animates.** It is drawn once per orientation. It redraws
+  only when the active event changes or the box resizes. Verified: 0 of 19,600
+  sampled pixels change between idle frames.
+- **The projection is deliberately off-centre** (`lon0 = event.lon + 24`,
+  `lat0 = event.lat * 0.4 + 20`). Centring on the active event put its mark at
+  the exact middle of the disc, which is where the event headline sits — the one
+  mark that matters was permanently under the type.
+- **Marks need `z-index: 3`.** A leftover rule, `.ae-globe-orbit canvas
+  { position: relative; z-index: 2 }`, survives from the WebGL scene to keep the
+  plate above `.ae-globe-fallback`. It also covers anything at `z-index: auto`,
+  which is why the marks had correct geometry and resolved colours and still
+  painted nothing.
 
-The event feed **is** the editorial index now (mono numeral, name, ICAO, one
-hairline, one active row, no colour rainbow) and the coverage strip is no longer
-cut off at the left edge. Still open: the sphere clips at the bottom of its pin
-and the title overlaps the globe. Both were left alone because the section is
-still slated for the Higgsfield still-globe rebuild above.
+Accepted loss: drag-to-inspect. The hint now reads "Select a site", and the
+marks are real `<button>`s, so the interaction is keyboard-reachable and
+announced — which the orbit drag never was.
+
+### 3. Globe section layout (mostly done)
+
+The event feed is the editorial index (mono numeral, name, ICAO, one hairline,
+one active row, no colour rainbow), the coverage strip is no longer cut off, and
+the disc is capped at 560px so it no longer bleeds off every edge of the pin.
+
+Still open: the event headline still sits **over** the disc. It is legible
+(white and rose on a near-black globe) and the marks now dodge it, but a layout
+that put the type beside the globe rather than on it would be better.
 
 ### 4. Cabin scene — never rebuilt
 

@@ -778,9 +778,96 @@
   height: min(72dvh, 38rem);
   min-height: 27rem;
   margin-top: 1.5rem;
-  cursor: grab;
-  touch-action: pan-y;
+  /* `cursor: grab` is gone with the orbit controls — it promised a drag that no
+     longer exists. The marks inside carry their own pointer cursor. */
   transform-origin: 50% 52%;
+}
+
+/* ── Globe plate ──────────────────────────────────────────────────────────────
+   An orthographic chart drawn once to a 2D canvas, with DOM marks over it.
+   Nothing here animates on a clock; the only motion is the ring's own
+   selection transition. See globe-plate.tsx. */
+.experience :global(.ae-plate) {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.experience :global(.ae-plate-disc) {
+  position: relative;
+}
+
+.experience :global(.ae-plate-canvas) {
+  display: block;
+  border-radius: 50%;
+}
+
+.experience :global(.ae-plate-mark) {
+  position: absolute;
+  /* Above the plate canvas, which carries z-index 2 from the orbit rule. At
+     `auto` the marks had correct geometry and resolved colours and still
+     painted nothing, because the canvas covered every one of them. */
+  z-index: 3;
+  display: grid;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--flight-paper);
+  cursor: pointer;
+  translate: -50% -50%;
+}
+
+/* Inactive sites still have to be findable against the dark plate — at 0.6rem
+   with a 26% fill they read as dust on the ocean. */
+.experience :global(.ae-plate-ring) {
+  width: 0.75rem;
+  height: 0.75rem;
+  border: 1.5px solid color-mix(in oklch, var(--flight-rose) 78%, transparent);
+  border-radius: 50%;
+  background: color-mix(in oklch, var(--flight-rose) 34%, transparent);
+  transition:
+    width var(--flight-dur-short) var(--flight-ease-out),
+    height var(--flight-dur-short) var(--flight-ease-out),
+    background-color var(--flight-dur-short) var(--flight-ease-out);
+}
+
+.experience :global(.ae-plate-mark[data-active="true"]) :global(.ae-plate-ring) {
+  width: 1.05rem;
+  height: 1.05rem;
+  background: color-mix(in oklch, var(--flight-rose) 52%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in oklch, var(--flight-rose) 16%, transparent);
+}
+
+/* The label rides beside the mark, not on top of it, and only the active site
+   is named — five labels at once turned the disc into a word cloud. */
+.experience :global(.ae-plate-label) {
+  position: absolute;
+  left: calc(50% + 0.9rem);
+  display: none;
+  white-space: nowrap;
+  font-family: var(--ae-font-mono);
+  font-size: 0.63rem;
+  letter-spacing: 0.07em;
+  text-align: start;
+}
+
+.experience :global(.ae-plate-label small) {
+  display: block;
+  margin-top: 0.1rem;
+  color: color-mix(in oklch, var(--flight-paper) 62%, transparent);
+  font-family: var(--ae-font-sans, inherit);
+  font-size: 0.7rem;
+  letter-spacing: 0;
+}
+
+.experience :global(.ae-plate-mark[data-active="true"]) :global(.ae-plate-label),
+.experience :global(.ae-plate-mark:hover) :global(.ae-plate-label),
+.experience :global(.ae-plate-mark:focus-visible) :global(.ae-plate-label) {
+  display: block;
 }
 
 .experience :global(.ae-globe-orbit:active) {
@@ -793,6 +880,9 @@
   z-index: 2;
 }
 
+/* z-index 2 lifts the plate above `.ae-globe-fallback` (z 1), the disc that
+   shows before the mask decodes. The marks then need to clear the plate — see
+   `.ae-plate-mark`, which sat at `auto` and was painted over by this rule. */
 .experience :global(.ae-globe-orbit canvas) {
   position: relative;
   z-index: 2;
