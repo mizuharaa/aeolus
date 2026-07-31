@@ -228,6 +228,17 @@ carries the painted sphere 533px → 583px across the pin.
 
 Four things to know before touching it:
 
+- **The right→centre morph is the section's one structural move.** The globe
+  enters right-aligned beside the intro copy and travels to the centre as the
+  event theatre takes over (`xPercent: 42 → 0`, `scale: 0.86 → 1.06`, in
+  `live-globe-stage.tsx`). An earlier pass deleted the x tween after mistaking
+  it for a layout bug and left the globe parked in the middle from frame one
+  with nothing to reveal. It reads `+42 → 0` rather than the old `0 → −39`
+  because the grid now resolves the END state — 0 *is* centred, so the offset
+  belongs on the `from`. If the grid's column widths change, retune the `from`.
+- **The plate must measure `offsetWidth`, never `getBoundingClientRect`.** The
+  orbit above it is scaled by that morph, so the rect fed the tween's scale back
+  into the disc's own size and the sphere changed size for two reasons at once.
 - **`makeProjector` axis order is load-bearing.** The yaw produces three axes:
   `along` (toward the viewer), `side` (screen-horizontal), `up` (polar). An
   earlier version returned `along` as screen-x and used `side` as depth — the

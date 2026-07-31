@@ -277,8 +277,15 @@ export function GlobePlate({
     const wrap = wrapRef.current
     if (!wrap || typeof ResizeObserver === "undefined") return
     const measure = () => {
-      const box = wrap.getBoundingClientRect()
-      setSize(Math.round(Math.min(box.width, box.height, MAX_DISC)))
+      // offsetWidth/Height, not getBoundingClientRect: the rect is POST
+      // transform, and `.ae-globe-orbit` above us is scaled 0.86 → 1.06 by the
+      // section's morph timeline. Measuring the rect fed that scale back into
+      // the disc's own size, so the canvas shrank and grew with the tween on
+      // top of being scaled by it — the sphere changed size for two reasons at
+      // once. The layout box is the stable reference.
+      setSize(
+        Math.round(Math.min(wrap.offsetWidth, wrap.offsetHeight, MAX_DISC)),
+      )
     }
     measure()
     const observer = new ResizeObserver(measure)

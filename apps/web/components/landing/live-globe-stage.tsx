@@ -174,13 +174,26 @@ export function LiveGlobeStage() {
         timeline
           .to(landingScroll.scenes, { globe: 1, duration: 1 }, 0)
           .to(copy, { yPercent: -14, opacity: 0, duration: 0.16 }, 0.08)
-          // Scale only. This used to also drive `xPercent: -39, yPercent: 3`,
-          // which was written for the old layout where the orbit was an
-          // absolutely-positioned box pinned to the right edge at 62% width.
-          // Against the grid the orbit already sits in the centre column, so
-          // that shift was translating the earth 233px off-centre — the single
-          // biggest reason the section read as uncentred.
-          .to(orbit, { scale: 1.06, duration: 0.38 }, 0.04)
+          /**
+           * The morph: the globe enters RIGHT-ALIGNED beside the intro copy,
+           * then travels to the centre of the section as the event theatre
+           * takes over. This is the section's one structural move and it has to
+           * survive — an earlier pass deleted the x tween outright after
+           * mistaking it for a layout bug, which left the globe parked in the
+           * middle from the first frame with nothing to reveal.
+           *
+           * It reads as `+42 → 0` now rather than the old `0 → −39` because the
+           * grid resolved the END state: the centre column already centres the
+           * disc, so 0 is the destination and the offset belongs on the start.
+           * Tie the two together — if the grid's column widths change, only the
+           * `from` needs retuning.
+           */
+          .fromTo(
+            orbit,
+            { xPercent: 42, scale: 0.86 },
+            { xPercent: 0, scale: 1.06, duration: 0.38, ease: "power2.inOut" },
+            0.04,
+          )
           .fromTo(
             eventCopy,
             { yPercent: 18, opacity: 0 },
