@@ -1353,14 +1353,28 @@
   box-shadow: 0 0 0 1px rgb(0 0 0 / 70%);
 }
 
-/* The OCC surface renders at 1:1 inside the aperture — it is NOT a 1280x800
-   block scaled down. It used to be, and at a 764px-wide aperture that meant a
-   0.56 scale factor: 9.5px chrome labels painted at 5.3 device px and the whole
-   console read as texture rather than as a product. Filling the aperture keeps
-   every authored size honest, and the aperture is 16:10 so nothing letterboxes. */
+/* The push-in must bring the SCREEN closer without magnifying the dashboard.
+   Those are different things and the first attempt conflated them: the rig was
+   transform-scaled 2.05x with the surface laid out at the aperture's own size,
+   so every glyph in the console was blown up 2.05x — a 13px label painted at
+   27px. The screen got closer and the UI got coarser, which is the opposite of
+   a clearer view.
+
+   Fix: lay the surface out at `--dm-push-max` times the aperture and counter-
+   scale it by the same factor. Its layout box is now big enough to hold the
+   console at full size, it renders into the aperture at 1/K, and the rig's own
+   transform multiplies it back — so at full push the dashboard sits at exactly
+   1:1 native density with K times the layout area, and it is legible because
+   there is more room, not because it was enlarged.
+
+   The layout size is FIXED at the maximum, so the console never reflows during
+   the push — only the parent's transform changes. */
 .experience :global(.dm-laptop-screen) {
-  width: 100%;
-  height: 100%;
+  --dm-push-max: 2.05;
+  width: calc(100% * var(--dm-push-max));
+  height: calc(100% * var(--dm-push-max));
+  transform: scale(calc(1 / var(--dm-push-max)));
+  transform-origin: 0 0;
   will-change: opacity;
 }
 

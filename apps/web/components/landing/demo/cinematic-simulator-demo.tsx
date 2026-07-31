@@ -255,8 +255,10 @@ export function CinematicSimulatorDemo() {
         tl.set(q(".ag-caret"), { opacity: 0 }, 4.6)
 
         // ── 4.7–8s · cursor opens the event selector, clicks the storm ─
-        const evTarget = { left: mobile ? "22%" : "13%", top: "26%" }
-        tl.fromTo(q(".dm-events"), { x: -14, opacity: 0 }, { x: 0, opacity: 1, duration: 0.7, ease: "power3.out" }, 4.7)
+        // Follows the selector to the right-hand side, and the panel now slides
+        // in from the right edge rather than the left.
+        const evTarget = { left: mobile ? "76%" : "84%", top: "26%" }
+        tl.fromTo(q(".dm-events"), { x: 14, opacity: 0 }, { x: 0, opacity: 1, duration: 0.7, ease: "power3.out" }, 4.7)
         tl.fromTo(q(".demo-cursor"), { opacity: 0 }, { opacity: 1, duration: 0.5 }, 4.7)
         tl.to(q(".demo-cursor"), { left: evTarget.left, top: evTarget.top, duration: 1.5, ease: "power2.inOut" }, 5.0)
         tl.to(q(".demo-cursor"), { scale: 0.82, duration: 0.18, yoyo: true, repeat: 1 }, 6.6)
@@ -269,7 +271,7 @@ export function CinematicSimulatorDemo() {
         tl.to(q(".dm-evrow-hot"), { backgroundColor: "rgba(236, 72, 153, 0.10)", borderColor: "rgba(236, 72, 153, 0.55)", duration: 0.4 }, 6.7)
         tl.fromTo(q(".dm-sev-fill"), { opacity: 0.15 }, { opacity: 1, duration: 0.25, stagger: 0.12 }, 7.0)
         tl.to(q(".demo-cursor"), { opacity: 0, duration: 0.4 }, 7.6)
-        tl.to(q(".dm-events"), { x: -14, opacity: 0, duration: 0.6, ease: "power2.in" }, 7.9)
+        tl.to(q(".dm-events"), { x: 14, opacity: 0, duration: 0.6, ease: "power2.in" }, 7.9)
 
         // ── 8–15s · fly to KORD, cascade spreads ──────────────────────
         tl.to(q(".st-0"), { opacity: 0, duration: 0.4 }, 8.0)
@@ -577,7 +579,13 @@ export function CinematicSimulatorDemo() {
                   className="demo-card dm-events"
                   style={{
                     position: "absolute",
-                    left: 14,
+                    // Top-RIGHT, not top-left. The agent console is anchored
+                    // bottom-left and grows upward as its response lines land,
+                    // and from 4.7s to 8.5s the two were stacked on the same
+                    // corner with the selector printing through the card. The
+                    // right side is free for this whole window — the plan
+                    // inspector does not arrive until 15.2s.
+                    right: 14,
                     top: 14,
                     zIndex: 25,
                     width: 216,
