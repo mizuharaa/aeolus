@@ -1,26 +1,35 @@
 "use client"
 /**
- * GlobePlate — the event theatre's globe, drawn as an orthographic chart.
+ * GlobePlate — an interactive vector globe for the event theatre.
  *
- * This replaces `earth-globe-3d.tsx` (955 lines, three.js, 4.7MB of Earth
- * textures). That scene was a photoreal NASA blue marble, which DESIGN_NOTES
- * bans outright ("generic blue globe heroes"), and it carried five permanently
- * animating VFX rigs that were the source of the landing's flicker.
+ * ── Why vectors, not a raster ────────────────────────────────────────────────
+ * The first version of this file rasterised an orthographic projection from
+ * `earth-mask.png`: one inverse projection plus four neighbour lookups per
+ * pixel, ~1.5M mask reads for a 560px disc. Fine for a still image, impossible
+ * at 60fps, so it could not be dragged, zoomed or given inertia.
  *
- * What it is now: one raster pass over `earth-mask.png` — the same land/sea
- * mask the demo's CONUS plate already samples — projected orthographically in
- * the landing's night register. Dark disc, graphite land, a paper coastline
- * hairline, a 15° graticule. It reads as an operations chart rather than a
- * photograph of the planet, which is the register the rest of the page is in.
+ * This version projects 273 coastline rings (10,468 points) from
+ * `world-coastline.json` every frame instead. That is ~10k sin/cos pairs —
+ * around a millisecond — so rotation, zoom and momentum are all free, and the
+ * coastline stays crisp at any zoom because it is stroked, not sampled.
  *
- * Colours are canvas literals on purpose: per DESIGN.md, map surfaces do not
- * var() their pigments. They are the night register's values, listed in PLATE.
+ * ── Motion ───────────────────────────────────────────────────────────────────
+ * Everything moves on ONE damped model, driven by the shared landing clock:
  *
- * MOTION: there is none. The plate is drawn once per orientation and never
- * touched again — no rAF loop, no shader clock, nothing to flicker. It redraws
- * only when the active event changes (the globe turns to face it) or the
- * element resizes. Selecting an event is a discrete, user-initiated change with
- * an end, not an idle animation.
+ *   drag        → angular velocity, released with inertia and exponential decay
+ *   scroll      → target zoom and tilt, damped (never snapped) toward
+ *   selection   → the globe eases around to face the chosen event
+ *   flights     → nodes travel great-circle arcs between Nimbus stations
+ *
+ * This is continuous, low-frequency motion — a globe turning and aircraft
+ * tracking across it. It is deliberately NOT the thing that was removed
+ * earlier: no additive blending, no per-frame opacity churn, no `fract()`
+ * cycles popping particles from 1 back to 0, nothing above ~0.3Hz. Under
+ * `prefers-reduced-motion` the flights and the idle drift both stop and the
+ * globe holds a single static orientation.
+ *
+ * Palette literals, not tokens: per DESIGN.md, map surfaces do not var() their
+ * pigments.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
@@ -29,227 +38,142 @@ import {
   globeEventRuntime,
   setGlobeEventIndex,
 } from "@/components/landing/globe-events"
-import { registerLandingFrame } from "@/lib/scroll"
+import { landingScroll, registerLandingFrame } from "@/lib/scroll"
 
-/**
- * Night-register literals, as RGB triples so the per-pixel loop does not parse
- * colour strings. Land sits well clear of the ocean in value: at the first
- * attempt land was #33333E against a #15151B ocean and the continents were
- * almost invisible against the section's own near-black.
- */
-const OCEAN = [0x12, 0x12, 0x18] as const
-const LAND = [0x4a, 0x4a, 0x59] as const
-const COAST = [0xe4, 0xe2, 0xdc] as const
-const PLATE = {
-  graticule: "rgba(244, 244, 242, 0.05)",
-  limb: "rgba(244, 244, 242, 0.18)",
+/** Night-register literals. Keep in step with the NIGHT object. */
+const INK = {
+  ocean: "#101016",
+  oceanRim: "#1B1B24",
+  land: "#2B2B36",
+  coast: "rgba(232, 230, 224, 0.62)",
+  graticule: "rgba(244, 244, 242, 0.06)",
+  limb: "rgba(244, 244, 242, 0.2)",
+  route: "rgba(244, 244, 242, 0.12)",
+  plane: "#C9C6BE",
+  event: "#E0457B",
 }
 
-/** The mask's own resolution. Sampling it at 720x360 threw away half the
- *  coastline detail and gave the continents a visibly stepped edge. */
-const MASK_W = 1600
-const MASK_H = 800
-
-/** Disc cap. The orbit box is ~790px tall on a desktop viewport and a disc that
- *  size bleeds off every edge of the section once GSAP scales the box 1.12. */
-const MAX_DISC = 560
 const DEG = Math.PI / 180
-
-type LandLookup = (lat: number, lon: number) => boolean
-
-let maskPromise: Promise<LandLookup> | null = null
-
+const MAX_DISC = 620
 /**
- * Load the land mask once per page and hand back a lat/lon predicate. Shared
- * across mounts — StrictMode double-invokes effects in development and this
- * would otherwise decode a 430KB PNG twice.
+ * The sphere's radius is `(canvas / 2) * BASE_RADIUS * zoom`, so BASE_RADIUS
+ * has to leave headroom for the top of the zoom range or the globe is drawn
+ * larger than the element holding it. At 0.94 × 1.85 the radius came to 539px
+ * inside a 620px canvas — a 1078px sphere, clipped to a grey disc, with every
+ * event mark projected outside the frame.
  */
-function loadLandLookup(): Promise<LandLookup> {
-  if (maskPromise) return maskPromise
-  maskPromise = new Promise<LandLookup>((resolve, reject) => {
-    const image = new Image()
-    image.src = "/textures/earth-mask.png"
-    image.onerror = () => reject(new Error("earth-mask.png failed to load"))
-    image.onload = () => {
-      const off = document.createElement("canvas")
-      off.width = MASK_W
-      off.height = MASK_H
-      const context = off.getContext("2d", { willReadFrequently: true })
-      if (!context) {
-        reject(new Error("2d context unavailable"))
-        return
-      }
-      context.drawImage(image, 0, 0, MASK_W, MASK_H)
-      const pixels = context.getImageData(0, 0, MASK_W, MASK_H).data
+const BASE_RADIUS = 0.7
+const ZOOM_MIN = 1
+const ZOOM_MAX = 1.34
 
-      // Detect polarity rather than assume it: land is whichever class is in
-      // the minority. Same test the demo's CONUS plate uses.
-      let bright = 0
-      let total = 0
-      for (let index = 0; index < pixels.length; index += 4 * 16) {
-        if (pixels[index] > 127) bright += 1
-        total += 1
-      }
-      const landIsBright = bright / total < 0.5
+type Ring = Float32Array
+let ringsPromise: Promise<Ring[]> | null = null
 
-      resolve((lat, lon) => {
-        const u = ((lon + 180) / 360) * MASK_W
-        const v = ((90 - lat) / 180) * MASK_H
-        const x = u < 0 ? 0 : u > MASK_W - 1 ? MASK_W - 1 : u | 0
-        const y = v < 0 ? 0 : v > MASK_H - 1 ? MASK_H - 1 : v | 0
-        const isBright = pixels[(y * MASK_W + x) * 4] > 127
-        return landIsBright ? isBright : !isBright
-      })
-    }
-  })
-  return maskPromise
+function loadRings(): Promise<Ring[]> {
+  if (ringsPromise) return ringsPromise
+  ringsPromise = fetch("/data/world-coastline.json")
+    .then((response) => response.json())
+    .then((payload: { rings: number[][] }) =>
+      payload.rings.map((ring) => Float32Array.from(ring)),
+    )
+  return ringsPromise
 }
 
-/** Forward orthographic projection, in units of the disc radius. */
-function project(lat: number, lon: number, lat0: number, lon0: number) {
+/** Nimbus stations the flight nodes track between, as [lat, lon]. */
+const STATIONS: Record<string, [number, number]> = {
+  ORD: [41.98, -87.9],
+  JFK: [40.64, -73.78],
+  LHR: [51.47, -0.45],
+  KEF: [63.99, -22.61],
+  SIN: [1.36, 103.99],
+  MNL: [14.51, 121.02],
+  LAX: [33.94, -118.41],
+  NRT: [35.76, 140.39],
+  DXB: [25.25, 55.36],
+  GRU: [-23.43, -46.47],
+  JNB: [-26.13, 28.24],
+  SYD: [-33.94, 151.18],
+}
+
+/** Long-haul pairs, with a per-leg period in seconds. Varied on purpose: a
+ *  fleet moving in lockstep reads as a screensaver, not as traffic. */
+const LEGS: [keyof typeof STATIONS, keyof typeof STATIONS, number, number][] = [
+  ["ORD", "LHR", 46, 0.0],
+  ["JFK", "LHR", 41, 0.35],
+  ["LAX", "NRT", 58, 0.12],
+  ["SIN", "SYD", 44, 0.62],
+  ["DXB", "SIN", 39, 0.28],
+  ["LHR", "JNB", 54, 0.8],
+  ["GRU", "JFK", 49, 0.5],
+  ["MNL", "SIN", 33, 0.18],
+  ["KEF", "ORD", 37, 0.72],
+  ["NRT", "SIN", 43, 0.44],
+]
+
+type Vec3 = { x: number; y: number; z: number }
+
+function toVector(lat: number, lon: number): Vec3 {
   const phi = lat * DEG
-  const lambda = (lon - lon0) * DEG
-  const phi0 = lat0 * DEG
-  const cosC =
-    Math.sin(phi0) * Math.sin(phi) +
-    Math.cos(phi0) * Math.cos(phi) * Math.cos(lambda)
+  const lambda = lon * DEG
+  const cosPhi = Math.cos(phi)
   return {
-    x: Math.cos(phi) * Math.sin(lambda),
-    y: Math.cos(phi0) * Math.sin(phi) - Math.sin(phi0) * Math.cos(phi) * Math.cos(lambda),
-    // cosC < 0 means the point is on the far side of the sphere.
-    visible: cosC >= 0,
+    x: cosPhi * Math.cos(lambda),
+    y: Math.sin(phi),
+    z: cosPhi * Math.sin(lambda),
   }
 }
 
+/** Great-circle interpolation, so a leg follows the route a jet would fly. */
+function slerp(a: Vec3, b: Vec3, t: number): Vec3 {
+  let dot = a.x * b.x + a.y * b.y + a.z * b.z
+  dot = dot < -1 ? -1 : dot > 1 ? 1 : dot
+  const omega = Math.acos(dot)
+  if (omega < 1e-6) return a
+  const sinOmega = Math.sin(omega)
+  const wa = Math.sin((1 - t) * omega) / sinOmega
+  const wb = Math.sin(t * omega) / sinOmega
+  return {
+    x: a.x * wa + b.x * wb,
+    y: a.y * wa + b.y * wb,
+    z: a.z * wa + b.z * wb,
+  }
+}
+
+const PRECOMPUTED_LEGS = LEGS.map(([from, to, period, phase]) => ({
+  from: toVector(...STATIONS[from]),
+  to: toVector(...STATIONS[to]),
+  period,
+  phase,
+}))
+
 /**
- * Draw the disc. One pass, no animation. `land` is sampled per device pixel and
- * a pixel is coastline when it is land with at least one non-land neighbour —
- * which is what gives the plate its drawn-chart edge instead of a soft blob.
+ * Rotate a unit vector into view space and project it orthographically.
+ * Returns screen offsets in disc-radius units plus the depth term; depth < 0
+ * means the point is on the far side and must not be drawn.
  */
-function drawPlate(
-  canvas: HTMLCanvasElement,
-  size: number,
-  lat0: number,
-  lon0: number,
-  land: LandLookup,
-) {
-  const dpr = Math.min(window.devicePixelRatio || 1, 2)
-  const pixels = Math.max(1, Math.round(size * dpr))
-  canvas.width = pixels
-  canvas.height = pixels
-  canvas.style.width = `${size}px`
-  canvas.style.height = `${size}px`
+function makeProjector(lat0: number, lon0: number) {
+  const cosLat = Math.cos(lat0 * DEG)
+  const sinLat = Math.sin(lat0 * DEG)
+  const cosLon = Math.cos(-lon0 * DEG)
+  const sinLon = Math.sin(-lon0 * DEG)
+  return (v: Vec3) => {
+    // Yaw about the polar axis so `lon0` faces the camera. This yields three
+    // axes and it matters which is which: `along` points at the viewer, `side`
+    // is screen-horizontal, `up` is the polar direction. An earlier version
+    // returned `along` as the screen x and used `side` as the depth — the two
+    // swapped — so the globe faced 90° away from the requested longitude and
+    // every projected mark landed outside the disc.
+    const along = v.x * cosLon - v.z * sinLon // cosφ·cos(λ − lon0)
+    const side = v.x * sinLon + v.z * cosLon // cosφ·sin(λ − lon0)
+    const up = v.y
 
-  const context = canvas.getContext("2d")
-  if (!context) return
-  context.clearRect(0, 0, pixels, pixels)
-
-  const radius = pixels / 2
-  const image = context.createImageData(pixels, pixels)
-  const data = image.data
-  const phi0 = lat0 * DEG
-  const sinPhi0 = Math.sin(phi0)
-  const cosPhi0 = Math.cos(phi0)
-
-  // Inverse orthographic per pixel, plus a 1px neighbour test for the coastline.
-  const isLandAt = (px: number, py: number) => {
-    const nx = (px - radius) / radius
-    const ny = (radius - py) / radius
-    const rho2 = nx * nx + ny * ny
-    if (rho2 > 1) return null
-    const rho = Math.sqrt(rho2)
-    const c = Math.asin(rho > 1 ? 1 : rho)
-    const sinC = Math.sin(c)
-    const cosC = Math.cos(c)
-    const lat = Math.asin(cosC * sinPhi0 + (rho === 0 ? 0 : (ny * sinC * cosPhi0) / rho))
-    const lon =
-      lon0 +
-      Math.atan2(nx * sinC, rho * cosPhi0 * cosC - ny * sinPhi0 * sinC) / DEG
-    return land(lat / DEG, ((lon + 540) % 360) - 180)
-  }
-
-  for (let py = 0; py < pixels; py += 1) {
-    for (let px = 0; px < pixels; px += 1) {
-      const offset = (py * pixels + px) * 4
-      const here = isLandAt(px, py)
-      if (here === null) continue // outside the disc: stays transparent
-
-      // A gentle limb darkening so the disc reads as a sphere, not a coin.
-      const nx = (px - radius) / radius
-      const ny = (radius - py) / radius
-      const limb = 1 - Math.min(1, nx * nx + ny * ny) * 0.55
-
-      let tone: readonly [number, number, number] | readonly number[]
-      if (here) {
-        const coast =
-          isLandAt(px + 1, py) !== true ||
-          isLandAt(px - 1, py) !== true ||
-          isLandAt(px, py + 1) !== true ||
-          isLandAt(px, py - 1) !== true
-        tone = coast ? COAST : LAND
-      } else {
-        tone = OCEAN
-      }
-      data[offset] = tone[0] * limb
-      data[offset + 1] = tone[1] * limb
-      data[offset + 2] = tone[2] * limb
-      data[offset + 3] = 255
+    // Then pitch by `lat0` about the screen-horizontal axis.
+    return {
+      x: side,
+      y: up * cosLat - along * sinLat,
+      depth: up * sinLat + along * cosLat,
     }
   }
-  context.putImageData(image, 0, 0)
-
-  // Graticule + limb, drawn as vectors on top so they stay hairline-crisp.
-  context.save()
-  context.translate(radius, radius)
-  context.lineWidth = Math.max(1, dpr * 0.5)
-  context.strokeStyle = PLATE.graticule
-
-  for (let lat = -75; lat <= 75; lat += 15) {
-    context.beginPath()
-    let started = false
-    for (let lon = -180; lon <= 180; lon += 2) {
-      const p = project(lat, lon, lat0, lon0)
-      if (!p.visible) {
-        started = false
-        continue
-      }
-      const x = p.x * radius
-      const y = -p.y * radius
-      if (started) context.lineTo(x, y)
-      else {
-        context.moveTo(x, y)
-        started = true
-      }
-    }
-    context.stroke()
-  }
-
-  for (let lon = -180; lon < 180; lon += 15) {
-    context.beginPath()
-    let started = false
-    for (let lat = -90; lat <= 90; lat += 2) {
-      const p = project(lat, lon, lat0, lon0)
-      if (!p.visible) {
-        started = false
-        continue
-      }
-      const x = p.x * radius
-      const y = -p.y * radius
-      if (started) context.lineTo(x, y)
-      else {
-        context.moveTo(x, y)
-        started = true
-      }
-    }
-    context.stroke()
-  }
-
-  context.beginPath()
-  context.arc(0, 0, radius - dpr * 0.5, 0, Math.PI * 2)
-  context.strokeStyle = PLATE.limb
-  context.lineWidth = Math.max(1, dpr)
-  context.stroke()
-  context.restore()
 }
 
 export function GlobePlate({
@@ -261,37 +185,39 @@ export function GlobePlate({
 }) {
   const wrapRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const landRef = useRef<LandLookup | null>(null)
-  const drawnRef = useRef<{ size: number; index: number } | null>(null)
-  const [activeIndex, setActiveIndex] = useState(globeEventRuntime.activeIndex)
+  const markLayerRef = useRef<HTMLDivElement>(null)
+  const ringsRef = useRef<Ring[] | null>(null)
   const [size, setSize] = useState(0)
-  // A real state flag, not a nudge: setSize(current => current) bails out of
-  // rendering because the value is identical, so when the mask resolved after
-  // the measure effect the plate was never drawn at all.
-  const [landReady, setLandReady] = useState(false)
+  const [activeIndex, setActiveIndex] = useState(globeEventRuntime.activeIndex)
 
-  const active = GLOBE_EVENTS[activeIndex] ?? GLOBE_EVENTS[0]
   /**
-   * The globe turns to face the selected event, but deliberately does NOT
-   * centre on it. Centring put the active mark exactly at the disc's middle,
-   * which is also where the event headline sits — so the one mark that matters
-   * was permanently underneath "Hub closure / Chicago". Offsetting the
-   * projection centre north-east of the event pushes the mark into the disc's
-   * lower-left quadrant, clear of the type and better composed than a bullseye.
-   * Latitude is damped toward the equator so picking Keflavík does not tip the
-   * disc onto its pole.
+   * The whole camera lives in one mutable object read by the frame loop. React
+   * state here would re-render on every pointer move; this is the same
+   * framework-free motion pattern `landingScroll` uses.
    */
-  const lon0 = active.lon + 24
-  const lat0 = Math.max(-30, Math.min(46, active.lat * 0.4 + 20))
+  const cam = useRef({
+    lon: -60,
+    lat: 22,
+    zoom: 1,
+    targetLon: -60,
+    targetLat: 22,
+    velLon: 0,
+    velLat: 0,
+    dragging: false,
+    // Set true once the visitor drags; the globe then stops auto-facing the
+    // selected event, because yanking the view out from under someone's hand
+    // is the rudest thing an interactive globe can do.
+    userAimed: false,
+  })
+
+  const pointer = useRef({ id: -1, x: 0, y: 0, moved: 0 })
 
   useEffect(() => {
     let cancelled = false
-    loadLandLookup()
-      .then((lookup) => {
+    loadRings()
+      .then((rings) => {
         if (cancelled) return
-        landRef.current = lookup
-        drawnRef.current = null
-        setLandReady(true)
+        ringsRef.current = rings
         onReady?.()
       })
       .catch(() => onReady?.())
@@ -313,76 +239,355 @@ export function GlobePlate({
     return () => observer.disconnect()
   }, [])
 
-  // Redraw only when the orientation or the box actually changed.
-  useEffect(() => {
-    const canvas = canvasRef.current
-    const land = landRef.current
-    if (!canvas || !land || size <= 0) return
-    const previous = drawnRef.current
-    if (previous && previous.size === size && previous.index === activeIndex) return
-    drawPlate(canvas, size, lat0, lon0, land)
-    drawnRef.current = { size, index: activeIndex }
-  }, [activeIndex, landReady, lat0, lon0, size])
+  /** Aim at an event unless the visitor has taken the wheel. */
+  const aimAt = useCallback((index: number) => {
+    const event = GLOBE_EVENTS[index]
+    if (!event) return
+    // Offset north-east of the site so its mark lands in the disc's lower-left
+    // quadrant rather than under the centred headline.
+    cam.current.targetLon = event.lon + 24
+    cam.current.targetLat = Math.max(-30, Math.min(46, event.lat * 0.4 + 20))
+    cam.current.userAimed = false
+  }, [])
 
-  // The feed and the plate share one selection. This mirrors the runtime the
-  // rest of the scene already reads rather than introducing a second source.
+  useEffect(() => {
+    aimAt(globeEventRuntime.activeIndex)
+  }, [aimAt])
+
+  // Mirror the shared selection runtime rather than owning a second copy.
   useEffect(() => {
     let seen = globeEventRuntime.version
     return registerLandingFrame(() => {
       if (globeEventRuntime.version === seen) return
       seen = globeEventRuntime.version
       setActiveIndex(globeEventRuntime.activeIndex)
+      aimAt(globeEventRuntime.activeIndex)
     })
-  }, [])
+  }, [aimAt])
 
   const select = useCallback(
     (index: number) => {
       setGlobeEventIndex(index)
       setActiveIndex(index)
+      aimAt(index)
       onSelect?.(index)
     },
-    [onSelect],
+    [aimAt, onSelect],
   )
 
-  const marks = useMemo(
-    () =>
-      GLOBE_EVENTS.map((event, index) => {
-        const p = project(event.lat, event.lon, lat0, lon0)
-        return { event, index, ...p }
-      }),
-    [lat0, lon0],
-  )
+  /** Drag to turn the globe, with momentum on release. */
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas || size <= 0) return
+
+    const down = (event: PointerEvent) => {
+      if (landingScroll.reducedMotion) return
+      pointer.current = { id: event.pointerId, x: event.clientX, y: event.clientY, moved: 0 }
+      cam.current.dragging = true
+      cam.current.velLon = 0
+      cam.current.velLat = 0
+      canvas.setPointerCapture(event.pointerId)
+    }
+
+    const move = (event: PointerEvent) => {
+      if (!cam.current.dragging || event.pointerId !== pointer.current.id) return
+      const dx = event.clientX - pointer.current.x
+      const dy = event.clientY - pointer.current.y
+      pointer.current.x = event.clientX
+      pointer.current.y = event.clientY
+      pointer.current.moved += Math.abs(dx) + Math.abs(dy)
+
+      // Degrees per pixel scales with the disc so the surface tracks the finger
+      // at roughly 1:1 regardless of size or zoom.
+      const perPixel = 180 / (size * cam.current.zoom)
+      const dLon = -dx * perPixel
+      const dLat = dy * perPixel
+      cam.current.targetLon += dLon
+      cam.current.targetLat = Math.max(-72, Math.min(72, cam.current.targetLat + dLat))
+      cam.current.lon += dLon
+      cam.current.lat = Math.max(-72, Math.min(72, cam.current.lat + dLat))
+      cam.current.velLon = dLon
+      cam.current.velLat = dLat
+      cam.current.userAimed = true
+    }
+
+    const up = (event: PointerEvent) => {
+      if (event.pointerId !== pointer.current.id) return
+      cam.current.dragging = false
+      pointer.current.id = -1
+    }
+
+    canvas.addEventListener("pointerdown", down)
+    canvas.addEventListener("pointermove", move)
+    canvas.addEventListener("pointerup", up)
+    canvas.addEventListener("pointercancel", up)
+    return () => {
+      canvas.removeEventListener("pointerdown", down)
+      canvas.removeEventListener("pointermove", move)
+      canvas.removeEventListener("pointerup", up)
+      canvas.removeEventListener("pointercancel", up)
+    }
+  }, [size])
+
+  const marks = useMemo(() => GLOBE_EVENTS.map((event) => toVector(event.lat, event.lon)), [])
+
+  /** One frame: advance the camera, draw the globe, place the marks. */
+  useEffect(() => {
+    const canvas = canvasRef.current
+    const layer = markLayerRef.current
+    if (!canvas || !layer || size <= 0) return
+
+    const dpr = Math.min(window.devicePixelRatio || 1, 2)
+    const pixels = Math.round(size * dpr)
+    canvas.width = pixels
+    canvas.height = pixels
+    canvas.style.width = `${size}px`
+    canvas.style.height = `${size}px`
+    const context = canvas.getContext("2d")
+    if (!context) return
+
+    const markNodes = Array.from(
+      layer.querySelectorAll<HTMLElement>("[data-mark]"),
+    )
+
+    return registerLandingFrame((time, delta) => {
+      const rings = ringsRef.current
+      const c = cam.current
+      const reduced = landingScroll.reducedMotion
+      const step = Math.min(delta, 1 / 30)
+
+      // ── camera ──────────────────────────────────────────────────────────
+      if (!c.dragging && !reduced) {
+        // Momentum: carry the release velocity and bleed it off exponentially.
+        if (Math.abs(c.velLon) > 0.0004 || Math.abs(c.velLat) > 0.0004) {
+          c.targetLon += c.velLon
+          c.targetLat = Math.max(-72, Math.min(72, c.targetLat + c.velLat))
+          c.lon += c.velLon
+          c.lat = Math.max(-72, Math.min(72, c.lat + c.velLat))
+          const decay = Math.exp(-2.6 * step)
+          c.velLon *= decay
+          c.velLat *= decay
+        } else if (!c.userAimed) {
+          // A slow idle drift, only when the globe is showing its own choice of
+          // view. Far below any flicker threshold — a third of a degree/second.
+          c.targetLon += step * 0.34
+        }
+      }
+
+      if (!c.dragging) {
+        const ease = reduced ? 1 : 1 - Math.exp(-4.5 * step)
+        c.lon += (c.targetLon - c.lon) * ease
+        c.lat += (c.targetLat - c.lat) * ease
+      }
+
+      // Scroll drives the push-in: the disc grows and levels off as the scene
+      // takes the viewport. Damped, so a flick of the wheel never snaps it.
+      const progress = reduced ? 1 : landingScroll.scenes.globe
+      const targetZoom = ZOOM_MIN + (ZOOM_MAX - ZOOM_MIN) * Math.min(1, progress * 1.25)
+      c.zoom += (targetZoom - c.zoom) * (reduced ? 1 : 1 - Math.exp(-3.2 * step))
+
+      // ── draw ────────────────────────────────────────────────────────────
+      const radius = (pixels / 2) * BASE_RADIUS * c.zoom
+      const cx = pixels / 2
+      const cy = pixels / 2
+      const project = makeProjector(c.lat, c.lon)
+
+      context.clearRect(0, 0, pixels, pixels)
+      context.save()
+      context.translate(cx, cy)
+
+      // ocean body, with a rim gradient so the disc reads as a sphere
+      const fill = context.createRadialGradient(
+        -radius * 0.25,
+        -radius * 0.3,
+        radius * 0.1,
+        0,
+        0,
+        radius,
+      )
+      fill.addColorStop(0, INK.oceanRim)
+      fill.addColorStop(1, INK.ocean)
+      context.beginPath()
+      context.arc(0, 0, radius, 0, Math.PI * 2)
+      context.fillStyle = fill
+      context.fill()
+
+      // Everything else is clipped to the disc, so a ring crossing the limb is
+      // cut by the horizon instead of streaking across the section.
+      context.clip()
+
+      // graticule every 15°
+      context.strokeStyle = INK.graticule
+      context.lineWidth = Math.max(1, dpr * 0.6)
+      context.beginPath()
+      for (let lat = -75; lat <= 75; lat += 15) {
+        let pen = false
+        for (let lon = -180; lon <= 180; lon += 4) {
+          const p = project(toVector(lat, lon))
+          if (p.depth < 0) {
+            pen = false
+            continue
+          }
+          const x = p.x * radius
+          const y = -p.y * radius
+          if (pen) context.lineTo(x, y)
+          else {
+            context.moveTo(x, y)
+            pen = true
+          }
+        }
+      }
+      for (let lon = -180; lon < 180; lon += 15) {
+        let pen = false
+        for (let lat = -90; lat <= 90; lat += 4) {
+          const p = project(toVector(lat, lon))
+          if (p.depth < 0) {
+            pen = false
+            continue
+          }
+          const x = p.x * radius
+          const y = -p.y * radius
+          if (pen) context.lineTo(x, y)
+          else {
+            context.moveTo(x, y)
+            pen = true
+          }
+        }
+      }
+      context.stroke()
+
+      // landmasses — filled, then stroked, so the coast reads as a drawn edge
+      if (rings) {
+        context.beginPath()
+        for (const ring of rings) {
+          let pen = false
+          for (let index = 0; index < ring.length; index += 2) {
+            const p = project(toVector(ring[index + 1], ring[index]))
+            if (p.depth < 0) {
+              pen = false
+              continue
+            }
+            const x = p.x * radius
+            const y = -p.y * radius
+            if (pen) context.lineTo(x, y)
+            else {
+              context.moveTo(x, y)
+              pen = true
+            }
+          }
+        }
+        context.fillStyle = INK.land
+        context.fill()
+        context.strokeStyle = INK.coast
+        context.lineWidth = Math.max(1, dpr * 0.7)
+        context.lineJoin = "round"
+        context.stroke()
+      }
+
+      // ── flight nodes ────────────────────────────────────────────────────
+      // Great-circle legs, drawn as a faint track plus a node in motion. The
+      // node is a filled dot; nothing here blends additively or blinks.
+      const flightTime = reduced ? 0 : time
+      for (const leg of PRECOMPUTED_LEGS) {
+        const a = project(leg.from)
+        const b = project(leg.to)
+
+        if (a.depth >= 0 || b.depth >= 0) {
+          context.beginPath()
+          let pen = false
+          for (let s = 0; s <= 1.0001; s += 0.04) {
+            const p = project(slerp(leg.from, leg.to, s))
+            if (p.depth < 0) {
+              pen = false
+              continue
+            }
+            const x = p.x * radius
+            const y = -p.y * radius
+            if (pen) context.lineTo(x, y)
+            else {
+              context.moveTo(x, y)
+              pen = true
+            }
+          }
+          context.strokeStyle = INK.route
+          context.lineWidth = Math.max(1, dpr * 0.5)
+          context.stroke()
+        }
+
+        // Ping-pong along the leg so aircraft return rather than teleporting
+        // back to the origin — a wrap would be a visible jump every period.
+        const cycle = (leg.phase + flightTime / leg.period) % 1
+        const t = cycle < 0.5 ? cycle * 2 : 2 - cycle * 2
+        const at = project(slerp(leg.from, leg.to, t))
+        if (at.depth < 0) continue
+
+        const x = at.x * radius
+        const y = -at.y * radius
+        // Fade toward the limb so nodes sink over the horizon instead of
+        // vanishing at the edge.
+        const alpha = Math.min(1, at.depth * 3.4)
+        context.globalAlpha = alpha
+        context.beginPath()
+        context.arc(x, y, Math.max(1.6, dpr * 1.7), 0, Math.PI * 2)
+        context.fillStyle = INK.plane
+        context.fill()
+        context.globalAlpha = 1
+      }
+
+      context.restore()
+
+      // limb ring on top, unclipped, so the horizon stays a clean circle
+      context.beginPath()
+      context.arc(cx, cy, radius, 0, Math.PI * 2)
+      context.strokeStyle = INK.limb
+      context.lineWidth = Math.max(1, dpr)
+      context.stroke()
+
+      // ── event marks ─────────────────────────────────────────────────────
+      // DOM, not canvas: they must be focusable, hit-testable and announced.
+      for (let index = 0; index < markNodes.length; index += 1) {
+        const node = markNodes[index]
+        const p = project(marks[index])
+        if (p.depth < 0) {
+          if (node.style.visibility !== "hidden") node.style.visibility = "hidden"
+          continue
+        }
+        if (node.style.visibility === "hidden") node.style.visibility = "visible"
+        const x = (p.x * radius) / dpr + size / 2
+        const y = (-p.y * radius) / dpr + size / 2
+        node.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) translate(-50%, -50%)`
+        node.style.opacity = String(Math.min(1, p.depth * 4))
+      }
+    })
+  }, [marks, size])
 
   return (
     <div ref={wrapRef} className="ae-plate">
       <div className="ae-plate-disc" style={{ width: size, height: size }}>
         <canvas ref={canvasRef} className="ae-plate-canvas" aria-hidden />
-        {/* Marks are DOM, not canvas: they must be focusable, hit-testable and
-            announced. The canvas is decoration; this layer is the control. */}
-        {size > 0
-          ? marks.map(({ event, index, x, y, visible }) =>
-              visible ? (
-                <button
-                  key={event.id}
-                  type="button"
-                  className="ae-plate-mark"
-                  data-active={index === activeIndex}
-                  aria-pressed={index === activeIndex}
-                  style={{
-                    left: `${(0.5 + x / 2) * 100}%`,
-                    top: `${(0.5 - y / 2) * 100}%`,
-                  }}
-                  onClick={() => select(index)}
-                >
-                  <span className="ae-plate-ring" aria-hidden />
-                  <span className="ae-plate-label">
-                    {event.airport}
-                    <small>{event.title}</small>
-                  </span>
-                </button>
-              ) : null,
-            )
-          : null}
+        <div ref={markLayerRef} className="ae-plate-marks">
+          {GLOBE_EVENTS.map((event, index) => (
+            <button
+              key={event.id}
+              type="button"
+              data-mark
+              className="ae-plate-mark"
+              data-active={index === activeIndex}
+              aria-pressed={index === activeIndex}
+              onClick={() => {
+                // Ignore the click that ends a drag.
+                if (pointer.current.moved > 6) return
+                select(index)
+              }}
+            >
+              <span className="ae-plate-ring" aria-hidden />
+              <span className="ae-plate-label">
+                {event.airport}
+                <small>{event.title}</small>
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   )

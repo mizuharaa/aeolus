@@ -50,7 +50,7 @@ on the laptop's deck (and ellipsising to "Co…" / "Ca…" at 390px).
 | Cabin opening | `cabin-opening.tsx` (634) | **Untouched / problematic** — see Known defects |
 | Airliner descent | `hero-plane-3d.tsx` | Rebuilt on the textured GLB, flies through the wordmark |
 | Identity band | `identity-band.tsx` (new) | Two stacked wordmark layers inside the flight pin; replaces the deleted `opening-stage.tsx` |
-| Globe event theatre | `globe-plate.tsx` (new) + `live-globe-stage.tsx` | Rebuilt as an orthographic chart; `earth-globe-3d.tsx` **deleted** |
+| Globe event theatre | `globe-plate.tsx` (new) + `live-globe-stage.tsx` | Interactive vector globe — drag, momentum, scroll zoom, flight nodes; `earth-globe-3d.tsx` **deleted** |
 | Laptop demo | `demo/laptop-stage.tsx` | DOM composite, autoplaying, MacBook proportions |
 
 ### Palette: paper/ink, no beige
@@ -198,36 +198,57 @@ The screen must stay the real OCC DOM — a baked frame is banned (see Rules).
 The current chassis is a **CSS stand-in**, not the chosen deliverable. Its
 keyboard is deliberately a plain recessed well rather than a fake key grid.
 
-### 2. Globe rebuild — DONE, and no generated plate was needed
+### 2. Globe rebuild — DONE. Interactive vector globe, no textures
 
-`earth-globe-3d.tsx` (955 lines by then) and 13 Earth texture files (**4.7 MB**)
-are deleted. The replacement is `globe-plate.tsx`: an **orthographic projection
-rasterised in a 2D canvas from `earth-mask.png`** — the same land mask the
-demo's CONUS plate already samples. Dark disc, graphite land, paper coastline
-hairline, 15° graticule, all in the night register.
+`earth-globe-3d.tsx` (955 lines) and 13 Earth texture files (**4.7 MB**) are
+deleted. The replacement is `globe-plate.tsx`.
 
-No Higgsfield generation, no new asset, no licence entry: the mask was already
-in the repo for the demo map, so the scene now costs one 430KB file that was
-being downloaded anyway.
+It went through two shapes and the second is what shipped:
 
-Three things to know before touching it:
+1. **Raster** — an orthographic projection rasterised per pixel from
+   `earth-mask.png`. Correct, cheap to write, and a dead end: one inverse
+   projection plus four neighbour lookups per pixel is ~1.5M mask reads for a
+   560px disc, so it could never be dragged, zoomed or given inertia.
+2. **Vector (shipped)** — projects 273 coastline rings / 10,468 points from
+   `world-coastline.json` every frame. That is ~10k sin/cos pairs, about a
+   millisecond, so rotation, zoom and momentum are all free and the coastline
+   stays crisp at any zoom because it is stroked rather than sampled.
 
-- **The plate never animates.** It is drawn once per orientation. It redraws
-  only when the active event changes or the box resizes. Verified: 0 of 19,600
-  sampled pixels change between idle frames.
+`world-coastline.json` (109KB) is generated from the Natural Earth countries
+file already in `public/data` by `scripts/generate_coastline.py` — flat lon/lat
+arrays rounded to 1 decimal, which at the rendered size is a third of a pixel.
+No Higgsfield generation and no new licensed asset.
+
+**Motion model.** One damped system on the shared landing clock: drag sets
+angular velocity and releases with exponential decay; scroll damps toward a
+target zoom; selection eases the globe around to face the event; flight nodes
+travel great-circle arcs between twelve stations. Verified by pixel-sampling
+the canvas — drag 3,391 changed / momentum 2,648 / settled 4 of 10,000; zoom
+carries the painted sphere 533px → 583px across the pin.
+
+Four things to know before touching it:
+
+- **`makeProjector` axis order is load-bearing.** The yaw produces three axes:
+  `along` (toward the viewer), `side` (screen-horizontal), `up` (polar). An
+  earlier version returned `along` as screen-x and used `side` as depth — the
+  two swapped — so the globe faced 90° away from the requested longitude and
+  every mark projected outside the disc. The symptom looks like a data problem
+  and is not.
+- **`BASE_RADIUS` must leave headroom for `ZOOM_MAX`.** Radius is
+  `(canvas / 2) × BASE_RADIUS × zoom`. At `0.94 × 1.85` that came to 539px in a
+  620px canvas — a 1078px sphere clipped to a grey disc.
 - **The projection is deliberately off-centre** (`lon0 = event.lon + 24`,
-  `lat0 = event.lat * 0.4 + 20`). Centring on the active event put its mark at
-  the exact middle of the disc, which is where the event headline sits — the one
-  mark that matters was permanently under the type.
-- **Marks need `z-index: 3`.** A leftover rule, `.ae-globe-orbit canvas
-  { position: relative; z-index: 2 }`, survives from the WebGL scene to keep the
-  plate above `.ae-globe-fallback`. It also covers anything at `z-index: auto`,
-  which is why the marks had correct geometry and resolved colours and still
-  painted nothing.
+  `lat0 = event.lat × 0.4 + 20`). Centring on the active event put its mark at
+  the exact middle of the disc, which is where the event headline sits.
+- **Marks need their layer at `z-index: 3`.** A leftover rule,
+  `.ae-globe-orbit canvas { position: relative; z-index: 2 }`, keeps the plate
+  above `.ae-globe-fallback` and also covers anything at `auto` — which is why
+  the marks had correct geometry, correct hit-testing and resolved colours and
+  still painted nothing.
 
-Accepted loss: drag-to-inspect. The hint now reads "Select a site", and the
-marks are real `<button>`s, so the interaction is keyboard-reachable and
-announced — which the orbit drag never was.
+Dragging is back, and better than the orbit controls it replaced: the marks are
+real `<button>`s over the canvas, so the interaction is keyboard-reachable and
+announced. Idle drift and flight motion both stop under `prefers-reduced-motion`.
 
 ### 3. Globe section layout (mostly done)
 
@@ -315,6 +336,11 @@ best", and the scenarios page template. None were touched.
   `boxGeometry` when a face needs a map.
 - Verify scene beats by driving `landingScroll.scenes.*` or seeking the timeline,
   not by wall-clock waits — Playwright throttles rAF while idle.
+- For a plain screenshot, prefer the Edge that already ships with Windows over
+  spinning up Playwright:
+  `& "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --headless=new --disable-gpu --window-size=1440,900 --screenshot=out.png http://localhost:3000/`
+  Playwright is only worth it when the check needs scroll position, pointer
+  input or canvas pixel sampling — which the globe and demo scenes do.
 
 ## Verification status
 

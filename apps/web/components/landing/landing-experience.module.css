@@ -798,17 +798,37 @@
   position: relative;
 }
 
+/* `touch-action: none` so a drag on the globe turns it instead of scrolling the
+   page. The section still scrolls normally everywhere outside the disc. */
 .experience :global(.ae-plate-canvas) {
   display: block;
   border-radius: 50%;
+  cursor: grab;
+  touch-action: none;
+}
+
+.experience :global(.ae-plate-canvas:active) {
+  cursor: grabbing;
+}
+
+/* The marks are positioned by the frame loop writing transforms, so this layer
+   must not clip them and must not eat pointer events between them. */
+.experience :global(.ae-plate-marks) {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
 }
 
 .experience :global(.ae-plate-mark) {
+  pointer-events: auto;
   position: absolute;
-  /* Above the plate canvas, which carries z-index 2 from the orbit rule. At
-     `auto` the marks had correct geometry and resolved colours and still
-     painted nothing, because the canvas covered every one of them. */
-  z-index: 3;
+  /* Origin only: the frame loop writes the real position into `transform`,
+     which also carries its own -50% centring. Do NOT add `translate` here —
+     it composes after transform and would double the offset. The parent layer
+     is z-index 3, above the canvas's z-index 2 (set by the orbit rule). */
+  left: 0;
+  top: 0;
   display: grid;
   min-width: 2.75rem;
   min-height: 2.75rem;
@@ -818,7 +838,6 @@
   background: transparent;
   color: var(--flight-paper);
   cursor: pointer;
-  translate: -50% -50%;
 }
 
 /* Inactive sites still have to be findable against the dark plate — at 0.6rem

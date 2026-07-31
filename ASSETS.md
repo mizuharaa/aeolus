@@ -15,7 +15,8 @@ globe heroes", and a NASA Blue Marble was exactly that.
 | --- | --- | --- | --- |
 | `apps/web/public/textures/earth-mask.png` | Natural Earth coastlines, rasterised to 1600×800 equirectangular | Public domain. | **The only Earth texture still shipped.** Sampled twice: by `demo/demo-map.tsx` for the CONUS plate, and by `globe-plate.tsx` for the orthographic globe. Land is the minority class; both callers detect the polarity rather than assume it. |
 | `apps/web/public/textures/earth-assets.json` | Repository-authored metadata | Project-authored. | Records source checksums and border-alignment checkpoints for the mask. |
-| `apps/web/public/data/ne-110m-admin-0-countries.json` | [Natural Earth Admin 0 Countries](https://www.naturalearthdata.com/downloads/110m-cultural-vectors/110m-admin-0-countries/) | Public domain. | Source data for the mask. |
+| `apps/web/public/data/world-coastline.json` | Derived from `ne-110m-admin-0-countries.json` by `scripts/generate_coastline.py` | Public domain, as a derivative of Natural Earth. | **The globe's geometry.** 273 rings / 10,468 points as flat lon,lat arrays rounded to 1 decimal (109KB, from 726KB). The globe projects these every frame instead of rasterising a texture, which is what makes it draggable. |
+| `apps/web/public/data/ne-110m-admin-0-countries.json` | [Natural Earth Admin 0 Countries](https://www.naturalearthdata.com/downloads/110m-cultural-vectors/110m-admin-0-countries/) | Public domain. | Source data for the mask and for `world-coastline.json`. Not fetched at runtime. |
 
 Deleted with the WebGL globe, and no longer in the repo: `earth-blue-marble`,
 `earth-night-lights`, `earth-clouds`, `earth-water-mask`, `earth-roughness`,
