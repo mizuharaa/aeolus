@@ -334,6 +334,17 @@ best", and the scenarios page template. None were touched.
 - **Two dev servers sharing one `.next` corrupts the build manifest** — the
   symptom is `TypeError: Cannot read properties of undefined (reading
   'experimental')`. Only run one.
+- **Never compute a pinned section's start offset from its own rect while it is
+  pinned.** `section.getBoundingClientRect().top + scrollY` is only valid before
+  ScrollTrigger pins it; pinning swaps the element to `position: fixed` behind a
+  pin-spacer, so that expression returns the fixed viewport offset plus the live
+  scroll and drifts as you move. Measure from a fresh load, or read
+  `trigger.start` off the ScrollTrigger instance. This produced two convincing
+  but wrong readings of the globe morph.
+- **Never run two scroll-driving `browser_evaluate` calls at once.** Both drive
+  Lenis on the same page and each one's scrub state contaminates the other's
+  measurements. If one gets backgrounded on a timeout, wait for it before
+  starting the next.
 - `ScrollTrigger.getAll()` can return **several triggers for the same element**
   across matchMedia contexts, including stale ones with a wrong span (a 430px
   reading against a real 3994px pin). Select the one with the largest span.
