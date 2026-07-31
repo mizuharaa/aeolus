@@ -39,7 +39,11 @@ export function FlightIntroStage() {
           scrollTrigger: {
             trigger: root,
             start: "top top",
-            end: "+=200%",
+            // 300%, not 200%. The same manoeuvre spread over more scroll is
+            // what makes it less sensitive: a flick that used to cover half the
+            // descent now covers a third of it. Combined with the softer damp
+            // in the rig, the aircraft no longer flashes past.
+            end: "+=300%",
             scrub: 1.2,
             pin: true,
             pinSpacing: true,

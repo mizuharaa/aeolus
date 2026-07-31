@@ -404,7 +404,23 @@ export function GlobePlate({
       layer.querySelectorAll<HTMLElement>("[data-mark]"),
     )
 
-    return registerLandingFrame((time, delta) => {
+    let onScreen = false
+    const visibility = new IntersectionObserver(
+      ([entry]) => {
+        onScreen = entry.isIntersecting
+      },
+      { rootMargin: "20% 0px" },
+    )
+    visibility.observe(canvas)
+
+    const unregister = registerLandingFrame((time, delta) => {
+      // Do nothing at all while the section is off screen. This loop projects
+      // ~12,500 points (10,468 coastline + graticule + flight arcs) and it was
+      // running on every frame of the entire page — the globe was costing its
+      // full budget while the visitor was reading the pricing table. This is
+      // the single biggest contributor to the page feeling heavy.
+      if (!onScreen) return
+
       const rings = ringsRef.current
       const c = cam.current
       const reduced = landingScroll.reducedMotion
@@ -637,6 +653,11 @@ export function GlobePlate({
         node.style.opacity = String(Math.min(1, p.depth * 4))
       }
     })
+
+    return () => {
+      visibility.disconnect()
+      unregister()
+    }
   }, [marks, size])
 
   return (

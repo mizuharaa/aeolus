@@ -20,6 +20,7 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber"
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js"
 import * as THREE from "three"
 import { gsap } from "@/components/landing/gsap"
+import { landingScroll, registerThreeRoot } from "@/lib/scroll"
 
 /**
  * A prefiltered room probe used as the cabin's environment. Same approach as
@@ -53,17 +54,27 @@ function CabinEnvironment() {
 
 // ── palette: night business class (reference: dark sculpted ceiling, cool
 //    LED spine, warm amber pools on cognac leather + cream shells) ────────
-const WALL = "#39322F"       // deep taupe walls
-const FRAME_OUT = "#453C36"  // window surrounds
-const FRAME_IN = "#2A241F"
-const SLOT = "#3E3630"
-const PILL = "#5C5248"
-const FABRIC = "#8F5B36"     // cognac leather
-const FABRIC_LIT = "#B0754A"
-const SHELL = "#E9DEC8"      // cream lacquered pod shell (catches the lamps)
-const ARMREST = "#4E3A2A"    // walnut
-const METAL = "#C9A050"      // brass
-const CARPET = "#221B16"     // near-black warm carpet
+/*
+ * A modern business/first suite, not a 1930s hotel bar.
+ *
+ * This was cognac leather, cream lacquer, walnut and brass on deep taupe — a
+ * lounge palette that reads as a period railway carriage the moment it is next
+ * to a real photographic sky. Actual long-haul business cabins are cool
+ * greys and slate with a warm mid-tone seat, brushed champagne metal rather
+ * than polished brass, and a light patterned carpet. The geometry is unchanged;
+ * only the finishes are.
+ */
+const WALL = "#3A3E45"       // cool slate sidewall panels
+const FRAME_OUT = "#474C55"  // window surrounds, a shade lighter than the wall
+const FRAME_IN = "#22262C"
+const SLOT = "#333840"       // shade slot
+const PILL = "#666D78"
+const FABRIC = "#6E6A66"     // warm grey-taupe seat leather
+const FABRIC_LIT = "#8C867F"
+const SHELL = "#D8D5CF"      // light composite suite shell
+const ARMREST = "#2E3238"    // dark composite console
+const METAL = "#B9A98C"      // brushed champagne trim
+const CARPET = "#2B2E33"     // cool charcoal carpet
 
 function roundedRect(w: number, h: number, r: number) {
   const s = new THREE.Shape()
@@ -494,6 +505,24 @@ function CabinScene({ progressRef }: { progressRef: React.MutableRefObject<numbe
       <CabinEnvironment />
       {/* daylight cabin: cool ambient fill so the shadows stay open */}
       <ambientLight intensity={0.32} color="#FFD9A8" />
+      {/* Mood cove. The one lighting element that says "modern cabin" more than
+          any other: a continuous warm strip washing the join between sidewall
+          and ceiling, down both sides of the aisle. Emissive geometry rather
+          than a light, so it is visible AS a fixture and costs nothing. */}
+      {[-1, 1].map((side) => (
+        <mesh key={side} position={[side * 1.62, 1.62, 2.2]} rotation={[0, 0, side * 0.5]}>
+          <boxGeometry args={[0.06, 0.05, 9]} />
+          <meshStandardMaterial
+            color="#FFE9C9"
+            emissive="#FFCE93"
+            emissiveIntensity={2.4}
+            toneMapped={false}
+          />
+        </mesh>
+      ))}
+      {/* the light the cove actually throws */}
+      <pointLight position={[1.5, 1.5, 2.0]} intensity={1.5} color="#FFD5A0" distance={6} />
+      <pointLight position={[-1.5, 1.5, 2.0]} intensity={1.5} color="#FFD5A0" distance={6} />
       {/* cool LED spine key from directly above the aisle */}
       <pointLight position={[0, 2.4, 1.4]} intensity={2.6} color="#BFD9FF" distance={7} />
       <pointLight position={[0, 2.4, 3.4]} intensity={2.0} color="#BFD9FF" distance={7} />
@@ -515,6 +544,15 @@ export function CabinOpening() {
   const skyRef = useRef<HTMLDivElement>(null)
   const cabinRef = useRef<HTMLDivElement>(null)
   const sloganRef = useRef<HTMLDivElement>(null)
+  const unregisterCanvasRef = useRef<null | (() => void)>(null)
+
+  useEffect(
+    () => () => {
+      unregisterCanvasRef.current?.()
+      unregisterCanvasRef.current = null
+    },
+    [],
+  )
   const progressRef = useRef(0)
 
   useLayoutEffect(() => {
@@ -611,8 +649,22 @@ export function CabinOpening() {
         <Canvas
           camera={{ position: [-0.3, 0, CAM_START_Z], fov: 46 }}
           dpr={[1, 2]}
+          // Driven by the shared landing clock, not its own RAF. This was the
+          // only canvas on the page still rendering itself: a full-viewport
+          // WebGL scene painting every frame for the entire life of the
+          // document, hidden behind `autoAlpha: 0` from the second viewport
+          // onward. It is now registered like the airliner and only advances
+          // while the cabin is actually the active scene.
+          frameloop="never"
           gl={{ antialias: true, alpha: true }}
-          onCreated={({ gl }) => {
+          onCreated={(state) => {
+            const { gl } = state
+            unregisterCanvasRef.current?.()
+            unregisterCanvasRef.current = registerThreeRoot(
+              "cabin",
+              state,
+              () => landingScroll.active.cabin && !landingScroll.reducedMotion,
+            )
             // Filmic response instead of clipped linear. Without it the lamp
             // and PSU emissives blew straight to flat white while the leather
             // stayed muddy — no roll-off anywhere in the frame.

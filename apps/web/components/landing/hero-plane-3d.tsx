@@ -186,8 +186,15 @@ const SIDE = {
 }
 const ZOOM_START = 0.2
 const ZOOM_END = 0.48
-const CLIMB_START = 0.62
-const CLIMB_END = 0.985
+/**
+ * The cross-and-dive occupies the LAST THIRD of the scene, not the last 38%.
+ * It used to start at 0.62 and finish at 0.985, so a fast flick crossed the
+ * whole manoeuvre in a few frames and the aircraft appeared to vanish. Starting
+ * later and ending at 1.0 gives the hold a longer beat and spreads the descent
+ * across more scroll, so the same flick covers proportionally less of it.
+ */
+const CLIMB_START = 0.72
+const CLIMB_END = 1
 const Q_CLOSE = new THREE.Quaternion().setFromEuler(CLOSE.rot)
 const Q_SIDE = new THREE.Quaternion().setFromEuler(SIDE.rot)
 /**
@@ -419,12 +426,18 @@ function PlaneRig({
     const reducedMotion = landingScroll.reducedMotion
     const target = landingScroll.scenes.flight
     if (reducedMotion) smoothed.current = target
-    else smoothed.current = damp(smoothed.current, target, 14, delta)
+    // 6, not 14. This is the aircraft's own inertia on top of Lenis and the
+    // 1.2 scrub, and at 14 it tracked the scroll almost rigidly — a fast flick
+    // threw the whole descent past in a couple of frames and read as the plane
+    // disappearing. A softer follow means the airframe keeps flying its arc
+    // for a moment after the wheel stops, which is both calmer and harder to
+    // skip past.
+    else smoothed.current = damp(smoothed.current, target, 6, delta)
     const t = smoothed.current
     // The aircraft leaves through the bottom of the frame, so it does not need
     // to be faded out — this is only a safety net for a very fast flick past
-    // the end of the pin.
-    const visibility = 1 - THREE.MathUtils.smoothstep(t, 0.975, 1)
+    // the end of the pin. Held to the last 1% so it never dissolves in shot.
+    const visibility = 1 - THREE.MathUtils.smoothstep(t, 0.99, 1)
     group.visible = visibility > 0.005
     if (!group.visible) return
 

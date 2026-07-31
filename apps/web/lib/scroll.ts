@@ -340,6 +340,25 @@ export function markLandingAssetReady(asset: string) {
   queueLandingRefresh()
 }
 
+/**
+ * Recompute trigger positions after late-arriving layout (fonts, the airliner
+ * GLB) — but ONLY while the visitor is still at the top of the page.
+ *
+ * `markLandingAssetReady("airliner")` fires when a 488KB model finishes
+ * downloading, which can be seconds after mount. `ScrollTrigger.refresh()`
+ * recalculates the start and end of every pinned trigger, and this page has
+ * four of them; running it while someone is scrolled inside a pin re-resolves
+ * that pin underneath them and dumps them back at its start. That is the
+ * "scrolling through the demo sends me back to the top of the laptop" bug — the
+ * page was not looping, it was being re-measured mid-scroll.
+ *
+ * Past the first viewport the refresh buys nothing (layout above is already
+ * settled and pinned sections size themselves from the viewport) and risks
+ * exactly that jump, so it is dropped. Genuine resizes still refresh through
+ * ScrollTrigger's own listener, which is not this path.
+ */
+const REFRESH_SAFE_SCROLL = 200
+
 function queueLandingRefresh() {
   if (
     refreshQueued ||
@@ -350,9 +369,10 @@ function queueLandingRefresh() {
   refreshQueued = true
   void document.fonts.ready.then(() => {
     window.requestAnimationFrame(() => {
+      refreshQueued = false
+      if ((lenis?.animatedScroll ?? window.scrollY) > REFRESH_SAFE_SCROLL) return
       lenis?.resize()
       ScrollTrigger.refresh()
-      refreshQueued = false
     })
   })
 }

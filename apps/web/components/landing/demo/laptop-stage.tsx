@@ -59,7 +59,7 @@ const LID_SHUT_TO = 0.96
  * The rig's transform-origin sits on the screen's centre (see the module CSS)
  * so the growth happens around the panel and not around the deck.
  */
-const PUSH_SCALE = 2.05
+const PUSH_SCALE = 1.62
 
 /**
  * Fraction of the rig's height to lift the composite by at full push, so the
