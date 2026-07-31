@@ -1183,15 +1183,21 @@
 }
 
 /* One stage, no pin: the device sits centred in a full-height block, the title
-   card and the caption rail ride above it as overlays the HINGE fades. The
-   section used to be pinned for 520vh and scrubbed; it plays on its own clock
-   now, so it only needs its own screen. Nothing here is a card — the section
-   ground IS the studio. */
+   card and the caption rail ride above it as overlays the HINGE fades.
+
+   Pinned again, and exactly one viewport tall: the pin holds this frame while
+   scroll walks the device through open → push-in → hold → pull back → shut.
+   `overflow: clip` is what lets the 2.35x push-in run without the magnified
+   deck bleeding over the sections either side of the pin.
+
+   Nothing here is a card — the section ground IS the studio. */
 .experience:global(.ae-landing-experience) :global(.dm-pin) {
   position: relative;
   display: grid;
   place-items: center;
+  height: 100dvh;
   min-height: 100dvh;
+  overflow: clip;
   padding-block: clamp(4rem, 9dvh, 7rem) clamp(5rem, 11dvh, 8rem);
   padding-inline: var(--flight-gutter);
 }
@@ -1302,6 +1308,12 @@
   aspect-ratio: 1 / 0.89;
   transform-style: preserve-3d;
   will-change: transform;
+  /* The push-in scales the rig 2.35x, and it has to grow around the SCREEN,
+     not around the rig box — whose centre sits near the hinge line. At 50% 50%
+     the panel climbed out of the top of the viewport while the empty deck
+     stayed in shot. The lid occupies the top 78.4% of the rig, so its midpoint
+     is at ~39%. */
+  transform-origin: 50% 39%;
 }
 
 .experience :global(.dm-laptop-lid) {
@@ -1796,56 +1808,92 @@
     grid-row: 2;
   }
 
+  /* ── Event theatre: one grid, not six floating overlays ──────────────────
+     Every element in this section used to be its own `position: absolute` with
+     its own percentage offsets — copy at 15dvh, event copy at 50% translated
+     −50%, orbit inset-end 0 at 62% wide, notification at 8%/16dvh, feed at
+     12%, dashboard at 4%. Nothing shared an edge with anything else, the globe
+     was pushed off-centre by its own container, and the headline landed on top
+     of it. That is why it read as unrelated panels rather than a composition.
+
+     Now: three columns and three rows. The globe occupies the CENTRE cell and
+     is genuinely centred in it; the rails sit in their own columns and cannot
+     collide with it. */
   .experience :global(.ae-globe-pin) {
+    display: grid;
+    grid-template-columns:
+      minmax(0, 20rem) minmax(0, 1fr) minmax(0, 21rem);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    align-items: start;
+    gap: clamp(1rem, 2.4vw, 2.5rem);
     height: 100dvh;
     min-height: 42rem;
-    padding: 0;
+    padding: clamp(4.5rem, 9dvh, 6.5rem) var(--flight-gutter)
+      clamp(2rem, 4dvh, 3rem);
   }
 
   .experience :global(.ae-globe-copy) {
-    position: absolute;
-    inset-inline-start: var(--flight-gutter);
-    top: clamp(6.5rem, 15dvh, 10rem);
-    width: min(43%, 41rem);
+    position: relative;
+    grid-column: 1 / 3;
+    grid-row: 1;
+    inset: auto;
+    width: min(100%, 41rem);
   }
 
+  /* The active-event headline sits in the TOP CENTRE cell, above the sphere
+     rather than across it. */
   .experience :global(.ae-globe-event-copy) {
-    position: absolute;
-    inset-inline: 50% auto;
-    top: clamp(4.75rem, 10dvh, 7rem);
-    width: min(38rem, 58vw);
+    position: relative;
+    grid-column: 2;
+    grid-row: 1;
+    inset: auto;
+    justify-self: center;
+    width: min(38rem, 100%);
     margin: 0;
     opacity: 0;
-    transform: translateX(-50%);
+    text-align: center;
+    transform: none;
   }
 
+  /* The centre cell, spanning rows 1–3 so the sphere is centred on the section
+     and not on the space left over under the copy. It is the bottom layer. */
   .experience :global(.ae-globe-orbit) {
-    position: absolute;
-    inset-inline-end: 0;
-    top: 4%;
-    width: 62%;
-    height: 88%;
+    position: relative;
+    z-index: 0;
+    grid-column: 2;
+    grid-row: 1 / 4;
+    inset: auto;
+    width: 100%;
+    height: 100%;
     min-height: 0;
     margin: 0;
   }
 
   .experience :global(.ae-globe-notification) {
-    inset-inline-start: 8%;
-    bottom: clamp(8.5rem, 16dvh, 10rem);
+    position: relative;
+    grid-column: 1;
+    grid-row: 2;
+    align-self: end;
+    inset: auto;
     opacity: 0;
   }
 
   .experience :global(.ae-globe-drag-hint) {
     display: block;
-    inset-inline-end: 8%;
-    bottom: 4%;
+    grid-column: 3;
+    grid-row: 3;
+    justify-self: end;
+    align-self: end;
+    position: relative;
+    inset: auto;
   }
 
   .experience :global(.ae-event-feed) {
-    position: absolute;
-    inset-inline-end: var(--flight-gutter);
-    top: 12%;
-    width: min(20rem, 28vw);
+    position: relative;
+    grid-column: 3;
+    grid-row: 1 / 3;
+    inset: auto;
+    width: 100%;
     margin: 0;
     padding: 0.75rem;
     border: 1px solid var(--flight-night-rule);
@@ -1859,12 +1907,17 @@
     padding-inline: 0.65rem;
   }
 
+  /* The coverage strip runs the full width along the bottom row, under the
+     globe — a footer rule for the section rather than a floating slab that
+     used to be clipped by the left edge. */
   .experience :global(.ae-globe-dashboard) {
-    position: absolute;
-    inset-inline-start: var(--flight-gutter);
-    bottom: 4%;
+    position: relative;
+    grid-column: 1 / 4;
+    grid-row: 3;
+    align-self: end;
+    inset: auto;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    width: min(43rem, 55vw);
+    width: 100%;
     margin: 0;
     opacity: 0;
   }
@@ -1886,9 +1939,11 @@
   }
 
   .experience :global(.ae-globe-cue) {
-    position: absolute;
-    inset-inline-start: var(--flight-gutter);
-    bottom: 4%;
+    position: relative;
+    grid-column: 1;
+    grid-row: 3;
+    align-self: end;
+    inset: auto;
     z-index: 6;
     display: inline-flex;
     align-items: center;

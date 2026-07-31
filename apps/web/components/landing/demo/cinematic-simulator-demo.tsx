@@ -13,12 +13,13 @@
  *   5. metrics count down, teal reroutes re-flow, toast lands, camera
  *      pulls back to the start framing so the loop cuts cleanly
  *
- * ── It plays; it is not scrubbed ─────────────────────────────────────────
- * This used to be a 520vh pin whose timeline was scrubbed by scroll
- * position, so the console only moved while the user kept scrolling and
- * stopping mid-gesture froze the agent mid-word. It is a demo video, so it
- * runs on a wall clock: it starts when the section comes into view, loops,
- * and pauses when it leaves. The caption chips seek it like chapter marks.
+ * ── Two clocks ───────────────────────────────────────────────────────────
+ * SCROLL choreographs the physical device — lid open, push-in, hold, pull
+ * back, lid shut — because those beats should feel caused by the visitor.
+ * The 25s recovery narrative runs on its own WALL CLOCK and is never
+ * scrubbed: a scroll-scrubbed timeline freezes the agent mid-word the
+ * moment anyone stops moving. Playback is gated to the window where the
+ * push-in has actually made the panel readable. Chips seek it like chapters.
  *
  * The OCC surface is live DOM inside the laptop's lid; it is never a
  * reference-frame image or a baked video.
@@ -49,7 +50,11 @@ import {
   bezAngle,
   bezPoint,
 } from "@/components/landing/demo/demo-data"
-import { registerLandingFrame, resetLandingScene } from "@/lib/scroll"
+import {
+  landingScroll,
+  registerLandingFrame,
+  resetLandingScene,
+} from "@/lib/scroll"
 
 const STATUS = [
   { label: "Nominal", color: "var(--dk-teal)" },
@@ -90,9 +95,11 @@ export function CinematicSimulatorDemo() {
   const phaseRef = useRef(0)
   // Set by the matchMedia effect; called by LaptopStage on every hinge change.
   // A ref, not state: the hinge updates every frame and this must not re-render.
-  const openHandlerRef = useRef<((open: number) => void) | null>(null)
-  const handleOpenChange = useCallback((open: number) => {
-    openHandlerRef.current?.(open)
+  const openHandlerRef = useRef<
+    ((open: number, pushed: number) => void) | null
+  >(null)
+  const handleOpenChange = useCallback((open: number, pushed: number) => {
+    openHandlerRef.current?.(open, pushed)
   }, [])
 
   useEffect(() => {
@@ -363,44 +370,75 @@ export function CinematicSimulatorDemo() {
         // opens; the caption rail takes its place once the loop is running.
         // Both are functions of the HINGE, not of scroll position — the lid
         // is what tells the viewer the console is live.
-        const applyOpen = (open: number) => {
+        const applyOpen = (open: number, pushed: number) => {
           // On mobile the title card is a normal block in the column, not an
           // overlay: fading it there left its full height as dead space above
           // the device instead of handing the frame over to it.
           const copyExit = mobile ? 0 : smoothstep(0.08, 0.55, open)
-          const captionEntry = mobile ? 1 : smoothstep(0.55, 0.95, open)
+          // The caption rail leaves as the push-in closes on the panel — at
+          // 2.35x the device covers the frame and the rail would print on it.
+          const captionEntry = mobile
+            ? 1
+            : smoothstep(0.55, 0.95, open) * (1 - smoothstep(0.25, 0.7, pushed))
           headline.style.opacity = String(1 - copyExit)
           headline.style.transform = `translate3d(0, ${(-copyExit * 9).toFixed(3)}%, 0)`
           captions.style.opacity = String(captionEntry)
           captions.style.transform = `translate3d(0, ${(18 * (1 - captionEntry)).toFixed(3)}px, 0)`
         }
-        applyOpen(0)
+        applyOpen(0, 0)
         openHandlerRef.current = applyOpen
 
-        // Playback: a real clock, gated to visibility. `tl.play()` on an
-        // IntersectionObserver rather than a scrub, so the loop keeps its own
-        // pace whether the user scrolls, stops, or sits still.
+        // Playback runs on its own wall clock — never scrubbed — but only once
+        // the push-in has actually brought the panel up to a readable size.
+        // Starting it while the lid is still swinging wastes the opening beats
+        // of the narrative on a screen nobody can read yet.
         tl.repeat(-1)
-        const observer = new IntersectionObserver(
-          ([entry]) => {
-            if (entry.isIntersecting) {
-              tl.play()
-              startFlights()
-            } else {
-              tl.pause()
-              stopFlights()
-            }
+        let playing = false
+        const syncPlayback = () => {
+          const progress = landingScroll.scenes.demo
+          const shouldPlay = progress > 0.36 && progress < 0.88
+          if (shouldPlay === playing) return
+          playing = shouldPlay
+          if (shouldPlay) {
+            tl.play()
+            startFlights()
+          } else {
+            tl.pause()
+            stopFlights()
+          }
+        }
+        const unregisterPlaybackFrame = registerLandingFrame(syncPlayback)
+
+        // The pin: it owns the physical choreography only. `scenes.demo` is what
+        // laptop-stage reads for the lid and the push-in.
+        const deviceTween = gsap.fromTo(
+          landingScroll.scenes,
+          { demo: 0 },
+          {
+            demo: 1,
+            ease: "none",
+            scrollTrigger: {
+              trigger: root,
+              start: "top top",
+              end: mobile ? "+=300%" : "+=520%",
+              scrub: 1.1,
+              pin: true,
+              pinSpacing: true,
+              anticipatePin: 1,
+              invalidateOnRefresh: true,
+              fastScrollEnd: true,
+            },
           },
-          { threshold: 0.4 },
         )
-        observer.observe(root)
 
         const onResize = () => tl.invalidate()
         window.addEventListener("resize", onResize)
 
         return () => {
           window.removeEventListener("resize", onResize)
-          observer.disconnect()
+          unregisterPlaybackFrame()
+          deviceTween.scrollTrigger?.kill()
+          deviceTween.kill()
           stopFlights()
           unregisterFlightFrame()
           openHandlerRef.current = null

@@ -54,7 +54,49 @@ const INK = {
 }
 
 const DEG = Math.PI / 180
-const MAX_DISC = 620
+
+/**
+ * A paper grain, built once and tiled over the landmasses.
+ *
+ * The land was one flat fill, which is what made the globe read as a wireframe
+ * diagram rather than as a printed chart — the rest of the landing is paper
+ * stock and the one big object on the page had no surface at all. This is a
+ * deterministic 128px tile of low-amplitude noise plus faint horizontal fibre,
+ * multiplied over the base land colour at low alpha. Built once per page: it is
+ * a static pattern, not a per-frame effect.
+ */
+let grainPattern: CanvasPattern | null = null
+function paperGrain(context: CanvasRenderingContext2D): CanvasPattern | null {
+  if (grainPattern) return grainPattern
+  const tile = document.createElement("canvas")
+  tile.width = 128
+  tile.height = 128
+  const g = tile.getContext("2d")
+  if (!g) return null
+  const image = g.createImageData(128, 128)
+  // Deterministic LCG — a random() here would make the texture differ between
+  // the server-rendered and client-rendered passes of any future SSR attempt.
+  let seed = 1337
+  const rand = () => {
+    seed = (seed * 1664525 + 1013904223) % 4294967296
+    return seed / 4294967296
+  }
+  for (let y = 0; y < 128; y += 1) {
+    const fibre = Math.sin(y * 0.7) * 5
+    for (let x = 0; x < 128; x += 1) {
+      const offset = (y * 128 + x) * 4
+      const value = 150 + rand() * 74 + fibre
+      image.data[offset] = value
+      image.data[offset + 1] = value
+      image.data[offset + 2] = value
+      image.data[offset + 3] = 46
+    }
+  }
+  g.putImageData(image, 0, 0)
+  grainPattern = context.createPattern(tile, "repeat")
+  return grainPattern
+}
+const MAX_DISC = 780
 /**
  * The sphere's radius is `(canvas / 2) * BASE_RADIUS * zoom`, so BASE_RADIUS
  * has to leave headroom for the top of the zoom range or the globe is drawn
@@ -65,6 +107,9 @@ const MAX_DISC = 620
 const BASE_RADIUS = 0.7
 const ZOOM_MIN = 1
 const ZOOM_MAX = 1.34
+/** Degrees per second of idle rotation, and how long after a drag it resumes. */
+const IDLE_SPEED = 2.4
+const IDLE_RESUME_DELAY = 2.5
 
 type Ring = Float32Array
 let ringsPromise: Promise<Ring[]> | null = null
@@ -208,6 +253,8 @@ export function GlobePlate({
     // selected event, because yanking the view out from under someone's hand
     // is the rudest thing an interactive globe can do.
     userAimed: false,
+    // Seconds since the last interaction, for resuming the idle rotation.
+    idleHold: 0,
   })
 
   const pointer = useRef({ id: -1, x: 0, y: 0, moved: 0 })
@@ -367,10 +414,24 @@ export function GlobePlate({
           const decay = Math.exp(-2.6 * step)
           c.velLon *= decay
           c.velLat *= decay
-        } else if (!c.userAimed) {
-          // A slow idle drift, only when the globe is showing its own choice of
-          // view. Far below any flicker threshold — a third of a degree/second.
-          c.targetLon += step * 0.34
+        } else {
+          // Idle rotation. It used to run at 0.34°/s and only while the globe
+          // had never been touched, which read as no idle animation at all —
+          // a third of a degree per second is below the threshold where a
+          // viewer registers movement. At 2.4°/s the planet is visibly turning
+          // (a full revolution in about two and a half minutes) without ever
+          // being fast enough to fight a reader.
+          //
+          // It also RESUMES: after a drag it waits out IDLE_RESUME_DELAY and
+          // then picks the rotation back up from wherever the visitor left it,
+          // instead of parking forever.
+          c.idleHold = c.userAimed ? c.idleHold + step : 0
+          if (!c.userAimed || c.idleHold > IDLE_RESUME_DELAY) {
+            const ramp = c.userAimed
+              ? Math.min(1, (c.idleHold - IDLE_RESUME_DELAY) / 1.4)
+              : 1
+            c.targetLon += step * IDLE_SPEED * ramp
+          }
         }
       }
 
@@ -478,6 +539,16 @@ export function GlobePlate({
         }
         context.fillStyle = INK.land
         context.fill()
+        // Paper stock over the flat fill, clipped to the land itself so the
+        // ocean stays smooth and the continents carry the grain.
+        const grain = paperGrain(context)
+        if (grain) {
+          context.save()
+          context.clip()
+          context.fillStyle = grain
+          context.fillRect(-radius, -radius, radius * 2, radius * 2)
+          context.restore()
+        }
         context.strokeStyle = INK.coast
         context.lineWidth = Math.max(1, dpr * 0.7)
         context.lineJoin = "round"

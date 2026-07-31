@@ -173,9 +173,15 @@ const CLOSE = {
  * full diagonal of travel before it reaches the letters. A centred cruise pose
  * left the plane already sitting on the type with nowhere to fall from.
  */
+/**
+ * Cruise pose: left of centre and level with the wordmark band, because the
+ * next move is a crossing rather than a dive. It used to sit high and left,
+ * which made the only available path a diagonal that cut the corner of the
+ * type instead of running through it.
+ */
 const SIDE = {
-  pos: new THREE.Vector3(-1.12, 1.44, -0.2),
-  rot: new THREE.Euler(0.07, -0.44, 0.015),
+  pos: new THREE.Vector3(-1.9, 0.55, -0.2),
+  rot: new THREE.Euler(0.05, -0.46, 0.01),
   scale: 0.62,
 }
 const ZOOM_START = 0.2
@@ -185,32 +191,40 @@ const CLIMB_END = 0.985
 const Q_CLOSE = new THREE.Quaternion().setFromEuler(CLOSE.rot)
 const Q_SIDE = new THREE.Quaternion().setFromEuler(SIDE.rot)
 /**
- * Descent path — one continuous arc that banks right, noses over, crosses the
- * AEOLUS wordmark band and leaves through the BOTTOM of the frame.
+ * The Q. Two moves in one continuous curve:
+ *
+ *   u 0.00 → 0.45   THE CROSS. The aircraft tracks left-to-right straight
+ *                   ACROSS the AEOLUS wordmark, holding y inside the letter
+ *                   band so it passes through the letterforms rather than
+ *                   diagonally past them. This is the beat the brief asks for:
+ *                   a crossing, not a fly-by.
+ *   u 0.45 → 1.00   THE TAIL. Having cleared the S it curls over, banks hard
+ *                   and dives out through the bottom of the frame — the stroke
+ *                   that turns an O into a Q — and the wordmark is dragged down
+ *                   with it (see DRAG_START in identity-band.tsx).
  *
  * The camera sits at (0.55, −0.28, 8.6) with a 32° fov looking at the origin,
- * so at the z=0 plane the frame is roughly y ∈ [−2.47, 2.47] and the wordmark
- * band — centred in the viewport — occupies about y ∈ [−0.8, 0.8]. Control
- * points 4 through 6 are what put the aircraft inside that band; keep them if
- * the band's height in identity-band.tsx changes, or the pass-through misses.
+ * so at z=0 the frame is roughly y ∈ [−2.47, 2.47] and the wordmark band —
+ * centred in the viewport — occupies about y ∈ [−0.8, 0.8]. Points 2–5 sit
+ * inside that band; if the band's height in identity-band.tsx changes, these
+ * are what to retune or the cross misses the type.
  *
- * Monotone by construction, which is the fix for the old "violent shake": the
- * previous path reversed direction five times in y and four times in x, so the
- * aircraft was flying a weave exactly as authored. Here x only advances right,
- * y crests once at the second point and then only falls, and z only creeps
- * toward the camera so the silhouette holds its size on the way out.
+ * The old shake came from deriving bank off quantised curve tangents, which is
+ * fixed by the closed-form `bankAt`/`pitchAt` below — so this path is allowed
+ * the single x reversal in its tail that makes the Q a Q. y still only falls.
  */
 const Q_PATH = new THREE.CatmullRomCurve3(
   [
     SIDE.pos.clone(),
-    new THREE.Vector3(-0.74, 1.5, -0.12),
-    new THREE.Vector3(-0.34, 1.28, -0.02),
-    new THREE.Vector3(0.02, 0.84, 0.12),
-    new THREE.Vector3(0.3, 0.22, 0.26),
-    new THREE.Vector3(0.52, -0.46, 0.42),
-    new THREE.Vector3(0.7, -1.24, 0.6),
-    new THREE.Vector3(0.84, -2.12, 0.78),
-    new THREE.Vector3(0.94, -3.08, 0.96),
+    new THREE.Vector3(-1.55, 0.46, -0.16), // entering the band from the left
+    new THREE.Vector3(-0.78, 0.32, -0.08), // ── across the letters ──
+    new THREE.Vector3(0.05, 0.16, 0.02),
+    new THREE.Vector3(0.88, -0.02, 0.14),
+    new THREE.Vector3(1.52, -0.26, 0.3), // clear of the S, starting to curl
+    new THREE.Vector3(1.88, -0.74, 0.52), // ── the tail of the Q ──
+    new THREE.Vector3(1.82, -1.48, 0.82),
+    new THREE.Vector3(1.52, -2.38, 1.16),
+    new THREE.Vector3(1.12, -3.4, 1.5),
   ],
   false,
   "catmullrom",
@@ -229,14 +243,18 @@ const Q_FRAMES = Q_PATH.computeFrenetFrames(400, false)
  * what snapped the roll between extremes every frame. A closed-form profile
  * cannot jitter no matter how the curve is sampled.
  */
+// Attitude follows the two moves. Near level across the letters — a hard bank
+// while crossing would hide the silhouette edge-on exactly where it is meant to
+// read against the type — then rolling into the turn as the tail curls away.
 const bankAt = (u: number) =>
-  THREE.MathUtils.degToRad(26) * Math.sin(Math.PI * Math.min(u / 0.52, 1)) -
-  THREE.MathUtils.degToRad(9) * THREE.MathUtils.smoothstep(u, 0.55, 1)
-// Only a light nose-down trim: the descending tangent already supplies most of
-// the dive attitude, and stacking 17° on top read as a near-vertical plunge.
+  THREE.MathUtils.degToRad(7) * Math.sin(Math.PI * Math.min(u / 0.4, 1)) +
+  THREE.MathUtils.degToRad(34) * THREE.MathUtils.smoothstep(u, 0.45, 0.86)
+// Likewise the nose: level through the cross, then a trim on top of what the
+// descending tangent already supplies. Kept modest — stacking a large pitch on
+// the tangent read as a near-vertical plunge.
 const pitchAt = (u: number) =>
-  THREE.MathUtils.degToRad(3) * Math.sin(Math.PI * Math.min(u / 0.3, 1)) -
-  THREE.MathUtils.degToRad(7) * THREE.MathUtils.smoothstep(u, 0.34, 0.92)
+  THREE.MathUtils.degToRad(2) * Math.sin(Math.PI * Math.min(u / 0.35, 1)) -
+  THREE.MathUtils.degToRad(11) * THREE.MathUtils.smoothstep(u, 0.5, 0.95)
 
 const CONTRAIL_SAMPLES = 120
 
