@@ -37,20 +37,31 @@ export function PricingSection() {
     if (!root) return
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
     const ctx = gsap.context(() => {
-      gsap.from(".pr-card", {
+      // All three tweens are scrubbed against scroll position instead of
+      // firing once at a threshold, so the section builds and unbuilds as you
+      // move through it rather than snapping to a finished state.
+      gsap.from(".pr-intro", {
+        y: 24,
+        opacity: 0,
+        ease: "none",
+        scrollTrigger: { trigger: root, start: "top 92%", end: "top 62%", scrub: 0.7 },
+      })
+      // The scrub drives the card's WRAPPER, not the card. GSAP owns an
+      // inline transform on whatever it animates, and an inline transform
+      // beats the stylesheet — targeting .pr-card directly is what has been
+      // silently killing its :hover lift.
+      gsap.from(".pr-rise", {
         y: 32,
         opacity: 0,
-        duration: 0.8,
-        ease: "power3.out",
-        scrollTrigger: { trigger: root, start: "top 76%" },
+        ease: "none",
+        scrollTrigger: { trigger: root, start: "top 84%", end: "top 46%", scrub: 0.7 },
       })
       gsap.from(".pr-feat", {
         x: -12,
         opacity: 0,
-        stagger: 0.06,
-        duration: 0.5,
-        ease: "power2.out",
-        scrollTrigger: { trigger: root, start: "top 62%" },
+        stagger: 0.3,
+        ease: "none",
+        scrollTrigger: { trigger: root, start: "top 66%", end: "top 18%", scrub: 0.7 },
       })
     }, root)
     return () => ctx.revert()
@@ -63,7 +74,7 @@ export function PricingSection() {
       aria-label="Plans and pricing"
       style={{ padding: "clamp(72px, 10vh, 128px) clamp(20px, 4vw, 56px)", maxWidth: 1280, margin: "0 auto" }}
     >
-      <div style={{ textAlign: "center", marginBottom: 44, maxWidth: 620, marginInline: "auto" }}>
+      <div className="pr-intro" style={{ textAlign: "center", marginBottom: 44, maxWidth: 620, marginInline: "auto" }}>
         <h2
           style={{
             margin: "12px 0 14px",
@@ -84,7 +95,7 @@ export function PricingSection() {
         </p>
       </div>
 
-      <div style={{ display: "flex", justifyContent: "center" }}>
+      <div className="pr-rise" style={{ display: "flex", justifyContent: "center" }}>
         <Link
           href={PLAN.href as import("next").Route}
           className="pr-card"

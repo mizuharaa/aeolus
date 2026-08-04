@@ -74,12 +74,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         */}
         <link href="https://rsms.me/inter/inter.css" rel="stylesheet" />
         {/*
-          JetBrains Mono — code, flight IDs, tabular ops data.
-          Fraunces (italic only) — the landing's editorial serif accent;
-          used nowhere inside the simulator app.
+          JetBrains Mono — code, flight IDs, tabular ops data. Fraunces was
+          dropped with the italic-serif accent: two families, not three, and
+          one fewer blocking stylesheet on first paint.
         */}
         <link
-          href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Fraunces:ital,opsz,wght@1,9..144,400..600&display=swap"
+          href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap"
           rel="stylesheet"
         />
       </head>

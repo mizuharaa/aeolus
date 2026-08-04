@@ -372,6 +372,19 @@ function queueLandingRefresh() {
       refreshQueued = false
       if ((lenis?.animatedScroll ?? window.scrollY) > REFRESH_SAFE_SCROLL) return
       lenis?.resize()
+      // Sort BEFORE refreshing, or every trigger below the pins is measured
+      // against a document that does not yet include their pin distance.
+      // The three pinned sections are created by `next/dynamic ssr:false`
+      // components, so they enter ScrollTrigger's list AFTER the ordinary
+      // sections further down the page. ScrollTrigger folds pin distance into
+      // later triggers in LIST order, not document order, so the sections
+      // below the demo were resolving ~4,900px too early — measured: the four
+      // plans' start was 6,966 against a real 11,838. They were therefore at
+      // progress 1 before you ever reached them, which is why everything down
+      // there looked like a finished screenshot no matter how you scrolled.
+      // sort() reorders the list permanently, so ScrollTrigger's own resize
+      // refreshes stay correct afterwards.
+      ScrollTrigger.sort()
       ScrollTrigger.refresh()
     })
   })

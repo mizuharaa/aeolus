@@ -345,6 +345,24 @@ best", and the scenarios page template. None were touched.
   Lenis on the same page and each one's scrub state contaminates the other's
   measurements. If one gets backgrounded on a timeout, wait for it before
   starting the next.
+- **`ScrollTrigger.sort()` before every `ScrollTrigger.refresh()` on this page.**
+  ScrollTrigger folds pin distance into later triggers in *list* order, and the
+  list is creation order. The three pinned scenes are created by `next/dynamic
+  ssr:false` components, so they enter the list *after* every ordinary section
+  below them — and those sections were therefore measured against a document
+  that did not yet contain 4,900px of pin-spacer. Measured before the fix: the
+  four-plans cards started at scroll 6,966 against a real 11,838. Everything
+  below the demo was consequently at progress 1 before you reached it, which is
+  what made the lower half of the page look like a deck of static screenshots
+  no matter how you scrolled. `sort()` reorders the list permanently, so it only
+  has to happen once, in `queueLandingRefresh` — but note that function still
+  bails above `REFRESH_SAFE_SCROLL`, so a reload that restores scroll mid-page
+  never sorts. A cold load at the top does.
+- **Anything scroll-driven on this page belongs on ScrollTrigger, not framer's
+  `useScroll`.** framer measures against the raw document and knows nothing
+  about Lenis or the pin-spacers, so it desyncs in exactly the way above. It
+  also warns `Please ensure that the container has a non-static position` for
+  window-scrolled targets, which no wrapper styling fixes.
 - `ScrollTrigger.getAll()` can return **several triggers for the same element**
   across matchMedia contexts, including stale ones with a wrong span (a 430px
   reading against a real 3994px pin). Select the one with the largest span.

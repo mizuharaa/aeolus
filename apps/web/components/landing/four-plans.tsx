@@ -46,23 +46,25 @@ export function FourPlansSection() {
           scrollTrigger: { trigger: root, start: "top bottom", end: "bottom top", scrub: 1.1 },
         })
       })
-      // cards rise + tilt in
+      // Cards rise + tilt in, SCRUBBED against the scroll rather than fired
+      // once at a threshold: the stagger becomes a position along the scroll
+      // range, so the four resolve in sequence as you come down and unwind in
+      // sequence as you go back up. `ease: "none"` because the scroll position
+      // is the timing — an easing curve on top of it fights the wheel.
       gsap.from(".fp-card", {
         y: 46,
         opacity: 0,
         rotateX: 12,
-        stagger: 0.1,
-        duration: 0.8,
-        ease: "power3.out",
-        scrollTrigger: { trigger: root, start: "top 72%" },
+        stagger: 0.35,
+        ease: "none",
+        scrollTrigger: { trigger: root, start: "top 86%", end: "top 34%", scrub: 0.7 },
       })
       // headline reveal
       gsap.from(".fp-head", {
         y: 28,
         opacity: 0,
-        duration: 0.9,
-        ease: "power3.out",
-        scrollTrigger: { trigger: root, start: "top 78%" },
+        ease: "none",
+        scrollTrigger: { trigger: root, start: "top 92%", end: "top 58%", scrub: 0.7 },
       })
     }, root)
     return () => ctx.revert()
@@ -197,6 +199,19 @@ export function FourPlansSection() {
       </div>
 
       <style jsx>{`
+        /* Hover deliberately touches no transform: the scrub tween above owns
+           this element's inline transform every frame, so a lift here would
+           be overwritten mid-scroll. Shadow and border carry it instead — and
+           they need !important only because their base values are inline. */
+        .fp-card {
+          transition: background 220ms ease, border-color 220ms ease,
+            box-shadow 320ms cubic-bezier(0.22, 0.9, 0.28, 1);
+        }
+        .fp-card:hover {
+          background: rgba(255, 255, 255, 0.2) !important;
+          border-color: rgba(255, 217, 138, 0.85) !important;
+          box-shadow: 0 34px 70px -30px rgba(0, 0, 0, 0.75) !important;
+        }
         @media (prefers-reduced-motion: reduce) {
           .fp-card { transform: none !important; opacity: 1 !important; }
         }

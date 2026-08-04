@@ -28,7 +28,6 @@ import { PricingSection } from "@/components/landing/pricing"
 import { TrustedBy } from "@/components/landing/trusted-by"
 import { FinalCTAStage } from "@/components/landing/final-cta-stage"
 import { LandingFooter } from "@/components/landing/footer"
-import { Rise } from "@/components/landing/motion"
 import { mountLandingScroll } from "@/lib/scroll"
 
 // 3D layers only on the client
@@ -170,10 +169,15 @@ export function LandingScrollExperience() {
         <div className={styles.experience}>
           <CinematicSimulatorDemo />
         </div>
-        <Rise><FourPlansSection /></Rise>
+        {/* No section-level <Rise> here any more. Fading a whole slab in as
+            one block is exactly what made the page read as a deck of
+            screenshots — and it double-animated over each section's own
+            entrance. Every one of these now animates its own contents against
+            scroll position instead. */}
+        <FourPlansSection />
         <MethodologySection />
-        <Rise><PricingSection /></Rise>
-        <Rise><TrustedBy /></Rise>
+        <PricingSection />
+        <TrustedBy />
         <FinalCTAStage />
         <LandingFooter />
       </div>

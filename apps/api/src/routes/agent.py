@@ -28,9 +28,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-GEMINI_URL = (
-    "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-)
+GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
 # ── Token bucket per client IP ────────────────────────────────────────────
 # refill agent_rate_per_min tokens/min, burst capacity agent_burst.
@@ -142,11 +140,7 @@ def _engine_context(engine) -> str:
 
     # the worst-hit flights, so "why was NBxxx cancelled" is answerable
     hit = sorted(
-        (
-            (fid, s)
-            for fid, s in st.flight_states.items()
-            if s.get("cascade_order", -1) >= 0
-        ),
+        ((fid, s) for fid, s in st.flight_states.items() if s.get("cascade_order", -1) >= 0),
         key=lambda kv: (kv[1].get("cascade_order", 9), -kv[1].get("delay_minutes", 0)),
     )[:15]
     for fid, s in hit:
@@ -204,7 +198,9 @@ async def agent_ask(payload: AskRequest, request: Request):
         {
             "role": "user",
             "parts": [
-                {"text": f"OPS STATE (live, authoritative):\n{context}\n\nQUESTION: {payload.question}"}
+                {
+                    "text": f"OPS STATE (live, authoritative):\n{context}\n\nQUESTION: {payload.question}"
+                }
             ],
         }
     )

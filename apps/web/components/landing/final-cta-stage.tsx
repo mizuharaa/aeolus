@@ -9,7 +9,7 @@
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 import { MaskedWordmark } from "@/components/landing/masked-wordmark"
-import { Rise, StaggerGroup, StaggerItem } from "@/components/landing/motion"
+import { Rise, StaggerItem } from "@/components/landing/motion"
 import { DriftPlane } from "@/components/landing/planes"
 
 const LOG = [
@@ -79,8 +79,7 @@ export function FinalCTAStage() {
                 background: "var(--panel)",
               }}
             >
-              <StaggerGroup
-                gap={0.12}
+              <div
                 style={{
                   fontFamily: "var(--ae-font-mono)",
                   fontSize: 12.5,
@@ -109,7 +108,7 @@ export function FinalCTAStage() {
                     </div>
                   </StaggerItem>
                 ))}
-              </StaggerGroup>
+              </div>
             </div>
           </Rise>
         </div>

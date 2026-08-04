@@ -8,7 +8,7 @@
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 import { SplitReveal } from "@/components/landing/type-fx"
-import { Rise, StaggerGroup, StaggerItem } from "@/components/landing/motion"
+import { Rise, StaggerItem } from "@/components/landing/motion"
 
 const SYSTEMS = [
   {
@@ -65,6 +65,7 @@ export function MethodologySection() {
             <SplitReveal
               as="h2"
               className="ed-display"
+              mode="scrub"
               style={{ fontSize: "clamp(40px, 5.6vw, 92px)" }}
             >
               Deterministic.
@@ -83,7 +84,9 @@ export function MethodologySection() {
           </Rise>
         </div>
 
-        <StaggerGroup gap={0.07}>
+        {/* No orchestrating parent: each row reads its own scroll position,
+            so the stagger comes from the rows' own spacing and reverses. */}
+        <div>
           {SYSTEMS.map((s, i) => (
             <StaggerItem key={s.name}>
               <div className="lp-mrow">
@@ -120,7 +123,7 @@ export function MethodologySection() {
               </div>
             </StaggerItem>
           ))}
-        </StaggerGroup>
+        </div>
 
         <Rise delay={0.1}>
           <div style={{ paddingTop: 28 }}>
