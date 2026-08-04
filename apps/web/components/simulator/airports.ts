@@ -1,5 +1,18 @@
 // Pure-data module (no leaflet/window imports) so it can be safely imported
 // from server-rendered components and the flight-search dropdown.
+//
+// The coordinates below are a first-paint fallback so the map can draw before
+// the network request resolves. The AUTHORITY is the API — `GET /api/v1/
+// airports` serves the same 15 airports with their real classification, and
+// `hydrateAirportTiers()` overwrites the tiers here once it answers.
+//
+// This module used to hardcode `HUB_AIRPORTS = {KORD, KATL, KDFW, KDEN}`,
+// which was wrong in both directions: KLAX is a hub and was drawn as a spoke,
+// KDEN is a focus city and was drawn as a hub. It also flattened the API's
+// three tiers into a binary, so eleven airports collapsed into one
+// undifferentiated weight and became unreadable against ambient traffic.
+
+export type AirportTier = "hub" | "focus_city" | "spoke"
 
 export const NIMBUS_AIRPORTS: Record<
   string,
@@ -22,4 +35,36 @@ export const NIMBUS_AIRPORTS: Record<
   KMSP: { name: "MSP",             lat: 44.882,  lon: -93.2218, city: "Minneapolis",   iata: "MSP" },
 }
 
-export const HUB_AIRPORTS = new Set(["KORD", "KATL", "KDFW", "KDEN"])
+/** Fallback tiers, matching data/network/airports.yaml at time of writing. */
+const TIERS: Record<string, AirportTier> = {
+  KORD: "hub",        KATL: "hub",        KDFW: "hub",        KLAX: "hub",
+  KDEN: "focus_city", KJFK: "focus_city", KSEA: "focus_city", KMIA: "focus_city",
+  KPHX: "spoke", KLAS: "spoke", KBOS: "spoke", KSFO: "spoke",
+  KIAH: "spoke", KDTW: "spoke", KMSP: "spoke",
+}
+
+export function airportTier(icao: string): AirportTier {
+  return TIERS[icao] ?? "spoke"
+}
+
+/**
+ * Replace the fallback tiers with the network's own classification.
+ * Safe to call repeatedly; unknown ids are ignored rather than added, since
+ * the map still needs coordinates this module is the only source of.
+ */
+export function hydrateAirportTiers(
+  airports: { id: string; hub_type?: string }[] | undefined,
+): void {
+  if (!airports?.length) return
+  for (const ap of airports) {
+    if (!ap?.id || !(ap.id in NIMBUS_AIRPORTS)) continue
+    if (ap.hub_type === "hub" || ap.hub_type === "focus_city" || ap.hub_type === "spoke") {
+      TIERS[ap.id] = ap.hub_type
+    }
+  }
+}
+
+/** Retained for callers that only care whether an airport is a primary hub. */
+export const HUB_AIRPORTS = {
+  has: (icao: string) => airportTier(icao) === "hub",
+}

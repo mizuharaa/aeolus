@@ -2,30 +2,25 @@
 import { useMemo } from "react"
 import { motion } from "framer-motion"
 import { useSimulationStore } from "@/stores/simulation"
-import { c, ff, r, sp, type } from "@/lib/design-tokens"
+import { c, cascade, ff, r, sp, type } from "@/lib/design-tokens"
 import { Eyebrow, Type } from "@/components/ds/primitives"
 
 const HOURS = Array.from({ length: 18 }, (_, i) => i + 6) // 6:00–23:00 UTC
 
-// ─── Cascade severity → token color ───────────────────────────────────────
-// Same vocabulary as the map markers and plan badges: rust = direct hit,
-// amber = cascade (order 2 is a lighter step of the same amber), muted gray
-// = cancelled (not operating), quiet neutral = nominal. Cancelled is never
-// color-alone — the bar also renders dashed.
+// ─── Cascade severity → shared ramp ───────────────────────────────────────
+// Resolved from `cascade` in design-tokens, which the map imports too. The
+// previous version of this function hardcoded its own steps under a comment
+// claiming they were "the same vocabulary as the map markers" — they were
+// not, and that mismatch is why the legend taught the wrong key.
 function getBarColor(status: string, cascadeOrder: number): { bg: string; border: string; dashed?: boolean } {
+  // Cancelled is never a hue (DESIGN.md) — neutral fill plus a dashed edge.
   if (status === "cancelled") {
-    return { bg: "var(--ae-neutral-bg)", border: "var(--ae-line-strong)", dashed: true }
+    return { bg: cascade.cancelled.fill, border: cascade.cancelled.border, dashed: true }
   }
-  if (cascadeOrder === 0) {
-    return { bg: c.cascadeDirect, border: c.cascadeDirect }      // rust — direct hit
-  }
-  if (cascadeOrder === 1) {
-    return { bg: c.cascadeOrder1, border: c.cascadeOrder1 }      // amber
-  }
-  if (cascadeOrder === 2) {
-    return { bg: c.cascadeOrder2, border: c.cascadeOrder2 }      // amber, soft step
-  }
-  return { bg: "var(--ae-surface-3)", border: c.borderStrong }   // nominal — quiet
+  if (cascadeOrder === 0) return { bg: cascade.direct.fill, border: cascade.direct.border }
+  if (cascadeOrder === 1) return { bg: cascade.order1.fill, border: cascade.order1.border }
+  if (cascadeOrder === 2) return { bg: cascade.order2.fill, border: cascade.order2.border }
+  return { bg: cascade.none.fill, border: cascade.none.border } // nominal — quiet
 }
 
 function parseHourUTC(isoStr: string): number {
@@ -85,12 +80,20 @@ export function CascadeTimeline({
             <div style={{ ...type("caption", c.muted), fontSize: 11, marginTop: 1 }}>18-hour window · UTC</div>
           </div>
 
-          {/* Legend — same vocabulary as the map */}
-          <div className="hidden md:flex flex-wrap items-center justify-end" style={{ gap: 16, fontSize: 11, color: c.body, fontFamily: ff.body, fontWeight: 500 }}>
-            <LegendSwatch color={c.cascadeDirect}          label="Direct" />
-            <LegendSwatch color={c.cascadeOrder1}          label="Cascade" />
-            <LegendSwatch color="var(--ae-line-strong)"    label="Cancelled" />
-            <LegendSwatch color="var(--ae-surface-3)"      label="On time" />
+          {/* Legend — literally the same ramp object the bars and the map
+              markers read from, and it now shows all three cascade steps.
+              Showing only two was how "Direct" ended up labelling the colour
+              the map uses for first-order. `paddingRight` reserves the lane
+              the collapse button occupies, which used to clip "On time". */}
+          <div
+            className="hidden md:flex flex-wrap items-center justify-end"
+            style={{ gap: 16, fontSize: 11, color: c.body, fontFamily: ff.body, fontWeight: 500, paddingRight: 34 }}
+          >
+            <LegendSwatch step={cascade.direct} label="Direct hit" />
+            <LegendSwatch step={cascade.order1} label="1st order" />
+            <LegendSwatch step={cascade.order2} label="2nd order" />
+            <LegendSwatch step={cascade.cancelled} label="Cancelled" dashed />
+            <LegendSwatch step={cascade.none} label="On time" />
           </div>
         </div>
       </div>
@@ -282,7 +285,18 @@ export function CascadeTimeline({
   )
 }
 
-function LegendSwatch({ color, label }: { color: string; label: string }) {
+/** A swatch takes the same {fill,border} pair the bars do, so the key and the
+ *  thing it explains cannot describe different colours. The border is what
+ *  keeps the lighter steps above the 3:1 non-text minimum. */
+function LegendSwatch({
+  step,
+  label,
+  dashed,
+}: {
+  step: { fill: string; border: string }
+  label: string
+  dashed?: boolean
+}) {
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 8, whiteSpace: "nowrap" }}>
       <span
@@ -290,7 +304,8 @@ function LegendSwatch({ color, label }: { color: string; label: string }) {
           width: 24,
           height: 12,
           borderRadius: r.sm,
-          background: color,
+          background: step.fill,
+          border: `1px ${dashed ? "dashed" : "solid"} ${step.border}`,
           flexShrink: 0,
         }}
       />

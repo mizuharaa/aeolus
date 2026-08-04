@@ -8,7 +8,14 @@ import { SimulatorRail } from "@/components/simulator/rail"
  */
 export default function SimulatorLayout({ children }: { children: ReactNode }) {
   return (
-    <div style={{ display: "flex", alignItems: "flex-start", minHeight: "100vh", background: "var(--ae-bg)" }}>
+    // `simulator-shell` is the scope the baseline focus-visible rule in
+    // globals.css hangs off, so every control under /simulator gets a visible
+    // keyboard ring by default instead of each component opting in (which is
+    // how the ring ended up defined but applied in only two places).
+    <div
+      className="simulator-shell"
+      style={{ display: "flex", alignItems: "flex-start", minHeight: "100vh", background: "var(--ae-bg)" }}
+    >
       <SimulatorRail />
       <div style={{ flex: 1, minWidth: 0 }}>{children}</div>
     </div>

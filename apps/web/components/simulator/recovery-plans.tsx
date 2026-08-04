@@ -274,6 +274,19 @@ function PlanLedger({
   const swaps     = plan.aircraft_swaps?.length    || 0
   const cb        = plan.cost_breakdown
   const totalCostUsd = planCost(plan)
+  const violations = plan.crew_violations || 0
+
+  // Committing a plan is irreversible in the operational sense — it dispatches
+  // aircraft swaps, delays and cancellations across the network. It used to
+  // fire from a single click on a 38px button carrying a media-transport ▶,
+  // i.e. the same weight and gesture as dismissing a toast. Arming the button
+  // first states the consequence in the operator's own units, then commits.
+  // Inline rather than a modal: DESIGN.md treats modals as a last resort and a
+  // dispatcher should not lose sight of the map to confirm.
+  const [armed, setArmed] = useState(false)
+  // Disarm whenever the inspected plan changes, so an arm on plan B can never
+  // be spent on plan C.
+  useEffect(() => setArmed(false), [plan.plan_id, isApplied])
 
   return (
     <motion.div
@@ -300,26 +313,91 @@ function PlanLedger({
           <div style={{ ...type("bodyMd", c.muted), fontSize: 12.5, marginTop: 2 }}>{meta.sublabel}</div>
         </div>
         <button
-          onClick={onApply}
+          onClick={() => {
+            if (isApplied || armed) { setArmed(false); onApply(); return }
+            setArmed(true)
+          }}
+          onBlur={() => setArmed(false)}
+          onKeyDown={(e) => { if (e.key === "Escape" && armed) { e.stopPropagation(); setArmed(false) } }}
+          aria-label={
+            isApplied
+              ? `Unapply plan ${plan.plan_id}`
+              : armed
+                ? `Confirm plan ${plan.plan_id}: ${delayed} delayed, ${cancelled} cancelled${violations ? `, ${violations} FAR 117 flags` : ""}, ${fmtUsd(totalCostUsd)}`
+                : `Apply plan ${plan.plan_id} — asks for confirmation first`
+          }
           style={{
             flexShrink: 0,
-            height: 38,
+            minHeight: 44, // was 38 — WCAG 2.5.8 target minimum
             padding: "0 16px",
             display: "inline-flex", alignItems: "center", gap: 7,
             fontSize: 13.5, fontWeight: 550, fontFamily: ff.body,
             borderRadius: r.md,
-            border: isApplied ? `1px solid ${c.borderStrong}` : `1px solid ${c.primary}`,
-            background: isApplied ? "transparent" : c.primary,
+            border: `1px solid ${isApplied ? c.borderStrong : armed ? c.cascadeDirect : c.primary}`,
+            background: isApplied ? "transparent" : armed ? c.cascadeDirect : c.primary,
             color: isApplied ? c.ink : c.onPrimary,
             cursor: "pointer",
-            transition: "background 150ms ease",
+            transition: "background 150ms ease, border-color 150ms ease",
           }}
         >
           {isApplied
-            ? <><X style={{ width: 14, height: 14 }} strokeWidth={1.75} /> Unapply</>
-            : <><Play style={{ width: 14, height: 14 }} strokeWidth={1.75} /> Apply</>}
+            ? <><X style={{ width: 14, height: 14 }} strokeWidth={2} /> Unapply</>
+            : armed
+              ? <><AlertTriangle style={{ width: 14, height: 14 }} strokeWidth={2} /> Confirm commit</>
+              /* ShieldCheck, not Play: this dispatches a plan, it does not
+                 preview one. */
+              : <><ShieldCheck style={{ width: 14, height: 14 }} strokeWidth={2} /> Commit plan</>}
         </button>
       </div>
+
+      {/* The consequence, in the operator's own units, stated BEFORE the
+          commit rather than in prose below it. role=alert so a screen reader
+          announces the stakes at the moment the button arms. */}
+      <AnimatePresence>
+        {armed && !isApplied && (
+          <motion.div
+            role="alert"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.16 }}
+            style={{ overflow: "hidden" }}
+          >
+            <div
+              style={{
+                display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10,
+                padding: "9px 11px",
+                borderRadius: r.sm,
+                background: "var(--ae-amber-bg)",
+                border: `1px solid ${c.cascadeDirect}`,
+                fontSize: 12.5, color: c.ink, lineHeight: 1.45,
+              }}
+            >
+              <span style={{ fontWeight: 600 }}>Dispatching plan {plan.plan_id} commits:</span>
+              <span style={{ fontFamily: ff.mono }}>{delayed} delayed</span>
+              <span style={{ fontFamily: ff.mono }}>{cancelled} cancelled</span>
+              {swaps > 0 && <span style={{ fontFamily: ff.mono }}>{swaps} swaps</span>}
+              <span style={{ fontFamily: ff.mono }}>{fmtUsd(totalCostUsd)}</span>
+              {violations > 0 && (
+                <span style={{ fontWeight: 600, color: c.cascadeDirect }}>
+                  {violations} FAR 117 {violations === 1 ? "flag needs" : "flags need"} crew review
+                </span>
+              )}
+              <button
+                onClick={() => setArmed(false)}
+                style={{
+                  marginLeft: "auto", minHeight: 30, padding: "0 10px",
+                  fontSize: 12, fontWeight: 550, fontFamily: ff.body,
+                  borderRadius: r.sm, border: `1px solid ${c.borderStrong}`,
+                  background: "transparent", color: c.ink, cursor: "pointer",
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── the financial ledger ── */}
       <div
@@ -551,9 +629,9 @@ function PlanLedger({
       {/* deep-link to the full counterfactual explainer */}
       <Link
         href={`/simulator/plans/${plan.plan_id}`}
-        style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, color: c.link, textDecoration: "none", fontWeight: 500 }}
+        style={{ display: "inline-flex", alignItems: "center", gap: 4, minHeight: 28, fontSize: 12, color: c.link, textDecoration: "none", fontWeight: 500 }}
       >
-        Open full plan detail <ArrowRight style={{ width: 12, height: 12 }} />
+        Open full plan detail <ArrowRight style={{ width: 13, height: 13 }} strokeWidth={2} />
       </Link>
     </motion.div>
   )

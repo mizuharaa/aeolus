@@ -15,6 +15,7 @@ import { useSimulationStore, type ScheduledFlight, type FleetAircraft } from "@/
 import { useWebSocket } from "@/lib/websocket"
 import { SimulatorNav } from "@/components/simulator/nav"
 import { apiClient } from "@/lib/api"
+import { hydrateAirportTiers } from "@/components/simulator/airports"
 import { c, ff, r, sp } from "@/lib/design-tokens"
 import { Type, Container } from "@/components/ds/primitives"
 
@@ -51,9 +52,14 @@ export function SimulatorPageShell({
         setSchedule(list ?? [])
       })
       .catch(() => {})
+    // "/aircraft", not "/network/aircraft" — see the note in app/simulator/page.tsx.
     apiClient
-      .get<{ aircraft?: FleetAircraft[] }>("/network/aircraft")
+      .get<{ aircraft?: FleetAircraft[] }>("/aircraft")
       .then((res) => setFleet(res.data?.aircraft ?? []))
+      .catch(() => {})
+    apiClient
+      .get<{ airports?: { id: string; hub_type?: string }[] }>("/airports")
+      .then((res) => hydrateAirportTiers(res.data?.airports))
       .catch(() => {})
   }, [setSchedule, setFleet])
 

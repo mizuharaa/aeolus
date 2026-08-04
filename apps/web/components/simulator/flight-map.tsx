@@ -16,7 +16,7 @@ import {
   type RecoveryPlan,
   type FlightState,
 } from "@/stores/simulation"
-import { NIMBUS_AIRPORTS, HUB_AIRPORTS } from "./airports"
+import { NIMBUS_AIRPORTS, airportTier, hydrateAirportTiers, type AirportTier } from "./airports"
 import { apiClient } from "@/lib/api"
 import {
   CloudLightning as CloudLightningIcon, OctagonAlert as OctagonAlertIcon,
@@ -24,11 +24,17 @@ import {
   HeartPulse as HeartPulseIcon, AlertTriangle as AlertTriangleIcon,
   Radio as RadioIcon, Mountain as MountainIcon, ServerCrash as ServerCrashIcon,
 } from "lucide-react"
+import { cascade } from "@/lib/design-tokens"
 
 // ── Map colors — the five-pigment vocabulary as LITERAL hex.
 //    The map runs Leaflet's canvas renderer (preferCanvas), which resolves
 //    colors in JS — CSS variables can't reach it, so these are the same
-//    pigments as globals.css, inlined. Keep them in sync by hand.
+//    pigments as globals.css, inlined.
+//
+//    "Keep them in sync by hand" is what this comment used to say, and the
+//    cascade steps promptly drifted a full severity order away from the
+//    timeline. Anything carrying SHARED MEANING is now imported from
+//    design-tokens instead; only map-only pigments are declared here.
 //
 //    teal  = recovery / reroute / brand    amber = the ONE status color
 //    gray  = cancelled / nominal / live    (severity = amber opacity steps)
@@ -37,26 +43,36 @@ const MAP_COLORS = {
   // the ✕ badge + dashed stroke — never color-alone), TEAL = "re-routed /
   // re-assigned", AMBER = "operating late".
   // LIGHT REGISTER: the map runs on Carto voyager tiles; darker = stronger.
-  planCancelled: "#98A29B",
+  // #6B7670, not #98A29B: the disc carries a white ✕ at 10px, which measured
+  // 2.63:1 against the old value. Still a neutral gray — cancelled is never a
+  // hue — just dark enough that the glyph on it is legible (4.72:1).
+  planCancelled: "#6B7670",
   planCancelledInk: "#6A716D",
   planSwap:      "#5B3FA8",
   planSwapFlow:  "#5B3FA8",
   planDelayed:   "#B8863C",
 
-  // Cascade severity: one amber family; on the light floor the DIRECT hit
-  // is the darkest step and later generations lighten.
-  cascadeDirect: "#9A6420",
-  cascadeOrder1: "#B8863C",
-  cascadeOrder2: "#CFA96A",
-  unaffected:    "#8CA096",
+  // Cascade severity — imported, never redeclared. These three used to be
+  // local literals that disagreed with the timeline legend by one whole
+  // cascade order. See `cascade` in lib/design-tokens.ts.
+  cascadeDirect: cascade.direct.fill,
+  cascadeOrder1: cascade.order1.fill,
+  cascadeOrder2: cascade.order2.fill,
+  unaffected:    "#6E7B74",
 
-  // Live ADS-B — quiet sage traffic beneath the sim layer
-  live:          "#93A29A",
+  // Live ADS-B — ambient traffic that belongs to OTHER carriers. It is
+  // deliberately the quietest thing on the map: 650 of these at the old
+  // #93A29A out-massed the operator's own 15 airports and sat only 1.36:1
+  // away from them, which is why 11 of those airports were invisible.
+  live:          "#A9B3AC",
   liveSelected:  "#5B3FA8",
 
-  // Airport state
-  airportHub:    "#0B7065",
-  airportNormal: "#7B8A80",
+  // Airport tiers — mirrors the API's hub / focus_city / spoke classification
+  // rather than a hand-maintained binary. All three clear 3:1 on the basemap
+  // AND 3:1 against ambient traffic, so every owned airport reads as owned.
+  airportHub:    "#0B4F47",
+  airportFocus:  "#2F6D63",
+  airportSpoke:  "#4A5D55",
   groundStop:    "#9A6420",
   gdp:           "#B8863C",
   depDelay:      "#B8863C",
@@ -201,9 +217,13 @@ function liveIcon(heading: number | null, sel: boolean, velKt: number | null): L
   const slow = (velKt ?? 0) < 50
   const key = `lv|${hdg}|${sel}|${slow}`
   return icon(key, () => {
-    const sz = sel ? 30 : 16
+    // 13px, not 16. These are other carriers' aircraft: ~650 of them, none
+    // actionable. At 16px they were physically larger than the operator's own
+    // spoke airports, so the ambient national picture out-massed the network
+    // the console exists to manage. Selected traffic still jumps to 30px.
+    const sz = sel ? 30 : 13
     const fill = sel ? MAP_COLORS.liveSelected : MAP_COLORS.live
-    const op = slow ? 0.4 : 1
+    const op = slow ? 0.32 : 0.72
     return L.divIcon({
       className: "",
       iconSize: [sz, sz],
@@ -293,14 +313,44 @@ function apBadge(bg: string, text: string, bottom = false): string {
   return `<span style="position:absolute;${pos};left:50%;transform:translateX(-50%);background:${bg};color:#fff;font-size:7px;font-weight:800;padding:1px 4px;border-radius:3px;white-space:nowrap;font-family:ui-monospace,monospace">${text}</span>`
 }
 
+/**
+ * Give a marker an accessible name.
+ *
+ * Leaflet's `alt` option is only forwarded to image-based icons — for a
+ * divIcon it is dropped silently, so passing `alt` looks correct and does
+ * nothing. Leaflet also stamps role="button" and tabindex="0" on interactive
+ * markers, which means without this every marker announced as an unnamed
+ * button. The name has to be written onto the element once Leaflet creates it.
+ */
+const named = (
+  label: string,
+  handlers: L.LeafletEventHandlerFnMap = {},
+): L.LeafletEventHandlerFnMap => ({
+  ...handlers,
+  add: (e) => {
+    const el = (e.target as L.Marker).getElement()
+    if (el) el.setAttribute("aria-label", label)
+    handlers.add?.(e)
+  },
+})
+
 type FAAStatus = { type: "ground_stop" | "ground_delay_program" | "departure_delay"; delay_minutes: number; reason: string }
 
-function airportIcon(isHub: boolean, faa: FAAStatus | undefined, hasWx: boolean, isEvt: boolean, isSel: boolean): L.DivIcon {
+/** Radius and pigment per network tier. A spoke is still an airport the
+ *  operator owns, so it stays dark enough to read against ambient traffic;
+ *  only its size steps down. */
+const TIER_STYLE: Record<AirportTier, { r: number; fill: string }> = {
+  hub:        { r: 9,   fill: MAP_COLORS.airportHub },
+  focus_city: { r: 7,   fill: MAP_COLORS.airportFocus },
+  spoke:      { r: 5.5, fill: MAP_COLORS.airportSpoke },
+}
+
+function airportIcon(tier: AirportTier, faa: FAAStatus | undefined, hasWx: boolean, isEvt: boolean, isSel: boolean): L.DivIcon {
   const fk = faa ? `${faa.type}:${faa.delay_minutes}` : "none"
-  const key = `ap|${isHub}|${fk}|${hasWx}|${isEvt}|${isSel}`
+  const key = `ap|${tier}|${fk}|${hasWx}|${isEvt}|${isSel}`
   return icon(key, () => {
-    const r = isHub ? 9 : 6
-    let fill: string = isHub ? MAP_COLORS.airportHub : MAP_COLORS.airportNormal
+    const r = TIER_STYLE[tier].r
+    let fill: string = TIER_STYLE[tier].fill
     let ring = "", top = "", bot = ""
     if (faa?.type === "ground_stop") {
       fill = MAP_COLORS.groundStop
@@ -912,12 +962,14 @@ function AirportPanel({ icao, faa, hasWx, wxText, simAffected, onClose }: {
           <div className="flex items-center gap-2">
             <span className="font-mono font-semibold text-base" style={{ color: "var(--ae-text)" }}>{ap.iata}</span>
             <span className="text-[10px] font-mono text-muted-foreground">{icao}</span>
-            {HUB_AIRPORTS.has(icao) && (
-              <span
-                className="text-[8px] px-1.5 py-0.5 rounded-full font-semibold"
-                style={{ background: "var(--ae-teal-bg)", color: "var(--ae-teal-ink)" }}
-              >HUB</span>
-            )}
+            {/* Names the real tier. Was HUB-or-nothing, which left eleven
+                airports with no stated role at all. */}
+            <span
+              className="text-[8px] px-1.5 py-0.5 rounded-full font-semibold"
+              style={{ background: "var(--ae-teal-bg)", color: "var(--ae-teal-ink)" }}
+            >
+              {airportTier(icao) === "hub" ? "HUB" : airportTier(icao) === "focus_city" ? "FOCUS CITY" : "SPOKE"}
+            </span>
           </div>
           <div className="text-[10px] text-muted-foreground mt-0.5">{ap.name}, {ap.city}</div>
         </div>
@@ -1543,7 +1595,7 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
               key={`focus-ap-${icao}`}
               pane="ae-focus-marker"
               position={[ap.lat, ap.lon]}
-              icon={airportIcon(HUB_AIRPORTS.has(icao), airportFAA[icao], icao in wxAirports, simEvtAirports.has(icao), false)}
+              icon={airportIcon(airportTier(icao), airportFAA[icao], icao in wxAirports, simEvtAirports.has(icao), false)}
               interactive={false}
             >
               <Tooltip direction="top" offset={[0, -14]} opacity={1} permanent>
@@ -1594,7 +1646,7 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
             {/* origin + arrival airports, crisp with labels */}
             {selLivePath.originAp && (
               <Marker pane="ae-focus-marker" position={[selLivePath.originAp.lat, selLivePath.originAp.lon]}
-                icon={airportIcon(HUB_AIRPORTS.has(`K${selLivePath.originAp.iata}`), undefined, false, false, false)} interactive={false}>
+                icon={airportIcon(airportTier(`K${selLivePath.originAp.iata}`), undefined, false, false, false)} interactive={false}>
                 <Tooltip direction="top" offset={[0, -12]} opacity={1} permanent>
                   <span className="font-mono font-bold text-[10px]">{selLivePath.originAp.iata} · nearest</span>
                 </Tooltip>
@@ -1602,7 +1654,7 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
             )}
             {selLivePath.arrAp && (
               <Marker pane="ae-focus-marker" position={[selLivePath.arrAp.lat, selLivePath.arrAp.lon]}
-                icon={airportIcon(HUB_AIRPORTS.has(`K${selLivePath.arrAp.iata}`), undefined, false, false, true)} interactive={false}>
+                icon={airportIcon(airportTier(`K${selLivePath.arrAp.iata}`), undefined, false, false, true)} interactive={false}>
                 <Tooltip direction="top" offset={[0, -12]} opacity={1} permanent>
                   <span className="font-mono font-bold text-[10px]">{selLivePath.arrAp.iata} · heading to</span>
                 </Tooltip>
@@ -1618,9 +1670,14 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
         {/* Airport nodes */}
         {Object.entries(NIMBUS_AIRPORTS).map(([id, ap]) => (
           <Marker key={id} position={[ap.lat, ap.lon]}
-            icon={airportIcon(HUB_AIRPORTS.has(id), airportFAA[id], id in wxAirports, simEvtAirports.has(id), selAirport === id)}
-            zIndexOffset={airportFAA[id] ? 1200 : HUB_AIRPORTS.has(id) ? 600 : 100}
-            eventHandlers={{ click: () => { setSelAirport(selAirport === id ? null : id); onFlightSelect(null); setSelectedLiveFlight(null) } }}
+            icon={airportIcon(airportTier(id), airportFAA[id], id in wxAirports, simEvtAirports.has(id), selAirport === id)}
+            // Airports stay keyboard-reachable — 15 stops is navigable and
+            // they are the operator's own network — but they need a real name.
+            zIndexOffset={airportFAA[id] ? 1200 : airportTier(id) === "hub" ? 600 : airportTier(id) === "focus_city" ? 400 : 100}
+            eventHandlers={named(
+              `${ap.iata} — ${ap.name}, ${ap.city}. ${airportTier(id) === "hub" ? "Hub" : airportTier(id) === "focus_city" ? "Focus city" : "Spoke"}${airportFAA[id] ? `. FAA ${airportFAA[id].type.replace(/_/g, " ")}` : ""}`,
+              { click: () => { setSelAirport(selAirport === id ? null : id); onFlightSelect(null); setSelectedLiveFlight(null) } },
+            )}
           >
             <Tooltip direction="top" offset={[0, -14]} opacity={1}>
               <div>
@@ -1658,6 +1715,7 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
               key={`sim-${applyEpoch}-${id}`}
               position={[lat, lon]}
               icon={simIcon(cascColor(id, state), brg, sel, cascOrder, isCancelled, isSwap)}
+
               // Cancelled markers sink to the bottom of the z-stack so live
               // operating planes always render on top.
               zIndexOffset={
@@ -1668,7 +1726,19 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
                 cascOrder >= 1  ? 500 :
                                   200
               }
-              eventHandlers={{ click: () => onFlightSelect(sel ? null : id) }}
+              // Owned fleet, so keyboard-reachable — but severity was carried
+              // by marker colour alone, which a screen reader cannot see. The
+              // cascade state is now in the accessible name too.
+              eventHandlers={named(
+                `${id}, ${f.origin} to ${f.destination}. ${
+                  isCancelled ? "Cancelled"
+                  : cascOrder === 0 ? "Direct hit"
+                  : cascOrder === 1 ? "First-order cascade"
+                  : cascOrder >= 2 ? "Second-order cascade"
+                  : "On time"
+                }${isSwap ? ", aircraft swapped" : ""}${state?.delay_minutes ? `, delayed ${state.delay_minutes} minutes` : ""}`,
+                { click: () => onFlightSelect(sel ? null : id) },
+              )}
             >
               <Tooltip direction="top" offset={[0, -10]} opacity={1}>
                 <div>
@@ -1701,6 +1771,14 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
             <Marker key={`lv-${lf.icao24}`} position={[lat, lon]}
               icon={liveIcon(lf.heading, sel, lf.velocity_kt)}
               zIndexOffset={sel ? 1900 : 400}
+              // keyboard={false}: Leaflet makes every marker focusable by
+              // default, so ~650 ambient aircraft — each with no accessible
+              // name — sat in the tab order BEFORE the panels. Reaching the
+              // Commit button by keyboard took 665 presses, and a screen
+              // reader announced 650 anonymous clickables. Ambient traffic is
+              // mouse-reachable only; every OWNED flight and airport keeps its
+              // keyboard access.
+              keyboard={false}
               eventHandlers={{ click: () => { setSelectedLiveFlight(sel ? null : lf); onFlightSelect(null); setSelAirport(null) } }}
             >
               {(sel || mapZoom >= 7) && (
@@ -1799,6 +1877,9 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
             onClick={() => setShowLiveFlights(!showLiveFlights)}
             className="flex items-center gap-2 font-medium transition-colors"
             style={{
+              // minHeight 26: these read as text rows but they are toggles, and
+              // at their intrinsic 17px they failed the WCAG 2.5.8 target size.
+              minHeight: 26,
               // Auto-hidden while a disruption is active (affected-only view),
               // so it reads as muted/struck even though the toggle stays on.
               color: showLiveFlights && !hasActiveEvents ? "var(--ae-text)" : "var(--ae-text-3)",
@@ -1824,6 +1905,7 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
             onClick={() => setShowSimulation(!showSimulation)}
             className="flex items-center gap-2 font-medium transition-colors"
             style={{
+              minHeight: 26, // WCAG 2.5.8 target size — was 18px
               color: showSimulation ? "var(--ae-text)" : "var(--ae-text-3)",
               textDecoration: showSimulation ? "none" : "line-through",
             }}
@@ -1852,6 +1934,7 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
             style={{
               marginTop: 2,
               paddingTop: 6,
+              minHeight: 30, // WCAG 2.5.8 target size — was 24px
               borderTop: "1px solid var(--ae-line)",
               color: liveSeeded ? "var(--ae-amber-ink)" : "var(--ae-teal-ink)",
             }}
@@ -1890,17 +1973,71 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
         )}
       </div>
 
-      {/* Legend — bottom-left, stacked ABOVE the layer toggles */}
-      <div className="absolute left-3 z-[400]" style={{ bottom: 104 }}>
+      {/* Legend — bottom-CENTRE, and centred for a specific reason: the two
+          floating panels are inset from the left and right map edges at z-640,
+          either can be open, and the legend sits at z-400. Bottom-left put it
+          under Events (which opens by default, so the key to the map's whole
+          encoding was invisible on load); bottom-right put it under Recovery
+          (which auto-opens the moment plans arrive). The centre lane is the
+          only horizontal band both panels leave clear.
+          Opaque, not glass: a blurred panel over tiles ranging from pale land
+          to mid-blue water gave its own labels a contrast ratio that changed
+          with whatever happened to be underneath. */}
+      <details
+        className="ae-map-legend absolute z-[400] hidden sm:block"
+        style={{ bottom: 12, left: "50%", transform: "translateX(-50%)" }}
+      >
+        {/* A <details> rather than an always-open card, for two reasons: a
+            16-item key permanently occupying the map is clutter on a surface
+            where every element has to earn its pixel, and collapsed it cannot
+            collide with either floating panel no matter which is open. Native
+            element, so the disclosure is keyboard-operable and announced
+            without any JS or ARIA of ours. Opens upward via bottom-anchoring. */}
+        <summary
+          className="px-3 rounded-lg text-[10px] font-semibold uppercase"
+          style={{
+            background: "var(--ae-surface)", border: "1px solid var(--ae-line)",
+            boxShadow: "var(--ae-shadow-card)", color: "var(--ae-text-2)",
+            letterSpacing: "0.14em", fontFamily: "var(--ae-font-mono)",
+            minHeight: 28, display: "inline-flex", alignItems: "center", gap: 6,
+            cursor: "pointer", listStyle: "none", width: "fit-content", margin: "0 auto",
+          }}
+        >
+          Legend
+        </summary>
         <div
           className="px-3 py-2 rounded-lg text-[10px]"
-          style={{ background: GLASS, backdropFilter: "blur(12px)", border: "1px solid var(--ae-line)" }}
+          style={{
+            position: "absolute", bottom: 34, left: "50%", transform: "translateX(-50%)",
+            // 360px caps the opened panel inside the ~432px lane the two
+            // floating panels leave clear at 1280; wider and its right edge
+            // slid under Recovery, which outranks it in z-order. It wraps.
+            width: "max-content", maxWidth: 360,
+            background: "var(--ae-surface)", border: "1px solid var(--ae-line)", boxShadow: "var(--ae-shadow-card-elev)",
+          }}
         >
-          {/* Always-visible: live layer */}
+          {/* Airport tiers — the operator's own network, and the reason all
+              fifteen airports are now distinguishable from each other and
+              from ambient traffic. */}
           <div className="flex items-center gap-2.5 flex-wrap mb-1.5">
             <div className="flex items-center gap-1.5">
+              <span className="rounded-full shrink-0" style={{ width: 11, height: 11, background: MAP_COLORS.airportHub, border: "2px solid #fff", boxShadow: "0 0 0 1px rgba(0,0,0,.18)" }} />
+              <span className="text-muted-foreground">Hub</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="rounded-full shrink-0" style={{ width: 9, height: 9, background: MAP_COLORS.airportFocus, border: "2px solid #fff", boxShadow: "0 0 0 1px rgba(0,0,0,.18)" }} />
+              <span className="text-muted-foreground">Focus city</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="rounded-full shrink-0" style={{ width: 7, height: 7, background: MAP_COLORS.airportSpoke, border: "2px solid #fff", boxShadow: "0 0 0 1px rgba(0,0,0,.18)" }} />
+              <span className="text-muted-foreground">Spoke</span>
+            </div>
+          </div>
+          {/* Always-visible: live layer */}
+          <div className="flex items-center gap-2.5 flex-wrap mb-1.5 border-t border-border/40 pt-1.5">
+            <div className="flex items-center gap-1.5">
               <span className="w-3 h-1 rounded-full" style={{ background: MAP_COLORS.live }} />
-              <span className="text-muted-foreground">Live ADS-B</span>
+              <span className="text-muted-foreground">Other carriers</span>
             </div>
             <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full" style={{ background: MAP_COLORS.groundStop }} /><span className="text-muted-foreground">GS</span></div>
             <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full" style={{ background: MAP_COLORS.gdp }} /><span className="text-muted-foreground">GDP</span></div>
@@ -1919,13 +2056,22 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
                     <span className="w-3 h-3 rounded-full shrink-0" style={{ background: MAP_COLORS.unaffected }} />
                     <span className="text-muted-foreground">On-time</span>
                   </div>
+                  {/* All three orders named. Listing only "Direct hit" and a
+                      generic "Cascade" was the other half of the encoding bug:
+                      order-2 marks were on the canvas with nothing explaining
+                      them, and "Cascade" implied order-1's colour covered all
+                      propagation. Labels match the timeline legend verbatim. */}
                   <div className="flex items-center gap-1.5">
                     <span className="w-3.5 h-3.5 rounded-full shrink-0" style={{ background: MAP_COLORS.cascadeDirect }} />
                     <span className="text-muted-foreground">Direct hit</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <span className="w-3.5 h-3.5 rounded-full shrink-0" style={{ background: MAP_COLORS.cascadeOrder1 }} />
-                    <span className="text-muted-foreground">Cascade</span>
+                    <span className="text-muted-foreground">1st order</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-3.5 h-3.5 rounded-full shrink-0" style={{ background: MAP_COLORS.cascadeOrder2, border: `1px solid ${cascade.order2.border}` }} />
+                    <span className="text-muted-foreground">2nd order</span>
                   </div>
                   {appliedPlanId && (
                     <>
@@ -1951,7 +2097,7 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
             </>
           )}
         </div>
-      </div>
+      </details>
     </div>
   )
 }

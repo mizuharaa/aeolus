@@ -14,12 +14,13 @@ import { DashboardLoader } from "@/components/simulator/dashboard-loader"
 import { FlightSearch } from "@/components/simulator/flight-search"
 import { MyFlights } from "@/components/simulator/my-flights"
 import { apiClient } from "@/lib/api"
+import { hydrateAirportTiers } from "@/components/simulator/airports"
 import { c, ff, r, sp } from "@/lib/design-tokens"
 import { Eyebrow, Hairline } from "@/components/ds/primitives"
 import { useResizable, ResizeHandle, FloatingPanel } from "@/components/simulator/workspace-chrome"
 import Link from "next/link"
 import type { Route } from "next"
-import { ArrowRight, Leaf, Network as NetworkIcon, Users as UsersIcon, GitCompareArrows, ShieldCheck, Zap, LineChart, PanelBottomClose, type LucideIcon } from "lucide-react"
+import { ArrowRight, Leaf, Users as UsersIcon, UserRound, Gauge, GitCompareArrows, CloudLightning, Waypoints, PanelBottomClose, type LucideIcon } from "lucide-react"
 
 const FlightMap = dynamic(() => import("@/components/simulator/flight-map"), {
   ssr: false,
@@ -132,9 +133,19 @@ export default function SimulatorPage() {
         if (list && list.length) setSchedule(list)
       })
       .catch(() => {})
+    // "/aircraft", not "/network/aircraft" — the latter 404s on every load,
+    // so the fleet silently never arrived. The API mounts this router without
+    // a prefix (apps/api/src/routes/network.py).
     apiClient
-      .get<{ aircraft?: FleetAircraft[] }>("/network/aircraft")
+      .get<{ aircraft?: FleetAircraft[] }>("/aircraft")
       .then((res) => { const a = res.data?.aircraft; if (a && a.length) setFleet(a) })
+      .catch(() => {})
+    // Airport tiers come from the network itself, so adding an airport to the
+    // YAML is enough — nothing here needs editing. Falls back to the bundled
+    // tiers if the call fails, which is why nothing is awaited on it.
+    apiClient
+      .get<{ airports?: { id: string; hub_type?: string }[] }>("/airports")
+      .then((res) => hydrateAirportTiers(res.data?.airports))
       .catch(() => {})
   }, [setSchedule, setFleet, hydrateStaticFromCache])
 
@@ -142,7 +153,14 @@ export default function SimulatorPage() {
     <div style={{ background: "var(--ae-bg)", minHeight: "100vh" }}>
       <DashboardLoader />
 
-      <div className="sticky top-0 z-50">
+      {/* z-[700], not z-50. The floating panels are absolutely positioned
+          INSIDE the workspace at z-640, and the workspace scrolls, so at
+          ~60px of scroll a panel rode up over the sticky nav and hid LIVE,
+          the ops-feed bell, the fleet counters and Reset — while putting the
+          panel's Commit button within ~14px of where Reset had been. Two
+          opposite-meaning controls at one coordinate, at the highest-stakes
+          moment in the product. The nav now always wins. */}
+      <div className="sticky top-0 z-[700]">
         <SimulatorNav isConnected={isConnected} affectedCount={activeEvents.length} />
       </div>
 
@@ -184,7 +202,10 @@ export default function SimulatorPage() {
           <FloatingPanel
             side="left" open={leftOpen} accent={EVENT_ACCENT}
             title="Events"
-            icon={<Zap style={{ width: 15, height: 15 }} strokeWidth={2} />}
+            /* CloudLightning, not Zap: Zap reads "energy/instant", and the
+               event vocabulary this panel triggers is weather, ATC, crew and
+               mechanical disruption. */
+            icon={<CloudLightning style={{ width: 15, height: 15 }} strokeWidth={2} />}
             onOpen={() => setLeftOpen(true)} onClose={() => setLeftOpen(false)}
           >
             <EventPanel />
@@ -194,7 +215,9 @@ export default function SimulatorPage() {
           <FloatingPanel
             side="right" open={rightOpen} accent={RECOVERY_ACCENT} width={392}
             title="Recovery"
-            icon={<LineChart style={{ width: 15, height: 15 }} strokeWidth={2} />}
+            /* Waypoints, not LineChart: recovery is aircraft swaps, crew
+               reassignment and passenger rebooking — routing, not analytics. */
+            icon={<Waypoints style={{ width: 15, height: 15 }} strokeWidth={2} />}
             onOpen={() => setRightOpen(true)} onClose={() => setRightOpen(false)}
             badge={recoveryPlans.length > 0 && !appliedPlanId ? recoveryPlans.length : undefined}
           >
@@ -267,12 +290,18 @@ export default function SimulatorPage() {
 
 // ─── Deep-link strip ─────────────────────────────────────────────────────
 function DeepLinkStrip() {
+  // Icons MUST match the rail's glyph for the same route (rail.tsx:47-64).
+  // They didn't: crew was ShieldCheck here and Users there, passengers was
+  // Users here and UserRound there, stress-test was Network here and Gauge
+  // there. So the rail's icon for Crew was this strip's icon for Passengers —
+  // on the same screen, which is actively misleading rather than merely
+  // inconsistent. The rail is the persistent nav, so it is canonical.
   const tiles: { href: string; Icon: LucideIcon; label: string; sub: string }[] = [
     { href: "/simulator/plans/compare", Icon: GitCompareArrows, label: "Compare plans", sub: "Side-by-side cost / pax / FAR 117 / carbon" },
-    { href: "/simulator/crew", Icon: ShieldCheck, label: "Crew shortage", sub: "FAR 117 legality + max-coverage MILP" },
-    { href: "/simulator/passengers", Icon: UsersIcon, label: "Passenger solutions", sub: "Rebooking · hotel · DOT 261 vouchers" },
+    { href: "/simulator/crew", Icon: UsersIcon, label: "Crew shortage", sub: "FAR 117 legality + max-coverage MILP" },
+    { href: "/simulator/passengers", Icon: UserRound, label: "Passenger solutions", sub: "Rebooking · hotel · DOT 261 vouchers" },
     { href: "/simulator/carbon", Icon: Leaf, label: "Carbon dashboard", sub: "Net CO₂ ledger priced under EU ETS" },
-    { href: "/simulator/stress-test", Icon: NetworkIcon, label: "Stress test", sub: "Monte-Carlo network vulnerability sweep" },
+    { href: "/simulator/stress-test", Icon: Gauge, label: "Stress test", sub: "Monte-Carlo network vulnerability sweep" },
   ]
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: sp.md }}>
