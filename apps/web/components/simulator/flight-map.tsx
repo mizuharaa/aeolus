@@ -46,8 +46,16 @@ const MAP_COLORS = {
   // #6B7670, not #98A29B: the disc carries a white ✕ at 10px, which measured
   // 2.63:1 against the old value. Still a neutral gray — cancelled is never a
   // hue — just dark enough that the glyph on it is legible (4.72:1).
-  planCancelled: "#6B7670",
-  planCancelledInk: "#6A716D",
+  // A cancelled flight is a PALE GHOST, not a solid mid-grey disc. Two reasons.
+  // Semantically, "no longer operating" should recede, not hold the same weight
+  // as a flight in the air. Practically, the old #6B7670 sat at almost exactly
+  // the operating blue's luminance (1.14:1) — separable by hue but identical in
+  // lightness, so on a poor monitor or to a monochromatic viewer the map's most
+  // consequential distinction collapsed. Pale disc + DARK glyph reads as struck
+  // out and separates from operating by 3.33:1.
+  planCancelled: "#C9CCC9",
+  planCancelledGlyph: "#333935",
+  planCancelledInk: "#5A625D",
   planSwap:      "#5B3FA8",
   planSwapFlow:  "#5B3FA8",
   planDelayed:   "#B8863C",
@@ -58,13 +66,22 @@ const MAP_COLORS = {
   cascadeDirect: cascade.direct.fill,
   cascadeOrder1: cascade.order1.fill,
   cascadeOrder2: cascade.order2.fill,
-  unaffected:    "#6E7B74",
 
-  // Live ADS-B — ambient traffic that belongs to OTHER carriers. It is
-  // deliberately the quietest thing on the map: 650 of these at the old
-  // #93A29A out-massed the operator's own 15 airports and sat only 1.36:1
-  // away from them, which is why 11 of those airports were invisible.
-  live:          "#A9B3AC",
+  // ── OPERATING = BLUE. GREY IS RESERVED FOR CANCELLED. ─────────────────
+  // A flight in the air on its trajectory is blue; a flight that is no longer
+  // operating is grey. Previously BOTH were grey-green (#6E7B74 owned,
+  // #A9B3AC ambient) and grey therefore meant three different things —
+  // nominal, ambient and cancelled — so "not flying" carried no colour of its
+  // own. Hue 204: 52 degrees off plum (recovery/swap), 31 off the airport
+  // teals, 168 off the amber cascade ramp, so it cannot be mistaken for any
+  // of them. 5.10:1 on land, 3.99:1 over water.
+  unaffected:    "#1C6FA8",
+
+  // Ambient ADS-B — other carriers. Same blue family so grey stays free, but
+  // deliberately the quietest mark on the map at 2.15:1: 650 of these at the
+  // old value out-massed the operator's own 15 airports. Still 3.09:1 clear of
+  // the faintest airport tier, so owned airports keep winning.
+  live:          "#8FB0C9",
   liveSelected:  "#5B3FA8",
 
   // Airport tiers — mirrors the API's hub / focus_city / spoke classification
@@ -273,7 +290,7 @@ function simIcon(
     //   default   → flat soft drop shadow
     const ring =
       isCancelled
-        ? `box-shadow:0 1px 3px rgba(0,0,0,0.25);opacity:0.55;`
+        ? `box-shadow:0 1px 3px rgba(0,0,0,0.18);opacity:0.9;`
         : isSwap
         ? `box-shadow:0 0 0 2px #fff,0 0 0 4px ${color}CC,0 4px 10px ${color}55;`
         : sel
@@ -283,13 +300,13 @@ function simIcon(
         : `box-shadow:0 1px 4px rgba(0,0,0,0.35);`
 
     const borderStyle = isCancelled
-      ? "border:1.5px dashed rgba(255,255,255,0.9);"
+      ? `border:1.5px dashed ${MAP_COLORS.planCancelledGlyph};`
       : "border:2px solid rgba(255,255,255,0.95);"
 
     // Cancelled marker overlays a small white ✕ on the disc so the
     // semantic is unmistakable at a glance, even before reading the tooltip.
     const cancelBadge = isCancelled
-      ? `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;font:700 ${Math.round(sz * 0.55)}px/1 ui-monospace,monospace;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.45);">✕</div>`
+      ? `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;font:700 ${Math.round(sz * 0.55)}px/1 ui-monospace,monospace;color:${MAP_COLORS.planCancelledGlyph};">✕</div>`
       : ""
 
     return L.divIcon({
@@ -1509,7 +1526,9 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
           return (
             <Polyline key={`bg-${f.id}`}
               positions={[[o.lat, o.lon], [d.lat, d.lon]]}
-              pathOptions={{ color: "#9FAEA5", weight: sel ? 2 : 1, opacity: sel ? 0.7 : 0.3, dashArray: sel ? undefined : "2 6" }}
+              /* The trajectory of an operating flight is blue for the same
+                 reason its marker is — grey now means "not operating". */
+              pathOptions={{ color: MAP_COLORS.unaffected, weight: sel ? 2 : 1, opacity: sel ? 0.75 : 0.34, dashArray: sel ? undefined : "2 6" }}
               eventHandlers={{ click: () => onFlightSelect(sel ? null : f.id) }}
             />
           )
@@ -1932,7 +1951,7 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
             style={{
               // minHeight 26: these read as text rows but they are toggles, and
               // at their intrinsic 17px they failed the WCAG 2.5.8 target size.
-              minHeight: 26,
+              minHeight: 32,
               // Auto-hidden while a disruption is active (affected-only view),
               // so it reads as muted/struck even though the toggle stays on.
               color: showLiveFlights && !hasActiveEvents ? "var(--ae-text)" : "var(--ae-text-3)",
@@ -1958,7 +1977,7 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
             onClick={() => setShowSimulation(!showSimulation)}
             className="flex items-center gap-2 font-medium transition-colors"
             style={{
-              minHeight: 26, // WCAG 2.5.8 target size — was 18px
+              minHeight: 32, // WCAG 2.5.8 target size — was 18px
               color: showSimulation ? "var(--ae-text)" : "var(--ae-text-3)",
               textDecoration: showSimulation ? "none" : "line-through",
             }}
@@ -1987,7 +2006,7 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
             style={{
               marginTop: 2,
               paddingTop: 6,
-              minHeight: 30, // WCAG 2.5.8 target size — was 24px
+              minHeight: 32, // WCAG 2.5.8 target size — was 24px
               borderTop: "1px solid var(--ae-line)",
               color: liveSeeded ? "var(--ae-amber-ink)" : "var(--ae-teal-ink)",
             }}
@@ -2064,7 +2083,7 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
                 <div className="flex items-center gap-2.5 flex-wrap">
                   <div className="flex items-center gap-1.5">
                     <span className="w-3 h-3 rounded-full shrink-0" style={{ background: MAP_COLORS.unaffected }} />
-                    <span className="text-muted-foreground">On-time</span>
+                    <span className="text-muted-foreground">Operating</span>
                   </div>
                   {/* All three orders named. Listing only "Direct hit" and a
                       generic "Cascade" was the other half of the encoding bug:

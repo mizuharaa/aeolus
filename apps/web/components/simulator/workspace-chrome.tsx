@@ -361,8 +361,11 @@ export function FloatingPanel({
             <button
               type="button" onClick={onClose} aria-label={`Close ${title}`}
               style={{
-                position: "absolute", top: 11, right: 10, zIndex: 5,
-                width: 28, height: 28, borderRadius: 8, border: `1px solid ${c.hairline}`,
+                position: "absolute", top: 9, right: 9, zIndex: 5,
+                // 36, not 28: a panel's dismiss control was under the 32px
+                // comfortable floor while sitting in the corner most likely to
+                // be hit in a hurry.
+                width: 36, height: 36, borderRadius: 9, border: `1px solid ${c.hairline}`,
                 background: "var(--ae-surface)", color: c.muted, cursor: "pointer",
                 display: "inline-flex", alignItems: "center", justifyContent: "center",
               }}

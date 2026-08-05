@@ -304,7 +304,7 @@ export default function SimulatorPage() {
                   title="Collapse timeline"
                   style={{
                     position: "absolute", top: sp.xs, right: sp.sm, zIndex: 30,
-                    width: 28, height: 28, borderRadius: r.sm,
+                    width: 36, height: 36, borderRadius: r.sm,
                     border: `1px solid ${c.hairline}`, background: "var(--ae-surface)",
                     color: c.muted, cursor: "pointer", display: "inline-flex",
                     alignItems: "center", justifyContent: "center",

@@ -636,7 +636,7 @@ function PlanLedger({
       {/* deep-link to the full counterfactual explainer */}
       <Link
         href={`/simulator/plans/${plan.plan_id}`}
-        style={{ display: "inline-flex", alignItems: "center", gap: 4, minHeight: 28, fontSize: 12, color: c.link, textDecoration: "none", fontWeight: 500 }}
+        style={{ display: "inline-flex", alignItems: "center", gap: 6, minHeight: 36, padding: "0 2px", fontSize: 12.5, color: c.link, textDecoration: "none", fontWeight: 550 }}
       >
         Open full plan detail <ArrowRight style={{ width: 13, height: 13 }} strokeWidth={2} />
       </Link>

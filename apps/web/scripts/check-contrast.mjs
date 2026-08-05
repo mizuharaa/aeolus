@@ -75,7 +75,15 @@ const MARK = {
   "airport hub":        "#0B4F47",
   "airport focus city": "#2F6D63",
   "airport spoke":      "#4A5D55",
-  "ambient ADS-B":      "#A9B3AC",
+  // Operating = blue, cancelled = grey. Grey must stay unique to cancelled, so
+  // both flying tiers live in the blue family.
+  "flight operating":   "#1C6FA8",
+  "ambient ADS-B":      "#8FB0C9",
+  // Cancelled is a pale disc with a dark dashed border and a dark glyph. As
+  // with the cascade ramp's light steps, the BORDER is the figure here — a
+  // pale fill is the point, so testing the fill would fail a mark that is in
+  // fact conformant and "fix" it by making cancelled loud again.
+  "flight cancelled (border)": "#333935",
 }
 
 let failed = 0
@@ -109,6 +117,14 @@ line(
   "each other",
   ratio(hex(MARK["airport spoke"]), hex(MARK["ambient ADS-B"])),
   3,
+)
+// Operating vs cancelled carries the most consequential distinction on the map,
+// so it is asserted rather than left to whoever edits the palette next.
+line(
+  "operating vs cancelled fill",
+  "each other",
+  ratio(hex(MARK["flight operating"]), hex("#C9CCC9")),
+  1.6,
 )
 
 console.log(failed ? `\n${failed} failing pair(s)\n` : "\nAll pairs pass.\n")
