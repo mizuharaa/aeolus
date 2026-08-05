@@ -49,7 +49,12 @@
     --ae-line-strong:   rgba(28, 20, 38, 0.30);
     --ae-text:          #1C1426;
     --ae-text-2:        #5A5147;
-    --ae-text-3:        #8C8272;
+    /* Was #8C8272, which failed WCAG AA against every surface it lands on
+       (3.13–3.75:1 across 14 distinct pairs — every contrast failure in the
+       console traced to this one value). #675E4E holds the same warm-gray
+       character and clears 4.5:1 even on --ae-surface-3, the darkest floor it
+       sits on. Verified by apps/web/scripts/check-contrast.mjs. */
+    --ae-text-3:        #675E4E;
 
     --ae-primary:        #1C1426;
     --ae-primary-active: #5B3FA8;
@@ -72,7 +77,10 @@
     --ae-rose-soft:   rgba(193, 58, 107, 0.55);
     --ae-rose-soft2:  rgba(193, 58, 107, 0.30);
 
-    --ae-focus: rgba(91, 63, 168, 0.35);
+    /* Was rgba(91,63,168,0.35), which composites to #C6BBDD = 1.80:1 — under
+       the 3:1 WCAG 1.4.11 minimum for a non-text indicator, i.e. a focus ring
+       a low-vision keyboard user cannot see. Solid plum reads 5.66:1 at worst. */
+    --ae-focus: #5B3FA8;
 
     /* ── Fonts ───────────────────────────────────────────────────── */
     --ae-font-display: "Inter Display", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -140,7 +148,12 @@
     --ae-line-strong:   rgba(28, 20, 38, 0.30);
     --ae-text:          #1C1426;
     --ae-text-2:        #5A5147;
-    --ae-text-3:        #8C8272;
+    /* Was #8C8272, which failed WCAG AA against every surface it lands on
+       (3.13–3.75:1 across 14 distinct pairs — every contrast failure in the
+       console traced to this one value). #675E4E holds the same warm-gray
+       character and clears 4.5:1 even on --ae-surface-3, the darkest floor it
+       sits on. Verified by apps/web/scripts/check-contrast.mjs. */
+    --ae-text-3:        #675E4E;
 
     --ae-primary:        #5B3FA8;
     --ae-primary-active: #46307F;
@@ -163,7 +176,10 @@
     --ae-rose-soft:   rgba(193, 58, 107, 0.55);
     --ae-rose-soft2:  rgba(193, 58, 107, 0.30);
 
-    --ae-focus: rgba(91, 63, 168, 0.35);
+    /* Was rgba(91,63,168,0.35), which composites to #C6BBDD = 1.80:1 — under
+       the 3:1 WCAG 1.4.11 minimum for a non-text indicator, i.e. a focus ring
+       a low-vision keyboard user cannot see. Solid plum reads 5.66:1 at worst. */
+    --ae-focus: #5B3FA8;
 
     --ae-shadow-button:    0 1px 2px rgba(28, 20, 38, 0.12);
     --ae-shadow-card:      0 1px 2px rgba(28, 20, 38, 0.06);
@@ -442,7 +458,16 @@
   isolation: isolate;
   contain: layout paint;
 }
-.simulator-map-shell .leaflet-container { outline: none; }
+/* The map is a focusable control (Leaflet gives .leaflet-container tabIndex 0
+   and arrow keys pan it), so a blanket `outline: none` meant a keyboard user
+   could focus the console's primary instrument with zero feedback. Suppress
+   the ring only for mouse focus, and draw it inset for keyboard focus so it
+   isn't clipped by the shell's `contain: layout paint`. */
+.simulator-map-shell .leaflet-container:focus { outline: none; }
+.simulator-map-shell .leaflet-container:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 3px var(--ae-focus);
+}
 .simulator-map-shell .leaflet-control-container { z-index: 1000; }
 /* Push the top-right zoom control BELOW the map's focus/expand button so the
    two no longer overlap (they both live in the top-right corner). */
@@ -602,12 +627,16 @@
    above are untouched.
    ══════════════════════════════════════════════════════════════════ */
 
+/* Paper is a cool near-white, not a warm beige. The beige register read as
+   generic AI-landing warmth; ink is now neutral rather than plum-tinted, and
+   muted greys are drawn from the ink hue instead of a separate tan. Accents
+   below are unchanged — they still carry all the meaning. */
 .lp {
-  --bg:     #F4EFE4;
-  --ink:    #1C1426;
-  --muted:  #6E6553;
-  --panel:  #FCFAF3;
-  --border: rgba(28, 20, 38, 0.16);
+  --bg:     #FAFAF8;
+  --ink:    #101014;
+  --muted:  #5C5C66;
+  --panel:  #FFFFFF;
+  --border: rgba(16, 16, 20, 0.14);
 
   --accent-blue:   #5B3FA8;  /* royal plum — identity (name kept, value re-inked) */
   --accent-purple: #8B6FD0;  /* lavender — atmosphere */
@@ -648,11 +677,16 @@
   color: var(--ink);
   margin: 0;
 }
+/* Accent phrase. Was Fraunces italic — an italic display serif dropped into a
+   sans landing is one of the most recognisable AI-generated-page tells, and it
+   read as decoration rather than emphasis. Emphasis now comes from the display
+   family at a heavier weight and tighter tracking, staying roman. The class
+   name is kept so no call site churns. */
 .ed-serif {
-  font-family: "Fraunces", Georgia, "Times New Roman", serif;
-  font-style: italic;
-  font-weight: 500;
-  letter-spacing: -0.015em;
+  font-family: var(--ae-font-display);
+  font-style: normal;
+  font-weight: 800;
+  letter-spacing: -0.032em;
 }
 
 /* Mono eyebrow — small technical label over big statements. */
@@ -901,16 +935,6 @@
   opacity: 0;
 }
 
-/* Demo caption steps — vertical rail on desktop, compact strip on mobile. */
-.dm-step {
-  background: none;
-  border: 0 solid var(--border);
-  border-left-width: 2px;
-  padding: 12px 0 12px 18px;
-  text-align: left;
-  transition: opacity 300ms ease, border-color 300ms ease;
-}
-
 @media (max-width: 960px) {
   .lp-mrow { grid-template-columns: 40px minmax(0, 1fr); row-gap: 8px; }
   .lp-mrow > :nth-child(3) { grid-column: 2; }
@@ -922,9 +946,6 @@
      the viewport, dragging the console frame with it. */
   .dm-stage-grid { grid-template-columns: minmax(0, 1fr) !important; gap: 14px !important; }
   .lp-cta-split { grid-template-columns: minmax(0, 1fr) !important; }
-  .dm-step-list { display: flex !important; overflow-x: auto; gap: 6px; padding-bottom: 4px; min-width: 0; }
-  .dm-step { border-left-width: 0; border-top-width: 2px; padding: 8px 14px 0 0; min-width: 148px; flex-shrink: 0; }
-  .dm-step-body { display: none !important; }
 }
 
 @media (min-width: 961px) {
@@ -1016,8 +1037,8 @@
 
 /* Nav clutter guards — the ops bar sheds detail before it ever overlaps:
    accrued-burn text goes first, the whole meter collapses to rate-only. */
-@media (max-width: 1250px) {
-  .ae-hide-below-1250 { display: none !important; }
+@media (max-width: 1450px) {
+  .ae-hide-below-1450 { display: none !important; }
 }
 
 /* Smooth, quiet custom scrollbar for dashboard scroll panes. */
@@ -1153,3 +1174,43 @@
 .dm-evrow-hot, .dm-plan { transition: transform 180ms cubic-bezier(0.22,0.9,0.28,1), background 160ms ease, border-color 160ms ease, box-shadow 180ms ease; }
 .dm-plan:hover { transform: translateY(-2px); border-color: var(--dk-teal) !important; box-shadow: 0 8px 20px -12px rgba(91, 63, 168, 0.5); }
 .dm-events .dm-evrow-hot:hover { background: rgba(193, 58, 107, 0.07); }
+
+/* ══════════════════════════════════════════════════════════════════
+   Simulator — baseline focus visibility and form fields
+   ══════════════════════════════════════════════════════════════════
+
+   A measured audit found the focus ring defined but applied in exactly two
+   places (.ae-rail-item and .ae-event-row); every panel close button, launcher
+   tab, timeline control, deep-link tile, Commit and Reset fell back to the
+   UA default. The token itself was also rgba(...,0.35), compositing to
+   1.80:1 — under the 3:1 WCAG 1.4.11 minimum for a non-text indicator. The
+   token is now solid; this gives it one reaching rule instead of per-component
+   opt-in, so a new control is accessible by default rather than by remembering.
+   `:focus-visible` (not `:focus`) so it never fires on mouse click. */
+.simulator-shell :is(a, button, [role="button"], select, input, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--ae-focus);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Form controls in the simulator panels. 36px min-height meets the WCAG 2.2
+   target minimum; the audit measured the flight-search input at 21px. */
+.ae-field {
+  min-height: 36px;
+  outline: none;
+  transition: box-shadow 150ms ease, border-color 150ms ease;
+}
+.ae-field:focus-visible {
+  outline: none;
+  border-color: var(--ae-focus) !important;
+  box-shadow: var(--ae-shadow-focus);
+}
+
+/* Map legend disclosure — hide the native triangle (WebKit needs its own
+   pseudo-element) and mark the open state, so "Legend" reads as a control
+   rather than as a stray label. */
+.ae-map-legend > summary { list-style: none; }
+.ae-map-legend > summary::-webkit-details-marker { display: none; }
+.ae-map-legend > summary::after { content: "▲"; font-size: 7px; opacity: 0.55; }
+.ae-map-legend[open] > summary::after { content: "▼"; }
+.ae-map-legend > summary:hover { border-color: var(--ae-line-strong) !important; }

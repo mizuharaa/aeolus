@@ -3,9 +3,10 @@ import { RotateCcw, Plane } from "lucide-react"
 import { useSimulationStore } from "@/stores/simulation"
 import { apiClient } from "@/lib/api"
 import { toast } from "sonner"
-import { useMemo } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { c, ff } from "@/lib/design-tokens"
 import { NotificationBell } from "@/components/simulator/notification-bell"
+import { AgentBubble } from "@/components/simulator/agent-bubble"
 import { useIndecisionCost, fmtUsdShort } from "@/lib/use-live-cost"
 
 /**
@@ -30,9 +31,9 @@ function IndecisionMeter() {
         fontVariantNumeric: "tabular-nums",
       }}
     >
-      <span className="ae-hide-below-1250" style={{ letterSpacing: "0.1em" }}>UNCOMMITTED</span>
+      <span className="ae-hide-below-1450" style={{ letterSpacing: "0.1em" }}>UNCOMMITTED</span>
       <span style={{ color: "var(--ae-text)" }}>−{fmtUsdShort(ratePerMin)}/min</span>
-      <span className="ae-hide-below-1250">{fmtUsdShort(accrued)} burned</span>
+      <span className="ae-hide-below-1450">{fmtUsdShort(accrued)} burned</span>
     </span>
   )
 }
@@ -64,7 +65,19 @@ export function SimulatorNav({ isConnected }: SimulatorNavProps) {
     return { total, onTime: Math.max(0, total - cancelled - delayed), delayed, cancelled }
   }, [flightStates, schedule.length])
 
+  // Reset discards the whole scenario. Same arming pattern as the plan commit
+  // in recovery-plans.tsx, for the same reason: it was a single click on a
+  // control that looks like an ordinary secondary button.
+  const [resetArmed, setResetArmed] = useState(false)
+  useEffect(() => {
+    if (!resetArmed) return
+    const t = setTimeout(() => setResetArmed(false), 4000)
+    return () => clearTimeout(t)
+  }, [resetArmed])
+
   const handleReset = async () => {
+    if (!resetArmed) { setResetArmed(true); return }
+    setResetArmed(false)
     try {
       await apiClient.post("/simulator/reset")
       reset()
@@ -173,6 +186,10 @@ export function SimulatorNav({ isConnected }: SimulatorNavProps) {
         {/* Live ops feed — imminent arrivals + active disruptions */}
         <NotificationBell />
 
+        {/* Ask Aeolus — moved out of the workspace, where it floated over the
+            cascade timeline in every state. See agent-bubble.tsx. */}
+        <AgentBubble />
+
         {/* Connection state — punched-out text pill, no pulsing dot */}
         <span
           style={{
@@ -195,16 +212,17 @@ export function SimulatorNav({ isConnected }: SimulatorNavProps) {
 
         <button
           onClick={handleReset}
-          aria-label="Reset simulation"
+          onBlur={() => setResetArmed(false)}
+          aria-label={resetArmed ? "Confirm reset — discards the current scenario" : "Reset simulation — asks for confirmation first"}
           style={{
             display: "inline-flex",
             alignItems: "center",
             gap: 7,
-            height: 30,
+            minHeight: 36,
             padding: "0 12px",
             borderRadius: 8,
-            background: "transparent",
-            border: `1px solid ${c.borderStrong}`,
+            background: resetArmed ? "var(--ae-amber-bg)" : "transparent",
+            border: `1px solid ${resetArmed ? "var(--ae-amber-ink)" : c.borderStrong}`,
             color: c.ink,
             fontFamily: ff.body,
             fontSize: 12.5,
@@ -213,18 +231,32 @@ export function SimulatorNav({ isConnected }: SimulatorNavProps) {
             transition: "background 150ms ease",
           }}
         >
-          <RotateCcw style={{ width: 12, height: 12 }} strokeWidth={1.75} />
-          <span className="ae-nav-reset-label">Reset</span>
+          {/* 14px at strokeWidth 2, not 12px at 1.75 — a 1.75px stroke drawn
+              at 12px antialiases into lint. Stroke weight should go UP as
+              size comes down, not down. */}
+          <RotateCcw style={{ width: 14, height: 14 }} strokeWidth={2} />
+          <span className="ae-nav-reset-label">{resetArmed ? "Confirm reset" : "Reset"}</span>
         </button>
       </div>
 
       <style jsx>{`
         .ae-nav-routes::-webkit-scrollbar { display: none; }
 
-        @media (max-width: 1100px) {
+        /* The fleet counters are the only operational numbers in the top bar,
+           and they were display:none below 1400px — i.e. hidden on the most
+           common laptop width, to relieve a space pressure that did not exist:
+           the nav's flexible gutter measured 615px of EMPTY space at 1280.
+           Decoration now yields before information. The context pill goes at
+           1240 and the wordmark subtitle at 1100; the numbers stay until 860,
+           where they finally wrap out. */
+        /* The context pill is decoration; it goes first. Measured: with the
+           fleet counters restored and Ask Aeolus moved into this bar, the right
+           cluster overflowed by 36px at 1280 and clipped Reset. Dropping the
+           pill reclaims 141px, which is the whole deficit and then some. */
+        @media (max-width: 1400px) {
           .ae-nav-subtitle { display: none; }
         }
-        @media (max-width: 1400px) {
+        @media (max-width: 860px) {
           .ae-nav-stats { display: none !important; }
         }
         @media (max-width: 900px) {

@@ -32,6 +32,7 @@ import {
   Pin,
   PinOff,
   ScrollText,
+  Bookmark,
   type LucideIcon,
 } from "lucide-react"
 import { AeolusMark } from "@/components/ds/logo"
@@ -47,6 +48,9 @@ const GROUPS: NavGroup[] = [
       { href: "/simulator", label: "Live map", Icon: LayoutDashboard },
       { href: "/simulator/cascade", label: "Cascade", Icon: Waypoints },
       { href: "/simulator/playtest", label: "Playtest", Icon: FlaskConical },
+      // Was below the dashboard's fold, which is what forced the ops surface
+      // into a scrolling document. Now a route.
+      { href: "/simulator/watchlist", label: "Watchlist", Icon: Bookmark },
     ],
   },
   {
@@ -94,8 +98,16 @@ function RailItem({
           }}
         />
       )}
+      {/* tabIndex={-1} + aria-hidden: framer-motion injects tabindex="0" onto
+          any element carrying whileHover/whileTap, so each of these nine icons
+          became its own tab stop directly after the link that contains it —
+          keyboard users hit every nav item twice, and the second stop had no
+          role, no label, and only the UA's default outline. The icon is
+          decoration; the enclosing link is the control. */}
       <motion.span
         className="rail-ic"
+        aria-hidden
+        tabIndex={-1}
         whileHover={{ scale: 1.18, rotate: -4 }}
         whileTap={{ scale: 0.92 }}
         transition={SPRING}
@@ -103,7 +115,7 @@ function RailItem({
       >
         <Icon
           style={{ width: 18, height: 18, color: active ? c.ink : "currentColor" }}
-          strokeWidth={active ? 2 : 1.75}
+          strokeWidth={active ? 2.25 : 2}
         />
       </motion.span>
       <span

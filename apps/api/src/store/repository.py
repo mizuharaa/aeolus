@@ -117,7 +117,9 @@ class ScenarioRepository:
                 "updated_at = excluded.updated_at",
                 (scenario_id, json.dumps(state, default=str), now),
             )
-            self._conn.execute("UPDATE scenarios SET updated_at = ? WHERE id = ?", (now, scenario_id))
+            self._conn.execute(
+                "UPDATE scenarios SET updated_at = ? WHERE id = ?", (now, scenario_id)
+            )
             self._conn.commit()
 
     def close_scenario(self, scenario_id: str) -> None:

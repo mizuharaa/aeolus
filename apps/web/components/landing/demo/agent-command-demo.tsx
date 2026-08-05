@@ -18,7 +18,9 @@ export function AgentCommandDemo({ staticMode }: { staticMode: boolean }) {
         left: 14,
         bottom: 14,
         zIndex: 30,
-        width: "min(330px, 58%)",
+        // 44%, not 58%: the plan inspector takes the right 52% of the same
+        // canvas from 15.2s, and at 58% the two panels met with no gutter.
+        width: "min(310px, 44%)",
         padding: "12px 14px",
         backdropFilter: "blur(6px)",
         background: "rgba(255, 255, 255, 0.94)",

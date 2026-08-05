@@ -283,14 +283,24 @@ export { X }
 const PANEL_EASE = [0.22, 0.9, 0.28, 1] as const
 
 // ─── Floating overlay panel ──────────────────────────────────────────────
-// A self-contained layer over the map: rounded card, elevation, a thin accent
-// top rule, a header with a monochrome icon + title + close, and a scrollable
-// body. Closed, it collapses to a slim vertical launcher tab on its edge.
-// Responsive: capped to the viewport with an 88px gutter so it never covers
-// the whole map on small screens.
+// A workspace side panel: a thin accent top rule, the child's own header, a
+// scrollable body, and a slim vertical launcher tab when closed.
+//
+// `docked` (the default) makes it a GRID TRACK — it takes width in the flex
+// row and the surface beside it narrows to fit. It used to be an absolutely
+// positioned overlay at z-640, which measured as covering 58.7% of the map at
+// 1280 and 75.8% at 200% zoom, and buried five of the map's own overlays
+// (counters, legend, flight ticket, airport card) underneath it. That is also
+// what forced the "selecting a flight force-closes both panels" workaround:
+// the topology could not show a flight and its recovery options at once, which
+// are the two things an operator needs together.
+//
+// `docked={false}` keeps the old overlay behaviour for callers that genuinely
+// want a floating layer.
 
 export function FloatingPanel({
   side, open, accent, title, icon, onOpen, onClose, children, width = 356, badge,
+  docked = true,
 }: {
   side: "left" | "right"
   open: boolean
@@ -302,6 +312,7 @@ export function FloatingPanel({
   children: React.ReactNode
   width?: number
   badge?: number
+  docked?: boolean
 }) {
   return (
     <>
@@ -309,22 +320,33 @@ export function FloatingPanel({
         {open && (
           <motion.aside
             key={`${side}-panel`}
-            initial={{ x: side === "left" ? -28 : 28, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: side === "left" ? -28 : 28, opacity: 0 }}
-            transition={{ duration: 0.3, ease: PANEL_EASE }}
+            initial={docked ? { width: 0, opacity: 0 } : { x: side === "left" ? -28 : 28, opacity: 0 }}
+            animate={docked ? { width, opacity: 1 } : { x: 0, opacity: 1 }}
+            exit={docked ? { width: 0, opacity: 0 } : { x: side === "left" ? -28 : 28, opacity: 0 }}
+            transition={{ duration: 0.26, ease: PANEL_EASE }}
             aria-label={title}
             style={{
-              position: "absolute",
-              top: 14,
-              bottom: 14,
-              [side]: 14,
-              width: `min(${width}px, calc(100% - 88px))`,
-              zIndex: 640,
+              // Docked: a real track in the flex row, so nothing is covered
+              // and no z-index arbitration is needed. Floating: the old layer.
+              ...(docked
+                ? {
+                    position: "relative" as const,
+                    width,
+                    flexShrink: 0,
+                    [side === "left" ? "borderRight" : "borderLeft"]: `1px solid ${c.hairline}`,
+                  }
+                : {
+                    position: "absolute" as const,
+                    top: 14,
+                    bottom: 14,
+                    [side]: 14,
+                    width: `min(${width}px, calc(100% - 88px))`,
+                    zIndex: 640,
+                    border: `1px solid ${c.hairline}`,
+                    borderRadius: 18,
+                    boxShadow: "var(--ae-shadow-overlay)",
+                  }),
               background: "var(--ae-surface)",
-              border: `1px solid ${c.hairline}`,
-              borderRadius: 18,
-              boxShadow: "var(--ae-shadow-overlay)",
               display: "flex",
               flexDirection: "column",
               overflow: "hidden",
@@ -372,11 +394,9 @@ export function FloatingPanel({
             whileTap={{ scale: 0.96 }}
             transition={{ duration: 0.2, ease: PANEL_EASE }}
             style={{
-              position: "absolute",
-              top: "50%",
-              [side]: 0,
-              transform: "translateY(-50%)",
-              zIndex: 610,
+              ...(docked
+                ? { position: "relative" as const, flexShrink: 0, alignSelf: "stretch" as const, justifyContent: "center" as const }
+                : { position: "absolute" as const, top: "50%", [side]: 0, transform: "translateY(-50%)", zIndex: 610 }),
               display: "flex",
               flexDirection: "column",
               alignItems: "center",

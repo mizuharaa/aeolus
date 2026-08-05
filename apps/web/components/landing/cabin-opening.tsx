@@ -16,23 +16,65 @@
  */
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
-import { Canvas, useFrame } from "@react-three/fiber"
+import { Canvas, useFrame, useThree } from "@react-three/fiber"
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js"
 import * as THREE from "three"
 import { gsap } from "@/components/landing/gsap"
+import { landingScroll, registerThreeRoot } from "@/lib/scroll"
+
+/**
+ * A prefiltered room probe used as the cabin's environment. Same approach as
+ * the airliner's `StudioEnvironment`, tuned darker: this is an interior lit by
+ * its own fixtures, so the probe supplies reflection and falloff rather than
+ * key light.
+ */
+function CabinEnvironment() {
+  const { gl, scene } = useThree()
+
+  useEffect(() => {
+    const previous = scene.environment
+    const previousIntensity = scene.environmentIntensity
+    const pmrem = new THREE.PMREMGenerator(gl)
+    const room = new RoomEnvironment()
+    const target = pmrem.fromScene(room, 0.04)
+    scene.environment = target.texture
+    scene.environmentIntensity = 0.42
+    room.dispose()
+
+    return () => {
+      scene.environment = previous
+      scene.environmentIntensity = previousIntensity
+      target.dispose()
+      pmrem.dispose()
+    }
+  }, [gl, scene])
+
+  return null
+}
 
 // ── palette: night business class (reference: dark sculpted ceiling, cool
 //    LED spine, warm amber pools on cognac leather + cream shells) ────────
-const WALL = "#39322F"       // deep taupe walls
-const FRAME_OUT = "#453C36"  // window surrounds
-const FRAME_IN = "#2A241F"
-const SLOT = "#3E3630"
-const PILL = "#5C5248"
-const FABRIC = "#8F5B36"     // cognac leather
-const FABRIC_LIT = "#B0754A"
-const SHELL = "#E9DEC8"      // cream lacquered pod shell (catches the lamps)
-const ARMREST = "#4E3A2A"    // walnut
-const METAL = "#C9A050"      // brass
-const CARPET = "#221B16"     // near-black warm carpet
+/*
+ * A modern business/first suite, not a 1930s hotel bar.
+ *
+ * This was cognac leather, cream lacquer, walnut and brass on deep taupe — a
+ * lounge palette that reads as a period railway carriage the moment it is next
+ * to a real photographic sky. Actual long-haul business cabins are cool
+ * greys and slate with a warm mid-tone seat, brushed champagne metal rather
+ * than polished brass, and a light patterned carpet. The geometry is unchanged;
+ * only the finishes are.
+ */
+const WALL = "#3A3E45"       // cool slate sidewall panels
+const FRAME_OUT = "#474C55"  // window surrounds, a shade lighter than the wall
+const FRAME_IN = "#22262C"
+const SLOT = "#333840"       // shade slot
+const PILL = "#666D78"
+const FABRIC = "#6E6A66"     // warm grey-taupe seat leather
+const FABRIC_LIT = "#8C867F"
+const SHELL = "#D8D5CF"      // light composite suite shell
+const ARMREST = "#2E3238"    // dark composite console
+const METAL = "#B9A98C"      // brushed champagne trim
+const CARPET = "#2B2E33"     // cool charcoal carpet
 
 function roundedRect(w: number, h: number, r: number) {
   const s = new THREE.Shape()
@@ -50,12 +92,25 @@ function roundedRect(w: number, h: number, r: number) {
   return s
 }
 
-function mat(color: string, opts: Partial<THREE.MeshStandardMaterialParameters> = {}) {
-  return new THREE.MeshStandardMaterial({
+/**
+ * Every surface in the cabin came out of here with `roughness: 0.75` and its
+ * own colour as a 10% emissive — uniformly matte, self-lit, and with no
+ * environment to reflect. That is the whole reason the interior read as bland:
+ * leather, lacquer, walnut and brass were all the same material with different
+ * hues, so nothing had a highlight and nothing had a falloff.
+ *
+ * Now it is physical, takes the room environment added in `CabinScene`, and the
+ * emissive floor is gone (light comes from the lights). Callers pass the
+ * roughness/metalness that distinguishes one material from another.
+ */
+function mat(color: string, opts: Partial<THREE.MeshPhysicalMaterialParameters> = {}) {
+  return new THREE.MeshPhysicalMaterial({
     color,
-    roughness: 0.75,
-    emissive: color,
-    emissiveIntensity: 0.1,
+    roughness: 0.62,
+    metalness: 0.04,
+    clearcoat: 0.18,
+    clearcoatRoughness: 0.5,
+    envMapIntensity: 1.05,
     ...opts,
   })
 }
@@ -443,8 +498,31 @@ function CabinScene({ progressRef }: { progressRef: React.MutableRefObject<numbe
 
   return (
     <>
-      {/* night cabin: dim warm ambient so darks stay dark */}
+      {/* Image-based lighting. Point lights alone give a surface one hot spot
+          and flat shadow; an environment gives it a gradient across its whole
+          curvature, which is what separates leather from lacquer from brass.
+          This is the single biggest reason the cabin looked bland. */}
+      <CabinEnvironment />
+      {/* daylight cabin: cool ambient fill so the shadows stay open */}
       <ambientLight intensity={0.32} color="#FFD9A8" />
+      {/* Mood cove. The one lighting element that says "modern cabin" more than
+          any other: a continuous warm strip washing the join between sidewall
+          and ceiling, down both sides of the aisle. Emissive geometry rather
+          than a light, so it is visible AS a fixture and costs nothing. */}
+      {[-1, 1].map((side) => (
+        <mesh key={side} position={[side * 1.62, 1.62, 2.2]} rotation={[0, 0, side * 0.5]}>
+          <boxGeometry args={[0.06, 0.05, 9]} />
+          <meshStandardMaterial
+            color="#FFE9C9"
+            emissive="#FFCE93"
+            emissiveIntensity={2.4}
+            toneMapped={false}
+          />
+        </mesh>
+      ))}
+      {/* the light the cove actually throws */}
+      <pointLight position={[1.5, 1.5, 2.0]} intensity={1.5} color="#FFD5A0" distance={6} />
+      <pointLight position={[-1.5, 1.5, 2.0]} intensity={1.5} color="#FFD5A0" distance={6} />
       {/* cool LED spine key from directly above the aisle */}
       <pointLight position={[0, 2.4, 1.4]} intensity={2.6} color="#BFD9FF" distance={7} />
       <pointLight position={[0, 2.4, 3.4]} intensity={2.0} color="#BFD9FF" distance={7} />
@@ -466,6 +544,15 @@ export function CabinOpening() {
   const skyRef = useRef<HTMLDivElement>(null)
   const cabinRef = useRef<HTMLDivElement>(null)
   const sloganRef = useRef<HTMLDivElement>(null)
+  const unregisterCanvasRef = useRef<null | (() => void)>(null)
+
+  useEffect(
+    () => () => {
+      unregisterCanvasRef.current?.()
+      unregisterCanvasRef.current = null
+    },
+    [],
+  )
   const progressRef = useRef(0)
 
   useLayoutEffect(() => {
@@ -521,47 +608,40 @@ export function CabinOpening() {
     <div aria-hidden style={{ position: "fixed", inset: 0, zIndex: 49, pointerEvents: "none" }}>
       {/* open sky: gradient, sun, drifting clouds — seen through the windows,
           then full-bleed once the cabin falls away */}
+      {/*
+        A photographic cruise-altitude sky, not a CSS one.
+
+        This was a three-stop blue gradient with a blurred yellow disc for the
+        sun and five clusters of white ellipses drifting across it. Through a
+        porthole that read as a cartoon: real air at 36,000ft has a cloud deck
+        BELOW the aircraft, a bright haze band at the horizon from atmospheric
+        scattering, and a zenith far deeper than any `linear-gradient` was
+        reaching for. The plate supplies all three.
+
+        It is positioned so the horizon sits low in frame — you are looking down
+        onto the deck, which is what fixes the "not accurate" read more than the
+        colour does. The slow pan is the only motion; the clouds themselves no
+        longer animate, so nothing shimmers behind the window frames.
+      */}
       <div
         ref={skyRef}
         style={{
           position: "absolute",
           inset: 0,
-          background: "linear-gradient(180deg, #5FA8EE 0%, #85BDF2 48%, #C8E2F9 100%)",
+          overflow: "hidden",
+          background: "linear-gradient(180deg, #0F3E78 0%, #2E7FC4 46%, #BFD8E8 100%)",
         }}
       >
         <div
+          className="co-sky-plate"
           style={{
             position: "absolute",
-            top: "12%",
-            right: "16%",
-            width: "34vmin",
-            height: "34vmin",
-            borderRadius: "50%",
-            background:
-              "radial-gradient(circle, rgba(255,241,196,0.95) 0%, rgba(255,233,168,0.55) 34%, rgba(255,233,168,0) 68%)",
-            filter: "blur(2px)",
+            inset: "-6% -12%",
+            backgroundImage: "image-set(url('/images/cruise-sky.webp') 1x)",
+            backgroundSize: "cover",
+            backgroundPosition: "50% 42%",
           }}
         />
-        {/* realistic cumulus: layered puffs with shaded undersides */}
-        {[
-          { top: "20%", left: "-28%", w: 26, dur: "64s", delay: "0s" },
-          { top: "44%", left: "-45%", w: 34, dur: "84s", delay: "-30s" },
-          { top: "64%", left: "-30%", w: 22, dur: "56s", delay: "-14s" },
-          { top: "10%", left: "-38%", w: 18, dur: "72s", delay: "-48s" },
-          { top: "76%", left: "-50%", w: 30, dur: "95s", delay: "-60s" },
-        ].map((c, i) => (
-          <div
-            key={i}
-            className="co-cumulus"
-            style={{ top: c.top, left: c.left, width: `${c.w}vmin`, height: `${c.w * 0.45}vmin`, animationDuration: c.dur, animationDelay: c.delay }}
-          >
-            <span style={{ left: "4%", bottom: "2%", width: "38%", height: "56%" }} />
-            <span style={{ left: "22%", bottom: "16%", width: "48%", height: "84%" }} />
-            <span style={{ left: "48%", bottom: "10%", width: "40%", height: "66%" }} />
-            <span style={{ left: "62%", bottom: "0%", width: "34%", height: "48%" }} />
-            <span className="co-base" style={{ left: "6%", bottom: "-4%", width: "88%", height: "38%" }} />
-          </div>
-        ))}
       </div>
 
       {/* the white cabin interior */}
@@ -569,7 +649,29 @@ export function CabinOpening() {
         <Canvas
           camera={{ position: [-0.3, 0, CAM_START_Z], fov: 46 }}
           dpr={[1, 2]}
+          // Driven by the shared landing clock, not its own RAF. This was the
+          // only canvas on the page still rendering itself: a full-viewport
+          // WebGL scene painting every frame for the entire life of the
+          // document, hidden behind `autoAlpha: 0` from the second viewport
+          // onward. It is now registered like the airliner and only advances
+          // while the cabin is actually the active scene.
+          frameloop="never"
           gl={{ antialias: true, alpha: true }}
+          onCreated={(state) => {
+            const { gl } = state
+            unregisterCanvasRef.current?.()
+            unregisterCanvasRef.current = registerThreeRoot(
+              "cabin",
+              state,
+              () => landingScroll.active.cabin && !landingScroll.reducedMotion,
+            )
+            // Filmic response instead of clipped linear. Without it the lamp
+            // and PSU emissives blew straight to flat white while the leather
+            // stayed muddy — no roll-off anywhere in the frame.
+            gl.toneMapping = THREE.ACESFilmicToneMapping
+            gl.toneMappingExposure = 1.18
+            gl.outputColorSpace = THREE.SRGBColorSpace
+          }}
           style={{ width: "100%", height: "100%" }}
         >
           <CabinScene progressRef={progressRef} />
@@ -609,24 +711,25 @@ export function CabinOpening() {
       </div>
 
       <style>{`
-        .co-cumulus {
-          position: absolute;
-          filter: blur(1.2px) drop-shadow(0 10px 14px rgba(120, 160, 210, 0.22));
-          animation: co-drift linear infinite;
+        /* One very slow lateral pan — the parallax you get looking out of a
+           window in the cruise, and the only thing in this scene that moves.
+           At 2% of the plate's width over 90s it is far below any flicker
+           threshold and reads as drift rather than as animation. */
+        .co-sky-plate {
+          animation: co-sky-pan 90s linear infinite alternate;
+          will-change: transform;
         }
-        .co-cumulus span {
-          position: absolute;
-          border-radius: 50%;
-          background: radial-gradient(circle at 38% 30%, #ffffff 0%, #fdfeff 52%, #eef5fc 74%, rgba(214, 231, 248, 0.25) 100%);
-          box-shadow: inset -8px -14px 22px rgba(157, 192, 230, 0.5);
+        @keyframes co-sky-pan {
+          from { transform: translate3d(0, 0, 0) scale(1.02); }
+          to   { transform: translate3d(-2%, 0, 0) scale(1.02); }
         }
-        .co-cumulus .co-base {
-          border-radius: 999px;
-          box-shadow: inset 0 -16px 24px rgba(150, 186, 226, 0.55);
+        @media (max-width: 39.99rem) {
+          .co-sky-plate {
+            background-image: image-set(url('/images/cruise-sky-mobile.webp') 1x) !important;
+          }
         }
-        @keyframes co-drift {
-          from { transform: translateX(0); }
-          to { transform: translateX(175vw); }
+        @media (prefers-reduced-motion: reduce) {
+          .co-sky-plate { animation: none; }
         }
       `}</style>
     </div>

@@ -278,15 +278,21 @@ export function Type({
   )
 }
 
-/** Eyebrow — the ONE sanctioned uppercase style. 11px, wide tracking,
- *  muted. Use at most once or twice per screen. */
+/** Eyebrow — the ONE sanctioned uppercase style: 10.5px MONO, 0.14em
+ *  tracking, per DESIGN.md. Use at most once or twice per screen.
+ *
+ *  It previously hardcoded `ff.body` while the spec said mono, so the one
+ *  component meant to end caps drift was itself off-spec — which is part of
+ *  why an audit measured eight different uppercase treatments on one screen.
+ *  The remaining seven inline implementations should be replaced with this;
+ *  that sweep is deliberately left for a follow-up pass. */
 export function Eyebrow({ children, color = c.muted }: { children: React.ReactNode; color?: string }) {
   return (
     <span
       style={{
-        fontFamily: ff.body,
-        fontSize: 11,
-        fontWeight: 550,
+        fontFamily: ff.mono,
+        fontSize: 10.5,
+        fontWeight: 600,
         letterSpacing: "0.14em",
         textTransform: "uppercase",
         color,
@@ -341,21 +347,30 @@ export function StatusBadge({
         lineHeight: 1,
       }}
     >
-      <span
-        style={{
-          width: 6,
-          height: 6,
-          borderRadius: "50%",
-          background: s.dot,
-          flexShrink: 0,
-        }}
-      />
-      {count !== undefined && (
-        <span style={{ fontFamily: ff.mono, fontWeight: 550, fontVariantNumeric: "tabular-nums", color: c.ink }}>
+      {/* The 6px dot that used to sit here violated the design system this
+          file defines ("Status is TEXT, never dots… banned everywhere"), and
+          being in the shared primitive is what spread it to a dozen call
+          sites. The pigment now underlines the value instead — the convention
+          already proven in the nav's fleet counters. Where there is no count,
+          the label itself takes the underline, so the status is never carried
+          by colour alone. */}
+      {count !== undefined ? (
+        <span
+          style={{
+            fontFamily: ff.mono,
+            fontWeight: 550,
+            fontVariantNumeric: "tabular-nums",
+            color: c.ink,
+            borderBottom: `2px solid ${s.dot}`,
+            paddingBottom: 1,
+          }}
+        >
           {count.toLocaleString()}
         </span>
-      )}
-      <span>{s.label}</span>
+      ) : null}
+      <span style={count === undefined ? { borderBottom: `2px solid ${s.dot}`, paddingBottom: 1 } : undefined}>
+        {s.label}
+      </span>
     </span>
   )
 }

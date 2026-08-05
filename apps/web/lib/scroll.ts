@@ -5,7 +5,7 @@ import { advance, type RootState } from "@react-three/fiber"
 import { gsap, ScrollTrigger } from "@/components/landing/gsap"
 
 export type LandingScene = "flight" | "identity" | "globe" | "demo"
-export type LandingCanvas = "cabin" | "airliner" | "globe" | "macbook"
+export type LandingCanvas = "cabin" | "airliner" | "globe"
 export type LandingQualityTier = "high" | "balanced" | "low"
 
 export type LandingQualityProfile = {
@@ -46,7 +46,6 @@ export const landingScroll = {
     cabin: true,
     airliner: false,
     globe: false,
-    macbook: false,
   } satisfies Record<LandingCanvas, boolean>,
   quality: {
     tier: "balanced",
@@ -341,6 +340,25 @@ export function markLandingAssetReady(asset: string) {
   queueLandingRefresh()
 }
 
+/**
+ * Recompute trigger positions after late-arriving layout (fonts, the airliner
+ * GLB) — but ONLY while the visitor is still at the top of the page.
+ *
+ * `markLandingAssetReady("airliner")` fires when a 488KB model finishes
+ * downloading, which can be seconds after mount. `ScrollTrigger.refresh()`
+ * recalculates the start and end of every pinned trigger, and this page has
+ * four of them; running it while someone is scrolled inside a pin re-resolves
+ * that pin underneath them and dumps them back at its start. That is the
+ * "scrolling through the demo sends me back to the top of the laptop" bug — the
+ * page was not looping, it was being re-measured mid-scroll.
+ *
+ * Past the first viewport the refresh buys nothing (layout above is already
+ * settled and pinned sections size themselves from the viewport) and risks
+ * exactly that jump, so it is dropped. Genuine resizes still refresh through
+ * ScrollTrigger's own listener, which is not this path.
+ */
+const REFRESH_SAFE_SCROLL = 200
+
 function queueLandingRefresh() {
   if (
     refreshQueued ||
@@ -351,9 +369,23 @@ function queueLandingRefresh() {
   refreshQueued = true
   void document.fonts.ready.then(() => {
     window.requestAnimationFrame(() => {
-      lenis?.resize()
-      ScrollTrigger.refresh()
       refreshQueued = false
+      if ((lenis?.animatedScroll ?? window.scrollY) > REFRESH_SAFE_SCROLL) return
+      lenis?.resize()
+      // Sort BEFORE refreshing, or every trigger below the pins is measured
+      // against a document that does not yet include their pin distance.
+      // The three pinned sections are created by `next/dynamic ssr:false`
+      // components, so they enter ScrollTrigger's list AFTER the ordinary
+      // sections further down the page. ScrollTrigger folds pin distance into
+      // later triggers in LIST order, not document order, so the sections
+      // below the demo were resolving ~4,900px too early — measured: the four
+      // plans' start was 6,966 against a real 11,838. They were therefore at
+      // progress 1 before you ever reached them, which is why everything down
+      // there looked like a finished screenshot no matter how you scrolled.
+      // sort() reorders the list permanently, so ScrollTrigger's own resize
+      // refreshes stay correct afterwards.
+      ScrollTrigger.sort()
+      ScrollTrigger.refresh()
     })
   })
 }

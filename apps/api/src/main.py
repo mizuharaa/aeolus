@@ -312,6 +312,23 @@ app.include_router(playtest.router, prefix="/api/v1", tags=["playtest"])
 app.include_router(agent.router, prefix="/api/v1", tags=["agent"])
 
 
+@app.exception_handler(404)
+async def not_found_handler(request: Request, exc):
+    """A themed 404 for unknown API routes — a paper plane that missed its
+    gate, rather than FastAPI's bare {"detail": "Not Found"}."""
+    from fastapi.responses import JSONResponse
+
+    return JSONResponse(
+        status_code=404,
+        content={
+            "error": "route_not_found",
+            "detail": f"No flight plan for {request.method} {request.url.path} — this endpoint never departed.",
+            "aeolus": r"  ✈  __/\__   this route isn't on the board",
+            "hint": "Check /docs for the endpoints that actually fly.",
+        },
+    )
+
+
 @app.get("/health", tags=["health"])
 async def health(request: Request):
     opensky = getattr(request.app.state, "opensky", None)

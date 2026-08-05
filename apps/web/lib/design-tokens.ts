@@ -33,6 +33,36 @@ export const pigment = {
   rose:  "#C13A6B", // disruption rose (landing narrative; plum = recovery)
 } as const
 
+/**
+ * Cascade severity — THE single source for this encoding.
+ *
+ * This exists because the timeline and the map had drifted into meaning
+ * different things by the same pixel: #B8863C labelled "Direct" in the
+ * timeline legend while rendering *first-order cascade* on the map, and a
+ * comment in cascade-timeline.tsx asserted the two vocabularies matched. For
+ * a product whose whole premise is reading how a disruption propagates, an
+ * operator learning the key from one surface mis-read the other by exactly
+ * one cascade order. A comment cannot enforce an invariant; a shared import
+ * can, so both surfaces now resolve their colours from here.
+ *
+ * Literal hex, not var(), because Leaflet's canvas renderer resolves colours
+ * in JS and cannot read a CSS custom property.
+ *
+ * The ramp varies LIGHTNESS, not alpha. The previous ramp was one amber at
+ * three alpha steps, which is unfixable at this contrast: any alpha faint
+ * enough to read as "less severe" also drops under 3:1. Where a step must
+ * stay visually light, its border carries the contrast instead of its fill —
+ * which also stops severity being conveyed by colour alone.
+ */
+export const cascade = {
+  direct: { fill: "#7A4A0E", border: "#7A4A0E" }, // darkest — the hit itself
+  order1: { fill: "#A0691C", border: "#A0691C" },
+  order2: { fill: "#C08A3A", border: "#A0691C" }, // light fill, border holds 3:1
+  none:   { fill: "#E8E2D4", border: "#7C7568" }, // nominal — quiet, still bounded
+  // Cancelled is never a hue (DESIGN.md): neutral + a dashed edge at the mark.
+  cancelled: { fill: "#EDEAE3", border: "#7C7568" },
+} as const
+
 export const tokens = {
   colors: {
     // ── Brand & action ────────────────────────────────────────────────
@@ -118,12 +148,12 @@ export const tokens = {
       dot: "var(--ae-teal)",
     },
 
-    // ── Cascade severity — ONE hue, three opacity steps. Direct hit is
-    //    full amber (plus size/halo secondary encoding at marks). ──
-    cascadeDirect:  "var(--ae-amber)",
-    cascadeOrder1:  "var(--ae-amber-soft)",
-    cascadeOrder2:  "var(--ae-amber-soft2)",
-    cascadeNone:    "var(--ae-line-strong)",
+    // ── Cascade severity — resolved from the shared `cascade` ramp above,
+    //    so the timeline and the map cannot drift apart again. ──
+    cascadeDirect:  cascade.direct.fill,
+    cascadeOrder1:  cascade.order1.fill,
+    cascadeOrder2:  cascade.order2.fill,
+    cascadeNone:    cascade.none.border,
   },
 
   radius: {

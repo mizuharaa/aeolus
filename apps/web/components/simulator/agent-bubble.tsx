@@ -66,7 +66,14 @@ export function AgentBubble() {
   }
 
   return (
-    <div style={{ position: "fixed", right: 18, bottom: 18, zIndex: 46 }}>
+    // Anchored to the nav, not floating over the workspace. As a fixed
+    // bottom-right pill it overlapped the cascade timeline's bottom-right
+    // corner in EVERY panel state and at every width (measured 129.6 x 41.5 =
+    // 5,377px over the >=21:00 end of the 18-hour axis), and the Recovery panel
+    // reserved 96px of dead padding just to dodge it. The workspace now
+    // allocates all of its height to tracks, so the nav is the only region with
+    // free space — which is also where a global tool belongs.
+    <div style={{ position: "relative", zIndex: 46 }}>
       <AnimatePresence>
         {open && (
           <motion.div
@@ -77,8 +84,8 @@ export function AgentBubble() {
             transition={{ duration: 0.28, ease: [0.22, 0.9, 0.28, 1] }}
             style={{
               position: "absolute",
+              top: "calc(100% + 10px)",
               right: 0,
-              bottom: 52,
               width: "min(390px, calc(100vw - 40px))",
               borderRadius: 14,
               background: INK,
@@ -270,18 +277,17 @@ export function AgentBubble() {
 
       <motion.button
         onClick={() => setOpen((v) => !v)}
-        whileHover={{ y: -2 }}
         aria-expanded={open}
         style={{
           display: "inline-flex",
           alignItems: "center",
           gap: 9,
-          padding: "10px 16px",
+          minHeight: 36,
+          padding: "0 14px",
           borderRadius: 999,
           background: INK,
           color: BONE,
           border: "1px solid rgba(240,235,223,0.16)",
-          boxShadow: "0 10px 30px rgba(10,6,26,0.32)",
           cursor: "pointer",
           fontFamily: "var(--ae-font-body)",
           fontSize: 13,

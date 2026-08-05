@@ -12,6 +12,8 @@
 
 import { useId } from "react"
 
+import { Rise } from "@/components/landing/motion"
+
 const PARTNERS = ["MERIDIAN", "NORTHWIND", "CALDERA AIR", "ALTUS", "VESPER", "HELIOS"]
 
 export function TrustedBy() {
@@ -40,10 +42,6 @@ export function TrustedBy() {
       </svg>
 
       <div style={{ maxWidth: 1480, margin: "0 auto", textAlign: "center" }}>
-        <span className="lp-eyebrow" style={{ display: "block", marginBottom: "clamp(28px, 4vh, 48px)" }}>
-          05 — Trusted by the best
-        </span>
-
         <div
           className="tb-grid"
           style={{
@@ -55,8 +53,11 @@ export function TrustedBy() {
           }}
         >
           {PARTNERS.map((name, i) => (
+            // The six sit on one line, so scroll position alone would move
+            // them in lockstep — `delay` phases them into a left-to-right
+            // build as the strip climbs.
+            <Rise key={name} y={18} delay={i * 0.07}>
             <span
-              key={name}
               className="tb-boil"
               style={{
                 fontFamily: "var(--ae-font-display)",
@@ -71,6 +72,7 @@ export function TrustedBy() {
             >
               {name}
             </span>
+            </Rise>
           ))}
         </div>
 

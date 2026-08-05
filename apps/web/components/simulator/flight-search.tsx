@@ -141,6 +141,10 @@ export function FlightSearch({ selectedFlight, onSelect }: Props) {
           value={q}
           onChange={(e) => { setQ(e.target.value); setOpen(true) }}
           onFocus={() => setOpen(true)}
+          // A placeholder is not a label — it disappears on first keystroke and
+          // several screen readers never announce it. This field had no name at
+          // all. aria-label carries it without adding visible chrome.
+          aria-label="Search flights by number, tail or airport code"
           placeholder={
             activeLabel
               ? `Selected: ${activeLabel} — search another…`
@@ -148,6 +152,7 @@ export function FlightSearch({ selectedFlight, onSelect }: Props) {
           }
           style={{
             flex: 1,
+            minHeight: 32, // was rendering at 21px
             background: "transparent",
             outline: "none",
             border: "none",

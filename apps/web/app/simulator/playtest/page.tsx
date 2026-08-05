@@ -415,7 +415,19 @@ export default function PlaytestPage() {
         </div>
       </FloatingPanel>
 
-      {/* ── IMPACT HUD — bottom-center, stagger-reveals after a run ── */}
+      {/* ── IMPACT HUD — floats in the free lane BETWEEN whichever panels are
+          open, so it never ducks under one; stagger-reveals after a run ── */}
+      <div
+        aria-hidden={!hasResult}
+        style={{
+          position: "absolute", bottom: 16,
+          left: fleetOpen ? 352 : 16,
+          right: eventOpen ? 362 : 16,
+          zIndex: 630, display: "flex", justifyContent: "center",
+          pointerEvents: "none",
+          transition: "left 300ms cubic-bezier(0.22,0.9,0.28,1), right 300ms cubic-bezier(0.22,0.9,0.28,1)",
+        }}
+      >
       <AnimatePresence>
         {hasResult && (
           <motion.div
@@ -425,12 +437,11 @@ export default function PlaytestPage() {
             exit={{ opacity: 0, y: 24 }}
             transition={{ duration: 0.35, ease: EASE }}
             style={{
-              position: "absolute", bottom: 16, left: "50%", transform: "translateX(-50%)",
-              zIndex: 630, display: "flex", gap: 8, padding: 10,
+              display: "flex", gap: 8, padding: 10, pointerEvents: "auto",
               borderRadius: 16,
               background: "rgba(255,254,249,0.95)", backdropFilter: "blur(12px)",
               border: `1px solid ${c.hairline}`, boxShadow: "var(--ae-shadow-overlay)",
-              maxWidth: "calc(100vw - 160px)", overflowX: "auto",
+              maxWidth: "100%", overflowX: "auto",
             }}
           >
             <HudStat label="Direct hits" value={String(cascadeSummary!.directly_affected)} tone="var(--ae-rose-ink)" delay={0} />
@@ -446,7 +457,7 @@ export default function PlaytestPage() {
             {cost && (
               <HudStat label="Est. impact" value={`$${(cost.grand_total_usd / 1000).toFixed(1)}k`} tone={c.ink} delay={0.24} />
             )}
-            {carbon && carbon.total_co2_tonnes !== 0 && (
+            {typeof carbon?.total_co2_tonnes === "number" && carbon.total_co2_tonnes !== 0 && (
               <HudStat
                 label="Net CO₂"
                 value={`${carbon.total_co2_tonnes > 0 ? "+" : ""}${carbon.total_co2_tonnes.toFixed(1)}t`}
@@ -456,6 +467,7 @@ export default function PlaytestPage() {
           </motion.div>
         )}
       </AnimatePresence>
+      </div>
 
       <style jsx global>{`
         .pt-btn {

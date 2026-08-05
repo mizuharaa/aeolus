@@ -82,7 +82,7 @@ export function LandingNav() {
       <span
         className="lp-nav-fill"
         aria-hidden
-        style={{ position: "absolute", inset: 0, zIndex: -1, background: "rgba(237, 230, 214, 0.94)" }}
+        style={{ position: "absolute", inset: 0, zIndex: -1, background: "rgba(250, 250, 248, 0.94)" }}
       />
 
       {/* wordmark logo — the hero statement text IS the brand now */}

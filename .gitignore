@@ -404,3 +404,5 @@ results/
 *.seed
 *.pid.lock
 *.tgz
+.playwright-mcp/
+.impeccable/

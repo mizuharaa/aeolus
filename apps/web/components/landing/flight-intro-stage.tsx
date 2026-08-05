@@ -2,6 +2,7 @@
 
 import { useLayoutEffect, useRef } from "react"
 import { gsap, ScrollTrigger } from "@/components/landing/gsap"
+import { IdentityBand } from "@/components/landing/identity-band"
 import {
   landingScroll,
   resetLandingScene,
@@ -9,11 +10,16 @@ import {
 } from "@/lib/scroll"
 
 /**
- * Scroll room for the cabin-to-airframe handoff. The actual imagery remains
- * in fixed WebGL layers so the camera can cross the cabin wall without a DOM
- * cut. Once the aircraft reaches its full three-quarter view, HeroPlane3D
- * owns the short, one-time Q-flight and hands focus to the restored Aeolus
- * identity stage before the network view begins.
+ * Scroll room for the cabin → airframe → identity shot. The imagery lives in
+ * fixed layers so the camera can cross the cabin wall without a DOM cut, and so
+ * the AEOLUS wordmark can be stacked around the aircraft's canvas rather than
+ * waiting in a section below it.
+ *
+ * The pin was 400% of the viewport and its last three viewports were bare
+ * paper: the cabin faded out by 0.62vh and nothing replaced it but the
+ * aircraft. It is 200% now, and the wordmark reveals inside it — so the same
+ * beat carries the identity payload that used to sit in its own near-empty
+ * section afterwards.
  */
 export function FlightIntroStage() {
   const rootRef = useRef<HTMLElement>(null)
@@ -33,7 +39,11 @@ export function FlightIntroStage() {
           scrollTrigger: {
             trigger: root,
             start: "top top",
-            end: "+=400%",
+            // 300%, not 200%. The same manoeuvre spread over more scroll is
+            // what makes it less sensitive: a flick that used to cover half the
+            // descent now covers a third of it. Combined with the softer damp
+            // in the rig, the aircraft no longer flashes past.
+            end: "+=300%",
             scrub: 1.2,
             pin: true,
             pinSpacing: true,
@@ -108,9 +118,9 @@ export function FlightIntroStage() {
       ref={rootRef}
       className="ae-flight-intro"
       aria-label="From cabin to airframe"
-      tabIndex={0}
     >
       <h1 className="ae-sr-only">Airline recovery starts inside the aircraft and reaches the whole network.</h1>
+      <IdentityBand />
       <div className="ae-flight-cue" aria-hidden>
         <span>Cabin</span>
         <i />

@@ -6,15 +6,36 @@
  * slithering horizontally through them. The ribbons render twice from one
  * geometry: a faint pass across the whole stage, and a vivid pass clipped
  * inside the letter outlines — so the color appears to travel *through*
- * the type. GSAP loops the travel; both passes share tween targets so they
- * never drift. Static (but still striped) under prefers-reduced-motion.
+ * the type. Static (but still striped) under prefers-reduced-motion.
  *
  * The text is stretched wall-to-wall with textLength, which is the point:
  * editorial type set tight against the margins, not a centered slogan.
+ *
+ * Ribbon travel is a PURE FUNCTION of the shared landing clock, not a per-
+ * instance GSAP loop. The flight scene stacks two copies of this wordmark —
+ * one behind the aircraft, one in front — and any per-instance timeline would
+ * let their ribbons drift apart and expose the seam between the two layers.
+ * Sampling one clock makes drift impossible however many copies mount.
  */
 
-import { useLayoutEffect, useRef, type CSSProperties } from "react"
-import { gsap } from "@/components/landing/gsap"
+import { useEffect, useRef, type CSSProperties } from "react"
+import { landingScroll, registerLandingFrame } from "@/lib/scroll"
+
+/**
+ * The clipPath needs an id unique per mounted copy. `useId()` cannot supply it:
+ * it numbers nodes by tree position, and this component renders inside a
+ * subtree whose server and client markup already differ, so the two sides
+ * produced different ids and hydration tore the whole page down. Hashing an
+ * explicit caller-supplied key is deterministic on both sides.
+ */
+function stableSvgId(value: string) {
+  let hash = 2166136261
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index)
+    hash = Math.imul(hash, 16777619)
+  }
+  return `ae-mask-${(hash >>> 0).toString(36)}`
+}
 
 const W = 1000 // viewBox width — ribbons loop with period W
 
@@ -61,84 +82,51 @@ const SWELL = [
   { y: 12, dur: 4.4 },
 ]
 
-function stableSvgId(value: string) {
-  let hash = 2166136261
-  for (let index = 0; index < value.length; index += 1) {
-    hash ^= value.charCodeAt(index)
-    hash = Math.imul(hash, 16777619)
-  }
-  return `ae-mask-${(hash >>> 0).toString(36)}`
-}
-
 export function MaskedWordmark({
   text = "AEOLUS",
   className,
+  instanceKey,
   style,
   outsideOpacity = 0.13,
   ribbons = DEFAULT_RIBBONS,
 }: {
   text?: string
   className?: string
+  /** Required when two copies of the SAME text mount on one page, so their
+   *  clip paths do not collide. */
+  instanceKey?: string
   style?: CSSProperties
   outsideOpacity?: number
   ribbons?: Ribbon[]
 }) {
-  const id = stableSvgId(text)
+  const id = stableSvgId(instanceKey ? `${text}:${instanceKey}` : text)
   const rootRef = useRef<SVGSVGElement>(null)
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     const root = rootRef.current
     if (!root) return
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
+    if (landingScroll.reducedMotion) return
 
-    const animations: gsap.core.Tween[] = []
-    const ctx = gsap.context(() => {
-      ribbons.forEach((r, i) => {
-        // one tween drives BOTH copies (faint + clipped) of ribbon i
-        const nodes = root.querySelectorAll(`[data-rb="${i}"]`)
-        animations.push(
-          gsap.fromTo(
-            nodes,
-            { x: r.reverse ? -W : 0 },
-            {
-              x: r.reverse ? 0 : -W,
-              duration: r.duration,
-              ease: "none",
-              repeat: -1,
-              paused: true,
-            },
-          ),
-        )
-        // vertical swell on top of the travel — the band rises and falls
-        // like a waveform / an aircraft riding gentle turbulence
-        const s = SWELL[i % SWELL.length]
-        animations.push(
-          gsap.to(nodes, {
-            y: s.y,
-            duration: s.dur,
-            ease: "sine.inOut",
-            yoyo: true,
-            repeat: -1,
-            paused: true,
-          }),
-        )
-      })
-    }, root)
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        for (const animation of animations) {
-          if (entry.isIntersecting) animation.resume()
-          else animation.pause()
-        }
-      },
-      { rootMargin: "16% 0px", threshold: 0.01 },
+    // Both passes of ribbon i (faint + clipped) carry the same data-rb, so one
+    // computed transform drives both — and the same value lands on every other
+    // mounted copy of this wordmark on the same frame.
+    const groups = ribbons.map((_, index) =>
+      Array.from(root.querySelectorAll<SVGGElement>(`[data-rb="${index}"]`)),
     )
-    observer.observe(root)
 
-    return () => {
-      observer.disconnect()
-      ctx.revert()
-    }
+    return registerLandingFrame((time) => {
+      ribbons.forEach((r, index) => {
+        const travel = ((time / r.duration) % 1) * -W
+        // Both directions must stay inside [−W, 0]: the band geometry spans
+        // 2W from x=0, so any positive offset drags empty space into frame.
+        const x = r.reverse ? -W - travel : travel
+        const swell = SWELL[index % SWELL.length]
+        // 1 − cos gives the old sine.inOut yoyo without a timeline to keep.
+        const y = swell.y * (0.5 - 0.5 * Math.cos((time / swell.dur) * Math.PI))
+        const transform = `translate(${x.toFixed(2)} ${y.toFixed(2)})`
+        for (const group of groups[index]) group.setAttribute("transform", transform)
+      })
+    })
   }, [ribbons])
 
   const textAttrs = {

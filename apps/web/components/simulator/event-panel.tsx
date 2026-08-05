@@ -1286,19 +1286,29 @@ export function EventPanel() {
 
                 {/* Form fields */}
                 <div className="grid grid-cols-1 gap-3">
-                  {schema.fields.map((f) => (
+                  {/* htmlFor/id pairing: these three fields configure a
+                      network-wide disruption and used to announce as bare
+                      "combo box" / "spin button" with no name at all. Focus is
+                      :focus-visible via .ae-field, not inline onFocus/onBlur —
+                      the inline version also fired on mouse click, which is
+                      exactly what :focus-visible exists to avoid. */}
+                  {schema.fields.map((f) => {
+                    const fid = `evt-field-${f.key}`
+                    return (
                     <div key={f.key}>
-                      <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">
+                      <label
+                        htmlFor={fid}
+                        className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block"
+                      >
                         {f.label}
                       </label>
                       {f.type === "select" ? (
                         <select
+                          id={fid}
                           value={values[f.key] ?? ""}
                           onChange={(e) => setField(f.key, e.target.value)}
-                          className="w-full h-9 text-xs px-3 outline-none transition-shadow"
+                          className="ae-field w-full text-xs px-3"
                           style={{ background: c.canvas, border: `1px solid ${c.hairline}`, borderRadius: r.sm, color: c.ink, fontFamily: ff.body }}
-                          onFocus={(e) => e.currentTarget.style.boxShadow = "0 0 0 3px var(--ae-focus)"}
-                          onBlur={(e) => e.currentTarget.style.boxShadow = "none"}
                         >
                           {f.options?.map((opt) => (
                             <option key={opt} value={opt}>{selectOptionLabel(f.key, opt)}</option>
@@ -1306,18 +1316,18 @@ export function EventPanel() {
                         </select>
                       ) : (
                         <input
+                          id={fid}
                           type="number"
                           value={values[f.key] ?? ""}
                           onChange={(e) => setField(f.key, e.target.value)}
                           min={f.min} max={f.max} step={f.step}
-                          className="w-full h-9 text-xs px-3 outline-none transition-shadow"
+                          className="ae-field w-full text-xs px-3"
                           style={{ background: c.canvas, border: `1px solid ${c.hairline}`, borderRadius: r.sm, color: c.ink, fontFamily: ff.mono }}
-                          onFocus={(e) => e.currentTarget.style.boxShadow = "0 0 0 3px var(--ae-focus)"}
-                          onBlur={(e) => e.currentTarget.style.boxShadow = "none"}
                         />
                       )}
                     </div>
-                  ))}
+                    )
+                  })}
                 </div>
 
                 {/* Trigger button — design-system primary CTA */}

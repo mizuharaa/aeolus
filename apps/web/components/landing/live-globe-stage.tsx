@@ -2,23 +2,13 @@
 
 import dynamic from "next/dynamic"
 import Link from "next/link"
-import {
-  ArrowDown,
-  ArrowRight,
-  CloudLightning,
-  CloudOff,
-  Mountain,
-  ShieldAlert,
-  UsersRound,
-  type LucideIcon,
-} from "lucide-react"
+import { ArrowDown, ArrowRight } from "lucide-react"
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react"
 import {
   GLOBE_EVENTS,
   globeEventRuntime,
   setGlobeEventIndex,
   type GlobeEvent,
-  type GlobeEventKind,
 } from "@/components/landing/globe-events"
 import { gsap, ScrollTrigger } from "@/components/landing/gsap"
 import { HighlightSwipe, SplitReveal } from "@/components/landing/type-fx"
@@ -30,19 +20,25 @@ import {
 } from "@/lib/scroll"
 import { useNearViewport } from "@/lib/use-near-viewport"
 
-const EarthGlobe3D = dynamic(
-  () => import("@/components/landing/earth-globe-3d").then((module) => module.EarthGlobe3D),
+// Client-only: the plate rasterises the land mask through a 2D canvas.
+const GlobePlate = dynamic(
+  () => import("@/components/landing/globe-plate").then((module) => module.GlobePlate),
   { ssr: false },
 )
 
-const EVENT_ICONS: Record<GlobeEventKind, LucideIcon> = {
-  closure: CloudOff,
-  storm: CloudLightning,
-  cyber: ShieldAlert,
-  ash: Mountain,
-  crew: UsersRound,
-}
-
+/**
+ * One row of the event index.
+ *
+ * This was an icon + two-line block + a TRIGGER / VIEWING chip, with the icon,
+ * the border and the wash all tinted per event from a five-hue tone scale. Three
+ * problems: the five hues implied five categories of severity that do not exist,
+ * a lucide weather-icon set is the most category-interchangeable thing a page
+ * like this can put on screen, and a chip reading "TRIGGER" on four rows at once
+ * offered four equal calls to action next to the real one.
+ *
+ * It is an editorial index now: a mono numeral, the name, the ICAO, and a single
+ * hairline. Exactly one row is active and it is the only row carrying pigment.
+ */
 function EventFeedButton({
   event,
   eventIndex,
@@ -52,7 +48,6 @@ function EventFeedButton({
   eventIndex: number
   onSelect: (eventIndex: number) => void
 }) {
-  const Icon = EVENT_ICONS[event.kind]
   const active = eventIndex === 0
 
   return (
@@ -61,19 +56,22 @@ function EventFeedButton({
       className="ae-event-feed-button"
       data-event-button
       data-event-index={eventIndex}
-      data-tone={event.tone}
       data-active={active}
       aria-pressed={active}
       onClick={() => onSelect(eventIndex)}
     >
-      <Icon aria-hidden size={18} strokeWidth={1.8} />
-      <span>
+      <span className="ae-event-n" aria-hidden>
+        {String(eventIndex + 1).padStart(2, "0")}
+      </span>
+      <span className="ae-event-name">
         <b>{event.title}</b>
         <small>
           {event.airport} · {event.city}
         </small>
       </span>
-      <i aria-hidden>{active ? "Viewing" : "Trigger"}</i>
+      {/* Text, never a dot. Only the active row is labelled — the others are
+          plainly clickable rows and do not each need their own verb. */}
+      <i aria-hidden>{active ? "Viewing" : ""}</i>
     </button>
   )
 }
@@ -86,8 +84,10 @@ function syncEventUi(root: HTMLElement) {
     const active = Number(element.dataset.eventIndex) === activeIndex
     element.dataset.active = String(active)
     element.setAttribute("aria-pressed", String(active))
+    // Only the active row is labelled. Four simultaneous "TRIGGER" chips read
+    // as four competing calls to action beside the real CTA.
     const status = element.querySelector("i")
-    if (status) status.textContent = active ? "Viewing" : "Trigger"
+    if (status) status.textContent = active ? "Viewing" : ""
   })
 
   root.querySelectorAll<HTMLElement>("[data-event-view]").forEach((element) => {
@@ -174,7 +174,26 @@ export function LiveGlobeStage() {
         timeline
           .to(landingScroll.scenes, { globe: 1, duration: 1 }, 0)
           .to(copy, { yPercent: -14, opacity: 0, duration: 0.16 }, 0.08)
-          .to(orbit, { xPercent: -39, yPercent: 3, scale: 1.12, duration: 0.38 }, 0.04)
+          /**
+           * The morph: the globe enters RIGHT-ALIGNED beside the intro copy,
+           * then travels to the centre of the section as the event theatre
+           * takes over. This is the section's one structural move and it has to
+           * survive — an earlier pass deleted the x tween outright after
+           * mistaking it for a layout bug, which left the globe parked in the
+           * middle from the first frame with nothing to reveal.
+           *
+           * It reads as `+42 → 0` now rather than the old `0 → −39` because the
+           * grid resolved the END state: the centre column already centres the
+           * disc, so 0 is the destination and the offset belongs on the start.
+           * Tie the two together — if the grid's column widths change, only the
+           * `from` needs retuning.
+           */
+          .fromTo(
+            orbit,
+            { xPercent: 42, scale: 0.86 },
+            { xPercent: 0, scale: 1.06, duration: 0.38, ease: "power2.inOut" },
+            0.04,
+          )
           .fromTo(
             eventCopy,
             { yPercent: 18, opacity: 0 },
@@ -265,7 +284,6 @@ export function LiveGlobeStage() {
       className="ae-globe-section"
       data-events-active="false"
       aria-label="Live simulated network events"
-      tabIndex={0}
     >
       <div className="ae-globe-pin">
         <div className="ae-globe-surface" aria-hidden />
@@ -311,7 +329,6 @@ export function LiveGlobeStage() {
               data-event-view
               data-event-index={eventIndex}
               data-active={eventIndex === 0}
-              data-tone={event.tone}
               hidden={eventIndex !== 0}
             >
               <span className="ae-live-label">
@@ -333,14 +350,12 @@ export function LiveGlobeStage() {
             <span />
           </div>
           {shouldMountGlobe ? (
-            <EarthGlobe3D onReady={markGlobeReady} />
+            <GlobePlate onReady={markGlobeReady} onSelect={selectEvent} />
           ) : null}
-          <div
-            className="ae-globe-notification"
-            data-active="false"
-            role="status"
-            aria-live="off"
-          >
+          {/* polite, not off: the panel's whole job is to announce the event the
+              user just triggered, and `aria-live="off"` on a role="status" meant
+              it never did. */}
+          <div className="ae-globe-notification" data-active="false" role="status">
             {GLOBE_EVENTS.map((event, eventIndex) => (
               <div
                 key={event.id}
@@ -350,7 +365,7 @@ export function LiveGlobeStage() {
                 data-active={eventIndex === 0}
                 hidden={eventIndex !== 0}
               >
-                <span data-tone={event.tone}>{event.title}</span>
+                <span>{event.title}</span>
                 <strong>
                   {event.airport} · {event.city}
                 </strong>
@@ -359,7 +374,10 @@ export function LiveGlobeStage() {
               </div>
             ))}
           </div>
-          <span className="ae-globe-drag-hint">Drag to inspect</span>
+          {/* "Drag to inspect" is gone with the orbit controls it described.
+              The plate does not rotate under the pointer; it turns to face the
+              event you pick, and the marks say so by being buttons. */}
+          <span className="ae-globe-drag-hint">Select a site</span>
         </div>
 
         <aside
