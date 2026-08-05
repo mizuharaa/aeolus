@@ -32,6 +32,7 @@ import {
   Pin,
   PinOff,
   ScrollText,
+  Bookmark,
   type LucideIcon,
 } from "lucide-react"
 import { AeolusMark } from "@/components/ds/logo"
@@ -47,6 +48,9 @@ const GROUPS: NavGroup[] = [
       { href: "/simulator", label: "Live map", Icon: LayoutDashboard },
       { href: "/simulator/cascade", label: "Cascade", Icon: Waypoints },
       { href: "/simulator/playtest", label: "Playtest", Icon: FlaskConical },
+      // Was below the dashboard's fold, which is what forced the ops surface
+      // into a scrolling document. Now a route.
+      { href: "/simulator/watchlist", label: "Watchlist", Icon: Bookmark },
     ],
   },
   {

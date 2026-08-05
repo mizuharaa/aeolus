@@ -6,6 +6,7 @@ import { toast } from "sonner"
 import { useEffect, useMemo, useState } from "react"
 import { c, ff } from "@/lib/design-tokens"
 import { NotificationBell } from "@/components/simulator/notification-bell"
+import { AgentBubble } from "@/components/simulator/agent-bubble"
 import { useIndecisionCost, fmtUsdShort } from "@/lib/use-live-cost"
 
 /**
@@ -30,9 +31,9 @@ function IndecisionMeter() {
         fontVariantNumeric: "tabular-nums",
       }}
     >
-      <span className="ae-hide-below-1250" style={{ letterSpacing: "0.1em" }}>UNCOMMITTED</span>
+      <span className="ae-hide-below-1450" style={{ letterSpacing: "0.1em" }}>UNCOMMITTED</span>
       <span style={{ color: "var(--ae-text)" }}>−{fmtUsdShort(ratePerMin)}/min</span>
-      <span className="ae-hide-below-1250">{fmtUsdShort(accrued)} burned</span>
+      <span className="ae-hide-below-1450">{fmtUsdShort(accrued)} burned</span>
     </span>
   )
 }
@@ -185,6 +186,10 @@ export function SimulatorNav({ isConnected }: SimulatorNavProps) {
         {/* Live ops feed — imminent arrivals + active disruptions */}
         <NotificationBell />
 
+        {/* Ask Aeolus — moved out of the workspace, where it floated over the
+            cascade timeline in every state. See agent-bubble.tsx. */}
+        <AgentBubble />
+
         {/* Connection state — punched-out text pill, no pulsing dot */}
         <span
           style={{
@@ -237,10 +242,21 @@ export function SimulatorNav({ isConnected }: SimulatorNavProps) {
       <style jsx>{`
         .ae-nav-routes::-webkit-scrollbar { display: none; }
 
-        @media (max-width: 1100px) {
+        /* The fleet counters are the only operational numbers in the top bar,
+           and they were display:none below 1400px — i.e. hidden on the most
+           common laptop width, to relieve a space pressure that did not exist:
+           the nav's flexible gutter measured 615px of EMPTY space at 1280.
+           Decoration now yields before information. The context pill goes at
+           1240 and the wordmark subtitle at 1100; the numbers stay until 860,
+           where they finally wrap out. */
+        /* The context pill is decoration; it goes first. Measured: with the
+           fleet counters restored and Ask Aeolus moved into this bar, the right
+           cluster overflowed by 36px at 1280 and clipped Reset. Dropping the
+           pill reclaims 141px, which is the whole deficit and then some. */
+        @media (max-width: 1400px) {
           .ae-nav-subtitle { display: none; }
         }
-        @media (max-width: 1400px) {
+        @media (max-width: 860px) {
           .ae-nav-stats { display: none !important; }
         }
         @media (max-width: 900px) {

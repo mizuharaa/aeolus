@@ -60,6 +60,16 @@ export function CascadeTimeline({
     return [...affected, ...others].slice(0, 40)
   }, [flightStates, schedule])
 
+  // Is anything actually disrupted? The back-fill above always supplies 18
+  // nominal rows, so `displayFlights.length === 0` never fired and the nominal
+  // network rendered as 18 identical grey bars — noise where a statement
+  // belongs. This distinguishes "nothing wrong" from "no data".
+  const affectedCount = useMemo(
+    () => Object.values(flightStates).filter((f) => (f.cascade_order ?? -1) >= 0).length,
+    [flightStates],
+  )
+  const nominal = affectedCount === 0 && schedule.length > 0
+
   return (
     <div style={{ height: "100%", minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden", background: c.canvas }}>
       {/* ── Header ── */}
@@ -68,16 +78,20 @@ export function CascadeTimeline({
           display: "flex",
           alignItems: "center",
           gap: sp.sm,
-          padding: `${sp.sm}px ${sp.md}px`,
+          padding: `${sp.xs}px ${sp.md}px`,
           background: c.canvas,
           borderBottom: `1px solid ${c.hairline}`,
           flexShrink: 0,
         }}
       >
         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "space-between", minWidth: 0, gap: sp.lg }}>
-          <div>
-            <div style={{ ...type("titleMd", c.ink), fontSize: 16 }}>Cascade Timeline</div>
-            <div style={{ ...type("caption", c.muted), fontSize: 11, marginTop: 1 }}>18-hour window · UTC</div>
+          {/* One line, not two. This is the hero surface now, so its header
+              spends as little height as possible — the two-line title block
+              plus a 5-swatch legend cost 64px of a 192px dock, i.e. a third of
+              the region, before a single flight row. */}
+          <div style={{ display: "flex", alignItems: "baseline", gap: sp.xs, minWidth: 0 }}>
+            <span style={{ ...type("titleMd", c.ink), fontSize: 14.5, whiteSpace: "nowrap" }}>Cascade Timeline</span>
+            <span style={{ ...type("caption", c.muted), fontSize: 10.5, fontFamily: ff.mono, whiteSpace: "nowrap" }}>18h · UTC</span>
           </div>
 
           {/* Legend — literally the same ramp object the bars and the map
@@ -144,7 +158,25 @@ export function CascadeTimeline({
 
       {/* Flight rows */}
       <div className="cascade-timeline-scroll" style={{ flex: 1, minHeight: 0, overflowY: "auto", overflowX: "hidden" }}>
-        {displayFlights.length === 0 ? (
+        {nominal ? (
+          // The DEFAULT state of this console, so it states the network's
+          // condition rather than drawing 18 undifferentiated grey bars.
+          <div
+            style={{
+              display: "flex", flexDirection: "column", alignItems: "center",
+              justifyContent: "center", height: "100%", minHeight: 140,
+              padding: `${sp.lg}px ${sp.xl}px`, textAlign: "center", gap: sp.xxs,
+            }}
+          >
+            <Type as="span" role="titleSm" color={c.ink}>
+              Network nominal — {schedule.length} legs, no cascades
+            </Type>
+            <Type as="span" role="bodyMd" color={c.muted} style={{ maxWidth: 460 }}>
+              Trigger a disruption from the Events panel and affected flights will
+              appear here, ordered by cascade generation.
+            </Type>
+          </div>
+        ) : displayFlights.length === 0 ? (
           <div
             style={{
               display: "flex",

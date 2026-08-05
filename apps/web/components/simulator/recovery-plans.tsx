@@ -719,14 +719,21 @@ export function RecoveryPlans({
           title="Recovery Plans"
           subtitle="Plans A–D · cost / pax / tomorrow / carbon"
         />
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: sp.md }}>
-          <CreamCallout style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "flex-start", gap: 8 }}>
+        {/* overflowY:auto — the empty state was the ONE branch of this panel
+            with no scroll container, so at 200% zoom 150px of its content was
+            clipped with no way to reach it (measured: clientHeight 161,
+            scrollHeight 311). */}
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", padding: sp.md }} className="ae-scroll-smooth">
+          <CreamCallout style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "flex-start", gap: sp.xs }}>
             <Eyebrow color={c.statusRecovered.ink}>Awaiting disruption</Eyebrow>
             <Type as="div" role="titleSm" color={c.ink}>
               All flights operating nominally.
             </Type>
+            {/* Named the wrong region: this said "from the left rail", and the
+                left rail has no event trigger — it is route navigation. The
+                trigger is the Events panel. */}
             <Type as="p" role="bodyMd" color={c.muted}>
-              Trigger an event from the left rail to receive ranked recovery plans with cost breakdowns and counterfactual rationale.
+              Trigger an event from the Events panel to receive ranked recovery plans with cost breakdowns and counterfactual rationale.
             </Type>
             <span style={{ fontFamily: ff.mono, fontSize: 11, color: c.muted, marginTop: 4 }}>
               CP-SAT solve typically &lt; 10 ms · cost engine deterministic
@@ -754,7 +761,11 @@ export function RecoveryPlans({
       />
 
       {/* paddingBottom clears the fixed Ask-Aeolus pill */}
-      <div style={{ flex: 1, overflowY: "auto", paddingBottom: 96 }} className="ae-scroll-smooth">
+      {/* paddingBottom was 96 to dodge the fixed Ask-Aeolus pill — 96 x 392 =
+          37,632px of dead space reserved inside the panel that hosts Commit.
+          The pill now sits in the rail's footer instead of floating over the
+          workspace, so the reservation is gone. */}
+      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", paddingBottom: sp.md }} className="ae-scroll-smooth">
         <DecisionMatrix
           plans={recoveryPlans}
           selectedId={inspected?.plan_id ?? "A"}

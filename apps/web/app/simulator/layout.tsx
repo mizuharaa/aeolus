@@ -14,7 +14,7 @@ export default function SimulatorLayout({ children }: { children: ReactNode }) {
     // how the ring ended up defined but applied in only two places).
     <div
       className="simulator-shell"
-      style={{ display: "flex", alignItems: "flex-start", minHeight: "100vh", background: "var(--ae-bg)" }}
+      style={{ display: "flex", alignItems: "flex-start", minHeight: "100dvh", background: "var(--ae-bg)" }}
     >
       <SimulatorRail />
       <div style={{ flex: 1, minWidth: 0 }}>{children}</div>

@@ -1037,8 +1037,8 @@
 
 /* Nav clutter guards — the ops bar sheds detail before it ever overlaps:
    accrued-burn text goes first, the whole meter collapses to rate-only. */
-@media (max-width: 1250px) {
-  .ae-hide-below-1250 { display: none !important; }
+@media (max-width: 1450px) {
+  .ae-hide-below-1450 { display: none !important; }
 }
 
 /* Smooth, quiet custom scrollbar for dashboard scroll panes. */

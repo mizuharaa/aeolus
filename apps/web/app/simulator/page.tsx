@@ -12,15 +12,11 @@ import { SimulatorNav } from "@/components/simulator/nav"
 import { AgentBubble } from "@/components/simulator/agent-bubble"
 import { DashboardLoader } from "@/components/simulator/dashboard-loader"
 import { FlightSearch } from "@/components/simulator/flight-search"
-import { MyFlights } from "@/components/simulator/my-flights"
 import { apiClient } from "@/lib/api"
 import { hydrateAirportTiers } from "@/components/simulator/airports"
 import { c, ff, r, sp } from "@/lib/design-tokens"
-import { Eyebrow, Hairline } from "@/components/ds/primitives"
 import { useResizable, ResizeHandle, FloatingPanel } from "@/components/simulator/workspace-chrome"
-import Link from "next/link"
-import type { Route } from "next"
-import { ArrowRight, Leaf, Users as UsersIcon, UserRound, Gauge, GitCompareArrows, CloudLightning, Waypoints, PanelBottomClose, type LucideIcon } from "lucide-react"
+import { CloudLightning, Waypoints, PanelBottomClose } from "lucide-react"
 
 const FlightMap = dynamic(() => import("@/components/simulator/flight-map"), {
   ssr: false,
@@ -36,8 +32,19 @@ const FlightMap = dynamic(() => import("@/components/simulator/flight-map"), {
   ),
 })
 
-const NAV_H   = 60   // top-bar height (see components/simulator/nav.tsx)
-const STRIP_H = 192  // docked timeline height
+const NAV_H  = 60   // top-bar height (see components/simulator/nav.tsx)
+
+// The MAP is now the sized region and the CASCADE TIMELINE takes the remaining
+// height — the inversion this layout pass turns on. Measured before: the
+// timeline's row viewport was 94px of 871px of content, i.e. 1.96 of 18 rows
+// (10.9%), identical at 1280/1440/1920 and at 200% zoom, because every extra
+// pixel of viewport went to the basemap. The basemap answers "where", once per
+// incident; the Gantt is where cause, propagation and time are simultaneously
+// legible, and it is the surface an operator actually reads. So the timeline
+// gets flex:1 and the map gets a resizable fixed height.
+const MAP_H     = 300 // default map height; drag to taste, persisted
+const MAP_H_MIN = 200
+const MAP_H_MAX = 720
 
 // Panel pigments — Events = gold (disruption), Recovery = plum (identity).
 const EVENT_ACCENT = "#B8863C"
@@ -59,8 +66,38 @@ export default function SimulatorPage() {
   // panel-vs-overlay collision and the map paints once and stays put.
   const [leftOpen, setLeftOpen]     = useState(true)   // Events
   const [rightOpen, setRightOpen]   = useState(false)  // Recovery (auto-opens on plans)
-  const [bottomOpen, setBottomOpen] = useState(true)   // cascade timeline (still docked)
-  const bottom = useResizable("aeolus-strip-h", STRIP_H, 120, 340, "bottom")
+  const [bottomOpen, setBottomOpen] = useState(true)   // cascade timeline
+  // Drag the divider to resize the MAP; the timeline absorbs the remainder.
+  const mapH = useResizable("aeolus-map-h", MAP_H, MAP_H_MIN, MAP_H_MAX, "bottom")
+
+  // Docked panels take real width, so below this the two of them plus the rail
+  // would starve the map (measured: 466px of map at 1280 with both open). Above
+  // it there is room for both. Opening one closes the other below the
+  // threshold — a structural adaptation, not a hidden element.
+  const [narrow, setNarrow] = useState(false)
+  // Below this the workspace is too tight for a panel to take width at all —
+  // at a 720px viewport (what 200% zoom on a 1440 screen produces) a docked
+  // 392px panel plus the rail left the map 227px. Under it the panels go back
+  // to being overlays, which is the right trade at that size: covering part of
+  // a small map beats shrinking it to nothing.
+  const [tight, setTight] = useState(false)
+  useEffect(() => {
+    const wide = window.matchMedia("(max-width: 1500px)")
+    const small = window.matchMedia("(max-width: 900px)")
+    const sync = () => { setNarrow(wide.matches); setTight(small.matches) }
+    sync()
+    wide.addEventListener("change", sync)
+    small.addEventListener("change", sync)
+    return () => { wide.removeEventListener("change", sync); small.removeEventListener("change", sync) }
+  }, [])
+  const openLeft = useCallback((v: boolean) => {
+    setLeftOpen(v)
+    if (v && narrow) setRightOpen(false)
+  }, [narrow])
+  const openRight = useCallback((v: boolean) => {
+    setRightOpen(v)
+    if (v && narrow) setLeftOpen(false)
+  }, [narrow])
 
   // Restore prefs.
   useEffect(() => {
@@ -84,6 +121,7 @@ export default function SimulatorPage() {
     if (sig && recoveryPlans.length > 0 && !appliedPlanId && sig !== autoOpenedFor.current) {
       autoOpenedFor.current = sig
       setRightOpen(true)
+      if (window.matchMedia("(max-width: 1500px)").matches) setLeftOpen(false)
     }
     if (!sig) autoOpenedFor.current = ""
   }, [activeEvents, recoveryPlans.length, appliedPlanId])
@@ -114,7 +152,7 @@ export default function SimulatorPage() {
     const t1 = window.setTimeout(() => window.dispatchEvent(new Event("resize")), 220)
     const t2 = window.setTimeout(() => window.dispatchEvent(new Event("resize")), 480)
     return () => { window.clearTimeout(t1); window.clearTimeout(t2) }
-  }, [bottomOpen, bottom.size])
+  }, [bottomOpen, mapH.size, leftOpen, rightOpen])
 
   const handleFlightSelect = (id: string | null) => {
     setSelectedFlight(id)
@@ -150,179 +188,168 @@ export default function SimulatorPage() {
   }, [setSchedule, setFleet, hydrateStaticFromCache])
 
   return (
-    <div style={{ background: "var(--ae-bg)", minHeight: "100vh" }}>
+    // overflow:hidden + fixed height. Measured before: 552px of a 1352px
+    // document (40.8%) sat below the fold at 1280x800, and scrolling to reach
+    // it took BOTH the map and the cascade timeline entirely off screen. An ops
+    // console must not be able to scroll away mid-incident, so the shell is now
+    // exactly one viewport and every region scrolls internally. The two things
+    // that lived down there moved out: the watchlist to its own route, and the
+    // 5-tile deep-link strip was deleted outright (4 of its 5 tiles were second
+    // copies of rail entries that are already permanently on screen).
+    <div style={{ background: "var(--ae-bg)", height: "100dvh", overflow: "hidden", display: "flex", flexDirection: "column" }}>
       <DashboardLoader />
 
-      {/* z-[700], not z-50. The floating panels are absolutely positioned
-          INSIDE the workspace at z-640, and the workspace scrolls, so at
-          ~60px of scroll a panel rode up over the sticky nav and hid LIVE,
-          the ops-feed bell, the fleet counters and Reset — while putting the
-          panel's Commit button within ~14px of where Reset had been. Two
-          opposite-meaning controls at one coordinate, at the highest-stakes
-          moment in the product. The nav now always wins. */}
-      <div className="sticky top-0 z-[700]">
+      {/* Plain flex child, no sticky and no z-index. The nav needed z-[700] to
+          win against panels that could ride up over it once the page scrolled;
+          the shell no longer scrolls and the panels are docked tracks, so the
+          collision it was defending against cannot happen. */}
+      <div style={{ flexShrink: 0 }}>
         <SimulatorNav isConnected={isConnected} affectedCount={activeEvents.length} />
       </div>
 
-      <AgentBubble />
+      {/* ── Workspace ────────────────────────────────────────────────────
+          A fixed three-track row: Events | (map over timeline) | Recovery.
 
-      {/* ── Workspace: full-bleed map with floating panels + a docked timeline ── */}
+          Two inversions from the previous shell, both driven by measurement.
+
+          1. The panels are DOCKED TRACKS, not floating overlays. As overlays
+             at z-640 they covered 62.4% of the map at 1280 with both open (the
+             steady state during a live disruption), 75.8% at 200% zoom, and at
+             200% they overlapped EACH OTHER by 128px because each was capped
+             against the viewport but never against its sibling. Docked, they
+             cannot overlap anything, the map keeps every pixel it is given,
+             and the z-index arbitration disappears.
+          2. The CASCADE TIMELINE takes the remaining height and the MAP is the
+             sized region. Before, the timeline showed 94px of 871px of content
+             — 1.96 of 18 rows, 89.2% hidden — identically at 1280/1440/1920,
+             because all extra viewport went to the basemap. The Gantt is where
+             cause, propagation and time are legible at once; the map answers
+             "where", once per incident. Drag the divider to rebalance. */}
       <div
-        style={{
-          height: `calc(100vh - ${NAV_H}px)`,
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-          borderBottom: `1px solid ${c.hairline}`,
-        }}
+        style={{ flex: 1, minHeight: 0, position: "relative", display: "flex", overflow: "hidden" }}
       >
-        {/* MAP AREA — the map fills it; every panel floats above as its own layer */}
-        <div style={{ flex: 1, position: "relative", minHeight: 0, background: c.surfaceSoft }}>
-          <div style={{ position: "absolute", inset: 0 }}>
-            <FlightMap selectedFlight={selectedFlight} onFlightSelect={handleFlightSelect} />
-          </div>
+        {/* Events — docked track, left */}
+        <FloatingPanel
+          side="left" open={leftOpen} accent={EVENT_ACCENT} docked={!tight}
+          title="Events"
+          /* CloudLightning, not Zap: Zap reads "energy/instant", and the
+             event vocabulary this panel triggers is weather, ATC, crew and
+             mechanical disruption. */
+          icon={<CloudLightning style={{ width: 15, height: 15 }} strokeWidth={2} />}
+          onOpen={() => openLeft(true)} onClose={() => openLeft(false)}
+        >
+          <EventPanel />
+        </FloatingPanel>
 
-          {/* Search — top centre, sized to the lane BETWEEN the two edge
-              panels so an open Events/Recovery panel never covers it */}
+        {/* Centre column — map over timeline */}
+        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+          {/* MAP — sized when the timeline is open, greedy when it is collapsed */}
           <div
             style={{
-              position: "absolute",
-              top: appliedPlanId ? 70 : 14,
-              left: "50%",
-              transform: "translateX(-50%)",
-              width: "clamp(190px, calc(100% - 810px), 430px)",
-              zIndex: 520,
-              transition: "top 240ms ease",
+              position: "relative",
+              // flexShrink 1 + maxHeight, not a rigid basis: at a 450px-tall
+              // viewport (200% zoom) a fixed 300px map left the timeline 12px
+              // of scroller. The map now yields to the timeline's minHeight
+              // instead of starving it, so the hero stays usable at any height.
+              flex: bottomOpen ? `0 1 ${mapH.size}px` : "1 1 auto",
+              maxHeight: bottomOpen ? "62%" : undefined,
+              minHeight: bottomOpen ? 140 : 0,
+              background: c.surfaceSoft,
             }}
           >
-            <FlightSearch selectedFlight={selectedFlight} onSelect={handleFlightSelect} />
-          </div>
-
-          {/* Events — floating overlay, left */}
-          <FloatingPanel
-            side="left" open={leftOpen} accent={EVENT_ACCENT}
-            title="Events"
-            /* CloudLightning, not Zap: Zap reads "energy/instant", and the
-               event vocabulary this panel triggers is weather, ATC, crew and
-               mechanical disruption. */
-            icon={<CloudLightning style={{ width: 15, height: 15 }} strokeWidth={2} />}
-            onOpen={() => setLeftOpen(true)} onClose={() => setLeftOpen(false)}
-          >
-            <EventPanel />
-          </FloatingPanel>
-
-          {/* Recovery — floating overlay, right */}
-          <FloatingPanel
-            side="right" open={rightOpen} accent={RECOVERY_ACCENT} width={392}
-            title="Recovery"
-            /* Waypoints, not LineChart: recovery is aircraft swaps, crew
-               reassignment and passenger rebooking — routing, not analytics. */
-            icon={<Waypoints style={{ width: 15, height: 15 }} strokeWidth={2} />}
-            onOpen={() => setRightOpen(true)} onClose={() => setRightOpen(false)}
-            badge={recoveryPlans.length > 0 && !appliedPlanId ? recoveryPlans.length : undefined}
-          >
-            <RecoveryPlans selectedFlight={selectedFlight} onFlightSelect={handleFlightSelect} />
-          </FloatingPanel>
-        </div>
-
-        {/* Docked cascade timeline — resizable height + collapsible */}
-        {bottomOpen && <ResizeHandle side="bottom" onPointerDown={bottom.onPointerDown} />}
-        <div
-          style={{
-            flexShrink: 0,
-            height: bottomOpen ? bottom.size : 30,
-            borderTop: `1px solid ${c.hairline}`,
-            background: c.canvas,
-            overflow: "hidden",
-            transition: bottom.dragging ? "none" : "height 240ms cubic-bezier(0.22,0.9,0.28,1)",
-          }}
-        >
-          {bottomOpen ? (
-            <div style={{ height: bottom.size, position: "relative" }}>
-              <button
-                type="button"
-                onClick={() => setBottomOpen(false)}
-                aria-label="Collapse timeline"
-                title="Collapse timeline"
-                style={{
-                  position: "absolute", top: 8, right: 12, zIndex: 30,
-                  width: 26, height: 26, borderRadius: 7,
-                  border: `1px solid ${c.hairline}`, background: "var(--ae-surface)",
-                  color: c.muted, cursor: "pointer", display: "inline-flex",
-                  alignItems: "center", justifyContent: "center",
-                }}
-              >
-                <PanelBottomClose style={{ width: 14, height: 14 }} strokeWidth={1.9} />
-              </button>
-              <CascadeTimeline selectedFlight={selectedFlight} onFlightSelect={handleFlightSelect} />
+            <div style={{ position: "absolute", inset: 0 }}>
+              <FlightMap selectedFlight={selectedFlight} onFlightSelect={handleFlightSelect} />
             </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setBottomOpen(true)}
+
+            {/* Search — centred in the map, which no panel covers any more, so
+                its width no longer has to be computed around the panel edges.
+                The old `clamp(190px, calc(100% - 810px), 430px)` collapsed to
+                its 190px floor below ~1200px of map width and then sat 41%
+                underneath the two panels. */}
+            <div
               style={{
-                width: "100%", height: 30, display: "flex", alignItems: "center", gap: 8,
-                padding: "0 16px", border: "none", background: "transparent",
-                color: c.muted, cursor: "pointer", fontFamily: ff.mono, fontSize: 10.5,
-                letterSpacing: "0.1em", textTransform: "uppercase",
+                position: "absolute",
+                top: appliedPlanId ? 70 : sp.sm,
+                left: "50%",
+                transform: "translateX(-50%)",
+                width: "min(430px, calc(100% - 120px))",
+                zIndex: 520,
+                transition: "top 240ms ease",
               }}
             >
-              <span style={{ width: 6, height: 6, borderRadius: 99, background: EVENT_ACCENT }} />
-              Cascade timeline — click to expand
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* ── Below fold — continuing context ── */}
-      <div style={{ padding: sp.lg, display: "flex", flexDirection: "column", gap: sp.lg, maxWidth: 1760, margin: "0 auto" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: sp.sm }}>
-          <Hairline style={{ flex: 1 }} />
-          <Eyebrow>Continuing Context</Eyebrow>
-          <Hairline style={{ flex: 1 }} />
-        </div>
-        <MyFlights onFlightSelect={handleFlightSelect} />
-        <DeepLinkStrip />
-      </div>
-    </div>
-  )
-}
-
-// ─── Deep-link strip ─────────────────────────────────────────────────────
-function DeepLinkStrip() {
-  // Icons MUST match the rail's glyph for the same route (rail.tsx:47-64).
-  // They didn't: crew was ShieldCheck here and Users there, passengers was
-  // Users here and UserRound there, stress-test was Network here and Gauge
-  // there. So the rail's icon for Crew was this strip's icon for Passengers —
-  // on the same screen, which is actively misleading rather than merely
-  // inconsistent. The rail is the persistent nav, so it is canonical.
-  const tiles: { href: string; Icon: LucideIcon; label: string; sub: string }[] = [
-    { href: "/simulator/plans/compare", Icon: GitCompareArrows, label: "Compare plans", sub: "Side-by-side cost / pax / FAR 117 / carbon" },
-    { href: "/simulator/crew", Icon: UsersIcon, label: "Crew shortage", sub: "FAR 117 legality + max-coverage MILP" },
-    { href: "/simulator/passengers", Icon: UserRound, label: "Passenger solutions", sub: "Rebooking · hotel · DOT 261 vouchers" },
-    { href: "/simulator/carbon", Icon: Leaf, label: "Carbon dashboard", sub: "Net CO₂ ledger priced under EU ETS" },
-    { href: "/simulator/stress-test", Icon: Gauge, label: "Stress test", sub: "Monte-Carlo network vulnerability sweep" },
-  ]
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: sp.md }}>
-      {tiles.map((t) => (
-        <Link
-          key={t.href}
-          href={t.href as Route}
-          style={{
-            textDecoration: "none", display: "flex", flexDirection: "column", gap: 8,
-            padding: sp.md, borderRadius: r.md, background: c.canvas,
-            border: `1px solid ${c.hairline}`, color: c.ink, transition: "border-color 150ms ease",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <t.Icon style={{ width: 16, height: 16, color: c.muted }} strokeWidth={1.75} />
-            <ArrowRight style={{ width: 13, height: 13, color: c.muted }} strokeWidth={1.75} />
+              <FlightSearch selectedFlight={selectedFlight} onSelect={handleFlightSelect} />
+            </div>
           </div>
-          <div style={{ fontFamily: ff.body, fontSize: 14, fontWeight: 550, color: c.ink, lineHeight: 1.3 }}>{t.label}</div>
-          <div style={{ fontFamily: ff.body, fontSize: 11.5, color: c.muted, lineHeight: 1.5 }}>{t.sub}</div>
-        </Link>
-      ))}
+
+          {/* Divider — drags the MAP's height; the timeline absorbs the rest */}
+          {bottomOpen && <ResizeHandle side="bottom" onPointerDown={mapH.onPointerDown} />}
+
+          {/* CASCADE TIMELINE — the hero surface */}
+          <div
+            style={{
+              // basis 0, not auto: with `auto` the timeline claimed its full
+              // CONTENT height (871px of rows) as its flex basis, which put the
+              // row into overflow and shrank the map to its 140px floor at
+              // every viewport. Basis 0 makes it take exactly the remainder.
+              flex: bottomOpen ? "1 1 0%" : "0 0 30px",
+              // ~4 rows of Gantt after its own 98px of header+axis chrome.
+              minHeight: bottomOpen ? 190 : 30,
+              borderTop: `1px solid ${c.hairline}`,
+              background: c.canvas,
+              overflow: "hidden",
+            }}
+          >
+            {bottomOpen ? (
+              <div style={{ height: "100%", position: "relative" }}>
+                <button
+                  type="button"
+                  onClick={() => setBottomOpen(false)}
+                  aria-label="Collapse timeline"
+                  title="Collapse timeline"
+                  style={{
+                    position: "absolute", top: sp.xs, right: sp.sm, zIndex: 30,
+                    width: 28, height: 28, borderRadius: r.sm,
+                    border: `1px solid ${c.hairline}`, background: "var(--ae-surface)",
+                    color: c.muted, cursor: "pointer", display: "inline-flex",
+                    alignItems: "center", justifyContent: "center",
+                  }}
+                >
+                  <PanelBottomClose style={{ width: 14, height: 14 }} strokeWidth={2} />
+                </button>
+                <CascadeTimeline selectedFlight={selectedFlight} onFlightSelect={handleFlightSelect} />
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setBottomOpen(true)}
+                style={{
+                  width: "100%", height: 30, display: "flex", alignItems: "center", gap: sp.xs,
+                  padding: `0 ${sp.md}px`, border: "none", background: "transparent",
+                  color: c.body, cursor: "pointer", fontFamily: ff.mono, fontSize: 10.5,
+                  letterSpacing: "0.14em", textTransform: "uppercase",
+                }}
+              >
+                <PanelBottomClose style={{ width: 13, height: 13, transform: "rotate(180deg)" }} strokeWidth={2} />
+                Cascade timeline — expand
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Recovery — docked track, right */}
+        <FloatingPanel
+          side="right" open={rightOpen} accent={RECOVERY_ACCENT} width={392} docked={!tight}
+          title="Recovery"
+          /* Waypoints, not LineChart: recovery is aircraft swaps, crew
+             reassignment and passenger rebooking — routing, not analytics. */
+          icon={<Waypoints style={{ width: 15, height: 15 }} strokeWidth={2} />}
+          onOpen={() => openRight(true)} onClose={() => openRight(false)}
+          badge={recoveryPlans.length > 0 && !appliedPlanId ? recoveryPlans.length : undefined}
+        >
+          <RecoveryPlans selectedFlight={selectedFlight} onFlightSelect={handleFlightSelect} />
+        </FloatingPanel>
+      </div>
+
     </div>
   )
 }

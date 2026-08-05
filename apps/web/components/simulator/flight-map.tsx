@@ -1866,7 +1866,60 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
 
       {/* Layer toggles — bottom-LEFT (the bottom-right is owned by the fixed
           Ask-Aeolus bubble; keeping them apart avoids the overlap). */}
-      <div className="absolute bottom-3 left-3 z-[400] flex flex-col gap-2 items-start">
+      {/* Legend — bottom-CENTRE, and centred for a specific reason: the two
+          floating panels are inset from the left and right map edges at z-640,
+          either can be open, and the legend sits at z-400. Bottom-left put it
+          under Events (which opens by default, so the key to the map's whole
+          encoding was invisible on load); bottom-right put it under Recovery
+          (which auto-opens the moment plans arrive). The centre lane is the
+          only horizontal band both panels leave clear.
+          Opaque, not glass: a blurred panel over tiles ranging from pale land
+          to mid-blue water gave its own labels a contrast ratio that changed
+          with whatever happened to be underneath. */}
+      <details
+        className="ae-map-legend absolute z-[400] hidden sm:block"
+        style={{ bottom: 12, left: "50%", transform: "translateX(-50%)" }}
+      >
+        {/* A <details> rather than an always-open card, for two reasons: a
+            16-item key permanently occupying the map is clutter on a surface
+            where every element has to earn its pixel, and collapsed it cannot
+            collide with either floating panel no matter which is open. Native
+            element, so the disclosure is keyboard-operable and announced
+            without any JS or ARIA of ours. Opens upward via bottom-anchoring. */}
+        <summary
+          className="px-3 rounded-lg text-[10px] font-semibold uppercase"
+          style={{
+            background: "var(--ae-surface)", border: "1px solid var(--ae-line)",
+            boxShadow: "var(--ae-shadow-card)", color: "var(--ae-text-2)",
+            letterSpacing: "0.14em", fontFamily: "var(--ae-font-mono)",
+            minHeight: 28, display: "inline-flex", alignItems: "center", gap: 6,
+            cursor: "pointer", listStyle: "none", width: "fit-content", margin: "0 auto",
+          }}
+        >
+          Layers &amp; key
+        </summary>
+        <div
+          className="px-3 py-2 rounded-lg text-[10px]"
+          style={{
+            position: "absolute", bottom: 34, left: "50%", transform: "translateX(-50%)",
+            // 360px caps the opened panel inside the ~432px lane the two
+            // floating panels leave clear at 1280; wider and its right edge
+            // slid under Recovery, which outranks it in z-order. It wraps.
+            width: "max-content", maxWidth: 360,
+            // Holds layers AND key now, and the map is a 300px locator, so the
+            // opened panel has to be bounded or it runs past the map's top edge
+            // and under the search bar.
+            maxHeight: 236, overflowY: "auto",
+            background: "var(--ae-surface)", border: "1px solid var(--ae-line)", boxShadow: "var(--ae-shadow-card-elev)",
+          }}
+        >
+          {/* Map LAYERS live here too, not in their own floating stack. As a
+              separate cluster they needed a lane of their own, and on a 300px
+              locator there is no free lane left: bottom-left collided with the
+              disruption card by 48px and bottom-right with Leaflet's zoom
+              controls by 58px. Layers and key are the same concern anyway —
+              what is drawn, and what it means — so one disclosure holds both. */}
+          <div className="flex flex-col gap-1.5 text-[11px] mb-1.5 pb-1.5 border-b border-border/40 items-start">
         <div
           className="rounded-lg px-3 py-2 flex flex-col gap-1.5 text-[11px]"
           style={{ background: GLASS, backdropFilter: "blur(12px)", border: "1px solid var(--ae-line)" }}
@@ -1971,51 +2024,8 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
             {loading ? "ADS-B · FETCHING…" : liveFlights.length === 0 ? "ADS-B · NO FEED" : `ADS-B · ${ageSec}S AGO`}
           </div>
         )}
-      </div>
+          </div>
 
-      {/* Legend — bottom-CENTRE, and centred for a specific reason: the two
-          floating panels are inset from the left and right map edges at z-640,
-          either can be open, and the legend sits at z-400. Bottom-left put it
-          under Events (which opens by default, so the key to the map's whole
-          encoding was invisible on load); bottom-right put it under Recovery
-          (which auto-opens the moment plans arrive). The centre lane is the
-          only horizontal band both panels leave clear.
-          Opaque, not glass: a blurred panel over tiles ranging from pale land
-          to mid-blue water gave its own labels a contrast ratio that changed
-          with whatever happened to be underneath. */}
-      <details
-        className="ae-map-legend absolute z-[400] hidden sm:block"
-        style={{ bottom: 12, left: "50%", transform: "translateX(-50%)" }}
-      >
-        {/* A <details> rather than an always-open card, for two reasons: a
-            16-item key permanently occupying the map is clutter on a surface
-            where every element has to earn its pixel, and collapsed it cannot
-            collide with either floating panel no matter which is open. Native
-            element, so the disclosure is keyboard-operable and announced
-            without any JS or ARIA of ours. Opens upward via bottom-anchoring. */}
-        <summary
-          className="px-3 rounded-lg text-[10px] font-semibold uppercase"
-          style={{
-            background: "var(--ae-surface)", border: "1px solid var(--ae-line)",
-            boxShadow: "var(--ae-shadow-card)", color: "var(--ae-text-2)",
-            letterSpacing: "0.14em", fontFamily: "var(--ae-font-mono)",
-            minHeight: 28, display: "inline-flex", alignItems: "center", gap: 6,
-            cursor: "pointer", listStyle: "none", width: "fit-content", margin: "0 auto",
-          }}
-        >
-          Legend
-        </summary>
-        <div
-          className="px-3 py-2 rounded-lg text-[10px]"
-          style={{
-            position: "absolute", bottom: 34, left: "50%", transform: "translateX(-50%)",
-            // 360px caps the opened panel inside the ~432px lane the two
-            // floating panels leave clear at 1280; wider and its right edge
-            // slid under Recovery, which outranks it in z-order. It wraps.
-            width: "max-content", maxWidth: 360,
-            background: "var(--ae-surface)", border: "1px solid var(--ae-line)", boxShadow: "var(--ae-shadow-card-elev)",
-          }}
-        >
           {/* Airport tiers — the operator's own network, and the reason all
               fifteen airports are now distinguishable from each other and
               from ambient traffic. */}
