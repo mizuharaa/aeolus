@@ -10,15 +10,28 @@
  * network, labelled as such — not real customer claims.
  */
 
-import { useId } from "react"
-
 import { Rise } from "@/components/landing/motion"
 
 const PARTNERS = ["MERIDIAN", "NORTHWIND", "CALDERA AIR", "ALTUS", "VESPER", "HELIOS"]
 
+/**
+ * Static filter ids — deliberately NOT `useId()`.
+ *
+ * `useId` numbers nodes by their position in the React tree, so it only stays
+ * stable if the server and client build the identical tree. Wrapping each
+ * partner name in `<Rise>` changed this subtree's shape and the ids diverged
+ * (`boil-_R_1satmlb_-0` on the client vs `boil-_R_7iatmlb_-0` on the server),
+ * throwing a hydration mismatch on every landing load. LANDING_HANDOFF.md
+ * records the same trap taking `MaskedWordmark` down to a blank screen.
+ *
+ * A literal is safe here because this section renders once per page; if it ever
+ * needs two instances, hash an explicit instanceKey prop rather than reaching
+ * for useId again.
+ */
+const BOIL_ID = "ae-tb-boil"
+
 export function TrustedBy() {
-  const uid = useId().replace(/[:]/g, "")
-  const f = (n: number) => `boil-${uid}-${n}`
+  const f = (n: number) => `${BOIL_ID}-${n}`
 
   return (
     <section
