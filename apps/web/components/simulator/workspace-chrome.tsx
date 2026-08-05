@@ -393,25 +393,58 @@ export function FloatingPanel({
             whileHover={{ scale: 1.04 }}
             whileTap={{ scale: 0.96 }}
             transition={{ duration: 0.2, ease: PANEL_EASE }}
+            className="ae-launcher"
             style={{
+              // Docked: a full-height edge rail. The click target being the
+              // whole column is deliberate (Fitts's law — it is the easiest
+              // target on the screen), but the CONTENT sits at the top rather
+              // than floating in the middle of an 840px strip, which is what
+              // made it read as an unfinished sliver. No card chrome, no
+              // shadow, no asymmetric radius: at full height those made it look
+              // like a collapsed panel that had gone wrong rather than a tab.
               ...(docked
-                ? { position: "relative" as const, flexShrink: 0, alignSelf: "stretch" as const, justifyContent: "center" as const }
-                : { position: "absolute" as const, top: "50%", [side]: 0, transform: "translateY(-50%)", zIndex: 610 }),
+                ? {
+                    position: "relative" as const,
+                    flexShrink: 0,
+                    alignSelf: "stretch" as const,
+                    justifyContent: "flex-start" as const,
+                    paddingTop: 14,
+                    width: 38,
+                    background: "var(--ae-surface)",
+                    [side === "left" ? "borderRight" : "borderLeft"]: `1px solid ${c.hairline}`,
+                  }
+                : {
+                    position: "absolute" as const, top: "50%", [side]: 0,
+                    transform: "translateY(-50%)", zIndex: 610,
+                    justifyContent: "center" as const,
+                    padding: "16px 9px",
+                    background: "var(--ae-surface)",
+                    border: `1px solid ${c.hairline}`,
+                    [side === "left" ? "borderLeft" : "borderRight"]: "none",
+                    borderRadius: side === "left" ? "0 14px 14px 0" : "14px 0 0 14px",
+                    boxShadow: "var(--ae-shadow-card-elev)",
+                  }),
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: 9,
-              padding: "16px 9px",
-              background: "var(--ae-surface)",
-              border: `1px solid ${c.hairline}`,
-              [side === "left" ? "borderLeft" : "borderRight"]: "none",
-              borderRadius: side === "left" ? "0 14px 14px 0" : "14px 0 0 14px",
-              boxShadow: "var(--ae-shadow-card-elev)",
+              gap: 10,
               color: c.ink,
               cursor: "pointer",
+              transition: "background 150ms ease",
             }}
           >
-            <span style={{ display: "inline-flex", color: accent }}>{icon}</span>
+            {/* The icon gets a tinted tile so there is an obvious "press me"
+                at the top of the rail rather than a bare glyph. */}
+            <span
+              style={{
+                display: "inline-flex", alignItems: "center", justifyContent: "center",
+                width: 26, height: 26, borderRadius: 8, flexShrink: 0,
+                background: `color-mix(in srgb, ${accent} 16%, transparent)`,
+                color: accent,
+              }}
+            >
+              {icon}
+            </span>
             <span
               style={{
                 writingMode: "vertical-rl",

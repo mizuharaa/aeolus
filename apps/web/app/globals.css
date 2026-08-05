@@ -1031,9 +1031,20 @@
   line-height: 1.3;
 }
 .ae-event-row:hover .ae-event-idx { color: var(--ae-amber-ink); }
-.ae-event-row[data-selected="true"] { background: var(--ae-text); border-bottom-color: var(--ae-text); }
-.ae-event-row[data-selected="true"] .ae-event-name { color: var(--ae-bg); }
-.ae-event-row[data-selected="true"] .ae-event-idx { color: var(--ae-amber); }
+/* Selection is a TINT plus a pigment edge, not a full ink inversion. Inverted,
+   the highlighted row of a 21-item picker was the single darkest, heaviest
+   object on an airline disruption console — louder than an active disruption,
+   louder than the Commit control. Choosing which event to look at is a
+   reversible, low-stakes act and should not out-shout every consequence on the
+   screen. The row still reads as selected: tinted fill, amber left edge, ink
+   name at full weight. */
+.ae-event-row[data-selected="true"] {
+  background: var(--ae-amber-bg);
+  border-bottom-color: var(--ae-line);
+  box-shadow: inset 3px 0 0 var(--ae-amber);
+}
+.ae-event-row[data-selected="true"] .ae-event-name { color: var(--ae-text); font-weight: 650; }
+.ae-event-row[data-selected="true"] .ae-event-idx { color: var(--ae-amber-ink); }
 
 /* Nav clutter guards — the ops bar sheds detail before it ever overlaps:
    accrued-burn text goes first, the whole meter collapses to rate-only. */
@@ -1214,3 +1225,9 @@
 .ae-map-legend > summary::after { content: "▲"; font-size: 7px; opacity: 0.55; }
 .ae-map-legend[open] > summary::after { content: "▼"; }
 .ae-map-legend > summary:hover { border-color: var(--ae-line-strong) !important; }
+
+/* Collapsed side-panel launcher — a full-height edge rail whose content sits at
+   the top. The whole column is the target; hover tints it so that reads as
+   intentional rather than as a dead sliver. */
+.ae-launcher:hover { background: var(--ae-surface-2) !important; }
+.ae-launcher:focus-visible { outline: 2px solid var(--ae-focus); outline-offset: -2px; }

@@ -1,5 +1,5 @@
 "use client"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import dynamic from "next/dynamic"
 import { motion, AnimatePresence } from "framer-motion"
 import { Loader2, X } from "lucide-react"
@@ -115,16 +115,12 @@ export default function SimulatorPage() {
   // Recovery plans arrive for a new disruption → float the Recovery panel out
   // once per event wave (the user can close it; it won't nag again for the
   // same wave). Committing a plan leaves it to the user.
-  const autoOpenedFor = useRef("")
-  useEffect(() => {
-    const sig = activeEvents.map((e) => e.id).sort().join("|")
-    if (sig && recoveryPlans.length > 0 && !appliedPlanId && sig !== autoOpenedFor.current) {
-      autoOpenedFor.current = sig
-      setRightOpen(true)
-      if (window.matchMedia("(max-width: 1500px)").matches) setLeftOpen(false)
-    }
-    if (!sig) autoOpenedFor.current = ""
-  }, [activeEvents, recoveryPlans.length, appliedPlanId])
+  // The Recovery panel does NOT auto-open. It used to, and combined with the
+  // panel defaulting to inspect plan A, that made a full plan analysis appear
+  // unbidden with one plan visually dominant — read, reasonably, as "a plan was
+  // auto-applied on load". Nothing should look decided until someone decides.
+  // The launcher tab carries a count badge instead: discoverable, unmissable,
+  // and it asserts nothing about the outcome.
 
   // Inspecting a flight (sim or live) closes the drawers so the detail card
   // owns the map edge with no overlap.

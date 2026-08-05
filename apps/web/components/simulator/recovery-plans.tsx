@@ -147,21 +147,29 @@ function DecisionMatrix({
               const applied = p.plan_id === appliedId
               return (
                 <th key={p.plan_id} style={{ width: cellW, padding: 0 }}>
-                  {/* Plan tab — the selected tab is PUNCHED OUT: ink slab,
-                      paper text, full contrast. Applied carries teal. */}
+                  {/* Visual weight follows CONSEQUENCE, not curiosity.
+                      This was inverted: the INSPECTED tab was a punched-out ink
+                      slab — the heaviest treatment in the panel — while the
+                      APPLIED plan got a 3px border. Since inspection defaults
+                      to the first plan, merely opening this panel made plan A
+                      look committed, and it was read as "a plan auto-applied on
+                      load". Applied now owns the filled slab; inspecting is an
+                      outline, which is what a reversible act should look like. */}
                   <button
                     onClick={() => onSelect(p.plan_id)}
                     aria-pressed={sel}
-                    title={`${meta.label} — inspect`}
+                    aria-current={applied ? "true" : undefined}
+                    title={applied ? `${meta.label} — applied` : `${meta.label} — inspect`}
                     style={{
                       width: "100%",
                       padding: "12px 2px 10px",
                       border: "none",
                       borderBottom: `3px solid ${applied ? "var(--ae-teal)" : sel ? "var(--ae-text)" : "var(--ae-line)"}`,
-                      background: sel ? "var(--ae-text)" : "transparent",
+                      background: applied ? "var(--ae-teal)" : "transparent",
+                      boxShadow: !applied && sel ? "inset 0 0 0 1.5px var(--ae-text)" : undefined,
                       borderRadius: "10px 10px 0 0",
                       cursor: "pointer",
-                      transition: "background 140ms ease, border-color 140ms ease",
+                      transition: "background 140ms ease, border-color 140ms ease, box-shadow 140ms ease",
                     }}
                   >
                     <span
@@ -172,7 +180,8 @@ function DecisionMatrix({
                         fontSize: 22,
                         lineHeight: 1,
                         letterSpacing: "-0.01em",
-                        color: sel ? "var(--ae-bg)" : c.ink,
+                        // Follows the FILL, which is now `applied`, not `sel`.
+                        color: applied ? "var(--ae-on-primary)" : c.ink,
                       }}
                     >
                       {p.plan_id}
@@ -186,9 +195,7 @@ function DecisionMatrix({
                         letterSpacing: "0.14em",
                         textTransform: "uppercase",
                         marginTop: 4,
-                        color: sel
-                          ? (applied ? "var(--ae-teal)" : "var(--ae-bg)")
-                          : applied ? "var(--ae-teal-ink)" : c.muted,
+                        color: applied ? "var(--ae-on-primary)" : sel ? c.ink : c.muted,
                       }}
                     >
                       {applied ? "Applied" : meta.short}
