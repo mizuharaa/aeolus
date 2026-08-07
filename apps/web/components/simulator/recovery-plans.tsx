@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -291,6 +291,22 @@ function PlanLedger({
   // Inline rather than a modal: DESIGN.md treats modals as a last resort and a
   // dispatcher should not lose sight of the map to confirm.
   const [armed, setArmed] = useState(false)
+  const confirmRef = useRef<HTMLDivElement>(null)
+  const commitRef = useRef<HTMLButtonElement>(null)
+
+  // Mouse users get the old dismiss-on-look-away behaviour without keyboard
+  // users losing focus: disarm only when the pointer goes down somewhere that
+  // is neither the button nor the confirmation banner.
+  useEffect(() => {
+    if (!armed) return
+    const onDown = (e: PointerEvent) => {
+      const t = e.target as Node
+      if (confirmRef.current?.contains(t) || commitRef.current?.contains(t)) return
+      setArmed(false)
+    }
+    document.addEventListener("pointerdown", onDown, true)
+    return () => document.removeEventListener("pointerdown", onDown, true)
+  }, [armed])
   // Disarm whenever the inspected plan changes, so an arm on plan B can never
   // be spent on plan C.
   useEffect(() => setArmed(false), [plan.plan_id, isApplied])
@@ -320,11 +336,20 @@ function PlanLedger({
           <div style={{ ...type("bodyMd", c.muted), fontSize: 12.5, marginTop: 2 }}>{meta.sublabel}</div>
         </div>
         <button
+          ref={commitRef}
           onClick={() => {
             if (isApplied || armed) { setArmed(false); onApply(); return }
             setArmed(true)
           }}
-          onBlur={() => setArmed(false)}
+          // NO onBlur disarm. It was here to keep the armed state from lingering,
+          // but Tab from the armed button then removed the role="alert" banner
+          // AND dropped focus to <body> — so a keyboard or screen-reader operator
+          // could never read the consequence statement before confirming, and
+          // could never reach the banner's own Cancel button. Focus loss on an
+          // irreversible action is worse than a lingering armed state. Escape
+          // still disarms, the banner's Cancel disarms, and the effect on
+          // [plan.plan_id, isApplied] already prevents an arm leaking to another
+          // plan; a pointerdown outside handles the mouse case.
           onKeyDown={(e) => { if (e.key === "Escape" && armed) { e.stopPropagation(); setArmed(false) } }}
           aria-label={
             isApplied
@@ -363,6 +388,7 @@ function PlanLedger({
       <AnimatePresence>
         {armed && !isApplied && (
           <motion.div
+            ref={confirmRef}
             role="alert"
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
@@ -418,7 +444,9 @@ function PlanLedger({
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
           <span style={{ fontSize: 12, color: c.muted }}>Est. total cost</span>
-          <LiveCostDisplay plan={plan} size="md" />
+          {/* Frozen while armed so it agrees with the confirmation banner to
+              the dollar — see the note on `frozenCost`. */}
+          <LiveCostDisplay plan={plan} size="md" frozenCost={armed ? totalCostUsd : null} />
         </div>
 
         {cb && cb.grand_total_usd > 0 && (
