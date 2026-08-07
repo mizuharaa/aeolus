@@ -114,7 +114,7 @@ export function CascadeTimeline({
               plus a 5-swatch legend cost 64px of a 192px dock, i.e. a third of
               the region, before a single flight row. */}
           <div style={{ display: "flex", alignItems: "baseline", gap: sp.xs, minWidth: 0 }}>
-            <span style={{ ...type("titleMd", c.ink), fontSize: 14.5, whiteSpace: "nowrap" }}>Cascade Timeline</span>
+            <h2 style={{ ...type("titleMd", c.ink), fontSize: 14.5, whiteSpace: "nowrap", margin: 0 }}>Cascade Timeline</h2>
             <span style={{ ...type("caption", c.muted), fontSize: 10.5, fontFamily: ff.mono, whiteSpace: "nowrap" }}>
               18h · UTC{affectedCount > 0 ? ` · ${affectedCount} affected` : ""}
             </span>

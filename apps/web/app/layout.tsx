@@ -97,6 +97,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             position="bottom-right"
             closeButton
             offset={16}
+            // expand: without it Sonner renders a COLLAPSED stack and every
+            // toast's close button lands on the same 20x20 square, so only the
+            // front one is clickable and the rest are unreachable by pointer.
+            expand
             toastOptions={{
               style: {
                 fontFamily: 'Inter, "Inter Display", system-ui, sans-serif',

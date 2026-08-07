@@ -118,6 +118,7 @@ export function FlightSearch({ selectedFlight, onSelect }: Props) {
     <div ref={wrapRef} style={{ position: "relative", width: "100%", fontFamily: ff.body }}>
       {/* Search input */}
       <div
+        className="ae-search-shell"
         style={{
           display: "flex",
           alignItems: "center",
@@ -154,6 +155,10 @@ export function FlightSearch({ selectedFlight, onSelect }: Props) {
             flex: 1,
             minHeight: 32, // was rendering at 21px
             background: "transparent",
+            // The wrapper draws the ring (see .ae-search-shell in globals.css).
+            // This input previously set outline:none with NOTHING replacing it,
+            // so the most-used control on the console had no focus indicator at
+            // all — not a weak one, none.
             outline: "none",
             border: "none",
             fontSize: 14,

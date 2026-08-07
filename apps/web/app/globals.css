@@ -1231,3 +1231,27 @@
    intentional rather than as a dead sliver. */
 .ae-launcher:hover { background: var(--ae-surface-2) !important; }
 .ae-launcher:focus-visible { outline: 2px solid var(--ae-focus); outline-offset: -2px; }
+
+/* Flight search — the input sets `outline: none` so the whole shell can carry
+   one ring instead of a rectangle inside a rounded box. Without this rule the
+   most-used control on the console had NO focus indicator at all. Also fixes
+   the 16 controls that were falling through to Tailwind's `outline-ring/50`
+   (globals.css base layer), which composites to 2.28:1 — under 1.4.11's 3:1. */
+.ae-search-shell:focus-within {
+  outline: 2px solid var(--ae-focus);
+  outline-offset: 2px;
+  border-color: var(--ae-focus) !important;
+}
+.simulator-shell :is(a, button, [role="button"], select, input, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--ae-focus);
+  outline-offset: 2px;
+}
+
+/* Sonner's close button ships at 20x20, under WCAG 2.2 SC 2.5.8's 24x24 floor.
+   Measured 3-4 of them stacked on the identical rect, so only the front one was
+   clickable; `expand` on the Toaster separates the stack, this gives each one a
+   real target. */
+[data-sonner-toast] [data-close-button] {
+  width: 26px;
+  height: 26px;
+}

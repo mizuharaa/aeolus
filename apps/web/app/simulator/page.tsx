@@ -102,9 +102,18 @@ export default function SimulatorPage() {
   // Restore prefs.
   useEffect(() => {
     try {
-      if (localStorage.getItem("aeolus-left-open")   === "0") setLeftOpen(false)
-      if (localStorage.getItem("aeolus-left-open")   === "1") setLeftOpen(true)
-      if (localStorage.getItem("aeolus-right-open")  === "1") setRightOpen(true)
+      const wantLeft  = localStorage.getItem("aeolus-left-open") === "1"
+      const wantRight = localStorage.getItem("aeolus-right-open") === "1"
+      // Restore must obey the same mutual exclusion as openLeft/openRight.
+      // It did not, so a reload could put BOTH panels up in overlay mode and
+      // they overlapped each other by 122x362 at 720x450 — each is capped
+      // against the container and never against its sibling (356 + 392 = 748
+      // into 654px). Same class of defect as the docked branch's 128px overlap,
+      // reachable by reload rather than resize, which is why fixing the toggle
+      // handlers alone did not retire it.
+      const tightNow = window.matchMedia("(max-width: 1500px)").matches
+      if (localStorage.getItem("aeolus-left-open") !== null) setLeftOpen(wantLeft)
+      if (wantRight && !(tightNow && wantLeft)) setRightOpen(true)
       if (localStorage.getItem("aeolus-bottom-open") === "0") setBottomOpen(false)
     } catch {}
   }, [])
@@ -286,7 +295,10 @@ export default function SimulatorPage() {
              because all extra viewport went to the basemap. The Gantt is where
              cause, propagation and time are legible at once; the map answers
              "where", once per incident. Drag the divider to rebalance. */}
-      <div
+      {/* <main>, not <div>. The console had NO main landmark and zero headings
+          across 78 tab stops, so a screen-reader user had no document outline
+          to navigate and "skip to main content" had nowhere to go. */}
+      <main
         style={{ flex: 1, minHeight: 0, position: "relative", display: "flex", overflow: "hidden" }}
       >
         {/* Events — docked track, left */}
@@ -409,7 +421,7 @@ export default function SimulatorPage() {
         >
           <RecoveryPlans selectedFlight={selectedFlight} onFlightSelect={handleFlightSelect} />
         </FloatingPanel>
-      </div>
+      </main>
 
     </div>
   )

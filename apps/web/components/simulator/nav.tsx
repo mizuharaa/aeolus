@@ -90,6 +90,7 @@ export function SimulatorNav({ isConnected }: SimulatorNavProps) {
 
   return (
     <nav
+      aria-label="Operations status and controls"
       style={{
         height: 60,
         display: "flex",
@@ -109,7 +110,8 @@ export function SimulatorNav({ isConnected }: SimulatorNavProps) {
       {/* ── Context label (brand lives in the left rail) ── */}
       <div style={{ display: "flex", alignItems: "center", gap: 11, flexShrink: 0 }}>
         <Plane aria-hidden style={{ width: 16, height: 16, color: c.ink }} strokeWidth={2} />
-        <span
+        {/* h1 — the page had no h1, so the panel h2s hung off nothing. */}
+        <h1
           style={{
             fontFamily: ff.display,
             fontWeight: 700,
@@ -118,10 +120,11 @@ export function SimulatorNav({ isConnected }: SimulatorNavProps) {
             letterSpacing: "-0.01em",
             whiteSpace: "nowrap",
             color: c.ink,
+            margin: 0,
           }}
         >
           Nimbus Air OCC
-        </span>
+        </h1>
         <span
           className="ae-nav-subtitle"
           style={{

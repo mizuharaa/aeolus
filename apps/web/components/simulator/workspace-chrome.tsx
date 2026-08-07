@@ -183,9 +183,12 @@ export function PanelHeader({
         </span>
       )}
       <div style={{ minWidth: 0, flex: 1 }}>
-        <div style={{ fontFamily: ff.display, fontWeight: 650, fontSize: 14.5, color: c.ink, letterSpacing: "-0.01em", lineHeight: 1.1 }}>
+        {/* h2, not div: every panel title is a real section heading. The
+            console shipped with zero headings, so screen-reader heading
+            navigation — the primary wayfinding mechanism — did not exist. */}
+        <h2 style={{ fontFamily: ff.display, fontWeight: 650, fontSize: 14.5, color: c.ink, letterSpacing: "-0.01em", lineHeight: 1.1, margin: 0 }}>
           {title}
-        </div>
+        </h2>
         {subtitle && (
           <div style={{ fontFamily: ff.mono, fontSize: 10, letterSpacing: "0.06em", color: c.muted, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {subtitle}

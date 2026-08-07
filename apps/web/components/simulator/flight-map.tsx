@@ -1928,7 +1928,14 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
             // Holds layers AND key now, and the map is a 300px locator, so the
             // opened panel has to be bounded or it runs past the map's top edge
             // and under the search bar.
-            maxHeight: 236, overflowY: "auto",
+            // 186, not 236. The map is capped at 300px and the search bar owns
+            // y72-116 across the centre; a panel expanding upward from
+            // bottom:12 with maxHeight 236 reached y=78 and put its first key
+            // row under the search at EVERY viewport (measured 233x38, or
+            // 316x38 during a disruption). 186 lands its top at ~162, clear of
+            // the band. Both are centred on the same narrow map, so height is
+            // the only lever that works at all widths.
+            maxHeight: 186, overflowY: "auto",
             background: "var(--ae-surface)", border: "1px solid var(--ae-line)", boxShadow: "var(--ae-shadow-card-elev)",
           }}
         >
