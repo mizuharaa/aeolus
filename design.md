@@ -80,8 +80,20 @@ either without re-running the contrast gate.
 | lavender | `--ae-sky #8B6FD0` | atmosphere |
 | gold | `--ae-amber #B8863C` | events, ops status, delayed |
 | rose | `--ae-rose #C13A6B` | disruption energy |
+| ops blue | `#1C6FA8` (map literal) | a flight that is OPERATING — in the air, on its trajectory |
 
-- **Cancelled is NEVER a hue**: neutral + strike / ✕ / dashed edge.
+- **Cancelled is NEVER a hue**: neutral + strike / ✕ / dashed edge. It is a PALE
+  GHOST (`#C9CCC9` disc, dark dashed border, dark glyph), not a solid mid-grey
+  disc — "no longer operating" should recede, and the old mid-grey sat at 1.14:1
+  against the operating blue, i.e. separable by hue but identical in lightness.
+- **Operating is blue; grey belongs to cancelled alone.** Grey previously meant
+  three different things — owned nominal, ambient traffic, and cancelled — so
+  "not flying" had no colour of its own. Hue 204 was chosen against the rest of
+  the palette, not by eye: 52 degrees off plum, 31 off the airport teals, 168 off
+  the amber cascade ramp. Operating stays LIGHTER than cascade-direct (5.10 vs
+  7.05 on the basemap) so a nominal flight can never out-weigh a disrupted one.
+  Ambient other-carrier traffic is the same family one step quieter (`#8FB0C9`,
+  2.15:1) and must stay >=3:1 clear of the faintest airport tier.
 - **Cascade severity has ONE source**: the `cascade` ramp in
   `lib/design-tokens.ts`, imported by both the timeline and the map. It varies
   LIGHTNESS, not alpha — an alpha ramp faint enough to read as "less severe"
