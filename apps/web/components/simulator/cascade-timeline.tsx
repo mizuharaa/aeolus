@@ -12,15 +12,33 @@ const HOURS = Array.from({ length: 18 }, (_, i) => i + 6) // 6:00–23:00 UTC
 // previous version of this function hardcoded its own steps under a comment
 // claiming they were "the same vocabulary as the map markers" — they were
 // not, and that mismatch is why the legend taught the wrong key.
-function getBarColor(status: string, cascadeOrder: number): { bg: string; border: string; dashed?: boolean } {
-  // Cancelled is never a hue (DESIGN.md) — neutral fill plus a dashed edge.
-  if (status === "cancelled") {
-    return { bg: cascade.cancelled.fill, border: cascade.cancelled.border, dashed: true }
-  }
-  if (cascadeOrder === 0) return { bg: cascade.direct.fill, border: cascade.direct.border }
-  if (cascadeOrder === 1) return { bg: cascade.order1.fill, border: cascade.order1.border }
-  if (cascadeOrder === 2) return { bg: cascade.order2.fill, border: cascade.order2.border }
-  return { bg: cascade.none.fill, border: cascade.none.border } // nominal — quiet
+/**
+ * SEVERITY AND CANCELLATION ARE ORTHOGONAL, AND MUST NOT SHARE A CHANNEL.
+ *
+ * This function used to return the cancelled treatment BEFORE it read
+ * `cascadeOrder`. In a real incident most affected flights end up cancelled —
+ * measured on a KORD severe closure: 65 of 67 — so every bar took the cancelled
+ * branch and the three-step severity ramp rendered on ZERO of 80 bars, while
+ * the legend directly above it taught five marks. The one encoding this product
+ * exists to communicate was unreachable in its own steady state.
+ *
+ * Severity now always drives the FILL. Cancellation is a separate flag drawn as
+ * a hatch + strike over that fill, which also satisfies design.md's "cancelled
+ * is never a hue" without spending the colour channel on it.
+ */
+function getBarColor(
+  status: string,
+  cascadeOrder: number,
+): { bg: string; border: string; cancelled: boolean } {
+  const cancelled = status === "cancelled"
+  if (cascadeOrder === 0) return { bg: cascade.direct.fill, border: cascade.direct.border, cancelled }
+  if (cascadeOrder === 1) return { bg: cascade.order1.fill, border: cascade.order1.border, cancelled }
+  if (cascadeOrder === 2) return { bg: cascade.order2.fill, border: cascade.order2.border, cancelled }
+  // Not in the cascade. A cancelled flight still has to read as cancelled, so
+  // it keeps the neutral; an operating one is the quiet nominal step.
+  return cancelled
+    ? { bg: cascade.cancelled.fill, border: cascade.cancelled.border, cancelled }
+    : { bg: cascade.none.fill, border: cascade.none.border, cancelled }
 }
 
 function parseHourUTC(isoStr: string): number {
@@ -56,8 +74,14 @@ export function CascadeTimeline({
     const affected = withState
       .filter((f) => f.state.cascade_order >= 0)
       .sort((a, b) => a.state.cascade_order - b.state.cascade_order)
-    const others = withState.filter((f) => f.state.cascade_order < 0).slice(0, 18)
-    return [...affected, ...others].slice(0, 40)
+    const others = withState.filter((f) => f.state.cascade_order < 0).slice(0, 12)
+    // EVERY affected flight is rendered. The old `.slice(0, 40)` silently hid
+    // 27 of 67 on a severe closure — and because the list is sorted by cascade
+    // order, the 40 that survived were ALL direct hits, so the 1st- and
+    // 2nd-order steps of the ramp never appeared on screen even once. The
+    // truncation was hiding exactly the propagation the operator came to read.
+    // The scroller handles the length; the header states the count.
+    return [...affected, ...others]
   }, [flightStates, schedule])
 
   // Is anything actually disrupted? The back-fill above always supplies 18
@@ -91,7 +115,9 @@ export function CascadeTimeline({
               the region, before a single flight row. */}
           <div style={{ display: "flex", alignItems: "baseline", gap: sp.xs, minWidth: 0 }}>
             <span style={{ ...type("titleMd", c.ink), fontSize: 14.5, whiteSpace: "nowrap" }}>Cascade Timeline</span>
-            <span style={{ ...type("caption", c.muted), fontSize: 10.5, fontFamily: ff.mono, whiteSpace: "nowrap" }}>18h · UTC</span>
+            <span style={{ ...type("caption", c.muted), fontSize: 10.5, fontFamily: ff.mono, whiteSpace: "nowrap" }}>
+              18h · UTC{affectedCount > 0 ? ` · ${affectedCount} affected` : ""}
+            </span>
           </div>
 
           {/* Legend — literally the same ramp object the bars and the map
@@ -106,8 +132,11 @@ export function CascadeTimeline({
             <LegendSwatch step={cascade.direct} label="Direct hit" />
             <LegendSwatch step={cascade.order1} label="1st order" />
             <LegendSwatch step={cascade.order2} label="2nd order" />
-            <LegendSwatch step={cascade.cancelled} label="Cancelled" dashed />
             <LegendSwatch step={cascade.none} label="On time" />
+            {/* Cancelled is a PATTERN, not a colour — it overlays whichever
+                severity fill the flight already has, so it cannot be a swatch
+                in the same series as the ramp. */}
+            <LegendSwatch step={cascade.none} label="Cancelled" hatched />
           </div>
         </div>
       </div>
@@ -205,7 +234,10 @@ export function CascadeTimeline({
             const widthPct = Math.max(1.2, ((newArr - newDep) / 18) * 100)
             const isSelected = selectedFlight === flight.id
             const palette = getBarColor(flight.state.status, flight.state.cascade_order)
-            const zebra = rowIdx % 2 === 0 ? c.canvas : c.surfaceSoft
+            // Zebra striping removed. It was a third near-identical beige
+            // behind bars that are now genuinely coloured, and measured 1.01:1
+            // against the cancelled fill — the rows read as banding, not data.
+            // Row separation is carried by the hairline below.
 
             return (
               <div
@@ -217,7 +249,7 @@ export function CascadeTimeline({
                   borderBottom: `1px solid ${c.hairline}`,
                   cursor: "pointer",
                   minHeight: 46,
-                  background: isSelected ? "var(--ae-teal-bg)" : zebra,
+                  background: isSelected ? "var(--ae-teal-bg)" : c.canvas,
                   boxShadow: isSelected ? "inset 0 0 0 1px var(--ae-teal)" : undefined,
                 }}
               >
@@ -230,7 +262,7 @@ export function CascadeTimeline({
                     flexDirection: "column",
                     justifyContent: "center",
                     borderRight: `1px solid ${c.hairline}`,
-                    background: zebra,
+                    background: c.canvas,
                   }}
                 >
                   <span
@@ -258,7 +290,7 @@ export function CascadeTimeline({
                   </span>
                 </div>
 
-                <div style={{ flex: 1, position: "relative", minHeight: 46, background: zebra }}>
+                <div style={{ flex: 1, position: "relative", minHeight: 46 }}>
                   {HOURS.filter((_, i) => i % 3 === 0).map((h) => (
                     <div
                       key={h}
@@ -288,6 +320,10 @@ export function CascadeTimeline({
                     />
                   )}
 
+                  {/* The bar carries SEVERITY in its fill. Cancellation is drawn
+                      on top as a hatch + strike, so the two facts occupy
+                      different channels and a cancelled direct-hit still reads
+                      as a direct hit. */}
                   <motion.div
                     style={{
                       position: "absolute",
@@ -295,18 +331,44 @@ export function CascadeTimeline({
                       bottom: 8,
                       borderRadius: r.sm,
                       background: palette.bg,
-                      border: `1px ${palette.dashed ? "dashed" : "solid"} ${palette.border}`,
+                      border: `1px ${palette.cancelled ? "dashed" : "solid"} ${palette.border}`,
                       left: `${leftPct}%`,
                       width: `${widthPct}%`,
                       minWidth: 6,
+                      overflow: "hidden",
                       boxShadow: isSelected ? `0 0 0 2px ${c.canvas}, 0 0 0 3.5px var(--ae-teal)` : undefined,
                     }}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     title={`${flight.id} ${flight.origin}→${flight.destination}${
-                      flight.state.delay_minutes > 0 ? ` (+${flight.state.delay_minutes}m)` : ""
+                      palette.cancelled ? " — CANCELLED" : ""
+                    }${flight.state.delay_minutes > 0 ? ` (+${flight.state.delay_minutes}m)` : ""}${
+                      flight.state.cascade_order === 0 ? " · direct hit"
+                      : flight.state.cascade_order === 1 ? " · 1st-order cascade"
+                      : flight.state.cascade_order === 2 ? " · 2nd-order cascade" : ""
                     }`}
-                  />
+                  >
+                    {palette.cancelled && (
+                      <>
+                        {/* diagonal hatch — a pattern, not a hue */}
+                        <span
+                          aria-hidden
+                          style={{
+                            position: "absolute", inset: 0,
+                            backgroundImage: `repeating-linear-gradient(45deg, ${cascade.cancelled.border}00 0 3px, ${cascade.cancelled.border}80 3px 5px)`,
+                          }}
+                        />
+                        {/* strike — the same "struck out" mark the map marker uses */}
+                        <span
+                          aria-hidden
+                          style={{
+                            position: "absolute", left: 2, right: 2, top: "50%",
+                            height: 1.5, background: cascade.cancelled.border, transform: "translateY(-50%)",
+                          }}
+                        />
+                      </>
+                    )}
+                  </motion.div>
                 </div>
               </div>
             )
@@ -323,22 +385,27 @@ export function CascadeTimeline({
 function LegendSwatch({
   step,
   label,
-  dashed,
+  hatched,
 }: {
   step: { fill: string; border: string }
   label: string
-  dashed?: boolean
+  hatched?: boolean
 }) {
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 8, whiteSpace: "nowrap" }}>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
       <span
         style={{
-          width: 24,
+          position: "relative",
+          width: 22,
           height: 12,
           borderRadius: r.sm,
           background: step.fill,
-          border: `1px ${dashed ? "dashed" : "solid"} ${step.border}`,
+          border: `1px ${hatched ? "dashed" : "solid"} ${step.border}`,
           flexShrink: 0,
+          overflow: "hidden",
+          backgroundImage: hatched
+            ? `repeating-linear-gradient(45deg, ${step.border}00 0 3px, ${step.border}80 3px 5px)`
+            : undefined,
         }}
       />
       {label}
