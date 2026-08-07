@@ -16,7 +16,7 @@ import { apiClient } from "@/lib/api"
 import { hydrateAirportTiers } from "@/components/simulator/airports"
 import { c, ff, r, sp } from "@/lib/design-tokens"
 import { useResizable, ResizeHandle, FloatingPanel } from "@/components/simulator/workspace-chrome"
-import { CloudLightning, Waypoints, PanelBottomClose } from "lucide-react"
+import { CloudLightning, Waypoints, PanelBottomClose, AlertTriangle } from "lucide-react"
 
 const FlightMap = dynamic(() => import("@/components/simulator/flight-map"), {
   ssr: false,
@@ -155,33 +155,58 @@ export default function SimulatorPage() {
     if (id) setSelectedLiveFlight(null)
   }
 
-  // Paint instantly from cache, then refresh from the API — kills the long
-  // cold boot where the map sat empty waiting on the schedule roundtrip.
+  // Boot failures are SURFACED, not swallowed. Every one of these three calls
+  // used to end in `.catch(() => {})`, which is how `/network/aircraft` 404'd
+  // on every single load for an unknown length of time without anyone noticing
+  // — and, worse, why a dispatcher looking at an empty map could not tell "no
+  // disruptions" from "the API is down". Both render identically when the
+  // failure is silent. Degrading gracefully is right; degrading invisibly is
+  // not. `feedErrors` names the feeds that actually failed so the banner can
+  // say which, and `bootNonce` lets Retry re-run them.
+  const [feedErrors, setFeedErrors] = useState<string[]>([])
+  const [bootNonce, setBootNonce] = useState(0)
+
   useEffect(() => {
     hydrateStaticFromCache()
-    apiClient
+    let cancelled = false
+    const failed: string[] = []
+    const note = (feed: string) => (err: unknown) => {
+      if (cancelled) return
+      failed.push(feed)
+      // Kept in the console too: the banner tells the operator something is
+      // wrong, the console tells an engineer what.
+      console.error(`[aeolus] ${feed} feed failed:`, err)
+    }
+
+    const schedule = apiClient
       .get<{ flights?: ScheduledFlight[] } | ScheduledFlight[]>("/simulator/schedule")
       .then((res) => {
         const d = res.data
         const list = Array.isArray(d) ? d : d?.flights
         if (list && list.length) setSchedule(list)
       })
-      .catch(() => {})
-    // "/aircraft", not "/network/aircraft" — the latter 404s on every load,
-    // so the fleet silently never arrived. The API mounts this router without
-    // a prefix (apps/api/src/routes/network.py).
-    apiClient
+      .catch(note("Schedule"))
+
+    // "/aircraft", not "/network/aircraft" — the latter 404s. The API mounts
+    // this router without a prefix (apps/api/src/routes/network.py).
+    const fleet = apiClient
       .get<{ aircraft?: FleetAircraft[] }>("/aircraft")
       .then((res) => { const a = res.data?.aircraft; if (a && a.length) setFleet(a) })
-      .catch(() => {})
+      .catch(note("Fleet"))
+
     // Airport tiers come from the network itself, so adding an airport to the
-    // YAML is enough — nothing here needs editing. Falls back to the bundled
-    // tiers if the call fails, which is why nothing is awaited on it.
-    apiClient
+    // YAML is enough. The bundled tiers are a genuine fallback, so this one
+    // degrades quietly in the UI — but it is still reported to the console.
+    const airports = apiClient
       .get<{ airports?: { id: string; hub_type?: string }[] }>("/airports")
       .then((res) => hydrateAirportTiers(res.data?.airports))
-      .catch(() => {})
-  }, [setSchedule, setFleet, hydrateStaticFromCache])
+      .catch(note("Airports"))
+
+    void Promise.allSettled([schedule, fleet, airports]).then(() => {
+      if (!cancelled) setFeedErrors(failed)
+    })
+    return () => { cancelled = true }
+  }, [setSchedule, setFleet, hydrateStaticFromCache, bootNonce])
 
   return (
     // overflow:hidden + fixed height. Measured before: 552px of a 1352px
@@ -202,6 +227,46 @@ export default function SimulatorPage() {
       <div style={{ flexShrink: 0 }}>
         <SimulatorNav isConnected={isConnected} affectedCount={activeEvents.length} />
       </div>
+
+      {/* Degraded-feed banner. role="status" not "alert": the console is still
+          usable on cached data, so this informs without seizing focus mid-task.
+          It names WHICH feed failed, because "something went wrong" leaves the
+          operator unable to judge whether what they are looking at is
+          trustworthy — and it offers the retry rather than requiring a reload
+          that would also discard their panel layout and map viewport. */}
+      {feedErrors.length > 0 && (
+        <div
+          role="status"
+          style={{
+            flexShrink: 0,
+            display: "flex", alignItems: "center", gap: sp.sm,
+            padding: `${sp.xs}px ${sp.md}px`,
+            background: "var(--ae-amber-bg)",
+            borderBottom: `1px solid var(--ae-amber)`,
+            color: c.ink, fontFamily: ff.body, fontSize: 13,
+          }}
+        >
+          <AlertTriangle style={{ width: 15, height: 15, color: "var(--ae-amber-ink)", flexShrink: 0 }} strokeWidth={2} />
+          <span>
+            <strong style={{ fontWeight: 650 }}>
+              {feedErrors.join(" and ")} {feedErrors.length > 1 ? "feeds are" : "feed is"} unavailable.
+            </strong>{" "}
+            Showing the last known data — figures may be stale.
+          </span>
+          <button
+            type="button"
+            onClick={() => { setFeedErrors([]); setBootNonce((n) => n + 1) }}
+            style={{
+              marginLeft: "auto", minHeight: 32, padding: `0 ${sp.sm}px`,
+              fontSize: 12.5, fontWeight: 600, fontFamily: ff.body,
+              borderRadius: r.sm, border: `1px solid var(--ae-amber-ink)`,
+              background: "transparent", color: "var(--ae-amber-ink)", cursor: "pointer",
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       {/* ── Workspace ────────────────────────────────────────────────────
           A fixed three-track row: Events | (map over timeline) | Recovery.
