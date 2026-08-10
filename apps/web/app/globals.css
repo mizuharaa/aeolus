@@ -469,14 +469,43 @@
   box-shadow: inset 0 0 0 3px var(--ae-focus);
 }
 .simulator-map-shell .leaflet-control-container { z-index: 1000; }
-/* Push the top-right zoom control BELOW the map's focus/expand button so the
-   two no longer overlap (they both live in the top-right corner). */
-.simulator-map-shell .leaflet-top.leaflet-right { margin-top: 52px; }
+/* The top-right instrument column's offset has exactly ONE owner: the
+   `.leaflet-control-zoom` margin further down this file. A 52px margin used to
+   sit here as well, so the corner carried 52 + 60 = 112px of clearance for a
+   40px focus/expand button that has since been removed entirely — and a third
+   margin was briefly added on top of that. Stacked reservations for a departed
+   component are why the zoom buttons drifted 68px away from the control above
+   them. Adjust the zoom margin, not this. */
 
-/* Voyager arrives warm; cool it slightly so route/status pigments own
-   the chroma on the canvas. */
-.leaflet-tile {
-  filter: saturate(0.82) brightness(1.02);
+/* PAPER STOCK for the flat basemap, so the two projections are the same
+   material.
+
+   This rule used to read "Voyager arrives warm; cool it slightly" — correct
+   for Voyager, and exactly backwards now. The basemap is Positron, which
+   arrives NEUTRAL GREY-WHITE, and cooling it further left the flat map cold
+   next to a warm-paper globe and a warm-paper console. Sepia tints the grey
+   toward the beige the rest of the page is printed on; saturate keeps the
+   basemap's remaining chroma from competing with the semantic pigments, which
+   is the one part of the original intent that still holds.
+
+   IT MUST GO ON THE PANE, NOT ON `.leaflet-tile`. Leaflet's own stylesheet
+   declares `.leaflet-tile { filter: inherit }` so that tiles pick the filter up
+   from their pane, and leaflet.css loads AFTER this file at equal specificity
+   — so anything set directly on `.leaflet-tile` is overwritten by `inherit`
+   and silently does nothing. The rule that lived here (`saturate(0.82)
+   brightness(1.02)`, "cool it slightly") had therefore never applied at all:
+   computed filter on a tile measured `none`. */
+.simulator-map-shell .leaflet-tile-pane {
+  filter: var(--ae-basemap-paper);
+}
+/* Restrained on purpose. sepia(0.62) with brightness(1.05) was tried and it
+   read as a sepia PHOTOGRAPH — the whole basemap washed to one cream tone and
+   Positron's land/water separation, which is carried almost entirely by
+   lightness, went with it. The basemap has to stay a legible chart first and a
+   warm one second, so this tints without lifting: no brightness gain, and a
+   touch of contrast to protect the coastline. */
+:root {
+  --ae-basemap-paper: sepia(0.30) saturate(0.68) brightness(0.995) contrast(1.06);
 }
 
 .leaflet-bar a {
@@ -491,11 +520,17 @@
 }
 
 /* The map's instrument column — the zoom control sits directly BELOW the
-   40px focus toggle (page.tsx pins it top:12 right:12), same width, same
-   paper voice, so the corner reads as one tool stack instead of two
-   components colliding. */
+   projection switch (flight-map.tsx pins it top:12 right:12), same paper
+   voice, so the corner reads as one tool stack instead of two components
+   colliding.
+
+   This reservation used to be sized for a 40px FOCUS TOGGLE that no longer
+   exists — focus mode is entered by selecting a flight, not by a button — so
+   the number was maintaining clearance for a departed component while the
+   switch that actually lives there is 42px. Anything pinned into this lane
+   must keep this value in step with its own height. */
 .leaflet-top.leaflet-right .leaflet-control-zoom {
-  margin: 60px 12px 0 0; /* 12 top + 40 focus button + 8 gap */
+  margin: 66px 12px 0 0; /* 12 top + 42 projection switch + 12 gap */
   border: 1px solid var(--ae-line);
   border-radius: 10px;
   overflow: hidden;
@@ -599,8 +634,11 @@
 .simulator-map-shell .leaflet-marker-pane {
   transition: opacity 350ms ease, filter 350ms ease;
 }
+/* Focus mode REPLACES the pane filter rather than composing with it, so the
+   paper tint has to be restated here or the basemap snaps back to cold grey
+   the moment a flight is selected. */
 .simulator-map-shell.map-focus .leaflet-tile-pane {
-  filter: blur(2.5px) saturate(0.75) brightness(1.02);
+  filter: var(--ae-basemap-paper) blur(2.5px) brightness(1.02);
 }
 .simulator-map-shell.map-focus .leaflet-overlay-pane { opacity: 0.10; }
 .simulator-map-shell.map-focus .leaflet-marker-pane  { opacity: 0.14; }
@@ -1269,8 +1307,8 @@
    One rule, and the leak cannot come back whichever way the engine changes. */
 .ae-map-legend:not([open]) > div { display: none; }
 
-/* The projection switch owns the top of the map's right-hand instrument
-   column, so Leaflet's zoom buttons move down to sit under it rather than
-   through it. DESIGN.md gives that corner exactly one owner; this keeps it
-   one column instead of two overlapping clusters. */
-.simulator-map-shell .leaflet-top.leaflet-right { margin-top: 46px; }
+/* NOTE: the projection switch's clearance is handled by the
+   `.leaflet-control-zoom` margin above, which already reserved this lane. A
+   second margin on the CONTAINER here double-counted it and pushed the zoom
+   buttons 68px clear of the switch — the two controls stopped reading as one
+   instrument column. One owner for the offset, not two. */
