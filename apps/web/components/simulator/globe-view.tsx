@@ -8,11 +8,14 @@
  * reached. Great-circle legs are the honest geometry for that; on a Mercator
  * tile a transcon leg is a straight line that lies about its own path.
  *
- * It is a WHITE register per the brief: paper sphere, pale land, hairline
- * coast. The same semantic pigments as the flat map, so switching views never
- * re-teaches the colour vocabulary — `cascColor` is passed in from the map
- * rather than reimplemented here, which is the mistake that put the map and the
- * timeline a full severity order apart once already.
+ * It is drawn on the console's PAPER register — the same warm stock and the
+ * same grain as every panel beside it, not a white ball. See the PAPER block
+ * below for why "white" was the wrong reading of the brief.
+ *
+ * It carries the same semantic pigments as the flat map, so switching views
+ * never re-teaches the colour vocabulary — `cascColor` is passed in from the
+ * map rather than reimplemented here, which is the mistake that put the map and
+ * the timeline a full severity order apart once already.
  *
  * Canvas 2D, not R3F. The projection is ~10k sin/cos pairs a frame (about a
  * millisecond) and it is the exact code the landing globe already runs; a
@@ -25,29 +28,42 @@ import {
   toVector, slerp, makeProjector, loadCoastlineRings, screenHeading,
   type Ring, type Vec3,
 } from "@/lib/orthographic"
+import { paperGrain } from "@/lib/paper-texture"
 import { NIMBUS_AIRPORTS, airportTier, type AirportTier } from "./airports"
 import type { ScheduledFlight, FlightState } from "@/stores/simulation"
 
 /**
- * White register. These mirror the flat map's basemap values so a view switch
- * is a change of projection, not a change of world.
+ * PAPER REGISTER — a printed chart, not a white ball.
+ *
+ * The first version of this took "white" literally: `#FFFFFF` sea, `#FAF7F1`
+ * land, on a console whose page floor is `--ae-bg #F5F1E8`. Pure white against
+ * warm beige does not read as white, it reads as a HOLE — a cold, untextured
+ * disc punched out of the paper, with no material and no relationship to
+ * anything around it.
+ *
+ * These values are the console's own surface tokens, so the globe is made of
+ * the same stock as every panel next to it:
+ *   sea  ≈ --ae-surface   #FFFEF9   (the card/panel floor)
+ *   land ≈ --ae-surface-2 #EFE9DB   (the recessed well)
+ * which is also the right way round for a chart: land is the tinted plate, sea
+ * is the paper it is printed on. Land additionally carries the shared paper
+ * grain, which is what separates "printed chart" from "vector diagram".
  */
 const PAPER = {
-  ocean: "#FFFFFF",
-  // Barely there. An earlier pass used #F4F1EA here with #F0EBDF land, which
-  // measured fine in isolation and rendered as a uniformly GREY-BEIGE ball —
-  // the brief asks for white, and a white globe means the sphere reads white
-  // and only the marks carry colour. The rim and the land now separate from
-  // paper by a few percent of luminance each, which is enough to model a
-  // sphere and to tell sea from land, and not enough to tint the object.
-  oceanRim: "#F2EFE9",
-  land: "#FAF7F1",
-  landEdgeShade: "#F1ECE2",
-  coast: "rgba(28,20,38,0.42)",
-  graticule: "rgba(28,20,38,0.06)",
-  limb: "rgba(28,20,38,0.24)",
-  route: "rgba(28,20,38,0.15)",
-  shadow: "rgba(28,20,38,0.16)",
+  sea: "#FFFEF9",
+  // A warm limb shade rather than a grey one. Grey at the rim is what made the
+  // first pass read as plastic; this is the shadow paper casts, not plastic.
+  seaRim: "#EFE8DA",
+  seaRimDeep: "#E3D9C6",
+  land: "#EFE9DB",
+  landHi: "#F6F1E4",
+  coast: "rgba(28,20,38,0.46)",
+  graticule: "rgba(28,20,38,0.065)",
+  limb: "rgba(28,20,38,0.30)",
+  route: "rgba(28,20,38,0.16)",
+  shadow: "rgba(28,20,38,0.15)",
+  // The sheet the sphere sits on, so it has somewhere to cast.
+  dropShadow: "rgba(90,72,40,0.16)",
 }
 
 const TIER_R: Record<AirportTier, number> = { hub: 5.5, focus_city: 4.2, spoke: 3.2 }
@@ -120,9 +136,15 @@ export function GlobeView({
 
   // North America centred — the modelled network is US domestic, so opening
   // anywhere else would make the operator drag before they can read anything.
+  // Default zoom fits the WHOLE sphere: radius is `min(W,H)/2 * 0.86 * zoom`,
+  // so anything above ~1.16 crops the poles. It opened at 1.55, which on a
+  // tall map sliced the top of the globe off exactly where the search bar sits
+  // — a deliberate-looking crop and a clipping bug are indistinguishable to
+  // someone who did not write it, and the reading people land on is "broken".
+  // Zooming past this is fine, because then it is the operator's own doing.
   const cam = useRef({
-    lon: -96, lat: 38, zoom: 1.55,
-    targetLon: -96, targetLat: 38, targetZoom: 1.55,
+    lon: -96, lat: 38, zoom: 1.14,
+    targetLon: -96, targetLat: 38, targetZoom: 1.14,
     velLon: 0, velLat: 0, dragging: false,
   })
   const pointer = useRef({ id: -1, x: 0, y: 0, moved: 0 })
@@ -308,21 +330,46 @@ export function GlobeView({
       ctx.save()
       ctx.translate(cx, cy)
 
+      // ── the sheet the globe sits on ───────────────────────────────────
+      // A soft contact shadow under the sphere. Without it the disc floats with
+      // no relationship to the panel behind it, which is a large part of why
+      // the white version read as a cut-out.
+      ctx.save()
+      ctx.beginPath()
+      ctx.arc(0, radius * 0.045, radius * 1.005, 0, Math.PI * 2)
+      ctx.filter = `blur(${Math.max(4, dpr * 9)}px)`
+      ctx.fillStyle = PAPER.dropShadow
+      ctx.fill()
+      ctx.restore()
+
       // ── sphere body ───────────────────────────────────────────────────
-      // A white sphere with no shading is a flat circle, so the rim gradient
-      // is the only thing making it read as a globe. Kept extremely subtle:
-      // this is paper stock, not a rendered planet.
+      // Light from the upper left, falling off into a WARM rim. Two stops of
+      // shade rather than one: a single stop gave a flat disc with a dark
+      // outline, and the second stop is what actually turns the edge away from
+      // the viewer.
       const fill = ctx.createRadialGradient(
-        -radius * 0.3, -radius * 0.34, radius * 0.08, 0, 0, radius,
+        -radius * 0.32, -radius * 0.36, radius * 0.06, 0, 0, radius,
       )
-      fill.addColorStop(0, PAPER.ocean)
-      fill.addColorStop(0.78, PAPER.ocean)
-      fill.addColorStop(1, PAPER.oceanRim)
+      fill.addColorStop(0, "#FFFFFC")
+      fill.addColorStop(0.55, PAPER.sea)
+      fill.addColorStop(0.86, PAPER.seaRim)
+      fill.addColorStop(1, PAPER.seaRimDeep)
       ctx.beginPath()
       ctx.arc(0, 0, radius, 0, Math.PI * 2)
       ctx.fillStyle = fill
       ctx.fill()
       ctx.clip()
+
+      // Paper grain across the whole sphere — the shared tile, so the globe is
+      // literally the same stock as the landing's. This is the single biggest
+      // difference between "printed chart" and "vector diagram".
+      const grain = paperGrain(ctx)
+      if (grain) {
+        ctx.save()
+        ctx.fillStyle = grain
+        ctx.fillRect(-radius, -radius, radius * 2, radius * 2)
+        ctx.restore()
+      }
 
       // ── graticule every 15° ───────────────────────────────────────────
       ctx.strokeStyle = PAPER.graticule
@@ -360,18 +407,30 @@ export function GlobeView({
             if (pen) ctx.lineTo(x, y); else { ctx.moveTo(x, y); pen = true }
           }
         }
-        ctx.fillStyle = PAPER.land
+        // Land is the tinted plate. It takes its own light-to-shade ramp in the
+        // same direction as the sphere, so continents on the far limb sit back
+        // rather than staying uniformly bright and flattening the ball.
+        const landFill = ctx.createRadialGradient(
+          -radius * 0.32, -radius * 0.36, radius * 0.06, 0, 0, radius,
+        )
+        landFill.addColorStop(0, PAPER.landHi)
+        landFill.addColorStop(0.7, PAPER.land)
+        landFill.addColorStop(1, "#E0D7C2")
+        ctx.fillStyle = landFill
         ctx.fill()
-        // A hair of shade inside the coast so land reads as land on a white
-        // sphere without the fill itself having to carry a tint.
-        ctx.save()
-        ctx.clip()
-        ctx.strokeStyle = PAPER.landEdgeShade
-        ctx.lineWidth = Math.max(2, dpr * 3)
-        ctx.stroke()
-        ctx.restore()
+
+        // Grain again, clipped to the land, so the plate is a touch coarser
+        // than the sea it prints on.
+        if (grain) {
+          ctx.save()
+          ctx.clip()
+          ctx.fillStyle = grain
+          ctx.fillRect(-radius, -radius, radius * 2, radius * 2)
+          ctx.restore()
+        }
+
         ctx.strokeStyle = PAPER.coast
-        ctx.lineWidth = Math.max(1, dpr * 0.65)
+        ctx.lineWidth = Math.max(1, dpr * 0.7)
         ctx.lineJoin = "round"
         ctx.stroke()
       }
@@ -399,16 +458,32 @@ export function GlobeView({
         ctx.globalAlpha = 1
       }
 
+      // WHICH legs get a drawn track, and why not all of them.
+      //
+      // The first version stroked a full great-circle for every leg in the
+      // fleet. On the nominal network that is 142 arcs over a 15-airport
+      // domestic map — every one of them crossing the others — and the result
+      // was a ball of yarn with the aircraft lost inside it. The flat map has
+      // never done this: it draws IMPACT routes plus the selected arc, and
+      // nothing else. Same rule here, so the two views agree about what a line
+      // on screen means.
+      //
+      // A track therefore says "this leg is part of the disruption, or you
+      // asked about it". An unaffected flight is just its aircraft.
+      const isAffected = (g: typeof legs[number]) =>
+        g.cancelled || (g.state?.cascade_order ?? -1) >= 0
+
       for (const leg of legs) {
         const sel = leg.id === selectedFlight
+        if (!sel && !isAffected(leg)) continue
         // Cancelled legs keep the dashed "no longer operating" semantic they
         // have on the flat map — never colour-alone.
         strokeArc(
           leg.from, leg.to,
           sel ? leg.color : PAPER.route,
-          sel ? dpr * 2.4 : Math.max(1, dpr * 0.7),
+          sel ? dpr * 2.4 : Math.max(1, dpr * 0.8),
           leg.cancelled ? [dpr * 7, dpr * 5] : null,
-          sel ? 0.95 : 0.8,
+          sel ? 0.95 : 0.55,
         )
       }
 
@@ -452,7 +527,7 @@ export function GlobeView({
         ctx.fill()
         // A paper-coloured edge keeps every aircraft separable where the fleet
         // bunches over a hub, whatever it is sitting on.
-        ctx.strokeStyle = "rgba(255,255,255,0.9)"
+        ctx.strokeStyle = PAPER.sea
         ctx.lineWidth = Math.max(1, dpr * 0.7)
         ctx.stroke()
 
@@ -498,7 +573,7 @@ export function GlobeView({
         ctx.arc(x, y, r, 0, Math.PI * 2)
         ctx.fillStyle = TIER_FILL[a.tier]
         ctx.fill()
-        ctx.strokeStyle = "rgba(255,255,255,0.92)"
+        ctx.strokeStyle = PAPER.sea
         ctx.lineWidth = Math.max(1, dpr * 0.8)
         ctx.stroke()
 
@@ -515,11 +590,12 @@ export function GlobeView({
 
       ctx.restore()
 
-      // limb ring on top, unclipped, so the horizon stays a clean circle
+      // limb ring on top, unclipped, so the horizon stays a clean drawn circle
+      // — the printed edge of the plate.
       ctx.beginPath()
       ctx.arc(cx, cy, radius, 0, Math.PI * 2)
       ctx.strokeStyle = PAPER.limb
-      ctx.lineWidth = Math.max(1, dpr)
+      ctx.lineWidth = Math.max(1, dpr * 1.1)
       ctx.stroke()
     }
 

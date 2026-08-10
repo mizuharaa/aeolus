@@ -47,6 +47,12 @@ import {
   DEG, toVector, slerp, makeProjector, loadCoastlineRings as loadRings,
   type Ring, type Vec3,
 } from "@/lib/orthographic"
+// The grain tile moved to lib/paper-texture.ts so the simulator globe is made
+// of literally the same stock. It also fixes a latent bug in the version that
+// lived here: it memoised the CanvasPattern, which belongs to the context that
+// created it, so a second globe on the page would have drawn with the first
+// one's pattern.
+import { paperGrain } from "@/lib/paper-texture"
 
 /** Night-register literals. Keep in step with the NIGHT object. */
 const INK = {
@@ -61,47 +67,6 @@ const INK = {
   event: "#E0457B",
 }
 
-/**
- * A paper grain, built once and tiled over the landmasses.
- *
- * The land was one flat fill, which is what made the globe read as a wireframe
- * diagram rather than as a printed chart — the rest of the landing is paper
- * stock and the one big object on the page had no surface at all. This is a
- * deterministic 128px tile of low-amplitude noise plus faint horizontal fibre,
- * multiplied over the base land colour at low alpha. Built once per page: it is
- * a static pattern, not a per-frame effect.
- */
-let grainPattern: CanvasPattern | null = null
-function paperGrain(context: CanvasRenderingContext2D): CanvasPattern | null {
-  if (grainPattern) return grainPattern
-  const tile = document.createElement("canvas")
-  tile.width = 128
-  tile.height = 128
-  const g = tile.getContext("2d")
-  if (!g) return null
-  const image = g.createImageData(128, 128)
-  // Deterministic LCG — a random() here would make the texture differ between
-  // the server-rendered and client-rendered passes of any future SSR attempt.
-  let seed = 1337
-  const rand = () => {
-    seed = (seed * 1664525 + 1013904223) % 4294967296
-    return seed / 4294967296
-  }
-  for (let y = 0; y < 128; y += 1) {
-    const fibre = Math.sin(y * 0.7) * 5
-    for (let x = 0; x < 128; x += 1) {
-      const offset = (y * 128 + x) * 4
-      const value = 150 + rand() * 74 + fibre
-      image.data[offset] = value
-      image.data[offset + 1] = value
-      image.data[offset + 2] = value
-      image.data[offset + 3] = 46
-    }
-  }
-  g.putImageData(image, 0, 0)
-  grainPattern = context.createPattern(tile, "repeat")
-  return grainPattern
-}
 const MAX_DISC = 780
 /**
  * The sphere's radius is `(canvas / 2) * BASE_RADIUS * zoom`, so BASE_RADIUS
