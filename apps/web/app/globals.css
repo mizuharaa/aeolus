@@ -1312,3 +1312,21 @@
    second margin on the CONTAINER here double-counted it and pushed the zoom
    buttons 68px clear of the switch — the two controls stopped reading as one
    instrument column. One owner for the offset, not two. */
+
+/* Overlay dismiss buttons (flight ticket, live-flight panel). They had no
+   hover and no focus-visible state — on a control whose whole job is "get this
+   off my map", giving no feedback that it is the thing under the cursor is the
+   difference between a stuck overlay and a closable one. */
+.ae-card-close {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+.ae-card-close:hover {
+  background: rgba(20, 16, 25, 0.08);
+  color: var(--ae-text) !important;
+}
+.ae-card-close:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ae-focus);
+}

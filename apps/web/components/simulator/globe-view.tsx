@@ -73,6 +73,11 @@ const TIER_FILL: Record<AirportTier, string> = {
 
 const ZOOM_MIN = 0.9
 const ZOOM_MAX = 2.6
+/** Opening camera. `0` returns here, which is the cheapest way back from a
+ *  globe someone has spun to the far side of the planet. */
+const DEFAULT_ZOOM = 1.14
+const DEFAULT_LON = -96
+const DEFAULT_LAT = 38
 
 /**
  * A plane silhouette, drawn nose-up in a unit box and rotated to the leg's
@@ -143,8 +148,8 @@ export function GlobeView({
   // someone who did not write it, and the reading people land on is "broken".
   // Zooming past this is fine, because then it is the operator's own doing.
   const cam = useRef({
-    lon: -96, lat: 38, zoom: 1.14,
-    targetLon: -96, targetLat: 38, targetZoom: 1.14,
+    lon: DEFAULT_LON, lat: DEFAULT_LAT, zoom: DEFAULT_ZOOM,
+    targetLon: DEFAULT_LON, targetLat: DEFAULT_LAT, targetZoom: DEFAULT_ZOOM,
     velLon: 0, velLat: 0, dragging: false,
   })
   const pointer = useRef({ id: -1, x: 0, y: 0, moved: 0 })
@@ -205,6 +210,12 @@ export function GlobeView({
       cam.current.dragging = true
       cam.current.velLon = 0
       cam.current.velLat = 0
+      // Set the cursor on the NODE, not through React. `cam` is a ref precisely
+      // so dragging does not re-render, which means a `cursor: dragging ? ... `
+      // expression in JSX is evaluated once and never updates — the grab cursor
+      // never became a grabbing cursor, so the globe gave no feedback that it
+      // had taken the drag.
+      canvas.style.cursor = "grabbing"
       canvas.setPointerCapture(e.pointerId)
     }
     const move = (e: PointerEvent) => {
@@ -228,6 +239,7 @@ export function GlobeView({
     const up = (e: PointerEvent) => {
       if (e.pointerId !== pointer.current.id) return
       cam.current.dragging = false
+      canvas.style.cursor = "grab"
       pointer.current.id = -1
       // A drag must not also select whatever aircraft is under the release.
       if (pointer.current.moved <= 6) {
@@ -262,6 +274,13 @@ export function GlobeView({
     }
   }, [box.w, box.h, onFlightSelect, selectedFlight])
 
+  /** Nudge the camera's zoom, clamped. Shared by the wheel, the keys and the
+   *  on-screen buttons so all three can never drift apart. */
+  const nudgeZoom = useCallback((factor: number) => {
+    const c = cam.current
+    c.targetZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, c.targetZoom * factor))
+  }, [])
+
   /** Keyboard camera — the flat map has zoom buttons; this needs an equivalent. */
   const onKeyDown = useCallback((e: React.KeyboardEvent) => {
     const c = cam.current
@@ -270,12 +289,13 @@ export function GlobeView({
     else if (e.key === "ArrowRight") c.targetLon += step
     else if (e.key === "ArrowUp") c.targetLat = Math.min(80, c.targetLat + step)
     else if (e.key === "ArrowDown") c.targetLat = Math.max(-80, c.targetLat - step)
-    else if (e.key === "+" || e.key === "=") c.targetZoom = Math.min(ZOOM_MAX, c.targetZoom * 1.15)
-    else if (e.key === "-" || e.key === "_") c.targetZoom = Math.max(ZOOM_MIN, c.targetZoom * 0.87)
+    else if (e.key === "+" || e.key === "=") nudgeZoom(1.15)
+    else if (e.key === "-" || e.key === "_") nudgeZoom(0.87)
+    else if (e.key === "0") { c.targetZoom = DEFAULT_ZOOM; c.targetLon = DEFAULT_LON; c.targetLat = DEFAULT_LAT }
     else if (e.key === "Escape") onFlightSelect(null)
     else return
     e.preventDefault()
-  }, [onFlightSelect])
+  }, [onFlightSelect, nudgeZoom])
 
   // ── The frame loop ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -614,8 +634,48 @@ export function GlobeView({
           `Network globe — ${flights.length} flights across ${airports.length} airports. ` +
           `Arrow keys to rotate, plus and minus to zoom, Escape to clear the selection.`
         }
-        style={{ display: "block", cursor: cam.current.dragging ? "grabbing" : "grab", touchAction: "none" }}
+        style={{ display: "block", cursor: "grab", touchAction: "none", outline: "none" }}
+        onFocus={(e) => { e.currentTarget.style.boxShadow = "inset 0 0 0 3px var(--ae-focus)" }}
+        onBlur={(e) => { e.currentTarget.style.boxShadow = "none" }}
       />
+      {/* ZOOM — the globe had none.
+          Leaflet's +/- control unmounts with the map, so switching to the globe
+          silently removed the only visible way to zoom. The wheel worked, but a
+          control that exists only as an undiscoverable gesture is not a control
+          — "can't zoom into the globe" is the correct reading of that UI.
+          Same lane, same size and same order as Leaflet's, so zoom does not
+          move when the projection changes. */}
+      <div
+        className="ae-globe-zoom"
+        role="group"
+        aria-label="Globe zoom"
+        style={{
+          position: "absolute", top: 66, right: 12, zIndex: 500,
+          display: "flex", flexDirection: "column",
+          borderRadius: 10, overflow: "hidden",
+          border: "1px solid var(--ae-line)", boxShadow: "var(--ae-shadow-card-elev)",
+          background: "var(--ae-surface)",
+        }}
+      >
+        {([["+", "Zoom in", 1.18], ["−", "Zoom out", 0.85]] as const).map(([glyph, label, f], i) => (
+          <button
+            key={label}
+            type="button"
+            onClick={() => nudgeZoom(f)}
+            aria-label={label}
+            title={label}
+            style={{
+              width: 40, height: 36, border: "none", cursor: "pointer",
+              background: "var(--ae-surface)", color: "var(--ae-text)",
+              fontSize: 15, fontWeight: 500, lineHeight: 1,
+              borderTop: i === 1 ? "1px solid var(--ae-line)" : undefined,
+            }}
+          >
+            {glyph}
+          </button>
+        ))}
+      </div>
+
       {/* The canvas cannot be read by assistive tech, so the same facts are
           available as text. This is not a duplicate control surface — the flat
           map view is the accessible way to work the network mark by mark, and
@@ -623,6 +683,7 @@ export function GlobeView({
       <p className="sr-only">
         {flights.length} flights shown.{" "}
         {flights.filter((f) => f.cancelled).length} cancelled.
+        Use the zoom buttons, or arrow keys to rotate and 0 to reset the view.
       </p>
     </div>
   )

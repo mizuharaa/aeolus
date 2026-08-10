@@ -709,9 +709,25 @@ function FlightDetailCard({
   else if (cascOrder > 0)  { actionLabel = `Cascade order ${cascOrder}`; actionColor = MAP_COLORS.cascadeOrder1; actionIcon = "↗" }
 
   return (
+    /* Lane: BELOW the top-right instrument column, not beside it.
+       At `top: 12, right: 56` this card's own close button sat underneath the
+       projection switch — the switch spans right 12..135 at top 12..54 and
+       wins on z-index (620 vs 450), so the ✕ was covered and a selected flight
+       could not be dismissed by the control that exists to dismiss it.
+       `right: 56` also left only 2px beside the zoom control where DESIGN.md
+       asks overlays to clear that column by 64px.
+       Top 66 clears the switch (bottom 54) by 12; right 64 satisfies the rule.
+       maxHeight now measures from the card's own top rather than assuming a
+       fixed 202px of chrome, so the card shrinks with the map instead of
+       overflowing it. */
     <div
       className="absolute z-[450] w-[19.5rem]"
-      style={{ top: appliedPlan ? 72 : 12, right: 56, maxHeight: "calc(100% - 202px)", display: "flex", flexDirection: "column" }}
+      style={{
+        top: appliedPlan ? 118 : 66,
+        right: 64,
+        maxHeight: `calc(100% - ${(appliedPlan ? 118 : 66) + 24}px)`,
+        display: "flex", flexDirection: "column",
+      }}
     >
       <div className="ae-ticket ae-scroll-smooth" style={{ overflowY: "auto" }}>
         {/* header — flight number, aircraft, SIM chip */}
@@ -724,7 +740,17 @@ function FlightDetailCard({
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
             <span className="text-[11px] font-mono font-bold px-2 py-1 rounded-full tracking-widest" style={{ background: "rgba(20,16,25,0.08)", color: "#141019" }}>SIM</span>
-            <button onClick={onClose} aria-label="Close" className="w-7 h-7 rounded-full flex items-center justify-center text-lg transition-all" style={{ color: "#55503F" }}>×</button>
+            <button
+              onClick={onClose}
+              aria-label="Close (Esc)"
+              title="Close — Esc"
+              className="ae-card-close rounded-full flex items-center justify-center transition-all"
+              /* 36px, was 28. This is the dismiss control for an overlay that
+                 covers the map; under WCAG 2.5.8 it was under the 24px floor
+                 once its optical padding is discounted, and it had no hover
+                 or focus state at all. */
+              style={{ width: 36, height: 36, fontSize: 19, lineHeight: 1, color: "#55503F", flexShrink: 0 }}
+            >×</button>
           </div>
         </div>
 
@@ -875,7 +901,17 @@ function LivePanel({ flight, onClose }: { flight: LiveFlight; onClose: () => voi
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
           <span className="text-[11px] font-mono font-bold px-2 py-1 rounded-full tracking-widest" style={{ background: "#141019", color: "#FFFFFF" }}>LIVE</span>
-          <button onClick={onClose} aria-label="Close" className="w-7 h-7 rounded-full flex items-center justify-center text-lg transition-all" style={{ color: "#55503F" }}>×</button>
+          <button
+              onClick={onClose}
+              aria-label="Close (Esc)"
+              title="Close — Esc"
+              className="ae-card-close rounded-full flex items-center justify-center transition-all"
+              /* 36px, was 28. This is the dismiss control for an overlay that
+                 covers the map; under WCAG 2.5.8 it was under the 24px floor
+                 once its optical padding is discounted, and it had no hover
+                 or focus state at all. */
+              style={{ width: 36, height: 36, fontSize: 19, lineHeight: 1, color: "#55503F", flexShrink: 0 }}
+            >×</button>
         </div>
       </div>
       {emergency && (
@@ -1510,6 +1546,48 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
   const selPlane = selectedSched ? simPlanes.find((p) => p.id === selectedSched.id) ?? null : null
   const [showAircraft, setShowAircraft] = useState(false)
   useEffect(() => { setShowAircraft(false) }, [selectedFlight])
+
+  /**
+   * ESCAPE DISMISSES, from anywhere on the console.
+   *
+   * There was no Escape handling on the map at all: a selected flight could
+   * only be cleared by finding its ✕ — which the projection switch was
+   * covering — or by clicking the exact same marker again. Escape is the
+   * universal "get me out of this" and its absence is what made a stuck flight
+   * path feel unclosable.
+   *
+   * It unwinds ONE layer at a time, innermost first, so Escape never throws
+   * away more context than the operator asked to leave. Bound to the window
+   * rather than to the map, because focus is usually in a panel or on the body
+   * by the time someone reaches for it — a handler on the canvas would only
+   * work if you had already clicked the canvas.
+   */
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return
+      // NOTE: this deliberately does NOT bail out when focus is in a text
+      // field. The first version did, and it broke the common path: selecting
+      // a flight from the search box leaves focus in that box, so Escape —
+      // pressed to dismiss the flight you just opened — did nothing at all.
+      // A selected flight dims the basemap and puts a card over the map; it is
+      // the most modal thing on screen, so it outranks a search field's own
+      // Escape. Once nothing is selected, Escape falls through untouched and
+      // the search clears normally.
+      if (showAircraft) { setShowAircraft(false); e.preventDefault(); return }
+      if (selAirport) { setSelAirport(null); e.preventDefault(); return }
+      if (selectedLiveFlight) { setSelectedLiveFlight(null); e.preventDefault(); return }
+      if (selectedFlight) {
+        onFlightSelect(null)
+        // Take focus out of the search field too, otherwise the operator is
+        // left typing into a box whose result they just dismissed.
+        const t = e.target as HTMLElement | null
+        if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) t.blur()
+        e.preventDefault()
+      }
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [showAircraft, selAirport, selectedLiveFlight, selectedFlight, onFlightSelect, setSelectedLiveFlight])
 
   // Live selection gets the LIGHT focus (no basemap blur, others just recede);
   // a scheduled-flight selection keeps the fuller blur-focus treatment.
