@@ -63,11 +63,25 @@ const TEXT = {
 // "fix" it by flattening the severity ramp back into one dark band.
 const GRAPHIC = {
   "--ae-focus (solid plum)": { color: "#5B3FA8", alpha: 1 },
-  "cascade direct":          { color: "#7A4A0E", alpha: 1 },
-  "cascade order-1":         { color: "#A0691C", alpha: 1 },
-  "cascade order-2 border":  { color: "#A0691C", alpha: 1 },
+  "cascade direct":          { color: "#3A2408", alpha: 1 },
+  "cascade order-1":         { color: "#9C6C28", alpha: 1 },
+  "cascade order-2 border":  { color: "#7E5A1C", alpha: 1 },
   "cascade none border":     { color: "#7C7568", alpha: 1 },
 }
+
+// The ramp's ADJACENT STEPS, which is the check this file was missing.
+//
+// Every step used to pass the block above — each one individually cleared 3:1
+// against the paper — while the ramp as a whole was invisible, because nothing
+// asserted that consecutive steps differ from EACH OTHER. Measured on the old
+// values: 1.61:1 and 1.53:1, with a full span of 2.47:1. A severity ramp whose
+// neighbours are 1.5:1 apart is one colour with extra steps, and the gate said
+// it was fine. Ordering is what this encoding means, so ordering is gated.
+const RAMP = [
+  ["direct", "#3A2408"],
+  ["order-1", "#9C6C28"],
+  ["order-2 fill", "#E9D6B6"],
+]
 
 // Map marks are judged against the basemap, not a token surface.
 const BASEMAP = hex("#FBF8F3")
@@ -107,6 +121,13 @@ for (const [name, { color, alpha }] of Object.entries(GRAPHIC)) {
   }
 }
 
+console.log("\nCascade ramp — consecutive steps must be 3:1 apart from each other\n")
+for (let i = 0; i < RAMP.length - 1; i++) {
+  const [aName, aHex] = RAMP[i]
+  const [bName, bHex] = RAMP[i + 1]
+  line(`${aName} -> ${bName}`, "each other", ratio(hex(aHex), hex(bHex)), 3)
+}
+
 console.log("\nMap marks vs basemap #FBF8F3 — 3:1, and vs each other\n")
 for (const [name, color] of Object.entries(MARK)) {
   line(name, "basemap", ratio(hex(color), BASEMAP), name === "ambient ADS-B" ? 1 : 3)
@@ -126,6 +147,21 @@ line(
   ratio(hex(MARK["flight operating"]), hex("#C9CCC9")),
   1.6,
 )
+
+// DESIGN.md: "Operating stays LIGHTER than cascade-direct so a nominal flight
+// can never out-weigh a disrupted one." That is an ORDERING, not a ratio, and
+// it was previously only prose — so re-inking either pigment could silently
+// invert the map's weight hierarchy while every ratio above still passed.
+{
+  const direct = ratio(hex("#3A2408"), BASEMAP)
+  const operating = ratio(hex(MARK["flight operating"]), BASEMAP)
+  const ok = direct > operating
+  if (!ok) failed++
+  console.log(
+    `\n${ok ? "  ok  " : "  FAIL"} cascade-direct out-weighs operating blue on the basemap  ` +
+      `(${direct.toFixed(2)} > ${operating.toFixed(2)})`,
+  )
+}
 
 console.log(failed ? `\n${failed} failing pair(s)\n` : "\nAll pairs pass.\n")
 process.exit(failed ? 1 : 0)

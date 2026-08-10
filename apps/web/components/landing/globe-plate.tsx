@@ -39,6 +39,14 @@ import {
   setGlobeEventIndex,
 } from "@/components/landing/globe-events"
 import { landingScroll, registerLandingFrame } from "@/lib/scroll"
+// The projection, the great-circle interpolation and the coastline loader now
+// live in lib/orthographic.ts, shared with the simulator's GlobeView. They were
+// identical by construction and had to stay identical; a shared import is the
+// only way to guarantee that, per DESIGN.md's reuse rule.
+import {
+  DEG, toVector, slerp, makeProjector, loadCoastlineRings as loadRings,
+  type Ring, type Vec3,
+} from "@/lib/orthographic"
 
 /** Night-register literals. Keep in step with the NIGHT object. */
 const INK = {
@@ -52,8 +60,6 @@ const INK = {
   plane: "#C9C6BE",
   event: "#E0457B",
 }
-
-const DEG = Math.PI / 180
 
 /**
  * A paper grain, built once and tiled over the landmasses.
@@ -111,19 +117,6 @@ const ZOOM_MAX = 1.34
 const IDLE_SPEED = 2.4
 const IDLE_RESUME_DELAY = 2.5
 
-type Ring = Float32Array
-let ringsPromise: Promise<Ring[]> | null = null
-
-function loadRings(): Promise<Ring[]> {
-  if (ringsPromise) return ringsPromise
-  ringsPromise = fetch("/data/world-coastline.json")
-    .then((response) => response.json())
-    .then((payload: { rings: number[][] }) =>
-      payload.rings.map((ring) => Float32Array.from(ring)),
-    )
-  return ringsPromise
-}
-
 /** Nimbus stations the flight nodes track between, as [lat, lon]. */
 const STATIONS: Record<string, [number, number]> = {
   ORD: [41.98, -87.9],
@@ -155,71 +148,12 @@ const LEGS: [keyof typeof STATIONS, keyof typeof STATIONS, number, number][] = [
   ["NRT", "SIN", 43, 0.44],
 ]
 
-type Vec3 = { x: number; y: number; z: number }
-
-function toVector(lat: number, lon: number): Vec3 {
-  const phi = lat * DEG
-  const lambda = lon * DEG
-  const cosPhi = Math.cos(phi)
-  return {
-    x: cosPhi * Math.cos(lambda),
-    y: Math.sin(phi),
-    z: cosPhi * Math.sin(lambda),
-  }
-}
-
-/** Great-circle interpolation, so a leg follows the route a jet would fly. */
-function slerp(a: Vec3, b: Vec3, t: number): Vec3 {
-  let dot = a.x * b.x + a.y * b.y + a.z * b.z
-  dot = dot < -1 ? -1 : dot > 1 ? 1 : dot
-  const omega = Math.acos(dot)
-  if (omega < 1e-6) return a
-  const sinOmega = Math.sin(omega)
-  const wa = Math.sin((1 - t) * omega) / sinOmega
-  const wb = Math.sin(t * omega) / sinOmega
-  return {
-    x: a.x * wa + b.x * wb,
-    y: a.y * wa + b.y * wb,
-    z: a.z * wa + b.z * wb,
-  }
-}
-
 const PRECOMPUTED_LEGS = LEGS.map(([from, to, period, phase]) => ({
   from: toVector(...STATIONS[from]),
   to: toVector(...STATIONS[to]),
   period,
   phase,
 }))
-
-/**
- * Rotate a unit vector into view space and project it orthographically.
- * Returns screen offsets in disc-radius units plus the depth term; depth < 0
- * means the point is on the far side and must not be drawn.
- */
-function makeProjector(lat0: number, lon0: number) {
-  const cosLat = Math.cos(lat0 * DEG)
-  const sinLat = Math.sin(lat0 * DEG)
-  const cosLon = Math.cos(-lon0 * DEG)
-  const sinLon = Math.sin(-lon0 * DEG)
-  return (v: Vec3) => {
-    // Yaw about the polar axis so `lon0` faces the camera. This yields three
-    // axes and it matters which is which: `along` points at the viewer, `side`
-    // is screen-horizontal, `up` is the polar direction. An earlier version
-    // returned `along` as the screen x and used `side` as the depth — the two
-    // swapped — so the globe faced 90° away from the requested longitude and
-    // every projected mark landed outside the disc.
-    const along = v.x * cosLon - v.z * sinLon // cosφ·cos(λ − lon0)
-    const side = v.x * sinLon + v.z * cosLon // cosφ·sin(λ − lon0)
-    const up = v.y
-
-    // Then pitch by `lat0` about the screen-horizontal axis.
-    return {
-      x: side,
-      y: up * cosLat - along * sinLat,
-      depth: up * sinLat + along * cosLat,
-    }
-  }
-}
 
 export function GlobePlate({
   onReady,

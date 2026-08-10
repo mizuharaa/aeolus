@@ -25,6 +25,49 @@ read as "already decided": the inspected plan tab was an ink slab while the
 applied plan had a 3px border, and the selected row of a 21-item event picker
 was the darkest object on the console.
 
+**Decision record (2026-08-10):** THE MAP HAS TWO PROJECTIONS, and the globe is
+an exception to "App pages MUST NOT use enrichment" granted on function, not on
+looks. The flat map answers *where is this airport*; the globe answers *what
+shape does this disruption have across the network*. Great-circle legs are the
+honest geometry for the second question and a Mercator tile is not — on a flat
+projection a transcon leg is drawn as a straight line that lies about the path
+the aircraft flies. Rules that come with the exception:
+- Both registers are WHITE. The flat basemap moved from CARTO Voyager to
+  Positron (`light_all`); the globe is a paper sphere. Voyager spent saturated
+  colour on road classes and landuse that mean nothing operationally, forcing
+  every semantic pigment to compete with the basemap.
+- ONE source of truth for meaning. The globe imports `cascColor` and the marks'
+  semantics from the map rather than restating them, so a projection switch is
+  never also a change of vocabulary.
+- The FLAT MAP is the accessible surface: every mark there is a focusable DOM
+  node with a full-sentence name. The globe is a canvas, so it carries a text
+  summary and keyboard camera controls, and the switch between the two is
+  always reachable. A canvas-only view of the network would not be shippable.
+- The inactive projection is UNMOUNTED, not hidden.
+
+**Decision record (2026-08-10):** SEVERITY IS NEVER COLOUR-ALONE, AND THE RAMP
+IS GATED ON ADJACENCY. The cascade ramp's neighbours measured 1.61:1 and 1.53:1
+with a full span of 2.47:1 — every step passed the contrast gate individually
+because the gate only ever compared each step to the paper, never to the step
+beside it. Rendered, the product's core encoding was one brown. Now:
+- consecutive steps are ≥3:1 apart, asserted by `check-contrast.mjs`;
+- each bar and marker carries its GENERATION DIGIT (`0`/`1`/`2`) as a redundant
+  channel, so the encoding survives monochrome, glare and colour blindness;
+- `order2` is deliberately a pale fill whose dark border carries its 3:1. Three
+  steps at 3:1 span 9:1; also requiring the middle step to clear 3:1 against
+  near-white paper needs 27:1 of range and this surface has ~21:1. The
+  constraint is real, so it is written down rather than rediscovered.
+- `direct` must stay heavier than operating blue on the basemap. That was prose
+  and is now an assertion in the gate.
+
+**Decision record (2026-08-10):** A HANDLE'S DRAG DIRECTION FOLLOWS WHICH SIDE
+THE SIZED REGION IS ON. The map/timeline divider reused the right-hand panel's
+formula, so pulling down — the direction that enlarges the map — collapsed it to
+its floor and sent the handle away from the cursor, then persisted that to
+`localStorage`. Resize handles are also real `separator` widgets: focusable,
+arrow-key operable, `aria-valuenow`, with a 24px hit strip around a 6px rule.
+Keyboard nudges use React's functional updater, never `value + step`.
+
 ## Genre
 editorial (control-tower editorial — dense operational surfaces on warm paper)
 

@@ -2,7 +2,7 @@
 import { useMemo } from "react"
 import { motion } from "framer-motion"
 import { useSimulationStore } from "@/stores/simulation"
-import { c, cascade, ff, r, sp, type } from "@/lib/design-tokens"
+import { c, cascade, cascadeInk, ff, r, sp, type } from "@/lib/design-tokens"
 import { Eyebrow, Type } from "@/components/ds/primitives"
 
 const HOURS = Array.from({ length: 18 }, (_, i) => i + 6) // 6:00–23:00 UTC
@@ -29,16 +29,29 @@ const HOURS = Array.from({ length: 18 }, (_, i) => i + 6) // 6:00–23:00 UTC
 function getBarColor(
   status: string,
   cascadeOrder: number,
-): { bg: string; border: string; cancelled: boolean } {
+): { bg: string; border: string; cancelled: boolean; glyph: string; ink: string } {
   const cancelled = status === "cancelled"
-  if (cascadeOrder === 0) return { bg: cascade.direct.fill, border: cascade.direct.border, cancelled }
-  if (cascadeOrder === 1) return { bg: cascade.order1.fill, border: cascade.order1.border, cancelled }
-  if (cascadeOrder === 2) return { bg: cascade.order2.fill, border: cascade.order2.border, cancelled }
+  // The GENERATION NUMBER travels with the colour. Re-spacing the ramp to 3:1
+  // between neighbours made the steps visible, but "visible" is not "legible
+  // at a glance across 67 stacked rows" — and DESIGN.md's own rule is that
+  // severity is never colour-alone. The digit says which generation of the
+  // cascade this flight belongs to: 0 = hit by the disruption, 1 = knocked
+  // over by an 0, 2 = knocked over by a 1. That is the distinction between
+  // fixing a cause and fixing a symptom, and it was previously carried by
+  // three browns 1.5:1 apart.
+  const step = (k: keyof typeof cascade) => ({
+    bg: cascade[k].fill,
+    border: cascade[k].border,
+    cancelled,
+    glyph: cascade[k].glyph,
+    ink: cascadeInk(k),
+  })
+  if (cascadeOrder === 0) return step("direct")
+  if (cascadeOrder === 1) return step("order1")
+  if (cascadeOrder === 2) return step("order2")
   // Not in the cascade. A cancelled flight still has to read as cancelled, so
   // it keeps the neutral; an operating one is the quiet nominal step.
-  return cancelled
-    ? { bg: cascade.cancelled.fill, border: cascade.cancelled.border, cancelled }
-    : { bg: cascade.none.fill, border: cascade.none.border, cancelled }
+  return cancelled ? step("cancelled") : step("none")
 }
 
 function parseHourUTC(isoStr: string): number {
@@ -129,9 +142,11 @@ export function CascadeTimeline({
             className="hidden md:flex flex-wrap items-center justify-end"
             style={{ gap: 16, fontSize: 11, color: c.body, fontFamily: ff.body, fontWeight: 500, paddingRight: 34 }}
           >
-            <LegendSwatch step={cascade.direct} label="Direct hit" />
-            <LegendSwatch step={cascade.order1} label="1st order" />
-            <LegendSwatch step={cascade.order2} label="2nd order" />
+            {/* The swatches carry the generation digit too, so the key teaches
+                the redundant channel and not only the colour. */}
+            <LegendSwatch step={cascade.direct} label="Direct hit" ink={cascadeInk("direct")} />
+            <LegendSwatch step={cascade.order1} label="1st order" ink={cascadeInk("order1")} />
+            <LegendSwatch step={cascade.order2} label="2nd order" ink={cascadeInk("order2")} />
             <LegendSwatch step={cascade.none} label="On time" />
             {/* Cancelled is a PATTERN, not a colour — it overlays whichever
                 severity fill the flight already has, so it cannot be a swatch
@@ -279,7 +294,7 @@ export function CascadeTimeline({
                   </span>
                   <span
                     style={{
-                      fontSize: 10,
+                      fontSize: 11,
                       fontFamily: ff.mono,
                       fontWeight: 500,
                       color: c.muted,
@@ -348,6 +363,26 @@ export function CascadeTimeline({
                       : flight.state.cascade_order === 2 ? " · 2nd-order cascade" : ""
                     }`}
                   >
+                    {/* Generation number — the redundant, non-colour channel.
+                        Only on bars wide enough to hold a digit without
+                        clipping it; a 6px minimum-width bar gets the colour
+                        and the tooltip, which is the honest trade. */}
+                    {palette.glyph && widthPct >= 3.5 && (
+                      <span
+                        aria-hidden
+                        style={{
+                          position: "absolute", left: 4, top: "50%", transform: "translateY(-50%)",
+                          // 11px floor. This digit is a REDUNDANT ACCESSIBILITY
+                          // CHANNEL; shipping it at 9.5px would have made the
+                          // fallback for the colour ramp less legible than the
+                          // ramp it backs up.
+                          fontFamily: ff.mono, fontSize: 11, fontWeight: 700, lineHeight: 1,
+                          color: palette.ink, opacity: 0.9, pointerEvents: "none",
+                        }}
+                      >
+                        {palette.glyph}
+                      </span>
+                    )}
                     {palette.cancelled && (
                       <>
                         {/* diagonal hatch — a pattern, not a hue */}
@@ -386,10 +421,14 @@ function LegendSwatch({
   step,
   label,
   hatched,
+  ink,
 }: {
-  step: { fill: string; border: string }
+  step: { fill: string; border: string; glyph?: string }
   label: string
   hatched?: boolean
+  /** Passed for the three cascade steps so the swatch shows its generation
+   *  digit — the key has to teach the redundant channel, not just the hue. */
+  ink?: string
 }) {
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
@@ -403,12 +442,20 @@ function LegendSwatch({
           border: `1px ${hatched ? "dashed" : "solid"} ${step.border}`,
           flexShrink: 0,
           overflow: "hidden",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
           backgroundImage: hatched
             ? `repeating-linear-gradient(45deg, ${step.border}00 0 3px, ${step.border}80 3px 5px)`
             : undefined,
         }}
-      />
-      {label}
+      >
+      </span>
+      {/* The digit rides in the LABEL, not inside the 12px swatch: at swatch
+          scale it could only be set at 9px, i.e. below the floor, which is the
+          wrong place to save four pixels on the key that teaches the console's
+          most important encoding. */}
+      {ink && step.glyph ? `${step.glyph} · ${label}` : label}
     </span>
   )
 }

@@ -272,7 +272,7 @@ export function FlightSearch({ selectedFlight, onSelect }: Props) {
                             )}
                             <span
                               style={{
-                                fontSize: 9,
+                                fontSize: 11,
                                 fontWeight: 600,
                                 padding: "1px 6px",
                                 borderRadius: r.pill,

@@ -18,6 +18,26 @@ import { motion, AnimatePresence } from "framer-motion"
 import { ChevronLeft, ChevronRight, PanelRightClose, X } from "lucide-react"
 import { c, ff } from "@/lib/design-tokens"
 
+/**
+ * How far a pointer move grows the sized region, per handle position.
+ *
+ * The sign follows one rule: WHICH SIDE OF THE HANDLE THE SIZED REGION IS ON.
+ *
+ *   left   handle right of the region  → moving right grows it   (pos - startPos)
+ *   right  handle left of the region   → moving left grows it    (startPos - pos)
+ *   bottom handle BELOW the region     → moving down grows it    (pos - startPos)
+ *
+ * `bottom` used to reuse `right`'s formula. That is correct for a handle above
+ * a region that grows upward, which is not this handle: it sits under the map
+ * and sizes the map. The result was a divider that ran AWAY from the cursor —
+ * pulling down, the direction that should enlarge the map, collapsed it to its
+ * 200px floor and moved the handle ~250px upward. It then persisted that to
+ * localStorage, so one wrong drag survived a reload.
+ */
+function deltaFor(side: "left" | "right" | "bottom", pos: number, startPos: number): number {
+  return side === "right" ? startPos - pos : pos - startPos
+}
+
 export function useResizable(
   storageKey: string,
   initial: number,
@@ -53,11 +73,7 @@ export function useResizable(
       const move = (ev: PointerEvent) => {
         if (!draggingRef.current) return
         const pos = side === "bottom" ? ev.clientY : ev.clientX
-        // left rail grows as pointer moves right; right rail + bottom grow as
-        // pointer moves the opposite way
-        const delta =
-          side === "left" ? pos - startPos : side === "right" ? startPos - pos : startPos - pos
-        setSize(Math.min(max, Math.max(min, startSize + delta)))
+        setSize(Math.min(max, Math.max(min, startSize + deltaFor(side, pos, startPos))))
       }
       const up = () => {
         draggingRef.current = false
@@ -82,52 +98,133 @@ export function useResizable(
   return { size, setSize, onPointerDown, dragging }
 }
 
+/**
+ * The draggable divider.
+ *
+ * The hit strip is 24px and the VISIBLE rule is 6px, centred in it (WCAG 2.5.8
+ * asks for a 24px target, not a 24px mark). It was 6px tall for both, which is
+ * the most-dragged control in the console rendered at a quarter of the minimum
+ * target size.
+ *
+ * It is also a real `separator` widget now. Passing `value`/`min`/`max`/`onValue`
+ * makes it focusable and arrow-key operable: it previously carried
+ * `role="separator"` with `tabIndex -1`, no `aria-label` and no key handler, so
+ * the only rebalancing control on the console was unreachable without a mouse.
+ */
 export function ResizeHandle({
   onPointerDown,
   side = "left",
+  label = "Resize",
+  value,
+  min,
+  max,
+  onValue,
+  step = 16,
+  bigStep = 64,
 }: {
   onPointerDown: (e: React.PointerEvent) => void
   side?: "left" | "right" | "bottom"
+  label?: string
+  value?: number
+  min?: number
+  max?: number
+  /** Takes React's functional updater — see the note in `onKeyDown`. */
+  onValue?: (update: (cur: number) => number) => void
+  step?: number
+  bigStep?: number
 }) {
   const [hot, setHot] = useState(false)
+  const [focused, setFocused] = useState(false)
   const horizontal = side === "bottom"
+  const keyboard = value !== undefined && min !== undefined && max !== undefined && !!onValue
+
+  // Grow keys point the way the region grows: for the bottom handle the map is
+  // ABOVE it, so ArrowDown enlarges — the same relationship the drag now honours.
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (!keyboard) return
+    const grow = horizontal ? "ArrowDown" : "ArrowRight"
+    const shrink = horizontal ? "ArrowUp" : "ArrowLeft"
+    const amount = e.shiftKey ? bigStep : step
+    // A FUNCTIONAL update, not `value + amount`.
+    //
+    // `value` is a prop, so it is only as fresh as the last render. Two
+    // keypresses inside one React batch both read the same stale number and
+    // the second overwrites the first with an identical result — held arrow
+    // keys and fast repeats moved the divider one step and then stopped.
+    let delta: ((cur: number) => number) | null = null
+    if (e.key === grow) delta = (cur) => cur + amount
+    else if (e.key === shrink) delta = (cur) => cur - amount
+    else if (e.key === "Home") delta = () => min!
+    else if (e.key === "End") delta = () => max!
+    if (!delta) return
+    e.preventDefault()
+    const clamp = delta
+    onValue!((cur) => Math.min(max!, Math.max(min!, clamp(cur))))
+    window.dispatchEvent(new Event("resize"))
+  }
+
+  const active = hot || focused
   return (
     <div
       onPointerDown={onPointerDown}
       onPointerEnter={() => setHot(true)}
       onPointerLeave={() => setHot(false)}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+      onKeyDown={onKeyDown}
       role="separator"
+      tabIndex={keyboard ? 0 : -1}
       aria-orientation={horizontal ? "horizontal" : "vertical"}
+      aria-label={keyboard ? `${label} — arrow keys to adjust` : undefined}
+      aria-valuenow={keyboard ? Math.round(value!) : undefined}
+      aria-valuemin={min}
+      aria-valuemax={max}
       title="Drag to resize"
       style={{
         position: "relative",
         flexShrink: 0,
-        width: horizontal ? "100%" : 6,
-        height: horizontal ? 6 : "100%",
+        // 24px target, 6px rule. Negative margins keep the extra 18px from
+        // stealing layout height from the regions it sits between.
+        width: horizontal ? "100%" : 24,
+        height: horizontal ? 24 : "100%",
+        margin: horizontal ? "-9px 0" : "0 -9px",
         cursor: horizontal ? "row-resize" : "col-resize",
-        background: hot ? "var(--ae-teal)" : "transparent",
-        transition: "background 140ms ease",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        outline: "none",
         zIndex: 20,
         touchAction: "none",
       }}
     >
-      {/* grip dots, centered */}
+      {/* the visible rule */}
       <span
         aria-hidden
         style={{
-          position: "absolute",
-          left: "50%",
-          top: "50%",
-          transform: "translate(-50%,-50%)",
+          position: "relative",
           display: "flex",
-          flexDirection: horizontal ? "row" : "column",
-          gap: 3,
-          opacity: hot ? 0 : 0.5,
+          alignItems: "center",
+          justifyContent: "center",
+          width: horizontal ? "100%" : 6,
+          height: horizontal ? 6 : "100%",
+          background: active ? "var(--ae-teal)" : "transparent",
+          boxShadow: focused ? "0 0 0 3px var(--ae-focus)" : undefined,
+          transition: "background 140ms ease",
         }}
       >
-        {[0, 1, 2].map((i) => (
-          <span key={i} style={{ width: 3, height: 3, borderRadius: 99, background: c.muted }} />
-        ))}
+        {/* grip dots, centered */}
+        <span
+          style={{
+            display: "flex",
+            flexDirection: horizontal ? "row" : "column",
+            gap: 3,
+            opacity: active ? 0 : 0.5,
+          }}
+        >
+          {[0, 1, 2].map((i) => (
+            <span key={i} style={{ width: 3, height: 3, borderRadius: 99, background: c.muted }} />
+          ))}
+        </span>
       </span>
     </div>
   )
@@ -468,8 +565,13 @@ export function FloatingPanel({
             {badge != null && (
               <span
                 style={{
-                  fontFamily: ff.mono, fontSize: 10, fontWeight: 700, lineHeight: 1,
-                  minWidth: 18, height: 18, padding: "0 5px", borderRadius: 99,
+                  // This badge is the ONLY on-screen signal that recovery plans
+                  // have arrived — the panel deliberately does not open itself.
+                  // At 10px in an 18px pill on a rail at the screen edge, the
+                  // console's most consequential state change was also its
+                  // smallest mark. 11px in a 20px pill, on the 11px floor.
+                  fontFamily: ff.mono, fontSize: 11, fontWeight: 700, lineHeight: 1,
+                  minWidth: 20, height: 20, padding: "0 6px", borderRadius: 99,
                   display: "inline-flex", alignItems: "center", justifyContent: "center",
                   background: accent, color: "#fff",
                 }}

@@ -190,7 +190,7 @@ function DecisionMatrix({
                       style={{
                         display: "block",
                         fontFamily: ff.mono,
-                        fontSize: 9.5,
+                        fontSize: 11,
                         fontWeight: 700,
                         letterSpacing: "0.14em",
                         textTransform: "uppercase",
@@ -244,7 +244,7 @@ function DecisionMatrix({
           })}
         </tbody>
       </table>
-      <p style={{ margin: "6px 2px 0", fontFamily: ff.mono, fontSize: 9, letterSpacing: "0.04em", color: c.muted }}>
+      <p style={{ margin: "6px 2px 0", fontFamily: ff.mono, fontSize: 11, letterSpacing: "0.04em", color: c.muted }}>
         Teal = best of the four · click a column to inspect
       </p>
     </div>
@@ -494,7 +494,7 @@ function PlanLedger({
           </div>
         )}
 
-        <p style={{ fontSize: 9.5, color: c.muted, margin: "7px 0 0", fontFamily: ff.mono, letterSpacing: "0.02em" }}>
+        <p style={{ fontSize: 11, color: c.muted, margin: "7px 0 0", fontFamily: ff.mono, letterSpacing: "0.02em" }}>
           DOT BTS 2023 · $82.50/pax-hr · Form 41 block-hour ops
         </p>
       </div>

@@ -229,6 +229,27 @@ export default function SimulatorPage() {
     <div style={{ background: "var(--ae-bg)", height: "100dvh", overflow: "hidden", display: "flex", flexDirection: "column" }}>
       <DashboardLoader />
 
+      {/* The skip link the <main> landmark below was added FOR. Its comment
+          justified the landmark by saying "skip to main content" had nowhere
+          to go — and then no skip link was ever added, so it still had nowhere
+          to go. It matters more here than on a typical page: the map alone is
+          82 sequential tab stops (every airport, every flight), and without
+          this the only way past it is to hold Tab. */}
+      <a
+        href="#ae-workspace"
+        style={{
+          position: "absolute", left: sp.sm, top: -200, zIndex: 5000,
+          padding: `${sp.xs}px ${sp.md}px`, borderRadius: r.sm,
+          background: "var(--ae-surface)", color: c.ink,
+          border: `1px solid ${c.hairline}`, boxShadow: "0 0 0 3px var(--ae-focus)",
+          fontFamily: ff.body, fontSize: 13, fontWeight: 600, textDecoration: "none",
+        }}
+        onFocus={(e) => { e.currentTarget.style.top = `${sp.sm}px` }}
+        onBlur={(e) => { e.currentTarget.style.top = "-200px" }}
+      >
+        Skip to workspace
+      </a>
+
       {/* Plain flex child, no sticky and no z-index. The nav needed z-[700] to
           win against panels that could ride up over it once the page scrolled;
           the shell no longer scrolls and the panels are docked tracks, so the
@@ -299,6 +320,8 @@ export default function SimulatorPage() {
           across 78 tab stops, so a screen-reader user had no document outline
           to navigate and "skip to main content" had nowhere to go. */}
       <main
+        id="ae-workspace"
+        tabIndex={-1}
         style={{ flex: 1, minHeight: 0, position: "relative", display: "flex", overflow: "hidden" }}
       >
         {/* Events — docked track, left */}
@@ -354,8 +377,22 @@ export default function SimulatorPage() {
             </div>
           </div>
 
-          {/* Divider — drags the MAP's height; the timeline absorbs the rest */}
-          {bottomOpen && <ResizeHandle side="bottom" onPointerDown={mapH.onPointerDown} />}
+          {/* Divider — drags the MAP's height; the timeline absorbs the rest.
+              Passing value/min/max/onValue makes it a real focusable separator
+              widget: it is the only rebalancing control on the console and it
+              had tabIndex -1 and no key handler, so a keyboard user could not
+              reach it at all. */}
+          {bottomOpen && (
+            <ResizeHandle
+              side="bottom"
+              onPointerDown={mapH.onPointerDown}
+              label="Resize map and cascade timeline"
+              value={mapH.size}
+              min={MAP_H_MIN}
+              max={MAP_H_MAX}
+              onValue={mapH.setSize}
+            />
+          )}
 
           {/* CASCADE TIMELINE — the hero surface */}
           <div

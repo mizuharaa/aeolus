@@ -54,14 +54,49 @@ export const pigment = {
  * stay visually light, its border carries the contrast instead of its fill —
  * which also stops severity being conveyed by colour alone.
  */
+/**
+ * Cascade severity ramp — the console's single most important encoding.
+ *
+ * RE-SPACED 2026-08-10. The previous ramp varied lightness, as this comment
+ * block has always claimed, but it varied it nowhere near enough: adjacent
+ * steps measured 1.61:1 (direct→order1) and 1.53:1 (order1→order2), and the
+ * full semantic span was 2.47:1 — under the 3:1 non-text floor for the WHOLE
+ * ramp, not just between neighbours. Rendered, every bar was the same brown.
+ * `order2.border` was also `#A0691C`, byte-identical to `order1.fill`, so the
+ * border could not separate them either.
+ *
+ * The new steps are ≥3:1 apart from their neighbours — verified, not asserted,
+ * by `scripts/check-contrast.mjs`, which now gates adjacency and not only each
+ * step against the surface.
+ *
+ * The three constraints cannot all be maximised at once and it is worth
+ * recording why. Three steps at 3:1 each spans 9:1; requiring the MIDDLE step
+ * to also clear 3:1 against near-white paper needs 27:1 of range, and black on
+ * this surface is ~21:1. So `order2` is deliberately a PALE FILL whose dark
+ * border carries its 3:1 — the same device `none` and `cancelled` already use.
+ *
+ * `direct` stays darker than operating blue on the basemap (13.81 vs 5.10), so
+ * DESIGN.md's rule that a nominal flight can never out-weigh a disrupted one
+ * still holds. Note it is deliberately NOT 3:1 from the blue: gold and blue are
+ * 168 degrees apart and separate by hue; forcing a luminance gap as well would
+ * push one of them out of its family for no perceptual gain.
+ *
+ * Severity is never colour-alone regardless — `glyph` is the redundant channel
+ * (see cascade-timeline.tsx and flight-map.tsx), so the ramp degrades to a
+ * readable generation number under monochrome, glare, or colour blindness.
+ */
 export const cascade = {
-  direct: { fill: "#7A4A0E", border: "#7A4A0E" }, // darkest — the hit itself
-  order1: { fill: "#A0691C", border: "#A0691C" },
-  order2: { fill: "#C08A3A", border: "#A0691C" }, // light fill, border holds 3:1
-  none:   { fill: "#E8E2D4", border: "#7C7568" }, // nominal — quiet, still bounded
+  direct: { fill: "#3A2408", border: "#3A2408", glyph: "0" }, // the hit itself
+  order1: { fill: "#9C6C28", border: "#9C6C28", glyph: "1" },
+  order2: { fill: "#E9D6B6", border: "#7E5A1C", glyph: "2" }, // pale fill, border holds 3:1
+  none:   { fill: "#E8E2D4", border: "#7C7568", glyph: "" },  // nominal — quiet, still bounded
   // Cancelled is never a hue (DESIGN.md): neutral + a dashed edge at the mark.
-  cancelled: { fill: "#EDEAE3", border: "#7C7568" },
+  cancelled: { fill: "#EDEAE3", border: "#7C7568", glyph: "✕" },
 } as const
+
+/** Ink that reads on a given cascade step (the two dark steps need paper). */
+export const cascadeInk = (step: keyof typeof cascade): string =>
+  step === "direct" || step === "order1" ? "#FFFFFF" : "#1C1426"
 
 export const tokens = {
   colors: {

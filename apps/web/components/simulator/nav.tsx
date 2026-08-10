@@ -129,7 +129,7 @@ export function SimulatorNav({ isConnected }: SimulatorNavProps) {
           className="ae-nav-subtitle"
           style={{
             fontFamily: ff.mono,
-            fontSize: 10,
+            fontSize: 11,
             fontWeight: 600,
             letterSpacing: "0.14em",
             textTransform: "uppercase",

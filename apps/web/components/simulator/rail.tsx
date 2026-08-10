@@ -8,8 +8,8 @@
  * spring pop (Phantom-wallet style). Active route = ink text + plum bar.
  *
  * The rail also owns two flyouts:
- *   · OpsBrief — the daily operations report. Auto-opens once per session
- *     on boot, reopenable from the "Daily brief" item.
+ *   · OpsBrief — the daily operations report. Opened from the "Daily brief"
+ *     item; it never opens itself (DESIGN.md: "Nothing auto-opens").
  *
  * (The recovery-plans pop-out lives in the workspace now — it's the floating
  * Recovery panel that auto-opens on the map when plans are ready.)
@@ -175,14 +175,22 @@ export function SimulatorRail() {
     setMounted(true)
     try {
       if (localStorage.getItem("aeolus-rail-pinned") === "1") setPinned(true)
-      // boot brief — once per session
-      if (!sessionStorage.getItem("aeolus-brief-seen")) {
-        sessionStorage.setItem("aeolus-brief-seen", "1")
-        const t = window.setTimeout(() => setBriefOpen(true), 1600)
-        return () => window.clearTimeout(t)
-      }
     } catch {}
   }, [])
+
+  // The daily brief NO LONGER OPENS ITSELF.
+  //
+  // DESIGN.md's macrostructure rule is one line — "Nothing auto-opens" — and
+  // this was the last thing still doing it. 1600ms after boot a 430px sheet
+  // slid over the left of the console and covered the Events panel, which is
+  // open by default: measured brief x65-495 against Events x65-412, i.e. total
+  // occlusion of the primary control by an unrequested panel. On an ops console
+  // during a disruption, a greeting that hides the disruption controls is worse
+  // than no greeting.
+  //
+  // The brief did not disappear: the "Daily brief" rail item below already
+  // opens it and is permanently on screen. What changed is who decides when to
+  // read it.
 
   const togglePin = () => {
     setPinned((v) => {
@@ -277,7 +285,7 @@ export function SimulatorRail() {
                 style={{
                   height: 16,
                   fontFamily: ff.mono,
-                  fontSize: 9.5,
+                  fontSize: 11,
                   fontWeight: 600,
                   letterSpacing: "0.14em",
                   textTransform: "uppercase",
