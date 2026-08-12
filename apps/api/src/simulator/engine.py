@@ -354,21 +354,31 @@ class SimulationEngine:
         # same CP-SAT model, run across sampled closure lengths.
         from src.optimizer.uncertain import horizon_from_constraints, solve_with_uncertain_horizon
 
-        solve_kwargs = dict(
-            schedule=flights_list,
-            aircraft=list(self.aircraft.values()),
-            crews=list(self.crews.values()),
-            events=constraints,
-            disrupted_flights=disrupted,
-            cascade_predictions=predictions,
-        )
+        aircraft_list = list(self.aircraft.values())
+        crews_list = list(self.crews.values())
         horizon = horizon_from_constraints(constraints)
         if horizon:
             plans = await asyncio.to_thread(
-                solve_with_uncertain_horizon, optimizer, horizon=horizon, **solve_kwargs
+                solve_with_uncertain_horizon,
+                optimizer,
+                schedule=flights_list,
+                aircraft=aircraft_list,
+                crews=crews_list,
+                events=constraints,
+                disrupted_flights=disrupted,
+                cascade_predictions=predictions,
+                horizon=horizon,
             )
         else:
-            plans = await asyncio.to_thread(optimizer.solve, **solve_kwargs)
+            plans = await asyncio.to_thread(
+                optimizer.solve,
+                schedule=flights_list,
+                aircraft=aircraft_list,
+                crews=crews_list,
+                events=constraints,
+                disrupted_flights=disrupted,
+                cascade_predictions=predictions,
+            )
 
         self.state.recovery_plans = [
             p.to_dict() if hasattr(p, "to_dict") else self._plan_to_dict(p) for p in plans
