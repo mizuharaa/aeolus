@@ -1,0 +1,77 @@
+---
+id: tan_son_nhat_drone
+name: "Tan Son Nhat Drone Incursion (structural analog)"
+description: >
+  11 Aug 2026, Tan Son Nhat (VVTS/SGN): a drone over the airfield suspended
+  operations twice — 18:16 and 19:40 local — for a combined full stop of about
+  two hours. 22 flights were affected and arrivals held or diverted to an
+  alternate roughly 150 km away.
+
+  NETWORK MAPPING — this is NOT a Vietnamese network. Aeolus loads exactly one
+  network (Nimbus Air, US) from data/network/*.yaml, so a VN YAML dropped in
+  beside it would be dead data until multi-network loading exists. The incident
+  is therefore mapped STRUCTURALLY onto Nimbus rather than fudged:
+
+    Tan Son Nhat (SGN)  ->  KDEN. Chosen because 22 Nimbus flights touch KDEN,
+                            matching the real count of affected flights, and it
+                            is a single dominant field for its region.
+    Alternate ~150 km   ->  no equivalent. The closest airport pair in the
+                            Nimbus network is KJFK-KBOS at ~306 km, and Aeolus
+                            models no diversion mechanic at all. The diversions
+                            are recorded in metadata only, exactly as in
+                            dfw_runway_closure — not silently reproduced.
+
+  Both suspensions share one incident_id, so the second trigger FOLDS into the
+  first (see events/drone_incursion.fold_into_incident) instead of stacking a
+  second independent disruption: one incident, two closures, ~2 h of exposure.
+
+  The p95 is deliberately set from what was known AT 18:16, not from hindsight:
+  an unverified sighting could clear in twenty minutes or run all night
+  (Gatwick 2018 ran 33 h), so each closure carries median 60 min / p95 4 h. The
+  folded incident lands at median 2 h — the duration that actually happened —
+  with a 8 h tail the optimizer has to price. That spread is what makes the
+  regret numbers non-trivial.
+
+events:
+  - kind: drone_incursion
+    params:
+      airport: KDEN
+      runways: ["16R", "17L"]
+      # First suspension, 18:16 local — a tower/pilot sighting, not yet confirmed.
+      detection: pilot_report
+      median_minutes: 60
+      p95_minutes: 240
+      incident_id: "SGN-2026-08-11-DRONE"
+      severity: severe
+      start: "T+0h"
+
+  - kind: drone_incursion
+    params:
+      airport: KDEN
+      runways: ["16R", "17L"]
+      # Second suspension, 19:40 local (84 min later) — radar-corroborated, so
+      # the whole incident is re-read at radar confidence.
+      detection: radar
+      median_minutes: 60
+      p95_minutes: 240
+      incident_id: "SGN-2026-08-11-DRONE"
+      severity: severe
+      start: "T+1.4h"
+
+metadata:
+  estimated_affected_flights: 22
+  cascade_duration_hours: 4
+  difficulty: hard
+  primary_hub: KDEN
+  event_types: [drone_incursion]
+  peak_delay_minutes: 120
+  estimated_cancellations: 4
+  estimated_diversions: 6
+  cost_range_usd: [520000, 1400000]
+  affected_region: "Denver (mapped from Ho Chi Minh City)"
+  real_world_analog: "Tan Son Nhat drone incursion, 11 Aug 2026"
+  duration_known_at_trigger: false
+  alternate_distance_km: 150
+  alternate_note: >
+    Real alternate sits ~150 km from the field; no Nimbus pair is that close
+    and Aeolus has no diversion mechanic, so diversions are metadata only.
