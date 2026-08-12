@@ -56,7 +56,7 @@ network when those feeds are unavailable.
 |                                                               |
 |  +------------------+  +----------------+  +--------------+   |
 |  | Disruption Engine|  | FAR 117 Engine |  | MILP Solver  |   |
-|  | (10 event types) |  | (duty limits)  |  | (OR-Tools)   |   |
+|  | (11 event types) |  | (duty limits)  |  | (OR-Tools)   |   |
 |  +------------------+  +----------------+  +--------------+   |
 |                                                               |
 |  +------------------+  +----------------+  +--------------+   |
@@ -78,7 +78,7 @@ network when those feeds are unavailable.
 
 ## Features
 
-### Disruption Simulation (10 Event Types)
+### Disruption Simulation (11 Event Types)
 
 | Event Type | Description |
 |---|---|
@@ -92,9 +92,18 @@ network when those feeds are unavailable.
 | `atc_staffing` | Reduced ATC throughput |
 | `volcanic_ash` | Ash cloud forces wide-area rerouting |
 | `cyber_incident` | Slower aircraft turnarounds network-wide |
+| `drone_incursion` | Runway operations suspended — **duration unknown at trigger time** |
 
-Ten canned scenarios ship in `data/scenarios/` (e.g. `chicago_ground_stop`,
-`dfw_runway_closure`, `volcanic_ash_pacific`, `atl_security`).
+Eleven canned scenarios ship in `data/scenarios/` (e.g. `chicago_ground_stop`,
+`dfw_runway_closure`, `volcanic_ash_pacific`, `atl_security`,
+`tan_son_nhat_drone`).
+
+`drone_incursion` is the one event type whose duration is **not** known when it
+fires. It carries a log-normal closure-length distribution (default: median
+45 min, p95 3 h) instead of an end time, its length depends on detection
+confidence (pilot report vs. radar), and repeated suspensions of the same
+sighting fold into a single incident rather than stacking as independent
+events.
 
 ### MILP Recovery Optimizer (OR-Tools CP-SAT)
 
@@ -102,6 +111,10 @@ Ten canned scenarios ship in `data/scenarios/` (e.g. `chicago_ground_stop`,
 - Hard constraints: FAR 117 rest periods, aircraft availability, turnaround times
 - Four competing objectives solved per disruption — **Minimize Cost**, **Minimize Passenger Impact**, **Protect Tomorrow's Schedule**, and **Green Recovery** — so operators can compare trade-offs
 - Configurable solver timeout with an automatic heuristic fallback
+- **Uncertain horizon** (`optimizer/uncertain.py`): when a disruption's duration
+  is a distribution, the same CP-SAT model is solved across sampled closure
+  lengths. Each plan then reports an expected cost, a cost band, and **regret**
+  — how much more it costs than the best recovery available with hindsight
 
 ### Cascade Predictor
 
@@ -203,7 +216,7 @@ All endpoints are prefixed with `/api/v1`. Full interactive docs at `/docs`.
 
 | Method | Endpoint | Description |
 |---|---|---|
-| GET | `/events/types` | The 10 disruption event types |
+| GET | `/events/types` | The 11 disruption event types |
 | GET | `/events/scenarios` | Canned scenarios |
 | POST | `/events/trigger` | Inject a disruption |
 | GET | `/events/active` | Active disruptions |
@@ -302,7 +315,7 @@ aeolus/
 │   │   │   ├── main.py            # app entry point + lifespan
 │   │   │   ├── core/              # config + logging
 │   │   │   ├── routes/            # API route handlers
-│   │   │   ├── events/            # 10 disruption event handlers + registry
+│   │   │   ├── events/            # 11 disruption event handlers + registry
 │   │   │   ├── optimizer/         # OR-Tools MILP, explainer, crew overbooking
 │   │   │   ├── predictor/         # cascade predictor
 │   │   │   ├── crew/              # FAR 117 duty-time engine
@@ -320,7 +333,7 @@ aeolus/
 │       └── lib/                   # API client + WS hook
 ├── data/
 │   ├── network/                   # airports / aircraft / flights / crews YAML
-│   └── scenarios/                 # 10 canned disruption scenarios
+│   └── scenarios/                 # 11 canned disruption scenarios
 ├── scripts/
 │   ├── generate_network.py        # regenerate the Nimbus Air network
 │   └── train_predictor.py         # train the optional XGBoost cascade model

@@ -28,6 +28,7 @@ VISIBLE_EVENT_KINDS = {
     "volcanic_ash",
     "ground_stop",
     "airspace_closure",
+    "drone_incursion",
     "atc_staffing",
     "mechanical_aog",
     "bird_strike",
