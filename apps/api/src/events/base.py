@@ -21,6 +21,7 @@ class EventKind(str, Enum):
     HURRICANE = "hurricane"
     GROUND_STOP = "ground_stop"
     AIRSPACE_CLOSURE = "airspace_closure"
+    DRONE_INCURSION = "drone_incursion"
     SECURITY_EVENT = "security_event"
     AIRPORT_EMERGENCY = "airport_emergency"
     MECHANICAL_AOG = "mechanical_aog"
