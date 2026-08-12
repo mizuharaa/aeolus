@@ -60,6 +60,32 @@ class CarbonBreakdown(BaseModel):
     per_flight: list[CarbonPerFlight] = Field(default_factory=list)
 
 
+class HorizonScenario(BaseModel):
+    """One sampled closure length and what the committed plan costs under it."""
+    minutes:     float
+    weight:      float
+    cost_usd:    float
+    regret_usd:  float
+
+
+class HorizonUncertainty(BaseModel):
+    """Uncertain-horizon ledger — see src/optimizer/uncertain.py (Slice 6).
+
+    Present only for disruptions whose duration is a distribution rather than a
+    fixed value (drone incursion). `regret` is how much worse the committed
+    decision set is than perfect foresight would have been.
+    """
+    distribution:          str   = "lognormal"
+    median_minutes:        float = 0.0
+    p95_minutes:           float = 0.0
+    expected_cost_usd:     float = 0.0
+    cost_low_usd:          float = 0.0
+    cost_high_usd:         float = 0.0
+    expected_regret_usd:   float = 0.0
+    max_regret_usd:        float = 0.0
+    scenarios: list[HorizonScenario] = Field(default_factory=list)
+
+
 # ── Recovery plan ─────────────────────────────────────────────────────────────
 
 class RecoveryPlan(BaseModel):
@@ -85,6 +111,8 @@ class RecoveryPlan(BaseModel):
     total_co2_kg:      float = 0.0
     eu_ets_cost_usd:   float = 0.0
     carbon_breakdown:  Optional[CarbonBreakdown]  = None
+    # Only set when the disruption's duration was unknown at trigger time.
+    uncertainty:       Optional[HorizonUncertainty] = None
 
 
 # ── Plan-objective metadata (Slice 4 adds Plan D) ─────────────────────────────

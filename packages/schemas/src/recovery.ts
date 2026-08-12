@@ -52,6 +52,32 @@ export interface CarbonBreakdown {
   per_flight:               CarbonPerFlight[]
 }
 
+/** One sampled closure length and what the committed plan costs under it. */
+export interface HorizonScenario {
+  minutes:    number
+  weight:     number
+  cost_usd:   number
+  regret_usd: number
+}
+
+/**
+ * Uncertain-horizon ledger — see `apps/api/src/optimizer/uncertain.py`.
+ * Present only for disruptions whose duration is a distribution rather than a
+ * fixed value (drone incursion). `regret` is how much worse the committed
+ * decision set is than perfect foresight would have been.
+ */
+export interface HorizonUncertainty {
+  distribution:        string   // "lognormal"
+  median_minutes:      number
+  p95_minutes:         number
+  expected_cost_usd:   number
+  cost_low_usd:        number
+  cost_high_usd:       number
+  expected_regret_usd: number
+  max_regret_usd:      number
+  scenarios:           HorizonScenario[]
+}
+
 // ── Recovery plan ───────────────────────────────────────────────────────────
 
 export interface RecoveryPlan {
@@ -74,6 +100,8 @@ export interface RecoveryPlan {
   total_co2_kg?:                 number
   eu_ets_cost_usd?:              number
   carbon_breakdown?:             CarbonBreakdown
+  // Only set when the disruption's duration was unknown at trigger time.
+  uncertainty?:                  HorizonUncertainty
 }
 
 // ── Plan-objective metadata ─────────────────────────────────────────────────

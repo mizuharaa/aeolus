@@ -10,6 +10,7 @@ export type EventKind =
   | "hurricane"
   | "ground_stop"
   | "airspace_closure"
+  | "drone_incursion"
   | "security_event"
   | "mechanical_aog"
   | "bird_strike"
@@ -48,6 +49,15 @@ export interface EventParams {
   staffing_pct?: number
   queue_length?: number
   polygon?: GeoJSONPolygon
+  // ── drone_incursion: duration is UNKNOWN at trigger time ─────────────────
+  // median_minutes / p95_minutes declare a log-normal closure length;
+  // incident_id folds repeated suspensions into one incident.
+  runways?: string[]
+  detection?: "pilot_report" | "radar"
+  median_minutes?: number
+  p95_minutes?: number
+  incident_id?: string
+  reopen_count?: number
 }
 
 export interface GeoJSONPolygon {

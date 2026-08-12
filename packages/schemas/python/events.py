@@ -12,6 +12,7 @@ EventKind = Literal[
     "hurricane",
     "ground_stop",
     "airspace_closure",
+    "drone_incursion",
     "security_event",
     "mechanical_aog",
     "bird_strike",
@@ -57,6 +58,15 @@ class EventParams(BaseModel):
     staffing_pct: Optional[float] = None
     queue_length: Optional[int] = None
     polygon: Optional[GeoJSONPolygon] = None
+    # ── drone_incursion: duration is UNKNOWN at trigger time ────────────────
+    # `median_minutes` / `p95_minutes` declare a log-normal closure length;
+    # `incident_id` folds repeated suspensions into one incident.
+    runways: Optional[list[str]] = None
+    detection: Optional[Literal["pilot_report", "radar"]] = None
+    median_minutes: Optional[float] = None
+    p95_minutes: Optional[float] = None
+    incident_id: Optional[str] = None
+    reopen_count: Optional[int] = None
 
     model_config = {"extra": "allow"}
 
