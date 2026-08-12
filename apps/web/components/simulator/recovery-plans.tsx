@@ -124,9 +124,20 @@ function DecisionMatrix({
   appliedId: string | null
   onSelect: (id: string) => void
 }) {
+  // When the disruption's duration is unknown, a point cost is a half-truth:
+  // show what the plan costs in EXPECTATION and how much worse it gets if the
+  // closure runs long. Rows only appear when the backend priced a distribution.
+  const uncertain = plans.some((p) => p.uncertainty)
+
   // metric rows: label + accessor + formatter (lower is better for all)
   const rows: { label: string; get: (p: any) => number; fmt: (v: number) => string }[] = [
     { label: "Cost",    get: planCost,                                        fmt: fmtUsd },
+    ...(uncertain
+      ? [
+          { label: "E[cost]", get: (p: any) => p.uncertainty?.expected_cost_usd ?? planCost(p), fmt: fmtUsd },
+          { label: "Regret",  get: (p: any) => p.uncertainty?.max_regret_usd ?? 0,              fmt: fmtUsd },
+        ]
+      : []),
     { label: "Pax·min", get: (p) => p.total_passenger_delay_minutes || 0,     fmt: (v) => `${(v / 1000).toFixed(1)}K` },
     { label: "tCO₂e",   get: (p) => p.total_co2_kg ?? 0,                      fmt: (v) => `${v >= 0 ? "+" : ""}${(v / 1000).toFixed(1)}` },
     { label: "FAR 117", get: (p) => p.crew_violations || 0,                   fmt: (v) => (v === 0 ? "OK" : String(v)) },
@@ -464,6 +475,9 @@ function PlanLedger({
         </p>
       </div>
 
+      {/* ── uncertain horizon ── */}
+      <UncertainHorizon plan={plan} />
+
       {/* ── actions summary + carbon ── */}
       <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
         {cancelled > 0 && <CountChip kind="cancelled" Icon={X}       count={cancelled} label="cancelled" />}
@@ -634,6 +648,71 @@ function PlanLedger({
         Open full plan detail <ArrowRight style={{ width: 13, height: 13 }} strokeWidth={2} />
       </Link>
     </motion.div>
+  )
+}
+
+// ─── Uncertain horizon — expected cost + regret band ──────────────────────
+// A drone incursion has no published end time, so the single "est. total cost"
+// above is only the median case. This states the two numbers the operator
+// actually decides on: what the plan costs in expectation across the sampled
+// closure lengths, and how much worse it is than the best recovery available
+// with hindsight. Renders nothing for every other event type, which still has
+// a known duration and a single honest cost.
+
+function UncertainHorizon({ plan }: { plan: any }) {
+  const u = plan.uncertainty
+  if (!u) return null
+
+  const span = Math.max(1, u.cost_high_usd - u.cost_low_usd)
+  const markerPct = Math.min(100, Math.max(0, ((u.expected_cost_usd - u.cost_low_usd) / span) * 100))
+
+  return (
+    <div
+      style={{
+        borderRadius: r.sm,
+        padding: "12px 12px 10px",
+        background: c.canvas,
+        border: `1px solid ${c.hairline}`,
+        borderLeft: "3px solid var(--ae-teal)",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+        <Eyebrow color="var(--ae-teal-ink)">Uncertain horizon</Eyebrow>
+        <span style={{ fontFamily: ff.mono, fontSize: 11, color: c.muted }}>
+          median {Math.round(u.median_minutes)}m · p95 {Math.round(u.p95_minutes)}m
+        </span>
+      </div>
+
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8, marginTop: 8 }}>
+        <span style={{ fontSize: 12, color: c.muted }}>Expected cost</span>
+        <span style={{ fontFamily: ff.mono, fontSize: 15, fontWeight: 650, color: c.ink, fontVariantNumeric: "tabular-nums" }}>
+          {fmtUsd(u.expected_cost_usd)}
+        </span>
+      </div>
+
+      {/* Cost band across the sampled closure lengths, with the expectation
+          marked. A bar, not a sparkline: the shape of the distribution is not
+          the decision — the spread is. */}
+      <div aria-hidden style={{ position: "relative", height: 6, borderRadius: r.pill, background: c.surfaceStrong, margin: "8px 0 4px" }}>
+        <span style={{ position: "absolute", inset: 0, borderRadius: r.pill, background: "var(--ae-teal-bg)" }} />
+        <span style={{ position: "absolute", top: -2, bottom: -2, left: `calc(${markerPct}% - 1px)`, width: 2, background: "var(--ae-teal)" }} />
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", fontFamily: ff.mono, fontSize: 11, color: c.muted, fontVariantNumeric: "tabular-nums" }}>
+        <span>{fmtUsd(u.cost_low_usd)}</span>
+        <span>{fmtUsd(u.cost_high_usd)}</span>
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginTop: 8, paddingTop: 8, borderTop: `1px solid ${c.hairline}`, fontSize: 11 }}>
+        <span style={{ color: c.muted }}>Regret if the duration is wrong</span>
+        <span style={{ fontFamily: ff.mono, fontWeight: 600, color: u.max_regret_usd > 0 ? c.statusDelayed.ink : c.statusOnTime.ink, fontVariantNumeric: "tabular-nums" }}>
+          {fmtUsd(u.expected_regret_usd)} avg · {fmtUsd(u.max_regret_usd)} worst
+        </span>
+      </div>
+
+      <p style={{ fontSize: 9.5, color: c.muted, margin: "7px 0 0", fontFamily: ff.mono, letterSpacing: "0.02em" }}>
+        {u.scenarios.length} sampled closures ({u.distribution}) · regret vs. best plan with hindsight
+      </p>
+    </div>
   )
 }
 

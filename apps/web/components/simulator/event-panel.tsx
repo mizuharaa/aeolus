@@ -6,7 +6,7 @@ import {
   HeartPulse, AlertTriangle, Radio, Mountain, ServerCrash,
   Zap, Activity, Loader2, RefreshCw, CloudLightning, Wind,
   TriangleAlert, Globe, MapPin, Gauge,
-  CloudSnow, Tornado, Droplets, Bird, Snowflake, Flame, Users, ChevronDown, Eye,
+  CloudSnow, Tornado, Droplets, Bird, Snowflake, Flame, Users, ChevronDown, Eye, Radar,
 } from "lucide-react"
 import { apiClient } from "@/lib/api"
 import { useSimulationStore } from "@/stores/simulation"
@@ -28,6 +28,11 @@ function airportOptionLabel(icao: string): string {
   return `${icao} — ${tail}`
 }
 
+const DETECTION_LABELS: Record<string, string> = {
+  radar: "Radar / C-UAS track (corroborated)",
+  pilot_report: "Pilot report (unverified)",
+}
+
 const ARTCC_NAMES: Record<string, string> = {
   ZAU: "Chicago Center",
   ZTL: "Atlanta Center",
@@ -47,6 +52,7 @@ function isAirportField(key: string) {
 
 function selectOptionLabel(fieldKey: string, raw: string): string {
   if (isAirportField(fieldKey)) return airportOptionLabel(raw)
+  if (fieldKey === "detection") return DETECTION_LABELS[raw] ?? raw
   if (fieldKey === "facility_id") {
     const name = ARTCC_NAMES[raw]
     return name ? `${raw} — ${name}` : raw
@@ -60,6 +66,8 @@ const AIRPORTS = ["KORD","KATL","KDFW","KLAX","KDEN","KJFK","KSEA","KMIA","KPHX"
 const AIRCRAFT  = Array.from({ length: 40 }, (_, i) => `N${String(i + 1).padStart(3, "0")}NB`)
 
 const EVENT_TYPES = [
+  // Uncrewed aircraft — the only event type whose duration is unknown when it fires
+  { value: "drone_incursion",   label: "Drone Incursion",     Icon: Radar,          color: "amber"   },
   // Weather
   { value: "weather_closure",   label: "Weather Closure",     Icon: Cloud,          color: "sky"     },
   { value: "thunderstorm",      label: "Thunderstorm Cell",   Icon: CloudLightning, color: "blue"    },
@@ -91,6 +99,7 @@ const EVENT_TYPES = [
 type EventKind = typeof EVENT_TYPES[number]["value"]
 
 const EVENT_CATEGORIES: { label: string; events: EventKind[] }[] = [
+  { label: "Uncrewed Aircraft", events: ["drone_incursion"] },
   { label: "Weather", events: ["weather_closure","thunderstorm","blizzard","sandstorm","dense_fog","wind_shear","hurricane","volcanic_ash"] },
   { label: "Air Traffic Control", events: ["ground_stop","airspace_closure","atc_staffing"] },
   { label: "Aircraft & Operations", events: ["mechanical_aog","bird_strike","deicing_shortage","runway_closure","fuel_contamination"] },
@@ -98,7 +107,7 @@ const EVENT_CATEGORIES: { label: string; events: EventKind[] }[] = [
   { label: "Security & Emergency", events: ["security_event","airport_emergency","cyber_incident"] },
 ]
 
-// Running ledger index 01–21 across categories, in EVENT_CATEGORIES order.
+// Running ledger index 01–22 across categories, in EVENT_CATEGORIES order.
 const EVENT_INDEX: Record<EventKind, string> = (() => {
   const m = {} as Record<EventKind, string>
   let n = 0
@@ -107,6 +116,8 @@ const EVENT_INDEX: Record<EventKind, string> = (() => {
 })()
 
 const EVENT_DESCRIPTIONS: Record<EventKind, string> = {
+  drone_incursion:
+    "A drone over the airfield suspends runway operations — and unlike every other event here, nobody knows for how long. The field reopens when the search comes up empty and re-closes on the next sighting, so the closure length is modelled as a distribution (log-normal: median 45 min, p95 3 hr) rather than a fixed end time. A corroborated radar / C-UAS track holds the field far longer than a single unverified pilot report. Recovery plans are solved across sampled durations and carry a regret band: what the plan costs if the guess is wrong.",
   weather_closure:
     "A weather system forces closure or severe capacity reductions at the affected airport. Ground operations halt as conditions drop below VFR minimums, causing widespread delays and diversions across the entire hub bank structure.",
   thunderstorm:
@@ -155,6 +166,17 @@ const FORM_SCHEMA: Record<EventKind, {
   fields: { key: string; label: string; type: "select" | "number"; options?: string[]; min?: number; max?: number; step?: number }[]
   defaults: Record<string, string>
 }> = {
+  // No duration field: that is the point of this event type. The operator sets
+  // the SHAPE of the closure-length distribution instead.
+  drone_incursion: {
+    fields: [
+      { key: "airport",        label: "Airport",            type: "select", options: AIRPORTS },
+      { key: "detection",      label: "Detection",          type: "select", options: ["radar","pilot_report"] },
+      { key: "median_minutes", label: "Median closure (min)", type: "number", min: 5,  max: 240,  step: 5 },
+      { key: "p95_minutes",    label: "p95 closure (min)",  type: "number", min: 15, max: 1440, step: 15 },
+    ],
+    defaults: { airport: "KDEN", detection: "radar", median_minutes: "45", p95_minutes: "180" },
+  },
   weather_closure: {
     fields: [
       { key: "airport",        label: "Airport",        type: "select", options: AIRPORTS },
@@ -1099,7 +1121,7 @@ export function EventPanel() {
         </div>
         <div>
           <div className="section-title">Event Control</div>
-          <div className="text-[10px] text-muted-foreground mt-0.5">21 disruption types · live NAS feed</div>
+          <div className="text-[10px] text-muted-foreground mt-0.5">22 disruption types · live NAS feed</div>
         </div>
       </div>
 
@@ -1182,9 +1204,16 @@ export function EventPanel() {
                         onClick={() => selectKind(et.value)}
                         className="ae-event-row"
                         data-selected={selectedKind === et.value}
+                        /* The one event type whose duration is unknown at
+                           trigger time gets the only non-neutral row in the
+                           ledger — see .ae-event-row[data-new] in globals.css. */
+                        data-new={et.value === "drone_incursion" ? "true" : undefined}
                       >
                         <span className="ae-event-idx">{EVENT_INDEX[et.value]}</span>
                         <span className="ae-event-name">{et.label}</span>
+                        {et.value === "drone_incursion" && (
+                          <span className="ae-event-new">New · uncertain</span>
+                        )}
                       </button>
                     ))}
                   </div>

@@ -10,6 +10,7 @@ import { CascadeTimeline } from "@/components/simulator/cascade-timeline"
 import { RecoveryPlans } from "@/components/simulator/recovery-plans"
 import { SimulatorNav } from "@/components/simulator/nav"
 import { AgentBubble } from "@/components/simulator/agent-bubble"
+import { AnnouncementBanner } from "@/components/simulator/announcement-banner"
 import { DashboardLoader } from "@/components/simulator/dashboard-loader"
 import { FlightSearch } from "@/components/simulator/flight-search"
 import { apiClient } from "@/lib/api"
@@ -206,6 +207,8 @@ export default function SimulatorPage() {
       <div style={{ flexShrink: 0 }}>
         <SimulatorNav isConnected={isConnected} affectedCount={activeEvents.length} />
       </div>
+
+      <AnnouncementBanner />
 
       {/* ── Workspace ────────────────────────────────────────────────────
           A fixed three-track row: Events | (map over timeline) | Recovery.

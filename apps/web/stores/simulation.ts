@@ -70,6 +70,20 @@ export interface RecoveryPlan {
   // alongside dollars.
   total_co2_kg?: number
   eu_ets_cost_usd?: number
+  // Uncertain-horizon ledger — only present when the disruption's duration was
+  // unknown at trigger time (drone incursion). See apps/api/src/optimizer/
+  // uncertain.py; mirrored in packages/schemas/src/recovery.ts.
+  uncertainty?: {
+    distribution: string
+    median_minutes: number
+    p95_minutes: number
+    expected_cost_usd: number
+    cost_low_usd: number
+    cost_high_usd: number
+    expected_regret_usd: number
+    max_regret_usd: number
+    scenarios: Array<{ minutes: number; weight: number; cost_usd: number; regret_usd: number }>
+  }
   carbon_breakdown?: {
     total_co2_kg: number
     total_co2_tonnes: number
@@ -148,6 +162,10 @@ interface SimulationStore {
   lastEventAt: number | null
   appliedPlanId: string | null
 
+  // Feature-announcement banner. Dismissal persists across sessions in
+  // localStorage (sessionStorage would re-show it on every new tab).
+  announcementDismissed: boolean
+
   // Real live flights from OpenSky
   liveFlights: LiveFlight[]
   liveFlightsTs: number | null
@@ -162,6 +180,8 @@ interface SimulationStore {
   reset: () => void
   setLoading: (loading: boolean) => void
   applyPlan: (planId: string | null) => void
+  hydrateAnnouncement: () => void
+  dismissAnnouncement: () => void
   setLiveFlights: (flights: LiveFlight[], ts?: number) => void
   hydrateLiveFromCache: () => void
   hydrateStaticFromCache: () => void
@@ -241,6 +261,9 @@ function pickRecord<V>(
   return incoming
 }
 
+/** Bump the suffix to announce the next feature; the old key just goes stale. */
+const ANNOUNCEMENT_KEY = "aeolus-announcement-drone-incursion"
+
 export const useSimulationStore = create<SimulationStore>((set, get) => ({
   flightStates: {},
   activeEvents: [],
@@ -251,6 +274,9 @@ export const useSimulationStore = create<SimulationStore>((set, get) => ({
   isLoading: false,
   lastEventAt: null,
   appliedPlanId: null,
+  // Starts false on both server and client so hydration matches; the real
+  // value is read in hydrateAnnouncement() after mount.
+  announcementDismissed: false,
 
   liveFlights: [],
   liveFlightsTs: null,
@@ -353,6 +379,19 @@ export const useSimulationStore = create<SimulationStore>((set, get) => ({
         }
       }
     } catch {}
+  },
+
+  hydrateAnnouncement: () => {
+    try {
+      if (localStorage.getItem(ANNOUNCEMENT_KEY) === "1") set({ announcementDismissed: true })
+    } catch {}
+  },
+
+  dismissAnnouncement: () => {
+    try {
+      localStorage.setItem(ANNOUNCEMENT_KEY, "1")
+    } catch {}
+    set({ announcementDismissed: true })
   },
 
   reset: () =>

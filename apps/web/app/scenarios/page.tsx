@@ -4,7 +4,7 @@ import Link from "next/link"
 import { motion } from "framer-motion"
 import {
   ArrowLeft, ArrowRight, Cloud, OctagonAlert, Ban, ShieldAlert,
-  Wrench, HeartPulse, AlertTriangle, Radio, Mountain, ServerCrash, Loader2,
+  Wrench, HeartPulse, AlertTriangle, Radio, Mountain, ServerCrash, Loader2, Radar,
 } from "lucide-react"
 import { AeolusLogo } from "@/components/ds/logo"
 import { Button } from "@/components/ui/button"
@@ -13,6 +13,7 @@ import { apiClient } from "@/lib/api"
 import { toast } from "sonner"
 
 const SCENARIOS = [
+  { name: "tan_son_nhat_drone",    displayName: "Tan Son Nhat Drone Incursion", description: "Two runway suspensions from one drone, ~2h total, with the closure length unknown at trigger time. Mapped structurally onto KDEN.", Icon: Radar,        affected: 22, dur: "4h",  difficulty: "High",   diffClass: "text-red-700 bg-red-50 border-red-200" },
   { name: "ord_thunderstorm",      displayName: "ORD Thunderstorm",         description: "Severe thunderstorm closes O'Hare for 4 hours. Classic midwest summer disruption with wide cascade.", Icon: Cloud,        affected: 47, dur: "12h", difficulty: "High",   diffClass: "text-red-700 bg-red-50 border-red-200" },
   { name: "atl_security",          displayName: "ATL Security Incident",     description: "Security threat forces evacuation of Concourse D at Hartsfield-Jackson; TSA re-screening lasts 3h.",  Icon: ShieldAlert,  affected: 28, dur: "6h",  difficulty: "Medium", diffClass: "text-amber-700 bg-amber-50 border-amber-200" },
   { name: "n001nb_aog",            displayName: "N001NB Mechanical AOG",      description: "Lead aircraft N001NB has hydraulic failure on landing at KATL. Grounded 8h awaiting parts.",          Icon: Wrench,       affected:  8, dur: "10h", difficulty: "Low",    diffClass: "text-emerald-700 bg-emerald-50 border-emerald-200" },
@@ -62,7 +63,7 @@ export default function ScenariosPage() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-10 text-center"
         >
-          <div className="section-badge mb-4">10 canned scenarios</div>
+          <div className="section-badge mb-4">11 canned scenarios</div>
           <h1 className="font-display text-4xl md:text-5xl font-bold mb-3">Pre-built disruption scenarios</h1>
           <p className="text-muted-foreground max-w-2xl mx-auto">
             Each scenario is a real-world style stress test — modeled from BTS / NTSB / FAA reports.
