@@ -5,6 +5,8 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
+from src.events.drone_incursion import detection_scale
+
 EVENT_DEFAULTS: dict[str, dict[str, Any]] = {
     "weather_closure": {"airport": "KORD", "severity": "severe", "duration_hours": 4},
     "thunderstorm": {"airport": "KORD", "severity": "severe", "duration_hours": 3},
@@ -60,6 +62,18 @@ EVENT_DEFAULTS: dict[str, dict[str, Any]] = {
         "radius_nm": 40,
         "severity": "severe",
         "duration_hours": 6,
+    },
+    # Duration is UNKNOWN at trigger time — `median_minutes` / `p95_minutes`
+    # declare a log-normal closure length and `duration_hours` is only its
+    # median, kept in sync by normalize_event_params() for the predictor.
+    "drone_incursion": {
+        "airport": "KDEN",
+        "runways": [],
+        "detection": "radar",
+        "median_minutes": 45,
+        "p95_minutes": 180,
+        "severity": "severe",
+        "duration_hours": 0.75,
     },
     "atc_staffing": {
         "facility_id": "ZAU",
@@ -136,6 +150,7 @@ EVENT_DESCRIPTIONS: dict[str, str] = {
     "volcanic_ash": "An ash exclusion zone forces cancellations and long reroutes.",
     "ground_stop": "Departures to a destination are held at their origin airports.",
     "airspace_closure": "A closed sector forces traffic onto longer adjacent routes.",
+    "drone_incursion": "A drone sighting suspends runway operations for an unknown length of time.",
     "atc_staffing": "Reduced controller staffing lowers regional throughput.",
     "mechanical_aog": "A specific aircraft is grounded until maintenance release.",
     "bird_strike": "An aircraft is grounded for inspection after a bird or FOD strike.",
@@ -203,6 +218,21 @@ def normalize_event_params(kind: str, params: dict[str, Any] | None) -> dict[str
         airport = merged.get("airport")
         if airport and not (params or {}).get("airports"):
             merged["airports"] = [airport]
+
+    if kind == "drone_incursion":
+        median = float(merged.get("median_minutes", 45))
+        p95 = float(merged.get("p95_minutes", 180))
+        if median <= 0:
+            raise ValueError("median_minutes must be greater than 0")
+        if p95 <= median:
+            raise ValueError("p95_minutes must be greater than median_minutes")
+        merged["median_minutes"] = median
+        merged["p95_minutes"] = p95
+        merged["runways"] = [str(rw).upper() for rw in (merged.get("runways") or [])]
+        # duration_hours is the point estimate the cascade predictor consumes;
+        # the distribution itself travels to the optimizer on the constraint.
+        scale = detection_scale(str(merged.get("detection", "radar")))
+        merged["duration_hours"] = median * scale / 60.0
 
     if kind == "atc_staffing":
         facility = str(merged.get("facility_id") or merged.get("sector_or_airport") or "").upper()

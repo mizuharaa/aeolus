@@ -18,6 +18,8 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 
 from src.events.catalog import constraint_kind_for
+from src.events.drone_incursion import duration_distribution as drone_duration_distribution
+from src.events.drone_incursion import fold_into_incident
 
 if TYPE_CHECKING:
     from fastapi import WebSocket
@@ -266,7 +268,15 @@ class SimulationEngine:
             "id": event.get("id") or str(uuid.uuid4()),
             "triggered_at": event.get("triggered_at") or datetime.now(timezone.utc).isoformat(),
         }
-        self.state.active_events.append(event)
+        # A re-closure of an incident already in flight (a drone that reappears)
+        # replaces that event with a merged one instead of stacking a second
+        # independent disruption on the same airport.
+        folded = fold_into_incident(self.state.active_events, event)
+        if folded is not None:
+            index, event = folded
+            self.state.active_events[index] = event
+        else:
+            self.state.active_events.append(event)
         self.state.event_history.append(event)
 
         if self._repo is not None and self.scenario_id is None:
@@ -339,16 +349,36 @@ class SimulationEngine:
         # Build optimizer constraints from event
         constraints = self._event_to_constraints(event)
 
-        # Run recovery optimizer
-        plans = await asyncio.to_thread(
-            optimizer.solve,
-            schedule=flights_list,
-            aircraft=list(self.aircraft.values()),
-            crews=list(self.crews.values()),
-            events=constraints,
-            disrupted_flights=disrupted,
-            cascade_predictions=predictions,
-        )
+        # Run recovery optimizer. Events whose duration is a distribution
+        # (drone incursion) go through the scenario-based solver instead —
+        # same CP-SAT model, run across sampled closure lengths.
+        from src.optimizer.uncertain import horizon_from_constraints, solve_with_uncertain_horizon
+
+        aircraft_list = list(self.aircraft.values())
+        crews_list = list(self.crews.values())
+        horizon = horizon_from_constraints(constraints)
+        if horizon:
+            plans = await asyncio.to_thread(
+                solve_with_uncertain_horizon,
+                optimizer,
+                schedule=flights_list,
+                aircraft=aircraft_list,
+                crews=crews_list,
+                events=constraints,
+                disrupted_flights=disrupted,
+                cascade_predictions=predictions,
+                horizon=horizon,
+            )
+        else:
+            plans = await asyncio.to_thread(
+                optimizer.solve,
+                schedule=flights_list,
+                aircraft=aircraft_list,
+                crews=crews_list,
+                events=constraints,
+                disrupted_flights=disrupted,
+                cascade_predictions=predictions,
+            )
 
         self.state.recovery_plans = [
             p.to_dict() if hasattr(p, "to_dict") else self._plan_to_dict(p) for p in plans
@@ -704,6 +734,22 @@ class SimulationEngine:
                     "capacity_reduction_pct": params.get("capacity_cut_pct", 40),
                     "start": params.get("start", "T+0h"),
                     "end": params.get("end", "T+3h"),
+                }
+            )
+
+        elif kind == "drone_incursion":
+            constraints.append(
+                {
+                    "type": "capacity_reduced",
+                    "airport": params.get("airport", ""),
+                    "runways": params.get("runways", []),
+                    "capacity_reduction_pct": params.get("capacity_cut_pct", 100),
+                    "detection": params.get("detection", "radar"),
+                    "start": params.get("start", "T+0h"),
+                    # Deliberately no `end` — the closure length is unknown.
+                    # The distribution is what the optimizer solves across.
+                    "duration_dist": drone_duration_distribution(params),
+                    "reopen_count": params.get("reopen_count", 0),
                 }
             )
 

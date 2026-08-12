@@ -47,6 +47,9 @@ DIRECT_DELAY_FRACTION: dict[str, float] = {
     "mechanical_aog": 1.00,
     "crew_sickout": 0.70,
     "airspace_closure": 0.80,
+    # Runways suspended — near-total stop while it lasts, but the closure is
+    # short, so the fraction of its (median) duration that lands as delay is high.
+    "drone_incursion": 0.85,
     "volcanic_ash": 0.75,
     "cyber_incident": 0.60,
     # Extended event types
@@ -199,6 +202,7 @@ class CascadePredictor:
             "deicing_shortage",
             "fuel_contamination",
             "airport_emergency",
+            "drone_incursion",
         )
         if kind in _airport_event_kinds:
             ap = params.get("airport", "")
@@ -550,6 +554,7 @@ def _default_duration(kind: str) -> float:
         "mechanical_aog": 6.0,
         "crew_sickout": 8.0,
         "airspace_closure": 3.0,
+        "drone_incursion": 0.75,
         "volcanic_ash": 12.0,
         "cyber_incident": 4.0,
     }.get(kind, 3.0)
@@ -583,6 +588,7 @@ def _reason(kind: str, order: int, params: dict) -> str:
         "mechanical_aog": f"Mechanical AOG — tail {params.get('aircraft_tail', '')}",
         "crew_sickout": f"Crew sick-out — base {params.get('base', '')}",
         "airspace_closure": f"Airspace closure — {params.get('airport', '')}",
+        "drone_incursion": f"Drone incursion — {params.get('airport', '')} runways suspended",
         "volcanic_ash": "Volcanic ash cloud — west-coast route diverted",
         "cyber_incident": f"Cyber incident — {params.get('degradation_pct', '')}% IT degradation",
     }

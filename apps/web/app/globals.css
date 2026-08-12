@@ -1035,6 +1035,34 @@
 .ae-event-row[data-selected="true"] .ae-event-name { color: var(--ae-bg); }
 .ae-event-row[data-selected="true"] .ae-event-idx { color: var(--ae-amber); }
 
+/* The ONE deliberate exception to the neutral-ledger treatment above. Drone
+   incursion is the only event type whose duration is unknown when it fires —
+   a different kind of object, not another flavour of the same one — so it
+   carries a teal identity edge and a label naming WHY it differs. Selection
+   still wins (ink inversion), so the row never has two states at once. Kept to
+   a single row: the moment a second row earns this badge, delete both. */
+.ae-event-row[data-new="true"] {
+  background: var(--ae-teal-bg);
+  box-shadow: inset 3px 0 0 var(--ae-teal);
+}
+.ae-event-row[data-new="true"] .ae-event-idx { color: var(--ae-teal-ink); }
+.ae-event-row[data-new="true"] .ae-event-name { font-weight: 650; }
+.ae-event-row[data-new="true"][data-selected="true"] {
+  background: var(--ae-text);
+  box-shadow: inset 3px 0 0 var(--ae-teal);
+}
+.ae-event-new {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-family: var(--ae-font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ae-teal-ink);
+}
+.ae-event-row[data-selected="true"] .ae-event-new { color: var(--ae-bg); }
+
 /* Nav clutter guards — the ops bar sheds detail before it ever overlaps:
    accrued-burn text goes first, the whole meter collapses to rate-only. */
 @media (max-width: 1450px) {

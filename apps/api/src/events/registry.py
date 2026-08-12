@@ -11,6 +11,7 @@ from src.events.base import DisruptionEvent, EventKind
 from src.events.catalog import EVENT_DEFAULTS, normalize_event_params
 from src.events.crew_sickout import CrewSickoutEvent
 from src.events.cyber_incident import CyberIncidentEvent
+from src.events.drone_incursion import DroneIncursionEvent
 from src.events.ground_stop import GroundStopEvent
 from src.events.mechanical_aog import MechanicalAOGEvent
 from src.events.runway_closure import RunwayClosureEvent
@@ -28,6 +29,7 @@ EVENT_REGISTRY: dict[EventKind, type[DisruptionEvent]] = {
     EventKind.HURRICANE: WeatherClosureEvent,
     EventKind.GROUND_STOP: GroundStopEvent,
     EventKind.AIRSPACE_CLOSURE: AirspaceClosureEvent,
+    EventKind.DRONE_INCURSION: DroneIncursionEvent,
     EventKind.SECURITY_EVENT: SecurityEvent,
     EventKind.AIRPORT_EMERGENCY: SecurityEvent,
     EventKind.MECHANICAL_AOG: MechanicalAOGEvent,

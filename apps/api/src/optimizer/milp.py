@@ -100,6 +100,10 @@ class RecoveryPlan:
     total_co2_kg: float = 0.0
     eu_ets_cost_usd: float = 0.0
     carbon_breakdown: dict = field(default_factory=dict)
+    # Uncertain-horizon ledger (Slice 6 — drone incursion). Only populated when
+    # the disruption's duration is a distribution rather than a fixed value;
+    # see src/optimizer/uncertain.py for the shape.
+    uncertainty: dict | None = None
     summary: str = ""
 
     def to_dict(self) -> dict:
