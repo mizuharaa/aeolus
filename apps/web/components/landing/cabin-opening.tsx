@@ -497,6 +497,33 @@ const CAM_END   = new THREE.Vector3(0.25, 0.12, 7.4)
 const LOOK_START = new THREE.Vector3(2.0, -0.3, -0.9)
 const LOOK_END   = new THREE.Vector3(0.05, -0.15, 0.9)
 
+/**
+ * The camera's vertical FOV is the wrong control to hold constant on a page
+ * that runs from a 16:9 desktop to a 0.46 portrait phone.
+ *
+ * three.js `fov` is VERTICAL, so a narrow viewport keeps the same vertical
+ * coverage and loses horizontal — and everything that makes this shot read as a
+ * cabin (the seat bank, the aisle running away, the second window) is arranged
+ * HORIZONTALLY. Measured at 390×844: the frame cropped to a single window and
+ * a slab of sidewall, i.e. back to exactly the flat-grey-panel problem the
+ * reframe had just fixed, for the same reason in the other axis.
+ *
+ * So horizontal coverage is what is held roughly constant, by widening the
+ * vertical FOV as the aspect narrows. Fully compensating would demand ~124° at
+ * portrait, which is a fisheye — so this compensates PARTIALLY (a square-root
+ * blend) and clamps, and the remainder is made up by dollying back. Two gentle
+ * levers instead of one violent one.
+ */
+const BASE_FOV = 52
+const BASE_ASPECT = 16 / 9
+
+function fovForAspect(aspect: number): number {
+  if (!isFinite(aspect) || aspect <= 0) return BASE_FOV
+  if (aspect >= BASE_ASPECT) return BASE_FOV
+  const compensation = Math.sqrt(BASE_ASPECT / aspect)
+  return Math.min(76, BASE_FOV * Math.min(compensation, 1.46))
+}
+
 function CabinScene({ progressRef }: { progressRef: React.MutableRefObject<number> }) {
   const cabin = useMemo(buildCabin, [])
   const cur = useRef(0)
@@ -525,6 +552,26 @@ function CabinScene({ progressRef }: { progressRef: React.MutableRefObject<numbe
     // comes from the lamp glow below, which changes brightness rather than
     // geometry and so cannot read as camera movement.
     cam.position.lerpVectors(CAM_START, CAM_END, s)
+
+    // Aspect fit. Applied every frame rather than on a resize listener: the
+    // canvas also changes shape when mobile browser chrome collapses on scroll,
+    // which fires no resize event on some engines, and this scene is already
+    // running a per-frame update. Both writes are cheap and idempotent.
+    if (cam instanceof THREE.PerspectiveCamera) {
+      const wantFov = fovForAspect(cam.aspect)
+      if (Math.abs(cam.fov - wantFov) > 0.01) {
+        cam.fov = wantFov
+        cam.updateProjectionMatrix()
+      }
+      // NO DOLLY. Pulling the camera back to make up the clamped coverage was
+      // tried and it is unsound in a closed interior: at portrait the retreat
+      // computed 2.1 units along the view axis, which put the camera at z≈5.21
+      // with the far cabin wall at z=4.7 — outside the cabin, looking back at
+      // the OUTSIDE of a wall, rendering as a featureless grey slab. A shot
+      // framed inside a box cannot be widened by backing up, because the box
+      // ends. FOV is the only lever here, so the clamp is the real limit and it
+      // is honest about it.
+    }
     // The aim point travels too. Aiming at a fixed offset from the camera (the
     // old `cam.position.z - 6`) meant the shot could only ever dolly — it could
     // not change what it was ABOUT. Interpolating the target lets the opening

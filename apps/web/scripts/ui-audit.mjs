@@ -48,6 +48,26 @@ const PROBE = `(() => {
   }
   const over = (fg, bg, a) => fg.map((c,i) => Math.round(c*a + bg[i]*(1-a)))
 
+  /**
+   * Does this element or an ancestor paint a GRADIENT or IMAGE behind the text?
+   *
+   * If so the ratio below is not measurable from computed style: the effective
+   * background varies per pixel, and backgroundColor reports whatever sits
+   * UNDER the gradient — which for a scrim is the very surface the scrim exists
+   * to hide. Reporting those as failures is worse than not reporting them,
+   * because it buries real findings under noise that cannot be fixed in CSS.
+   * They are counted separately as "unmeasurable" and must be checked by eye.
+   */
+  const gradientBehind = (el) => {
+    let node = el
+    while (node && node !== document.documentElement) {
+      const bi = getComputedStyle(node).backgroundImage
+      if (bi && bi !== "none") return true
+      node = node.parentElement
+    }
+    return false
+  }
+
   /** Walk ancestors compositing translucent backgrounds until opaque. */
   const bgOf = (el) => {
     let stack = [], node = el
@@ -85,12 +105,21 @@ const PROBE = `(() => {
 
   // ── contrast over every element that renders its OWN text ──────────
   const contrast = []
+  const unmeasurable = []
   for (const el of document.querySelectorAll("body *")) {
     if (!vis(el)) continue
     const own = [...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim().length > 1)
     if (!own) continue
     const s = getComputedStyle(el)
     const fgP = parse(s.color); if (!fgP) continue
+    // Transparent text is background-clip:text (the marquee) — the glyph fill
+    // comes from a gradient, so the colour property says nothing about what
+    // actually renders. NB: no backticks anywhere in this string, it is a
+    // template literal.
+    if (fgP.a === 0 || gradientBehind(el)) {
+      unmeasurable.push({ el: label(el), why: fgP.a === 0 ? "transparent text fill" : "gradient background" })
+      continue
+    }
     const bg = bgOf(el)
     const fg = fgP.a >= 0.999 ? fgP.rgb : over(fgP.rgb, bg, fgP.a)
     const size = parseFloat(s.fontSize)
@@ -144,6 +173,7 @@ const PROBE = `(() => {
 
   return {
     contrast: contrast.sort((x,y)=>x.got-y.got),
+    unmeasurable,
     small, collisions: collisions.sort((x,y)=>y.frac-x.frac),
     overflowX: document.documentElement.scrollWidth > innerWidth + 1
       ? { scrollWidth: document.documentElement.scrollWidth, inner: innerWidth } : null,
@@ -226,6 +256,7 @@ for (const [key, r] of Object.entries(report)) {
   if (r.error) { console.log(`\n## ${key}\n  ERROR ${r.error}`); continue }
   console.log(`\n## ${key}`)
   console.log(`  contrast failures : ${r.contrast.length}`)
+  console.log(`  unmeasurable      : ${(r.unmeasurable || []).length}  (gradient/clipped text — check by eye)`)
   console.log(`  collisions        : ${r.collisions.length}`)
   console.log(`  sub-24px targets  : ${r.small.length}`)
   console.log(`  horizontal overflow: ${r.overflowX ? JSON.stringify(r.overflowX) : "none"}`)
