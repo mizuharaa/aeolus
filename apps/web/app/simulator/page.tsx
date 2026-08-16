@@ -1,5 +1,5 @@
 "use client"
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import dynamic from "next/dynamic"
 import { Loader2, AlertTriangle, PanelBottomClose, PanelBottomOpen, Layers } from "lucide-react"
 import { useSimulationStore, type ScheduledFlight, type FleetAircraft } from "@/stores/simulation"
@@ -117,6 +117,44 @@ export default function SimulatorPage() {
   useEffect(() => {
     if (tab === "flight" && !flightEnabled) setTab("events")
   }, [tab, flightEnabled])
+
+  /**
+   * RECOVERY PLANS ARRIVE → SHOW THEM.
+   *
+   * design.md says "Nothing auto-opens", and that rule is kept. It was written
+   * about a 430px sheet that slid over the console covering the Events panel,
+   * and about a Recovery OVERLAY that opened itself with plan A already
+   * inspected — which read as "a plan was auto-applied on load". Both of those
+   * are decisions the operator did not make.
+   *
+   * Switching a tab in a panel that is already open is a different act. The
+   * column does not change size, nothing is covered, no plan is committed, and
+   * the operator can click straight back to Events. What it does do is answer
+   * the question they just asked: triggering a disruption IS a request to see
+   * what can be done about it, and leaving the result behind an unvisited tab
+   * badge means the console solved four recovery plans and said nothing.
+   *
+   * Guarded by a ref keyed on the plan wave, so it fires ONCE per solve. Without
+   * that, every websocket broadcast during a live disruption would yank the
+   * operator back out of whatever tab they had deliberately opened.
+   */
+  const announcedWave = useRef<string | null>(null)
+  useEffect(() => {
+    if (recoveryPlans.length === 0) {
+      announcedWave.current = null
+      return
+    }
+    // The wave identity is the set of plan ids: a re-solve for a new event
+    // produces a new set, a rebroadcast of the same solve does not.
+    const wave = recoveryPlans.map((p) => p.plan_id).join("|")
+    if (announcedWave.current === wave) return
+    announcedWave.current = wave
+    // Never steal focus from an operator mid-inspection of a specific flight.
+    if (tab === "flight") return
+    setTab("recovery")
+    setColOpen(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recoveryPlans])
 
   const closeFlight = useCallback(() => {
     setSelectedFlight(null)

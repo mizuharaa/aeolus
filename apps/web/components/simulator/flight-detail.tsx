@@ -23,7 +23,8 @@
  */
 
 import { useMemo } from "react"
-import { X, Plane, Gauge, ArrowUp, Radio, Share2, Crosshair, Bookmark, MoreHorizontal } from "lucide-react"
+import { X, Plane, Share2, Crosshair, Bookmark } from "lucide-react"
+import { useWatchlist } from "@/lib/use-watchlist"
 import { c, ff, r, sp } from "@/lib/design-tokens"
 import { useSimulationStore, type LiveFlight, type ScheduledFlight } from "@/stores/simulation"
 import { NIMBUS_AIRPORTS } from "@/components/simulator/airports"
@@ -204,34 +205,92 @@ export function FlightDetailPanel({
   )
 }
 
-/** Action strip — the four glyph buttons along the bottom of the reference card. */
-function ActionStrip({ onFocus, trackingHref }: { onFocus?: () => void; trackingHref?: string }) {
+/**
+ * Action strip.
+ *
+ * ── 2026-08-16: every button here now does something ──────────────────────
+ *
+ * This shipped as four glyph buttons copied from the reference card's layout,
+ * of which TWO were inert: a bookmark that wrote nowhere and a "More" that
+ * opened nothing. Both looked identical to the two that worked, which is worse
+ * than not having them — a control that renders enabled, takes hover and focus,
+ * and then silently does nothing teaches the operator to distrust the strip.
+ *
+ * "More" is DELETED rather than filled. There was no fifth action it was
+ * hiding; it existed because the reference image had four glyphs. An overflow
+ * menu with nothing in it is decoration shaped like a control.
+ *
+ * Bookmark is WIRED. A real watchlist already existed in `my-flights.tsx`,
+ * privately, on `localStorage["aeolus-watched-flights"]` — see
+ * `lib/use-watchlist.ts`, which lifts it so both surfaces share one list. The
+ * button is a real toggle with a distinct pressed state, so it also reports
+ * whether this flight is already tracked, which the strip could not say before.
+ *
+ * Labels, not bare glyphs. Four unlabelled icons in a row is exactly the
+ * "icon-only navigation" a first-time operator cannot decode, and there is room
+ * for words in a 364px column.
+ */
+function ActionStrip({
+  flightId, onFocus, trackingHref,
+}: {
+  flightId: string
+  onFocus?: () => void
+  trackingHref?: string
+}) {
+  const { has, toggle } = useWatchlist()
+  const watched = has(flightId)
+
   const btn: React.CSSProperties = {
-    flex: 1, height: 36, borderRadius: r.sm,
-    display: "inline-flex", alignItems: "center", justifyContent: "center",
+    flex: 1, minWidth: 0, minHeight: 36, borderRadius: r.sm,
+    display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
     border: `1px solid ${c.hairline}`, background: "var(--ae-surface-2)",
     color: c.body, cursor: "pointer",
+    fontFamily: ff.body, fontSize: 12, fontWeight: 550,
+    whiteSpace: "nowrap", textDecoration: "none",
   }
   return (
     <div style={{ display: "flex", gap: 6 }}>
-      <button type="button" className="ae-detail-btn" style={btn} onClick={onFocus} title="Centre the map on this flight" aria-label="Centre the map on this flight">
-        <Crosshair style={{ width: 15, height: 15 }} strokeWidth={1.9} />
+      <button
+        type="button" className="ae-detail-btn" style={btn} onClick={onFocus}
+        title="Centre the map on this flight" aria-label="Centre the map on this flight"
+      >
+        <Crosshair style={{ width: 14, height: 14, flexShrink: 0 }} strokeWidth={1.9} />
+        Centre
       </button>
-      <button type="button" className="ae-detail-btn" style={btn} title="Add to watchlist" aria-label="Add to watchlist">
-        <Bookmark style={{ width: 15, height: 15 }} strokeWidth={1.9} />
+
+      <button
+        type="button"
+        className="ae-detail-btn"
+        onClick={() => toggle(flightId)}
+        aria-pressed={watched}
+        title={watched ? "Remove from watchlist" : "Add to watchlist"}
+        style={{
+          ...btn,
+          // Visual weight follows consequence (design.md): tracked is a state
+          // the operator put this flight into, so it owns the filled treatment.
+          background: watched ? "var(--ae-teal-bg)" : "var(--ae-surface-2)",
+          borderColor: watched ? "var(--ae-teal)" : c.hairline,
+          color: watched ? "var(--ae-teal-ink)" : c.body,
+        }}
+      >
+        <Bookmark
+          style={{ width: 14, height: 14, flexShrink: 0 }}
+          strokeWidth={1.9}
+          fill={watched ? "currentColor" : "none"}
+        />
+        {watched ? "Tracked" : "Track"}
       </button>
-      {trackingHref ? (
-        <a href={trackingHref} target="_blank" rel="noopener noreferrer" className="ae-detail-btn" style={{ ...btn, textDecoration: "none" }} title="Open on an external tracker" aria-label="Open on an external tracker">
-          <Share2 style={{ width: 15, height: 15 }} strokeWidth={1.9} />
+
+      {trackingHref && (
+        <a
+          href={trackingHref} target="_blank" rel="noopener noreferrer"
+          className="ae-detail-btn" style={btn}
+          title="Open on an external tracker" aria-label="Open on an external tracker"
+        >
+          <Share2 style={{ width: 14, height: 14, flexShrink: 0 }} strokeWidth={1.9} />
+          Track ext.
         </a>
-      ) : (
-        <button type="button" className="ae-detail-btn" style={{ ...btn, opacity: 0.5, cursor: "not-allowed" }} disabled title="No external tracker for a simulated leg" aria-label="No external tracker for a simulated leg">
-          <Share2 style={{ width: 15, height: 15 }} strokeWidth={1.9} />
-        </button>
       )}
-      <button type="button" className="ae-detail-btn" style={btn} title="More" aria-label="More actions">
-        <MoreHorizontal style={{ width: 15, height: 15 }} strokeWidth={1.9} />
-      </button>
     </div>
   )
 }
@@ -357,6 +416,7 @@ function LiveBody({ flight }: { flight: LiveFlight }) {
       </div>
 
       <ActionStrip
+        flightId={flight.icao24}
         onFocus={() => setSelectedLiveFlight(flight)}
         trackingHref={flight.tracking?.flightradar24 || flight.tracking?.adsbexchange}
       />
@@ -484,7 +544,11 @@ function ScheduledBody({
         </p>
       )}
 
-      <ActionStrip />
+      {/* The watchlist stores SCHEDULED flight ids, which is what
+          my-flights.tsx resolves against the schedule — so a live ADS-B
+          contact and a Nimbus leg both pass their own id and the list stays
+          one list. */}
+      <ActionStrip flightId={flight.id} />
     </>
   )
 }

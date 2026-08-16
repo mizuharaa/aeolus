@@ -29,6 +29,7 @@ import {
   deadReckon, bearing, distanceNm, cardinal, machFor,
   deriveLive, interp, isoToHour, arcPoints,
 } from "@/lib/flight-derive"
+import { useConsoleTheme } from "@/lib/use-theme"
 import { GlobeView, type GlobeFlight } from "./globe-view"
 
 // ── Map colors — the five-pigment vocabulary as LITERAL hex.
@@ -93,11 +94,17 @@ const MAP_COLORS = {
   // disrupted one (the ordering design.md requires, asserted in the gate).
   unaffected:    "#4FA3E3",
 
-  // Ambient ADS-B — other carriers. Same blue family so grey stays free, but
-  // deliberately the quietest mark on the map: ~650 of these must not out-mass
-  // the operator's own 15 airports. Still ≥3:1 clear of the faintest airport
-  // tier, so owned airports keep winning.
-  live:          "#3D6B8C",
+  // Ambient ADS-B — other carriers. Same blue family so grey stays free, and
+  // still the quietest mark on the map: ~650 of these must not out-mass the
+  // operator's own 15 airports.
+  //
+  // #5C90BC, not #3D6B8C. The old value measured 2.05:1 against the filtered
+  // dark_all tile — below the 3:1 non-text floor, and in practice invisible at
+  // the 13px these render. "Quietest mark" has to mean quietest LEGIBLE mark;
+  // a tier so quiet it cannot be seen is not a tier, it is a bug that looks
+  // like restraint. 4.05:1 now, still well under operating blue's 6.62 so the
+  // weight ordering that matters (owned > ambient) is unchanged.
+  live:          "#5C90BC",
   liveSelected:  "#B9A3EE",
 
   // Airport tiers — mirrors the API's hub / focus_city / spoke classification
@@ -189,15 +196,19 @@ function liveIcon(heading: number | null, sel: boolean, velKt: number | null): L
   const slow = (velKt ?? 0) < 50
   const key = `lv|${hdg}|${sel}|${slow}`
   return icon(key, () => {
-    // 13px, not 16. These are other carriers' aircraft: ~650 of them, none
-    // actionable. At 16px they were physically larger than the operator's own
-    // spoke airports, so the ambient national picture out-massed the network
-    // the console exists to manage. Selected traffic still jumps to 30px.
-    const sz = sel ? 30 : 13
+    // 16px, not 13. The 13 was chosen so ambient traffic would not out-mass the
+    // operator's own spoke airports — correct goal, wrong lever. Size was doing
+    // a job that COLOUR should do: at 13px a swept-wing silhouette is ~2px of
+    // wing, which is not a readable shape, so the map showed hundreds of marks
+    // whose direction could not be read at all. Ambient traffic now recedes by
+    // being dimmer and thinner-stroked (see `live` above) while staying large
+    // enough to read AS an aircraft, which is the whole point of drawing an
+    // airframe rather than a dot.
+    const sz = sel ? 32 : 16
     const fill = sel ? MAP_COLORS.liveSelected : MAP_COLORS.live
-    const op = slow ? 0.32 : 0.78
-    // Hairline is dark on the dark basemap — a white outline at 13px doubles
-    // the mark's apparent mass and turns 650 contacts into a white haze.
+    const op = slow ? 0.4 : 0.9
+    // Hairline is dark on the dark basemap — a white outline at this size
+    // doubles the mark's apparent mass and turns 650 contacts into a haze.
     const stroke = sel ? "rgba(11,12,16,0.85)" : "rgba(11,12,16,0.55)"
     // The pulse rides in a SEPARATE, un-rotated layer. Nesting it inside the
     // rotated wrapper made the ring inherit the heading transform, so a scale
@@ -247,49 +258,72 @@ function simIcon(
     ? (sel ? 24 : 18)
     : (sel ? 34 : cascOrder === 0 ? 28 : cascOrder >= 1 ? 22 : 18)
 
-  const key = `sim4|${r}|${color}|${sel}|${cascOrder}|${isCancelled ? "x" : isSwap ? "s" : "_"}`
+  const key = `sim5|${r}|${color}|${sel}|${cascOrder}|${isCancelled ? "x" : isSwap ? "s" : "_"}`
   return icon(key, () => {
-    const planeSz = Math.round(sz * 0.52)
+    /**
+     * ── RE-DRAWN 2026-08-16 ────────────────────────────────────────────────
+     *
+     * The previous marker was a coloured DISC with a white plane glyph inside
+     * it and a stack of concentric box-shadows around it, e.g.
+     *   0 0 0 2px #fff, 0 0 0 4px ${color}CC, 0 4px 10px ${color}55
+     * Three rings, one of them pure white, on a near-black chart. That is the
+     * "punched-out box that looks like it has layers" in the brief, and the
+     * reason is structural rather than a matter of taste: the rings are drawn
+     * in a fixed order at fixed widths, so every marker carried the same
+     * concentric banding regardless of what it meant, and the white ring
+     * out-shone the pigment that carried the meaning.
+     *
+     * Now the AIRFRAME IS THE MARK. No disc, no rings. The silhouette is the
+     * same `AIRFRAME_PATH` the live ADS-B contacts use — one aircraft
+     * vocabulary across the map, where before the operator's own fleet were
+     * discs and everyone else's were planes — and state is carried by:
+     *
+     *   colour     what happened to this leg (cascade ramp / plan action)
+     *   size       severity (direct hit reads largest)
+     *   glow       the mark's own pigment, so brightness and meaning agree
+     *   glyph      ✕ struck through a cancelled leg, never colour-alone
+     *
+     * The glow replaces the ring stack entirely. On a dark chart a small mark
+     * needs light to be findable, and light emitted by the mark's own colour
+     * is legible at a glance in a way a white outline never was — a white ring
+     * says "here is a thing", a plum glow says "here is a re-routed aircraft".
+     * No animation: this is a fleet of up to 300, and a pulsing swarm is
+     * unreadable as well as expensive.
+     */
+    const glowAlpha = sel ? "CC" : cascOrder === 0 || isSwap ? "AA" : "66"
+    const glowSize = sel ? 16 : cascOrder === 0 || isSwap ? 11 : 6
+    const glow = isCancelled
+      ? "none"
+      : `drop-shadow(0 0 ${glowSize}px ${color}${glowAlpha}) drop-shadow(0 1px 2px rgba(0,0,0,0.8))`
 
-    // Outer ring vocabulary:
-    //   cancelled → no ring, dashed white border, 55% opacity
-    //   swap      → green ring confirming new assignment
-    //   selected  → bright halo
-    //   direct    → matched-colour halo
-    //   default   → flat soft drop shadow
-    const ring =
-      isCancelled
-        ? `box-shadow:0 1px 3px rgba(0,0,0,0.18);opacity:0.9;`
-        : isSwap
-        ? `box-shadow:0 0 0 2px #fff,0 0 0 4px ${color}CC,0 4px 10px ${color}55;`
-        : sel
-        ? `box-shadow:0 0 0 2.5px #fff,0 0 0 5px ${color},0 4px 12px ${color}80;`
-        : cascOrder === 0
-        ? `box-shadow:0 0 0 2px #fff,0 0 0 4px ${color}CC;`
-        : `box-shadow:0 1px 4px rgba(0,0,0,0.35);`
+    // A cancelled leg is a GHOST: dim, desaturated, struck out. It stays
+    // clickable so the operator can ask why a leg was cut, but it must never
+    // compete with a live re-route for attention.
+    const opacity = isCancelled ? 0.72 : 1
 
-    const borderStyle = isCancelled
-      ? `border:1.5px dashed ${MAP_COLORS.planCancelledGlyph};`
-      : "border:2px solid rgba(255,255,255,0.95);"
-
-    // Cancelled marker overlays a small white ✕ on the disc so the
-    // semantic is unmistakable at a glance, even before reading the tooltip.
-    const cancelBadge = isCancelled
-      ? `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;font:700 ${Math.round(sz * 0.55)}px/1 ui-monospace,monospace;color:${MAP_COLORS.planCancelledGlyph};">✕</div>`
+    const strike = isCancelled
+      ? `<span style="position:absolute;left:50%;top:50%;width:${Math.round(sz * 0.95)}px;height:2px;background:${MAP_COLORS.planCancelledGlyph};transform:translate(-50%,-50%) rotate(-45deg);border-radius:2px;pointer-events:none"></span>`
       : ""
 
+    // Selection is a single hairline ring in the mark's own colour — one ring,
+    // not three, and it reads as a target reticle rather than as a sticker.
+    const selRing = sel
+      ? `<span style="position:absolute;inset:-6px;border-radius:9999px;border:1.5px solid ${color};opacity:0.9;pointer-events:none"></span>`
+      : ""
+
+    const box = sz + 12
     return L.divIcon({
       className: "",
-      iconSize:  [sz, sz],
-      iconAnchor:[sz / 2, sz / 2],
-      // Colored circle background with white plane silhouette on top.
-      // Rotation is applied to the inner plane only so the circle stays round.
-      // The cancel badge sits on top of the silhouette.
-      html: `<div style="position:relative;width:${sz}px;height:${sz}px;border-radius:50%;background:${color};${borderStyle}display:flex;align-items:center;justify-content:center;${ring}">${
-        isCancelled
-          ? cancelBadge
-          : `<div style="transform:rotate(${r}deg);line-height:0;display:flex;align-items:center;justify-content:center;"><svg viewBox="0 0 24 24" width="${planeSz}" height="${planeSz}" style="display:block;"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="white" stroke="rgba(255,255,255,0.15)" stroke-width="0.4"/></svg></div>`
-      }</div>`,
+      iconSize:  [box, box],
+      iconAnchor:[box / 2, box / 2],
+      html:
+        `<div style="position:relative;width:${box}px;height:${box}px;display:flex;align-items:center;justify-content:center;opacity:${opacity}">` +
+        selRing +
+        `<div style="transform:rotate(${r}deg);line-height:0;filter:${glow}">` +
+        airframeSvg(sz, color, "rgba(8,9,12,0.78)", isCancelled ? 2.4 : 1.8) +
+        `</div>` +
+        strike +
+        `</div>`,
     })
   })
 }
@@ -356,11 +390,30 @@ function airportIcon(tier: AirportTier, faa: FAAStatus | undefined, hasWx: boole
     if (hasWx) bot = apBadge(MAP_COLORS.weather, "⚡WX", true)
     const sel = isSel ? `<span style="position:absolute;inset:-6px;border-radius:9999px;border:2.5px solid ${MAP_COLORS.liveSelected}"></span>` : ""
     const s = r * 2 + 28
+    // ── The disc, re-lit for the dark basemap ──────────────────────────────
+    //
+    // Two things here were straight carry-overs from the paper register and
+    // both are why the map's marks read as flat, low-contrast stickers:
+    //
+    //   border: 2.5px solid #fff  — a white ring on a near-black chart. It is
+    //     the brightest thing in the frame, so on every airport the eye landed
+    //     on the RING rather than on the pigment that carries the meaning, and
+    //     15 of them read as a scatter of white o's. The ring's actual job is
+    //     separating the disc from whatever is behind it; a DARK ring does
+    //     that on a dark basemap, and adds no apparent mass.
+    //
+    //   box-shadow: 0 2px 10px rgba(0,0,0,.25) — a black drop shadow on a
+    //     #16181F tile is a no-op. It cost a composite layer per marker and
+    //     drew nothing.
+    //
+    // The shadow is replaced by a GLOW in the mark's own pigment, which is what
+    // makes a small mark findable on a dark surface — the light comes off the
+    // thing that carries the meaning, so brightness and semantics agree.
     return L.divIcon({
       className: "",
       iconSize: [s, s],
       iconAnchor: [s / 2, s / 2],
-      html: `<div style="position:relative;width:${s}px;height:${s}px;display:flex;align-items:center;justify-content:center">${sel}${ring}${top}${bot}<span style="position:relative;width:${r * 2}px;height:${r * 2}px;background:${fill};border:2.5px solid #fff;border-radius:9999px;box-shadow:0 2px 10px rgba(0,0,0,.25);display:block"></span></div>`,
+      html: `<div style="position:relative;width:${s}px;height:${s}px;display:flex;align-items:center;justify-content:center">${sel}${ring}${top}${bot}<span style="position:relative;width:${r * 2}px;height:${r * 2}px;background:${fill};border:2px solid rgba(8,9,12,0.72);border-radius:9999px;box-shadow:0 0 ${r + 4}px ${fill}88, 0 0 2px ${fill};display:block"></span></div>`,
     })
   })
 }
@@ -588,9 +641,22 @@ function RecoveryBanner({ plan, onUnapply }: { plan: RecoveryPlan; onUnapply: ()
     : `$${(plan.total_cost_usd / 1000).toFixed(0)}K`
 
   return (
-    // Banner anchored top-right but clearing the map's instrument column
-    // (focus toggle + zoom, 40px wide at right:12) — right ≥ 64 per design.md
-    <div className="absolute top-3 z-[450]" style={{ maxWidth: 560, right: 64, left: "min(460px, calc(50% - 40px))" }}>
+    /* Clearing the instrument column, measured rather than assumed.
+     *
+     * `right: 64` was written when that column was a single 40px button, and
+     * design.md's "overlays must clear it by ≥64px" was written about the same
+     * thing. The column is now a two-option projection switch: 2 × 56px min-
+     * width + 6px padding + 3px gap = 121px, spanning right 12..133 — so a
+     * banner ending at right:64 was painted straight through it, and at z-450
+     * against the switch's z-620 it lost, leaving `Unapply` UNREACHABLE.
+     * Measured overlap 54×20px at 1440.
+     *
+     * `Unapply` is the only control that reverses a committed network-wide
+     * dispatch, so this is a P1, not a cosmetic overlap. 152 = 12 (column
+     * inset) + 121 (switch) + 19 (gap), and the arithmetic is written down so
+     * the next person to change the switch's width knows what depends on it.
+     */
+    <div className="absolute top-3 z-[450]" style={{ maxWidth: 560, right: 152, left: "min(460px, calc(50% - 40px))" }}>
       <div
         className="rounded-xl px-3 py-2.5 flex items-center gap-2.5 flex-wrap"
         style={{
@@ -657,13 +723,31 @@ function RecoveryBanner({ plan, onUnapply }: { plan: RecoveryPlan; onUnapply: ()
   )
 }
 
-/** Label + value pair; an optional pigment dot carries state, text stays neutral. */
+/**
+ * Label + value pair. The pigment rides as an UNDERLINE on the value, not as a
+ * leading dot.
+ *
+ * design.md: "Status is TEXT, never dots… Status dots are banned everywhere
+ * (landing + app)." This component shipped three of them, on the HUD that
+ * reports a committed dispatch. Beyond the house rule, a 6px disc is below the
+ * size at which hue is reliably discriminable, so the dot was carrying its
+ * state by colour alone at a size where colour is hardest to read — while the
+ * top bar two rows above solved the identical problem with an underline.
+ */
 function MetricChip({ label, value, dot }: { label: string; value: string; dot?: string }) {
   return (
-    <div className="flex items-center gap-1.5">
-      {dot && <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: dot }} />}
+    <div className="flex items-baseline gap-1.5">
       <span className="text-[11px] font-medium" style={{ color: "var(--ae-text-3)" }}>{label}</span>
-      <span className="text-[11px] font-semibold font-mono tabular-nums" style={{ color: "var(--ae-text)" }}>{value}</span>
+      <span
+        className="text-[11px] font-semibold font-mono tabular-nums"
+        style={{
+          color: "var(--ae-text)",
+          borderBottom: dot ? `2px solid ${dot}` : undefined,
+          paddingBottom: dot ? 1 : undefined,
+        }}
+      >
+        {value}
+      </span>
     </div>
   )
 }
@@ -1098,6 +1182,12 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
   // globe answers "what shape does this disruption have", where great-circle
   // legs are the honest geometry; on a Mercator tile a transcon leg is drawn
   // as a straight line that lies about the path the aircraft flies.
+  // Which basemap the console theme wants. Read from the resolved attribute
+  // rather than from the hook's stored CHOICE, so "system" resolves correctly
+  // and the map agrees with whatever the pre-paint script already stamped.
+  const { resolved: consoleTheme } = useConsoleTheme()
+  const lightBasemap = consoleTheme === "light"
+
   const [view, setView] = useState<"map" | "globe">("map")
   useEffect(() => {
     try {
@@ -1482,6 +1572,13 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
       color: cascColor(id, flightStates[id]),
       cancelled: visuallyCancelled.has(id),
       state: flightStates[id],
+      // What an applied plan did to this leg. Resolved from the SAME `applied`
+      // sets `cascColor` reads, so the globe's track and the aircraft's colour
+      // can never disagree about whether a leg was re-routed.
+      action: visuallyCancelled.has(id) ? "cancelled"
+        : applied.swap.has(id) ? "swapped"
+        : applied.delayed.has(id) ? "delayed"
+        : null,
     })),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [simPlanes, flightStates, visuallyCancelled, applied],
@@ -1676,9 +1773,20 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
             pushes them a few degrees toward the console's plum hue, so the map
             reads as part of the panel it sits in rather than a black rectangle
             pasted onto it. */}
+        {/* The tile SET follows the console theme, not just the CSS filter — a
+            filtered dark tile cannot become a light chart, and vice versa.
+            `key` forces Leaflet to tear the layer down and rebuild it on a
+            theme change; without it react-leaflet keeps the original layer and
+            only the url prop changes, which leaves every already-cached tile
+            from the previous theme on screen until it is panned out of view. */}
         <TileLayer
+          key={lightBasemap ? "light" : "dark"}
           className="ae-basemap"
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png"
+          url={
+            lightBasemap
+              ? "https://{s}.basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}{r}.png"
+              : "https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png"
+          }
           attribution='&copy; <a href="https://carto.com/attributions">CARTO</a>'
           subdomains="abcd" maxZoom={19}
           keepBuffer={4}

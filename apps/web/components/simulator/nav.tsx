@@ -1,5 +1,6 @@
 "use client"
-import { RotateCcw, Plane, ChevronDown, LogOut, Settings, UserRound, Keyboard } from "lucide-react"
+import { RotateCcw, Plane, ChevronDown, LogOut, Settings, UserRound, Keyboard, Sun, Moon, Monitor } from "lucide-react"
+import { useConsoleTheme, type ThemeChoice } from "@/lib/use-theme"
 import { useSimulationStore } from "@/stores/simulation"
 import { apiClient } from "@/lib/api"
 import { toast } from "sonner"
@@ -52,6 +53,66 @@ function IndecisionMeter() {
  * honest-copy rule exists to prevent.
  */
 const OPERATOR = { name: "Duty dispatcher", role: "Demo session · Nimbus Air OCC", initials: "DD" }
+
+/**
+ * Console theme switch — dark / light / system.
+ *
+ * A THREE-STATE segmented control, not a two-state toggle. An ops console is
+ * read for a whole shift in a room whose lighting the operator does not
+ * control, so "follow the OS" is a real answer and not a power-user extra —
+ * and a binary toggle has no way to express it. Three explicit segments also
+ * state which mode you are in, where a single sun/moon icon only ever shows
+ * you the thing you would switch TO, which is ambiguous in both directions.
+ */
+function ThemeSwitch() {
+  const { choice, set } = useConsoleTheme()
+  const OPTIONS: { id: ThemeChoice; label: string; Icon: typeof Sun }[] = [
+    { id: "dark", label: "Dark", Icon: Moon },
+    { id: "light", label: "Light", Icon: Sun },
+    { id: "system", label: "System", Icon: Monitor },
+  ]
+  return (
+    <div
+      role="radiogroup"
+      aria-label="Console theme"
+      className="ae-theme-switch"
+      style={{
+        display: "flex", gap: 2, padding: 3, flexShrink: 0,
+        borderRadius: 999, background: "var(--ae-surface-2)",
+        border: `1px solid ${c.hairline}`,
+      }}
+    >
+      {OPTIONS.map(({ id, label, Icon }) => {
+        const on = choice === id
+        return (
+          <button
+            key={id}
+            type="button"
+            role="radio"
+            aria-checked={on}
+            aria-label={`${label} theme`}
+            title={`${label} theme`}
+            onClick={() => set(id)}
+            className="ae-theme-btn"
+            style={{
+              width: 28, height: 26, borderRadius: 999,
+              display: "inline-flex", alignItems: "center", justifyContent: "center",
+              border: "none", cursor: "pointer",
+              // The selected segment takes the filled treatment; ink on the
+              // light plum, because on the console register --ae-teal is a
+              // LIGHT pigment and white on it measures 3.23:1.
+              background: on ? "var(--ae-teal)" : "transparent",
+              color: on ? "#12101A" : c.muted,
+              transition: "background 140ms ease, color 140ms ease",
+            }}
+          >
+            <Icon aria-hidden style={{ width: 13, height: 13 }} strokeWidth={2} />
+          </button>
+        )
+      })}
+    </div>
+  )
+}
 
 function AccountMenu() {
   const [open, setOpen] = useState(false)
@@ -358,11 +419,18 @@ export function SimulatorNav({ isConnected }: SimulatorNavProps) {
           <span className="ae-nav-reset-label">{resetArmed ? "Confirm reset" : "Reset"}</span>
         </button>
 
+        {/* Beside the account menu, per the brief — it belongs with the other
+            controls that are about THIS operator's session rather than about
+            the network. */}
+        <ThemeSwitch />
+
         <AccountMenu />
       </div>
 
       <style jsx global>{`
         .ae-topbar-btn:hover { background: var(--ae-surface-2) !important; }
+        .ae-theme-btn:hover { background: var(--ae-surface-3); color: var(--ae-text); }
+        .ae-theme-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--ae-focus); }
         .ae-topbar-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--ae-focus); }
         .ae-menu-item:hover { background: var(--ae-surface-2); color: var(--ae-text); }
         .ae-menu-item:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--ae-focus); }

@@ -133,6 +133,18 @@ export const tokens = {
     canvas:              "var(--ae-surface)",    // card / panel floor
     surfaceSoft:         "var(--ae-surface-2)",  // recessed panel, tab well
     surfaceStrong:       "var(--ae-surface-3)",  // track fills, deep recess
+    /**
+     * A card sitting ON a panel.
+     *
+     * The elevation ladder had no rung for this, so every card inside the
+     * context column was drawn with `canvas` — the same value as the panel
+     * behind it, 1.00:1 — and a 1px hairline was the only thing describing it.
+     * That is the "punched-out box that looks like it has layers" defect: an
+     * outline standing in for a surface. Pair it with `sh.edge`; on a near-
+     * black register the lit top edge does most of the work a cast shadow
+     * would do on paper.
+     */
+    raised:              "var(--ae-raised)",
     surfaceDark:         pigment.ink,            // ink card (both registers)
     surfaceDarkElevated: "#123349",              // raised step on ink
     hairline:            "var(--ae-line)",       // 1px borders, dividers
@@ -265,6 +277,8 @@ export const tokens = {
 
   shadow: {
     flat:        "none",
+    /** 1px lit top edge — what "raised" looks like on a near-black surface. */
+    edge:        "var(--ae-edge)",
     buttonRest:  "0 1px 2px rgba(11,36,52,0.10)",
     buttonFocus: "0 0 0 3px var(--ae-focus)",
     cardSoft:    "0 1px 2px rgba(11,36,52,0.05)",

@@ -75,12 +75,16 @@ const REGISTERS = {
       "--ae-surface-2": "#E6DCC6",
       "--ae-surface-3": "#D3C4A4",
       "--ae-surface":   "#FFFEF9",
+      "--ae-raised":    "#F5EEDF",
     },
     // The order separation is measured along. `--ae-surface` is the card and
     // sits ABOVE the floor even though it is lighter, so the stack is compared
     // as floor → well → track and card → floor separately.
     stack: ["--ae-bg", "--ae-surface-2", "--ae-surface-3"],
     card: ["--ae-surface", "--ae-bg"],
+    // On paper the panel is already the lightest surface, so a card raises by
+    // stepping TOWARD the floor tint rather than away from it.
+    raised: ["--ae-surface", "--ae-raised"],
     text: {
       "--ae-text":   "#1C1426",
       "--ae-text-2": "#564D43",
@@ -96,10 +100,19 @@ const REGISTERS = {
       "--ae-bg":        "#08090C",
       "--ae-surface":   "#16181F",
       "--ae-surface-2": "#202530",
+      "--ae-raised":    "#2A3141",
       "--ae-surface-3": "#2D3342",
     },
     stack: ["--ae-bg", "--ae-surface", "--ae-surface-2", "--ae-surface-3"],
     card: ["--ae-surface", "--ae-bg"],
+    /**
+     * A CARD ON A PANEL — the rung the ladder was missing, and the reason a
+     * whole panel of cards measured 1.00:1 against the surface behind them.
+     * The audit that found it is worth restating: every text pair in the
+     * recovery panel passed AA while the panel read as a stack of die-cut
+     * outlines, because a hairline was standing in for a surface.
+     */
+    raised: ["--ae-raised", "--ae-surface"],
     text: {
       "--ae-text":   "#F2F3F7",
       "--ae-text-2": "#C3C8D6",
@@ -153,6 +166,14 @@ for (const [regName, reg] of Object.entries(REGISTERS)) {
     ratio(hex(reg.surfaces[reg.card[0]]), hex(reg.surfaces[reg.card[1]])),
     1.12,
   )
+  if (reg.raised) {
+    line(
+      `${reg.raised[0]} -> ${reg.raised[1]}`,
+      "raised vs panel",
+      ratio(hex(reg.surfaces[reg.raised[0]]), hex(reg.surfaces[reg.raised[1]])),
+      1.12,
+    )
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════════

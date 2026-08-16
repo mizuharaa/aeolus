@@ -53,6 +53,11 @@
     --ae-surface:       #FFFEF9;
     --ae-surface-2:     #E6DCC6;
     --ae-surface-3:     #D3C4A4;
+    /* Cards raise by getting LIGHTER on paper and DARKER on the console — the
+       rung is the same, the direction of "up" is not. On this register the
+       panel is already the lightest surface, so a card steps toward the floor
+       tint instead: 1.13:1 below --ae-surface. */
+    --ae-raised:        #F5EEDF;
     --ae-line:          rgba(28, 20, 38, 0.14);
     --ae-line-strong:   rgba(28, 20, 38, 0.34);
     --ae-text:          #1C1426;
@@ -89,6 +94,10 @@
        the 3:1 WCAG 1.4.11 minimum for a non-text indicator, i.e. a focus ring
        a low-vision keyboard user cannot see. Solid plum reads 5.66:1 at worst. */
     --ae-focus: #5B3FA8;
+    /* On paper a raised card casts rather than catches, so the edge token is
+       an inset SHADOW here, not a highlight. Defined in both registers so
+       `sh.edge` is never an undefined variable. */
+    --ae-edge: inset 0 1px 0 rgba(255, 255, 255, 0.6);
 
     /* ── Fonts ───────────────────────────────────────────────────── */
     --ae-font-display: "Inter Display", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -163,8 +172,21 @@
      The floor is plum-tinted (hue 232, not neutral grey) so the console
      stays in the Aeolus family rather than defaulting to the generic
      charcoal every admin template ships. ──────────────────────────── */
+  /* The console's register is chosen by `data-console-theme` on <html>, which
+     an inline script in the layout stamps BEFORE first paint (see
+     lib/use-theme.ts). `.simulator-shell` on its own no longer implies dark —
+     if it did, a light-theme operator would get one dark frame on every
+     navigation, which on a console is a flash of near-black straight into
+     someone's eyes mid-shift.
+
+     `:not([data-console-theme="light"])` rather than `="dark"`: the attribute
+     is absent for the split second before the script runs, and entirely absent
+     with scripting off. Dark is the default, so the absent case must resolve
+     dark. `.register-dark` stays unconditional — it is an explicit opt-in for
+     call sites that want the console palette regardless of the operator's
+     choice. */
   .register-dark,
-  .simulator-shell {
+  html:not([data-console-theme="light"]) .simulator-shell {
     /* Four surfaces, each a real step apart — the separation the paper
        register never had. Asserted by check-contrast.mjs's SEPARATION
        block, which is the check whose absence let the fog through: every
@@ -176,9 +198,14 @@
        1.12:1 anyway, which is what makes a panel read as sitting ON the
        floor rather than being painted into it. */
     --ae-bg:            #08090C;  /* console floor */
-    --ae-surface:       #16181F;  /* docked panel, card */
+    --ae-surface:       #16181F;  /* docked panel */
     --ae-surface-2:     #202530;  /* recessed well, tab bar */
     --ae-surface-3:     #2D3342;  /* track fill, raised row */
+    /* A CARD ON A PANEL. The ladder had no rung for this, so cards were drawn
+       with --ae-surface on an --ae-surface panel (1.00:1) and a hairline was
+       the only thing describing them. 1.35:1 above the panel — enough to read
+       as an edge without a border, which is the whole job. */
+    --ae-raised:        #2A3141;
     --ae-line:          rgba(233, 236, 245, 0.11);
     /* 0.42, not 0.26. --ae-line-strong bounds real controls, so 1.4.11
        applies to it; at 0.26 it measured 1.89:1 over --ae-surface-3. */
@@ -194,7 +221,20 @@
 
     --ae-primary:        #7C5CD6;
     --ae-primary-active: #9B7FE0;
-    --ae-on-primary:     #FFFFFF;
+    /* INK, not white — and this token is why the rule kept being broken.
+     *
+     * The register's own note says "light pigments take INK, not white", but
+     * `--ae-on-primary` shipped as #FFFFFF, so every call site that correctly
+     * reached for the token got white anyway. Measured consequences: the ARMED
+     * "Confirm commit" button renders white on `cascade.direct` #FFD07A at
+     * 1.44:1 — an unreadable label on the confirmation step of an irreversible
+     * network-wide dispatch — and the applied-plan "APPLIED" tab renders white
+     * on #9B7FE0 at 3.23:1.
+     *
+     * #12101A on #7C5CD6 is 5.66:1, and on every other light pigment in this
+     * register it is better. The two dark-fill call sites that genuinely need
+     * a light label now say so explicitly rather than relying on this default. */
+    --ae-on-primary:     #12101A;
 
     /* Pigments re-inked UP for the dark floor. The paper register's plum
        (#5B3FA8) reads 1.9:1 on #14161C — it would be a hole, not a mark. */
@@ -569,8 +609,20 @@
   --ae-basemap-paper: sepia(0.30) saturate(0.68) brightness(0.995) contrast(1.06);
 }
 .register-dark,
-.simulator-shell {
+html:not([data-console-theme="light"]) .simulator-shell {
   --ae-basemap-paper: saturate(0.72) contrast(1.08) hue-rotate(-8deg) brightness(1.06);
+}
+/* Light console: the paper register's own basemap treatment. The console
+   inherits :root's surface tokens in this mode (no override block is needed —
+   that is the point of scoping the dark block rather than the shell), but the
+   basemap filter and the tile URL are NOT tokens, so both need saying.
+   `--ae-basemap-light` flags the tile choice to flight-map.tsx. */
+html[data-console-theme="light"] .simulator-shell {
+  --ae-basemap-paper: sepia(0.30) saturate(0.68) brightness(0.995) contrast(1.06);
+  --ae-basemap-light: 1;
+}
+html[data-console-theme="light"] .simulator-shell .leaflet-container {
+  background: #DCE6EF !important;
 }
 
 /* Selected-aircraft pulse. Two rings on one element (box-shadow + the
