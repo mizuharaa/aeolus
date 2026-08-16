@@ -447,7 +447,7 @@ function SimButton({ disabled, onClick }: { disabled: boolean; onClick: () => vo
     <button
       disabled={disabled}
       onClick={onClick}
-      className="shrink-0 flex items-center gap-1 text-[10px] font-semibold px-2 py-1.5 transition-all disabled:opacity-40"
+      className="shrink-0 flex items-center gap-1 text-[11px] font-semibold px-2 py-1.5 transition-all disabled:opacity-40"
       style={{ borderRadius: r.sm, background: "var(--ae-teal)", color: "#FFFFFF", border: "none", cursor: "pointer" }}
     >
       <Zap className="w-3 h-3" strokeWidth={1.75} /> Sim
@@ -460,7 +460,7 @@ function SevChip({ level, label }: { level: keyof typeof SEV; label: string }) {
   const s = SEV[level]
   return (
     <span
-      className="inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-full font-semibold shrink-0"
+      className="inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded-full font-semibold shrink-0"
       style={{ background: s.bg, color: s.ink }}
     >
       <span className="w-1.5 h-1.5 rounded-full" style={{ background: s.dot }} />
@@ -506,11 +506,11 @@ function renderAlertRow(
           </div>
           {isNimbus && (
             <div className="flex items-center gap-1 mb-1 flex-wrap">
-              <span className="text-[9px] font-semibold" style={{ color: "var(--ae-teal-ink)" }}>Nimbus:</span>
+              <span className="text-[11px] font-semibold" style={{ color: "var(--ae-teal-ink)" }}>Nimbus:</span>
               {alert.affected_nimbus_airports.map((ap) => (
                 <span
                   key={ap}
-                  className="text-[9px] font-mono px-1.5 py-0.5 rounded-md"
+                  className="text-[11px] font-mono px-1.5 py-0.5 rounded-md"
                   style={{ background: "var(--ae-teal-bg)", color: "var(--ae-teal-ink)" }}
                 >
                   {ap.replace(/^K/, "")}
@@ -518,7 +518,7 @@ function renderAlertRow(
               ))}
             </div>
           )}
-          <div className="text-[10px] text-muted-foreground line-clamp-2">{alert.area}</div>
+          <div className="text-[11px] text-muted-foreground line-clamp-2">{alert.area}</div>
         </div>
         {isNimbus && alert.sim_event && (
           <SimButton
@@ -564,7 +564,7 @@ function SectionToggle({ label, badge, children, defaultOpen = true }: {
         onFocus={(e) => { if (e.currentTarget.matches(":focus-visible")) e.currentTarget.style.boxShadow = "0 0 0 3px var(--ae-focus)" }}
         onBlur={(e) => { e.currentTarget.style.boxShadow = "none" }}
       >
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex-1 text-left">{label}</span>
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex-1 text-left">{label}</span>
         {badge}
         <span
           className="flex items-center justify-center shrink-0 rounded-md"
@@ -714,7 +714,7 @@ function LiveFeed({
             </div>
             <div>
               <div className="text-xs font-bold text-foreground">US National Airspace</div>
-              <div className="text-[10px] text-muted-foreground">
+              <div className="text-[11px] text-muted-foreground">
                 {minutesAgo === null ? "Fetching…" : minutesAgo === 0 ? "Live" : `${minutesAgo}m ago`}
                 {nimbusHit > 0 && (
                   <span className="ml-1.5 font-semibold" style={{ color: "var(--ae-amber-ink)" }}>· {nimbusHit} Nimbus impact{nimbusHit !== 1 ? "s" : ""}</span>
@@ -725,7 +725,7 @@ function LiveFeed({
           <button
             onClick={fetchAll}
             disabled={fetching}
-            className="flex items-center gap-1.5 text-[10px] font-semibold transition-colors disabled:opacity-40"
+            className="flex items-center gap-1.5 text-[11px] font-semibold transition-colors disabled:opacity-40"
             style={{ color: c.ink, background: "transparent", border: "none", cursor: "pointer" }}
           >
             <RefreshCw className={`w-3 h-3 ${fetching ? "animate-spin" : ""}`} />
@@ -748,7 +748,7 @@ function LiveFeed({
                 <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: dot }} />
                 <span className="text-base font-semibold font-mono leading-none text-foreground tabular-nums">{val}</span>
               </div>
-              <div className="text-[9px] text-muted-foreground mt-1 leading-tight">{label}</div>
+              <div className="text-[11px] text-muted-foreground mt-1 leading-tight">{label}</div>
             </div>
           ))}
         </div>
@@ -764,8 +764,8 @@ function LiveFeed({
 
       {/* ── Nimbus only toggle ── */}
       <div className="flex items-center justify-between -mt-1">
-        <span className="text-[9px] text-muted-foreground">Showing all US events</span>
-        <label className="flex items-center gap-1.5 text-[9px] text-muted-foreground cursor-pointer select-none">
+        <span className="text-[11px] text-muted-foreground">Showing all US events</span>
+        <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer select-none">
           <input
             type="checkbox"
             className="rounded border-border"
@@ -782,7 +782,7 @@ function LiveFeed({
           label="Top Active Disruptions"
           badge={
             <span
-              className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
+              className="text-[11px] font-semibold px-1.5 py-0.5 rounded-full"
               style={{ background: "var(--ae-rust-bg)", color: "var(--ae-rust-ink)" }}
             >
               {topDisruptions.length}
@@ -810,18 +810,18 @@ function LiveFeed({
                     <span className="text-xs font-semibold text-foreground truncate">{d.title}</span>
                     <SevChip level={d.typeSeverity} label={d.typeLabel} />
                     {d.isNimbus && (
-                      <span className="text-[9px] font-semibold shrink-0" style={{ color: "var(--ae-teal-ink)" }}>Nimbus</span>
+                      <span className="text-[11px] font-semibold shrink-0" style={{ color: "var(--ae-teal-ink)" }}>Nimbus</span>
                     )}
                   </div>
                   {d.detail && (
-                    <div className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1">{d.detail}</div>
+                    <div className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">{d.detail}</div>
                   )}
                   {d.airports.length > 0 && (
                     <div className="flex gap-1 mt-1 flex-wrap">
                       {d.airports.slice(0, 4).map((ap) => (
                         <span
                           key={ap}
-                          className="text-[9px] font-mono px-1.5 py-0.5 rounded-md"
+                          className="text-[11px] font-mono px-1.5 py-0.5 rounded-md"
                           style={{ background: "var(--ae-surface-2)", border: "1px solid var(--ae-line)", color: "var(--ae-text-2)" }}
                         >
                           {ap.replace(/^K/, "")}
@@ -847,7 +847,7 @@ function LiveFeed({
         label="FAA Ground Programs"
         badge={programs.length > 0 && (
           <span
-            className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
+            className="text-[11px] font-semibold px-1.5 py-0.5 rounded-full"
             style={{ background: "var(--ae-rust-bg)", color: "var(--ae-rust-ink)" }}
           >
             {programs.length} active
@@ -872,7 +872,7 @@ function LiveFeed({
         {/* Ground Stops — highest priority */}
         {groundStops.length > 0 && (
           <div className="mb-3">
-            <div className="text-[9px] font-semibold uppercase tracking-wider mb-1.5 flex items-center gap-1.5" style={{ color: "var(--ae-rust-ink)" }}>
+            <div className="text-[11px] font-semibold uppercase tracking-wider mb-1.5 flex items-center gap-1.5" style={{ color: "var(--ae-rust-ink)" }}>
               <span className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--ae-rust)" }} />
               Ground Stops ({groundStops.length})
             </div>
@@ -891,12 +891,12 @@ function LiveFeed({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="font-mono font-semibold text-sm text-foreground">{prog.airport_iata}</span>
-                        {prog.in_nimbus_network && <span className="text-[9px] font-semibold" style={{ color: "var(--ae-teal-ink)" }}>Nimbus</span>}
+                        {prog.in_nimbus_network && <span className="text-[11px] font-semibold" style={{ color: "var(--ae-teal-ink)" }}>Nimbus</span>}
                       </div>
-                      <div className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">
+                      <div className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">
                         {prog.reason}{prog.avg_delay_minutes ? ` · avg ${prog.avg_delay_minutes}m` : ""}
                       </div>
-                      {prog.recheck && <div className="text-[9px] text-muted-foreground/60 mt-0.5">Recheck: {prog.recheck}</div>}
+                      {prog.recheck && <div className="text-[11px] text-muted-foreground/60 mt-0.5">Recheck: {prog.recheck}</div>}
                     </div>
                     {prog.in_nimbus_network && (
                       <SimButton disabled={isLoadingEvent} onClick={() => onLoadToSim(prog.sim_event.kind, prog.sim_event.params)} />
@@ -911,7 +911,7 @@ function LiveFeed({
         {/* GDPs */}
         {gdps.length > 0 && (
           <div className="mb-3">
-            <div className="text-[9px] font-semibold uppercase tracking-wider mb-1.5 flex items-center gap-1.5" style={{ color: "var(--ae-amber-ink)" }}>
+            <div className="text-[11px] font-semibold uppercase tracking-wider mb-1.5 flex items-center gap-1.5" style={{ color: "var(--ae-amber-ink)" }}>
               <span className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--ae-amber)" }} />
               Ground Delay Programs ({gdps.length})
             </div>
@@ -932,17 +932,17 @@ function LiveFeed({
                         <span className="font-mono font-semibold text-sm">{prog.airport_iata}</span>
                         {prog.avg_delay_minutes && (
                           <span
-                            className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
+                            className="text-[11px] font-semibold px-1.5 py-0.5 rounded-full"
                             style={{ background: "var(--ae-amber-bg)", color: "var(--ae-amber-ink)" }}
                           >
                             avg {prog.avg_delay_minutes}m
                           </span>
                         )}
-                        {prog.in_nimbus_network && <span className="text-[9px] font-semibold" style={{ color: "var(--ae-teal-ink)" }}>Nimbus</span>}
+                        {prog.in_nimbus_network && <span className="text-[11px] font-semibold" style={{ color: "var(--ae-teal-ink)" }}>Nimbus</span>}
                       </div>
-                      <div className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">{prog.reason}</div>
+                      <div className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{prog.reason}</div>
                       {(prog.start || prog.recheck) && (
-                        <div className="text-[9px] text-muted-foreground/60 mt-0.5">
+                        <div className="text-[11px] text-muted-foreground/60 mt-0.5">
                           {prog.start && `Start: ${prog.start}`}{prog.recheck && ` · Recheck: ${prog.recheck}`}
                         </div>
                       )}
@@ -960,7 +960,7 @@ function LiveFeed({
         {/* Departure Delays */}
         {depDelays.length > 0 && (
           <div className="mb-1">
-            <div className="text-[9px] font-semibold uppercase tracking-wider mb-1.5 flex items-center gap-1.5" style={{ color: "var(--ae-amber-ink)" }}>
+            <div className="text-[11px] font-semibold uppercase tracking-wider mb-1.5 flex items-center gap-1.5" style={{ color: "var(--ae-amber-ink)" }}>
               <span className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--ae-amber-soft)" }} />
               Departure Delays ({depDelays.length})
             </div>
@@ -973,8 +973,8 @@ function LiveFeed({
                 >
                   <div className="flex items-center gap-2">
                     <span className="font-mono font-semibold text-sm">{prog.airport_iata}</span>
-                    {prog.avg_delay_minutes && <span className="text-[9px] text-muted-foreground">avg {prog.avg_delay_minutes}m</span>}
-                    <span className="text-[10px] text-muted-foreground flex-1 truncate">{prog.reason}</span>
+                    {prog.avg_delay_minutes && <span className="text-[11px] text-muted-foreground">avg {prog.avg_delay_minutes}m</span>}
+                    <span className="text-[11px] text-muted-foreground flex-1 truncate">{prog.reason}</span>
                     {prog.in_nimbus_network && (
                       <SimButton disabled={isLoadingEvent} onClick={() => onLoadToSim(prog.sim_event.kind, prog.sim_event.params)} />
                     )}
@@ -991,7 +991,7 @@ function LiveFeed({
         label="NWS Weather Alerts"
         badge={nimbusAlerts.length > 0 && (
           <span
-            className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
+            className="text-[11px] font-semibold px-1.5 py-0.5 rounded-full"
             style={{ background: "var(--ae-teal-bg)", color: "var(--ae-teal-ink)" }}
           >
             {nimbusAlerts.length} Nimbus
@@ -1013,7 +1013,7 @@ function LiveFeed({
           </div>
         )}
         {nwsSum != null && (
-          <p className="text-[9px] text-muted-foreground mb-2">
+          <p className="text-[11px] text-muted-foreground mb-2">
             {wxFiltered.length} of {nwsSum.nationwide_alerts_matched} aviation alerts · {nwsSum.severe_or_extreme} severe/extreme
           </p>
         )}
@@ -1021,7 +1021,7 @@ function LiveFeed({
           <div className="space-y-3 max-h-[min(55vh,28rem)] overflow-y-auto pr-0.5">
             {highImpactWx.length > 0 && (
               <div>
-                <div className="text-[9px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: "var(--ae-amber-ink)" }}>Severe &amp; extreme</div>
+                <div className="text-[11px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: "var(--ae-amber-ink)" }}>Severe &amp; extreme</div>
                 <div className="space-y-1.5">
                   {highImpactWx.map((alert) =>
                     renderAlertRow(alert, alert.affected_nimbus_airports.length > 0, isLoadingEvent, onLoadToSim)
@@ -1031,7 +1031,7 @@ function LiveFeed({
             )}
             {otherWx.length > 0 && (
               <div>
-                <div className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Advisories &amp; moderate</div>
+                <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Advisories &amp; moderate</div>
                 <div className="space-y-1.5">
                   {otherWx.map((alert) =>
                     renderAlertRow(alert, alert.affected_nimbus_airports.length > 0, isLoadingEvent, onLoadToSim)
@@ -1121,7 +1121,7 @@ export function EventPanel() {
         </div>
         <div>
           <div className="section-title">Event Control</div>
-          <div className="text-[10px] text-muted-foreground mt-0.5">22 disruption types · live NAS feed</div>
+          <div className="text-[11px] text-muted-foreground mt-0.5">22 disruption types · live NAS feed</div>
         </div>
       </div>
 
@@ -1161,7 +1161,7 @@ export function EventPanel() {
                   {t.label}
                   {t.key === "active" && activeEvents.length > 0 && (
                     <span
-                      className="text-[9px] font-bold rounded-full w-4 h-4 inline-flex items-center justify-center shrink-0"
+                      className="text-[11px] font-bold rounded-full w-4 h-4 inline-flex items-center justify-center shrink-0"
                       style={{ background: on ? "rgba(255,255,255,0.28)" : "var(--ae-teal)", color: "#FFFFFF" }}
                     >
                       {activeEvents.length}
@@ -1190,7 +1190,7 @@ export function EventPanel() {
                 <div key={cat.label}>
                   <div className="flex items-center gap-2 mb-1">
                     <span
-                      className="text-[10px] font-bold uppercase"
+                      className="text-[11px] font-bold uppercase"
                       style={{ letterSpacing: "0.12em", color: c.muted, fontFamily: ff.mono }}
                     >
                       {cat.label}
@@ -1275,7 +1275,7 @@ export function EventPanel() {
                 <div className="flex items-center gap-1 shrink-0">
                   <button
                     onClick={() => setShowDescription((d) => !d)}
-                    className="flex items-center gap-1 text-[10px] font-semibold opacity-60 hover:opacity-100 transition-opacity"
+                    className="flex items-center gap-1 text-[11px] font-semibold opacity-60 hover:opacity-100 transition-opacity"
                     style={{ color: tone.ink, background: "transparent", border: "none", cursor: "pointer", padding: "6px 8px" }}
                   >
                     {showDescription ? "Less" : "Info"}
@@ -1327,7 +1327,7 @@ export function EventPanel() {
                     <div key={f.key}>
                       <label
                         htmlFor={fid}
-                        className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block"
+                        className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block"
                       >
                         {f.label}
                       </label>

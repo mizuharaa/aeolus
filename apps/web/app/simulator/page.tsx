@@ -1,5 +1,5 @@
 "use client"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import dynamic from "next/dynamic"
 import { motion, AnimatePresence } from "framer-motion"
 import { Loader2, X } from "lucide-react"
@@ -17,7 +17,7 @@ import { apiClient } from "@/lib/api"
 import { hydrateAirportTiers } from "@/components/simulator/airports"
 import { c, ff, r, sp } from "@/lib/design-tokens"
 import { useResizable, ResizeHandle, FloatingPanel } from "@/components/simulator/workspace-chrome"
-import { CloudLightning, Waypoints, PanelBottomClose } from "lucide-react"
+import { CloudLightning, Waypoints, PanelBottomClose, AlertTriangle } from "lucide-react"
 
 const FlightMap = dynamic(() => import("@/components/simulator/flight-map"), {
   ssr: false,
@@ -103,9 +103,18 @@ export default function SimulatorPage() {
   // Restore prefs.
   useEffect(() => {
     try {
-      if (localStorage.getItem("aeolus-left-open")   === "0") setLeftOpen(false)
-      if (localStorage.getItem("aeolus-left-open")   === "1") setLeftOpen(true)
-      if (localStorage.getItem("aeolus-right-open")  === "1") setRightOpen(true)
+      const wantLeft  = localStorage.getItem("aeolus-left-open") === "1"
+      const wantRight = localStorage.getItem("aeolus-right-open") === "1"
+      // Restore must obey the same mutual exclusion as openLeft/openRight.
+      // It did not, so a reload could put BOTH panels up in overlay mode and
+      // they overlapped each other by 122x362 at 720x450 — each is capped
+      // against the container and never against its sibling (356 + 392 = 748
+      // into 654px). Same class of defect as the docked branch's 128px overlap,
+      // reachable by reload rather than resize, which is why fixing the toggle
+      // handlers alone did not retire it.
+      const tightNow = window.matchMedia("(max-width: 1500px)").matches
+      if (localStorage.getItem("aeolus-left-open") !== null) setLeftOpen(wantLeft)
+      if (wantRight && !(tightNow && wantLeft)) setRightOpen(true)
       if (localStorage.getItem("aeolus-bottom-open") === "0") setBottomOpen(false)
     } catch {}
   }, [])
@@ -116,16 +125,12 @@ export default function SimulatorPage() {
   // Recovery plans arrive for a new disruption → float the Recovery panel out
   // once per event wave (the user can close it; it won't nag again for the
   // same wave). Committing a plan leaves it to the user.
-  const autoOpenedFor = useRef("")
-  useEffect(() => {
-    const sig = activeEvents.map((e) => e.id).sort().join("|")
-    if (sig && recoveryPlans.length > 0 && !appliedPlanId && sig !== autoOpenedFor.current) {
-      autoOpenedFor.current = sig
-      setRightOpen(true)
-      if (window.matchMedia("(max-width: 1500px)").matches) setLeftOpen(false)
-    }
-    if (!sig) autoOpenedFor.current = ""
-  }, [activeEvents, recoveryPlans.length, appliedPlanId])
+  // The Recovery panel does NOT auto-open. It used to, and combined with the
+  // panel defaulting to inspect plan A, that made a full plan analysis appear
+  // unbidden with one plan visually dominant — read, reasonably, as "a plan was
+  // auto-applied on load". Nothing should look decided until someone decides.
+  // The launcher tab carries a count badge instead: discoverable, unmissable,
+  // and it asserts nothing about the outcome.
 
   // Inspecting a flight (sim or live) closes the drawers so the detail card
   // owns the map edge with no overlap.
@@ -160,33 +165,58 @@ export default function SimulatorPage() {
     if (id) setSelectedLiveFlight(null)
   }
 
-  // Paint instantly from cache, then refresh from the API — kills the long
-  // cold boot where the map sat empty waiting on the schedule roundtrip.
+  // Boot failures are SURFACED, not swallowed. Every one of these three calls
+  // used to end in `.catch(() => {})`, which is how `/network/aircraft` 404'd
+  // on every single load for an unknown length of time without anyone noticing
+  // — and, worse, why a dispatcher looking at an empty map could not tell "no
+  // disruptions" from "the API is down". Both render identically when the
+  // failure is silent. Degrading gracefully is right; degrading invisibly is
+  // not. `feedErrors` names the feeds that actually failed so the banner can
+  // say which, and `bootNonce` lets Retry re-run them.
+  const [feedErrors, setFeedErrors] = useState<string[]>([])
+  const [bootNonce, setBootNonce] = useState(0)
+
   useEffect(() => {
     hydrateStaticFromCache()
-    apiClient
+    let cancelled = false
+    const failed: string[] = []
+    const note = (feed: string) => (err: unknown) => {
+      if (cancelled) return
+      failed.push(feed)
+      // Kept in the console too: the banner tells the operator something is
+      // wrong, the console tells an engineer what.
+      console.error(`[aeolus] ${feed} feed failed:`, err)
+    }
+
+    const schedule = apiClient
       .get<{ flights?: ScheduledFlight[] } | ScheduledFlight[]>("/simulator/schedule")
       .then((res) => {
         const d = res.data
         const list = Array.isArray(d) ? d : d?.flights
         if (list && list.length) setSchedule(list)
       })
-      .catch(() => {})
-    // "/aircraft", not "/network/aircraft" — the latter 404s on every load,
-    // so the fleet silently never arrived. The API mounts this router without
-    // a prefix (apps/api/src/routes/network.py).
-    apiClient
+      .catch(note("Schedule"))
+
+    // "/aircraft", not "/network/aircraft" — the latter 404s. The API mounts
+    // this router without a prefix (apps/api/src/routes/network.py).
+    const fleet = apiClient
       .get<{ aircraft?: FleetAircraft[] }>("/aircraft")
       .then((res) => { const a = res.data?.aircraft; if (a && a.length) setFleet(a) })
-      .catch(() => {})
+      .catch(note("Fleet"))
+
     // Airport tiers come from the network itself, so adding an airport to the
-    // YAML is enough — nothing here needs editing. Falls back to the bundled
-    // tiers if the call fails, which is why nothing is awaited on it.
-    apiClient
+    // YAML is enough. The bundled tiers are a genuine fallback, so this one
+    // degrades quietly in the UI — but it is still reported to the console.
+    const airports = apiClient
       .get<{ airports?: { id: string; hub_type?: string }[] }>("/airports")
       .then((res) => hydrateAirportTiers(res.data?.airports))
-      .catch(() => {})
-  }, [setSchedule, setFleet, hydrateStaticFromCache])
+      .catch(note("Airports"))
+
+    void Promise.allSettled([schedule, fleet, airports]).then(() => {
+      if (!cancelled) setFeedErrors(failed)
+    })
+    return () => { cancelled = true }
+  }, [setSchedule, setFleet, hydrateStaticFromCache, bootNonce])
 
   return (
     // overflow:hidden + fixed height. Measured before: 552px of a 1352px
@@ -200,6 +230,27 @@ export default function SimulatorPage() {
     <div style={{ background: "var(--ae-bg)", height: "100dvh", overflow: "hidden", display: "flex", flexDirection: "column" }}>
       <DashboardLoader />
 
+      {/* The skip link the <main> landmark below was added FOR. Its comment
+          justified the landmark by saying "skip to main content" had nowhere
+          to go — and then no skip link was ever added, so it still had nowhere
+          to go. It matters more here than on a typical page: the map alone is
+          82 sequential tab stops (every airport, every flight), and without
+          this the only way past it is to hold Tab. */}
+      <a
+        href="#ae-workspace"
+        style={{
+          position: "absolute", left: sp.sm, top: -200, zIndex: 5000,
+          padding: `${sp.xs}px ${sp.md}px`, borderRadius: r.sm,
+          background: "var(--ae-surface)", color: c.ink,
+          border: `1px solid ${c.hairline}`, boxShadow: "0 0 0 3px var(--ae-focus)",
+          fontFamily: ff.body, fontSize: 13, fontWeight: 600, textDecoration: "none",
+        }}
+        onFocus={(e) => { e.currentTarget.style.top = `${sp.sm}px` }}
+        onBlur={(e) => { e.currentTarget.style.top = "-200px" }}
+      >
+        Skip to workspace
+      </a>
+
       {/* Plain flex child, no sticky and no z-index. The nav needed z-[700] to
           win against panels that could ride up over it once the page scrolled;
           the shell no longer scrolls and the panels are docked tracks, so the
@@ -209,6 +260,46 @@ export default function SimulatorPage() {
       </div>
 
       <AnnouncementBanner />
+
+      {/* Degraded-feed banner. role="status" not "alert": the console is still
+          usable on cached data, so this informs without seizing focus mid-task.
+          It names WHICH feed failed, because "something went wrong" leaves the
+          operator unable to judge whether what they are looking at is
+          trustworthy — and it offers the retry rather than requiring a reload
+          that would also discard their panel layout and map viewport. */}
+      {feedErrors.length > 0 && (
+        <div
+          role="status"
+          style={{
+            flexShrink: 0,
+            display: "flex", alignItems: "center", gap: sp.sm,
+            padding: `${sp.xs}px ${sp.md}px`,
+            background: "var(--ae-amber-bg)",
+            borderBottom: `1px solid var(--ae-amber)`,
+            color: c.ink, fontFamily: ff.body, fontSize: 13,
+          }}
+        >
+          <AlertTriangle style={{ width: 15, height: 15, color: "var(--ae-amber-ink)", flexShrink: 0 }} strokeWidth={2} />
+          <span>
+            <strong style={{ fontWeight: 650 }}>
+              {feedErrors.join(" and ")} {feedErrors.length > 1 ? "feeds are" : "feed is"} unavailable.
+            </strong>{" "}
+            Showing the last known data — figures may be stale.
+          </span>
+          <button
+            type="button"
+            onClick={() => { setFeedErrors([]); setBootNonce((n) => n + 1) }}
+            style={{
+              marginLeft: "auto", minHeight: 32, padding: `0 ${sp.sm}px`,
+              fontSize: 12.5, fontWeight: 600, fontFamily: ff.body,
+              borderRadius: r.sm, border: `1px solid var(--ae-amber-ink)`,
+              background: "transparent", color: "var(--ae-amber-ink)", cursor: "pointer",
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       {/* ── Workspace ────────────────────────────────────────────────────
           A fixed three-track row: Events | (map over timeline) | Recovery.
@@ -228,7 +319,12 @@ export default function SimulatorPage() {
              because all extra viewport went to the basemap. The Gantt is where
              cause, propagation and time are legible at once; the map answers
              "where", once per incident. Drag the divider to rebalance. */}
-      <div
+      {/* <main>, not <div>. The console had NO main landmark and zero headings
+          across 78 tab stops, so a screen-reader user had no document outline
+          to navigate and "skip to main content" had nowhere to go. */}
+      <main
+        id="ae-workspace"
+        tabIndex={-1}
         style={{ flex: 1, minHeight: 0, position: "relative", display: "flex", overflow: "hidden" }}
       >
         {/* Events — docked track, left */}
@@ -284,8 +380,22 @@ export default function SimulatorPage() {
             </div>
           </div>
 
-          {/* Divider — drags the MAP's height; the timeline absorbs the rest */}
-          {bottomOpen && <ResizeHandle side="bottom" onPointerDown={mapH.onPointerDown} />}
+          {/* Divider — drags the MAP's height; the timeline absorbs the rest.
+              Passing value/min/max/onValue makes it a real focusable separator
+              widget: it is the only rebalancing control on the console and it
+              had tabIndex -1 and no key handler, so a keyboard user could not
+              reach it at all. */}
+          {bottomOpen && (
+            <ResizeHandle
+              side="bottom"
+              onPointerDown={mapH.onPointerDown}
+              label="Resize map and cascade timeline"
+              value={mapH.size}
+              min={MAP_H_MIN}
+              max={MAP_H_MAX}
+              onValue={mapH.setSize}
+            />
+          )}
 
           {/* CASCADE TIMELINE — the hero surface */}
           <div
@@ -311,7 +421,7 @@ export default function SimulatorPage() {
                   title="Collapse timeline"
                   style={{
                     position: "absolute", top: sp.xs, right: sp.sm, zIndex: 30,
-                    width: 28, height: 28, borderRadius: r.sm,
+                    width: 36, height: 36, borderRadius: r.sm,
                     border: `1px solid ${c.hairline}`, background: "var(--ae-surface)",
                     color: c.muted, cursor: "pointer", display: "inline-flex",
                     alignItems: "center", justifyContent: "center",
@@ -351,7 +461,7 @@ export default function SimulatorPage() {
         >
           <RecoveryPlans selectedFlight={selectedFlight} onFlightSelect={handleFlightSelect} />
         </FloatingPanel>
-      </div>
+      </main>
 
     </div>
   )

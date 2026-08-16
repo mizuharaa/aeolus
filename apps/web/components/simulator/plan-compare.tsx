@@ -94,7 +94,7 @@ function CompareCell({ value, winner }: { value: string; winner: boolean }) {
         {value}
       </div>
       {winner && (
-        <div style={{ fontSize: 9, color: c.statusOnTime.ink, fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase", marginTop: 2 }}>
+        <div style={{ fontSize: 11, color: c.statusOnTime.ink, fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase", marginTop: 2 }}>
           Best
         </div>
       )}

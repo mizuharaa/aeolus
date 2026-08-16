@@ -87,9 +87,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>
           {children}
           <CookieConsent />
+          {/* bottom-right, not top-right: at top-right the toast landed on the
+              ops bar's own right cluster and covered Ask Aeolus, the LIVE state
+              and Reset — arrival notices obscuring the controls they should
+              never compete with. The workspace's bottom-right is the docked
+              Recovery track, which the toast is allowed to overlay briefly
+              because it is transient and dismissible; the nav is not. */}
           <Toaster
-            position="top-right"
+            position="bottom-right"
             closeButton
+            offset={16}
+            // expand: without it Sonner renders a COLLAPSED stack and every
+            // toast's close button lands on the same 20x20 square, so only the
+            // front one is clickable and the rest are unreachable by pointer.
+            expand
             toastOptions={{
               style: {
                 fontFamily: 'Inter, "Inter Display", system-ui, sans-serif',

@@ -25,6 +25,16 @@ interface Props {
   color?:      string
   /** When false, the rate-of-burn caption is hidden. Default true. */
   caption?:    boolean
+  /**
+   * Freeze the figure at a caller-supplied value.
+   *
+   * The ticking number and a static `planCost()` elsewhere on the same panel
+   * drifted apart — the armed commit banner read $3.22M while this component
+   * read $3.27M 60px below it, so the operator was asked to authorise a $3.2M
+   * dispatch by a panel that disagreed with itself by $50,000. While a commit
+   * is armed the number must hold still and match the banner exactly.
+   */
+  frozenCost?: number | null
 }
 
 const SIZE_MAP = {
@@ -39,10 +49,16 @@ export function LiveCostDisplay({
   showRate = true,
   color = c.ink,
   caption = true,
+  frozenCost = null,
 }: Props) {
-  const { cost, ratePerMin } = useLiveCost(plan)
+  const live = useLiveCost(plan)
   const s = SIZE_MAP[size]
-  const isFresh = ratePerMin > 0
+  const frozen = frozenCost != null
+  const cost = frozen ? frozenCost : live.cost
+  const ratePerMin = live.ratePerMin
+  // A frozen figure must not carry a burn rate — that is what made the two
+  // numbers look like two different costs rather than one cost and one clock.
+  const isFresh = ratePerMin > 0 && !frozen
   return (
     <span style={{ display: "inline-flex", flexDirection: "column", alignItems: "flex-end", lineHeight: 1.1 }}>
       <span
@@ -71,7 +87,9 @@ export function LiveCostDisplay({
           }}
         >
           <TrendingUp style={{ width: 10, height: 10 }} />
-          +${Math.round(ratePerMin)}/min
+          {/* Labelled. Unlabelled, "+$12197/min" reads as a cost OF THIS PLAN;
+              it is the cost of NOT having committed one yet. */}
+          +${Math.round(ratePerMin)}/min uncommitted
         </span>
       )}
     </span>

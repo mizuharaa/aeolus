@@ -180,7 +180,7 @@ export function NotificationBell() {
             style={{
               position: "absolute", top: -5, right: -5, minWidth: 16, height: 16, padding: "0 4px",
               borderRadius: 99, background: imminent.length > 0 ? "var(--ae-teal)" : "var(--ae-amber)",
-              color: imminent.length > 0 ? "#fff" : "#141019", fontSize: 9.5, fontWeight: 700, fontFamily: ff.mono,
+              color: imminent.length > 0 ? "#fff" : "#141019", fontSize: 11, fontWeight: 700, fontFamily: ff.mono,
               display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1,
               boxShadow: "0 0 0 2px var(--ae-bg)",
             }}
@@ -269,7 +269,7 @@ export function NotificationBell() {
                         <span style={{ display: "block", fontFamily: ff.mono, fontWeight: 700, fontSize: 12.5, color: soon ? "var(--ae-teal-ink)" : c.ink }}>
                           {a.etaMin < 60 ? `${Math.round(a.etaMin)}m` : `${(a.etaMin / 60).toFixed(1)}h`}
                         </span>
-                        <span style={{ display: "block", fontFamily: ff.mono, fontSize: 9, color: c.muted }}>{Math.round(a.nm)} nm</span>
+                        <span style={{ display: "block", fontFamily: ff.mono, fontSize: 11, color: c.muted }}>{Math.round(a.nm)} nm</span>
                       </span>
                     </button>
                   )
@@ -293,7 +293,7 @@ export function NotificationBell() {
                   <div key={ev.id} style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 10px", borderRadius: 10, background: "var(--ae-rose-bg, var(--ae-amber-bg))", border: "1px solid var(--ae-amber)" }}>
                     <span style={{ width: 8, height: 8, borderRadius: 99, background: "var(--ae-amber)", flexShrink: 0 }} />
                     <span style={{ minWidth: 0, flex: 1 }}>
-                      <span style={{ display: "block", fontSize: 12, fontWeight: 650, color: c.ink }}>{ev.kind.replace(/_/g, " ")} <span style={{ fontSize: 9, fontWeight: 600, color: "var(--ae-teal-ink)" }}>· SIM</span></span>
+                      <span style={{ display: "block", fontSize: 12, fontWeight: 650, color: c.ink }}>{ev.kind.replace(/_/g, " ")} <span style={{ fontSize: 11, fontWeight: 600, color: "var(--ae-teal-ink)" }}>· SIM</span></span>
                       <span style={{ display: "block", fontSize: 10, color: c.muted }}>
                         {(ev.params?.airport || ev.params?.destination_airport || ev.params?.base || ev.params?.facility_id || "network") as string}
                         {ev.params?.severity ? ` · ${ev.params.severity}` : ""}
@@ -318,7 +318,7 @@ export function NotificationBell() {
                         <span style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
                           <span style={{ fontSize: 12, fontWeight: 650, color: c.ink }}>{d.kind}</span>
                           <span style={{ fontFamily: ff.mono, fontSize: 10, fontWeight: 600, color: tone }}>{d.label}</span>
-                          {d.nimbus && <span style={{ fontSize: 9, fontWeight: 600, color: "var(--ae-teal-ink)" }}>Nimbus</span>}
+                          {d.nimbus && <span style={{ fontSize: 11, fontWeight: 600, color: "var(--ae-teal-ink)" }}>Nimbus</span>}
                         </span>
                         {d.detail && <span style={{ display: "block", fontSize: 10, color: c.muted, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.detail}</span>}
                       </span>

@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -158,21 +158,29 @@ function DecisionMatrix({
               const applied = p.plan_id === appliedId
               return (
                 <th key={p.plan_id} style={{ width: cellW, padding: 0 }}>
-                  {/* Plan tab — the selected tab is PUNCHED OUT: ink slab,
-                      paper text, full contrast. Applied carries teal. */}
+                  {/* Visual weight follows CONSEQUENCE, not curiosity.
+                      This was inverted: the INSPECTED tab was a punched-out ink
+                      slab — the heaviest treatment in the panel — while the
+                      APPLIED plan got a 3px border. Since inspection defaults
+                      to the first plan, merely opening this panel made plan A
+                      look committed, and it was read as "a plan auto-applied on
+                      load". Applied now owns the filled slab; inspecting is an
+                      outline, which is what a reversible act should look like. */}
                   <button
                     onClick={() => onSelect(p.plan_id)}
                     aria-pressed={sel}
-                    title={`${meta.label} — inspect`}
+                    aria-current={applied ? "true" : undefined}
+                    title={applied ? `${meta.label} — applied` : `${meta.label} — inspect`}
                     style={{
                       width: "100%",
                       padding: "12px 2px 10px",
                       border: "none",
                       borderBottom: `3px solid ${applied ? "var(--ae-teal)" : sel ? "var(--ae-text)" : "var(--ae-line)"}`,
-                      background: sel ? "var(--ae-text)" : "transparent",
+                      background: applied ? "var(--ae-teal)" : "transparent",
+                      boxShadow: !applied && sel ? "inset 0 0 0 1.5px var(--ae-text)" : undefined,
                       borderRadius: "10px 10px 0 0",
                       cursor: "pointer",
-                      transition: "background 140ms ease, border-color 140ms ease",
+                      transition: "background 140ms ease, border-color 140ms ease, box-shadow 140ms ease",
                     }}
                   >
                     <span
@@ -183,7 +191,8 @@ function DecisionMatrix({
                         fontSize: 22,
                         lineHeight: 1,
                         letterSpacing: "-0.01em",
-                        color: sel ? "var(--ae-bg)" : c.ink,
+                        // Follows the FILL, which is now `applied`, not `sel`.
+                        color: applied ? "var(--ae-on-primary)" : c.ink,
                       }}
                     >
                       {p.plan_id}
@@ -192,14 +201,12 @@ function DecisionMatrix({
                       style={{
                         display: "block",
                         fontFamily: ff.mono,
-                        fontSize: 9.5,
+                        fontSize: 11,
                         fontWeight: 700,
                         letterSpacing: "0.14em",
                         textTransform: "uppercase",
                         marginTop: 4,
-                        color: sel
-                          ? (applied ? "var(--ae-teal)" : "var(--ae-bg)")
-                          : applied ? "var(--ae-teal-ink)" : c.muted,
+                        color: applied ? "var(--ae-on-primary)" : sel ? c.ink : c.muted,
                       }}
                     >
                       {applied ? "Applied" : meta.short}
@@ -248,7 +255,7 @@ function DecisionMatrix({
           })}
         </tbody>
       </table>
-      <p style={{ margin: "6px 2px 0", fontFamily: ff.mono, fontSize: 9, letterSpacing: "0.04em", color: c.muted }}>
+      <p style={{ margin: "6px 2px 0", fontFamily: ff.mono, fontSize: 11, letterSpacing: "0.04em", color: c.muted }}>
         Teal = best of the four · click a column to inspect
       </p>
     </div>
@@ -295,6 +302,22 @@ function PlanLedger({
   // Inline rather than a modal: DESIGN.md treats modals as a last resort and a
   // dispatcher should not lose sight of the map to confirm.
   const [armed, setArmed] = useState(false)
+  const confirmRef = useRef<HTMLDivElement>(null)
+  const commitRef = useRef<HTMLButtonElement>(null)
+
+  // Mouse users get the old dismiss-on-look-away behaviour without keyboard
+  // users losing focus: disarm only when the pointer goes down somewhere that
+  // is neither the button nor the confirmation banner.
+  useEffect(() => {
+    if (!armed) return
+    const onDown = (e: PointerEvent) => {
+      const t = e.target as Node
+      if (confirmRef.current?.contains(t) || commitRef.current?.contains(t)) return
+      setArmed(false)
+    }
+    document.addEventListener("pointerdown", onDown, true)
+    return () => document.removeEventListener("pointerdown", onDown, true)
+  }, [armed])
   // Disarm whenever the inspected plan changes, so an arm on plan B can never
   // be spent on plan C.
   useEffect(() => setArmed(false), [plan.plan_id, isApplied])
@@ -324,11 +347,20 @@ function PlanLedger({
           <div style={{ ...type("bodyMd", c.muted), fontSize: 12.5, marginTop: 2 }}>{meta.sublabel}</div>
         </div>
         <button
+          ref={commitRef}
           onClick={() => {
             if (isApplied || armed) { setArmed(false); onApply(); return }
             setArmed(true)
           }}
-          onBlur={() => setArmed(false)}
+          // NO onBlur disarm. It was here to keep the armed state from lingering,
+          // but Tab from the armed button then removed the role="alert" banner
+          // AND dropped focus to <body> — so a keyboard or screen-reader operator
+          // could never read the consequence statement before confirming, and
+          // could never reach the banner's own Cancel button. Focus loss on an
+          // irreversible action is worse than a lingering armed state. Escape
+          // still disarms, the banner's Cancel disarms, and the effect on
+          // [plan.plan_id, isApplied] already prevents an arm leaking to another
+          // plan; a pointerdown outside handles the mouse case.
           onKeyDown={(e) => { if (e.key === "Escape" && armed) { e.stopPropagation(); setArmed(false) } }}
           aria-label={
             isApplied
@@ -367,6 +399,7 @@ function PlanLedger({
       <AnimatePresence>
         {armed && !isApplied && (
           <motion.div
+            ref={confirmRef}
             role="alert"
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
@@ -422,7 +455,9 @@ function PlanLedger({
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
           <span style={{ fontSize: 12, color: c.muted }}>Est. total cost</span>
-          <LiveCostDisplay plan={plan} size="md" />
+          {/* Frozen while armed so it agrees with the confirmation banner to
+              the dollar — see the note on `frozenCost`. */}
+          <LiveCostDisplay plan={plan} size="md" frozenCost={armed ? totalCostUsd : null} />
         </div>
 
         {cb && cb.grand_total_usd > 0 && (
@@ -470,7 +505,7 @@ function PlanLedger({
           </div>
         )}
 
-        <p style={{ fontSize: 9.5, color: c.muted, margin: "7px 0 0", fontFamily: ff.mono, letterSpacing: "0.02em" }}>
+        <p style={{ fontSize: 11, color: c.muted, margin: "7px 0 0", fontFamily: ff.mono, letterSpacing: "0.02em" }}>
           DOT BTS 2023 · $82.50/pax-hr · Form 41 block-hour ops
         </p>
       </div>
@@ -643,7 +678,7 @@ function PlanLedger({
       {/* deep-link to the full counterfactual explainer */}
       <Link
         href={`/simulator/plans/${plan.plan_id}`}
-        style={{ display: "inline-flex", alignItems: "center", gap: 4, minHeight: 28, fontSize: 12, color: c.link, textDecoration: "none", fontWeight: 500 }}
+        style={{ display: "inline-flex", alignItems: "center", gap: 6, minHeight: 36, padding: "0 2px", fontSize: 12.5, color: c.link, textDecoration: "none", fontWeight: 550 }}
       >
         Open full plan detail <ArrowRight style={{ width: 13, height: 13 }} strokeWidth={2} />
       </Link>
