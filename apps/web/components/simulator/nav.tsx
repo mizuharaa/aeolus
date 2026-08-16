@@ -234,13 +234,19 @@ export function SimulatorNav({ isConnected }: SimulatorNavProps) {
       }}
     >
       {/* ── Context (brand lives in the left rail) ── */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0, minWidth: 0 }}>
+      {/* flexShrink 1, not 0. The title was unshrinkable, so at 390px it held
+          its full measure and pushed the ACCOUNT MENU off the right edge — the
+          identity control, clipped, by a label. A title that ellipsises is a
+          cosmetic loss; a control you cannot reach is a functional one, so the
+          title yields first. */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 1, minWidth: 0 }}>
         <Plane aria-hidden style={{ width: 16, height: 16, color: "var(--ae-teal-ink)", flexShrink: 0 }} strokeWidth={2} />
         <h1
           style={{
             fontFamily: ff.display, fontWeight: 700, fontSize: 15,
             lineHeight: 1, letterSpacing: "-0.01em", whiteSpace: "nowrap",
             color: c.ink, margin: 0,
+            minWidth: 0, overflow: "hidden", textOverflow: "ellipsis",
           }}
         >
           Nimbus Air OCC
@@ -304,7 +310,9 @@ export function SimulatorNav({ isConnected }: SimulatorNavProps) {
              badge has room INSIDE the group and cannot reach a sibling. ── */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0, paddingLeft: 6, paddingRight: 2 }}>
         <NotificationBell />
-        <AgentBubble />
+        <span className="ae-topbar-assist" style={{ display: "inline-flex" }}>
+          <AgentBubble />
+        </span>
       </div>
 
       {rule}
@@ -330,7 +338,7 @@ export function SimulatorNav({ isConnected }: SimulatorNavProps) {
         <button
           onClick={handleReset}
           onBlur={() => setResetArmed(false)}
-          className="ae-topbar-btn"
+          className="ae-topbar-btn ae-topbar-assist"
           aria-label={resetArmed ? "Confirm reset — discards the current scenario" : "Reset simulation — asks for confirmation first"}
           style={{
             display: "inline-flex", alignItems: "center", gap: 7,
@@ -371,6 +379,22 @@ export function SimulatorNav({ isConnected }: SimulatorNavProps) {
         @media (max-width: 1080px) { .ae-topbar-rule { display: none; } }
         @media (max-width: 980px)  { .ae-nav-reset-label { display: none; } }
         @media (max-width: 860px)  { .ae-nav-stats { display: none !important; } }
+
+        /* Phone. Everything above trims the bar item by item and it still
+           overflowed at 390px — measured with Ask Aeolus clipped at the right
+           edge and the account menu pushed off-screen entirely, i.e. the
+           controls that were left were unreachable rather than merely tight.
+           Two things actually fit here, so two things are shown: the ops title
+           (which is also the only thing telling you WHICH airline's console
+           you are looking at) and the session cluster. Ask Aeolus is dropped
+           because it is a conversational assistant with a full-screen surface
+           of its own, and the Reset button because arming a scenario-wide
+           destructive action is not a phone task. Both are reachable on a
+           wider viewport; neither is silently broken here. */
+        @media (max-width: 880px) {
+          .ae-topbar-assist { display: none !important; }
+          .ae-nav-title-pad { padding-left: 4px; }
+        }
       `}</style>
     </nav>
   )

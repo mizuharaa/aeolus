@@ -609,8 +609,18 @@
 @media (max-width: 880px) {
   .ae-map-search-lane {
     top: 58px !important;
-    width: calc(100% - 24px) !important;
+    /* left/right, not width + translateX. The centred-transform form measured
+       12px of overflow past the map's right edge at 390px, because the
+       translate is applied to the element's own border box while `width:
+       calc(100% - 24px)` is resolved against the POSITIONED ANCESTOR — and the
+       lane's ancestor is the map region, not the viewport. Pinning both edges
+       removes the arithmetic entirely. */
+    left: 12px !important;
+    right: 12px !important;
+    width: auto !important;
+    transform: none !important;
   }
+
 }
 
 .leaflet-bar a {
@@ -646,6 +656,25 @@
   height: 36px !important;
   line-height: 36px !important;
   font-size: 15px !important;
+}
+
+/* Phone: the search lane STACKS below the projection switch (see the rule
+   further up this file), landing at y 58–102 of the map — which is where the
+   66px margin above put the zoom control, so the search covered the zoom-IN
+   button and left only a clipped minus reachable. Measured: lane 114–158,
+   zoom 122–196.
+
+   This override has to come AFTER the base rule, not before it. Both selectors
+   have identical specificity, so source order decides — the first attempt sat
+   ~30 lines earlier in this file and lost silently, which is why the probe
+   still showed margin-top 66px on a rule that "existed".
+
+   Pushed below rather than shrunk: on a touch screen the zoom buttons are the
+   map's most-used control after the pan gesture. */
+@media (max-width: 880px) {
+  .leaflet-top.leaflet-right .leaflet-control-zoom {
+    margin-top: 114px; /* 58 lane top + 44 lane height + 12 gap */
+  }
 }
 
 .leaflet-popup-content-wrapper,

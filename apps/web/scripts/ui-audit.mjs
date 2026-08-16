@@ -62,10 +62,18 @@ const PROBE = `(() => {
     return base
   }
 
+  // An INERT subtree cannot be focused, cannot be hit-tested and is removed
+  // from the accessibility tree — so its contents are not collision partners
+  // and not tab stops, even though querySelectorAll still returns them and
+  // getBoundingClientRect still gives them a box. Without this the harness
+  // reported ~40 phantom collisions between the mobile overlay panel and the
+  // map markers sitting inert behind it, which is the layout working.
+  const inertly = (el) => !!el.closest("[inert]")
+
   const vis = (el) => {
     const s = getComputedStyle(el), r = el.getBoundingClientRect()
     return s.display !== "none" && s.visibility !== "hidden" && parseFloat(s.opacity) > 0.05
-      && r.width > 0 && r.height > 0
+      && r.width > 0 && r.height > 0 && !inertly(el)
   }
   const label = (el) => {
     const t = (el.innerText || el.textContent || "").trim().replace(/\\s+/g," ").slice(0,44)

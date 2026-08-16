@@ -98,6 +98,18 @@ const NAV: NavItem[] = [
 
 export const RAIL_SLIM = 68
 export const RAIL_WIDE = 252
+/**
+ * Phone width. 52px, not 68 — at 390px the slim rail was taking 17.4% of the
+ * viewport for a column of icons with no labels, permanently, on the axis the
+ * console has least of. 52 still clears the 44px primary-target floor with a
+ * 4px gutter either side, and hands 16px back to the map.
+ *
+ * It does NOT collapse to zero. There is no hamburger on this console and
+ * adding one would trade a visible 52px for a hidden menu plus a new control;
+ * on an ops surface the section nav staying permanently on screen is worth
+ * more than the width. Full off-canvas drawer is parked (see NEXT-STEPS.md).
+ */
+export const RAIL_PHONE = 52
 
 /** One top-level nav row. */
 function RailItem({
@@ -116,6 +128,11 @@ function RailItem({
       {active && (
         <span
           aria-hidden
+          // Classed so the phone-width rule that strips labels out of the flow
+          // can exempt it. It is the only span in this row that is NOT a label
+          // — it is the active-route marker, and it is absolutely positioned so
+          // it costs no width in the 52px column.
+          className="ae-rail-bar"
           style={{
             position: "absolute", left: 0, top: 7, bottom: 7, width: 3,
             borderRadius: "0 3px 3px 0", background: "var(--ae-teal)",
@@ -221,12 +238,21 @@ export function SimulatorRail() {
   const [focusWithin, setFocusWithin] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [briefOpen, setBriefOpen] = useState(false)
+  const [phone, setPhone] = useState(false)
 
   useEffect(() => {
     setMounted(true)
     try {
       if (localStorage.getItem("aeolus-rail-pinned") === "1") setPinned(true)
     } catch {}
+  }, [])
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 880px)")
+    const sync = () => setPhone(mq.matches)
+    sync()
+    mq.addEventListener("change", sync)
+    return () => mq.removeEventListener("change", sync)
   }, [])
 
   const togglePin = () => {
@@ -247,8 +273,11 @@ export function SimulatorRail() {
   // Keyboard users get the same expansion mouse users get. Without
   // focus-within the labels stayed at opacity 0 while tabbing through the
   // nav, so every rail stop announced a name the user could not see.
-  const expanded = pinned || hovered || focusWithin
-  const width = expanded ? RAIL_WIDE : RAIL_SLIM
+  // Hover-expand is disabled on a phone. There is no hover there, and letting
+  // focus alone expand it to 252px would cover two-thirds of a 390px viewport
+  // the moment a keyboard or switch user tabbed into the nav.
+  const expanded = phone ? pinned : pinned || hovered || focusWithin
+  const width = expanded ? RAIL_WIDE : phone ? RAIL_PHONE : RAIL_SLIM
 
   return (
     <>
@@ -264,6 +293,13 @@ export function SimulatorRail() {
 
       <nav
         aria-label="Simulator sections"
+        // Drives the phone-width centring rules below. The rail's items carry a
+        // 24px left indent so their glyphs line up with the labels that appear
+        // on expand; at RAIL_PHONE that indent puts an 18px icon at x 24–42 in
+        // a 52px column, i.e. hard against the right edge and visually clipped.
+        // Centring is only correct while COLLAPSED — pinned open on a phone the
+        // labels are back and the indent is doing its job again.
+        data-collapsed={!expanded ? "" : undefined}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         onFocus={() => setFocusWithin(true)}
@@ -448,6 +484,36 @@ export function SimulatorRail() {
           }
           .ae-rail-search:hover { background: var(--ae-surface-3); color: var(--ae-text); }
           .ae-rail-cta:hover { background: var(--ae-primary-active); border-color: var(--ae-primary-active); }
+
+          /* Phone width, collapsed: centre every glyph in the 52px column.
+             The labels have to leave LAYOUT, not just go transparent. At full
+             width they ride the expansion on opacity so the text can fade in
+             place, but a nowrap label at opacity 0 still claims its full
+             measure — so centring the row was centring an
+             icon-plus-invisible-label pair and pushing the icon clean out of
+             the 52px box. Removing them from flow is what actually centres the
+             glyph, and it costs nothing here because at this width they are
+             never revealed without the rail also widening. */
+          @media (max-width: 880px) {
+            nav[data-collapsed] .ae-rail-item,
+            nav[data-collapsed] .ae-rail-search,
+            nav[data-collapsed] .ae-rail-cta {
+              padding-left: 0 !important;
+              padding-right: 0 !important;
+              justify-content: center;
+              gap: 0;
+            }
+            /* Descendant selectors, not child combinators: a bare greater-than
+               inside a styled-jsx template is parsed as JSX and fails the
+               build. Backticks are avoided in this block for the same reason —
+               they close the template literal. */
+            nav[data-collapsed] .ae-rail-item span:not(.ae-rail-bar),
+            nav[data-collapsed] .ae-rail-search span,
+            nav[data-collapsed] .ae-rail-search kbd,
+            nav[data-collapsed] .ae-rail-cta span {
+              display: none;
+            }
+          }
         `}</style>
       </nav>
 

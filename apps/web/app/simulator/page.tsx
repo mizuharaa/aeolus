@@ -194,6 +194,10 @@ export default function SimulatorPage() {
       tab={tab}
       onTab={setTab}
       flightEnabled={flightEnabled}
+      // Only as a sheet. Docked, the column's dismiss is the chevron on its
+      // map-facing edge; a second one in the tab bar would be two controls for
+      // one job at the width where there is room for neither.
+      onClose={narrow ? () => setColOpen(false) : undefined}
       counts={{
         events: activeEvents.length,
         recovery: recoveryPlans.length > 0 && !appliedPlanId ? recoveryPlans.length : undefined,
@@ -336,7 +340,12 @@ export default function SimulatorPage() {
             unreachable controls behind a panel. inert removes them from
             focus, hit-testing and the accessibility tree in one attribute. */}
         <div
-          {...(colOpen && narrow ? { inert: "" as unknown as boolean } : {})}
+          // `inert={true}`, not `inert=""`. The empty-string form is the HTML
+          // spelling of a boolean attribute, but React reads it as the STRING
+          // "" and coerces that to false — so the attribute was emitted and did
+          // nothing, and React said so in a console warning that the audit
+          // caught. React 19 supports `inert` as a real boolean prop.
+          inert={colOpen && narrow}
           aria-hidden={colOpen && narrow ? true : undefined}
           style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}
         >

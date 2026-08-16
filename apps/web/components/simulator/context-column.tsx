@@ -24,7 +24,7 @@
  */
 
 import { useEffect, useRef } from "react"
-import { CloudLightning, Waypoints, Plane } from "lucide-react"
+import { CloudLightning, Waypoints, Plane, Map } from "lucide-react"
 import { c, ff, r } from "@/lib/design-tokens"
 
 export type ContextTab = "events" | "recovery" | "flight"
@@ -36,12 +36,14 @@ const TABS: { id: ContextTab; label: string; Icon: typeof CloudLightning }[] = [
 ]
 
 export function ContextColumn({
-  tab, onTab, counts, flightEnabled, children,
+  tab, onTab, counts, flightEnabled, onClose, children,
 }: {
   tab: ContextTab
   onTab: (t: ContextTab) => void
   counts: Partial<Record<ContextTab, number>>
   flightEnabled: boolean
+  /** Supplied only where the column is a full-screen sheet — see below. */
+  onClose?: () => void
   children: React.ReactNode
 }) {
   const listRef = useRef<HTMLDivElement>(null)
@@ -138,6 +140,36 @@ export function ContextColumn({
             </button>
           )
         })}
+
+        {/* THE WAY BACK.
+            Below 880px this column is a full-screen sheet over an inert map,
+            and it shipped with no dismiss control at all — the collapse chevron
+            lives on the map's edge, which is exactly the surface the sheet is
+            covering. So on a phone, opening the panel was a one-way trip: the
+            only exits were the browser back button or a reload. Measurement
+            could not catch it (nothing overlapped, every target was big enough)
+            because a missing control has no geometry to collide with. */}
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="ae-ctx-tab"
+            aria-label="Back to the map"
+            style={{
+              flexShrink: 0,
+              display: "inline-flex", alignItems: "center", gap: 6,
+              height: 34, padding: "0 11px", borderRadius: r.sm,
+              border: `1px solid ${c.hairline}`,
+              background: "var(--ae-surface)",
+              color: c.ink, cursor: "pointer",
+              fontFamily: ff.body, fontSize: 12.5, fontWeight: 600,
+              whiteSpace: "nowrap",
+            }}
+          >
+            <Map aria-hidden style={{ width: 14, height: 14 }} strokeWidth={2} />
+            Map
+          </button>
+        )}
       </div>
 
       <div
