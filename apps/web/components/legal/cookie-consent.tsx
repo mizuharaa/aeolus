@@ -43,62 +43,64 @@ export function CookieConsent() {
       role="dialog"
       aria-label="Cookie preferences"
       aria-live="polite"
+      /* A CENTRED SLIM BAR, not a bottom-left block.
+       *
+       * As a 420×206 card pinned to the bottom-left corner this covered the
+       * console's Events list — the primary control on the page — on every
+       * first visit, and on the landing it sat on top of the hero copy. Both
+       * corners of an ops console are claimed (panel launcher bottom-left, map
+       * instruments and timeline controls bottom-right), so the honest place
+       * for a site-wide notice is the middle of the bottom edge, laid out
+       * horizontally so it is ~72px tall instead of ~206px.
+       *
+       * It still never blocks the page: no backdrop, no focus trap. */
       style={{
         position: "fixed",
-        left: "clamp(12px, 3vw, 24px)",
-        bottom: "clamp(12px, 3vw, 24px)",
+        left: "50%",
+        transform: "translateX(-50%)",
+        bottom: "clamp(10px, 2vw, 20px)",
         zIndex: 9000,
-        width: "min(420px, calc(100vw - 24px))",
+        width: "min(760px, calc(100vw - 24px))",
+        display: "flex",
+        alignItems: "center",
+        gap: 16,
+        flexWrap: "wrap",
         background: "#14100F",
         color: "#F2ECE1",
         border: "1px solid rgba(242, 236, 225, 0.16)",
-        borderRadius: 16,
+        borderRadius: 14,
         boxShadow: "0 24px 60px -20px rgba(0,0,0,0.6)",
-        padding: "18px 18px 16px",
+        padding: "13px 16px",
         fontFamily: 'Inter, "Inter Display", system-ui, sans-serif',
       }}
     >
-      <div style={{ fontSize: 14.5, fontWeight: 650, letterSpacing: "-0.01em", marginBottom: 8 }}>
-        Cookies & local storage
+      <div style={{ flex: "1 1 320px", minWidth: 0 }}>
+        <div style={{ fontSize: 13.5, fontWeight: 650, letterSpacing: "-0.01em", marginBottom: 3 }}>
+          Cookies &amp; local storage
+        </div>
+        <p style={{ margin: 0, fontSize: 12, lineHeight: 1.5, color: "rgba(242, 236, 225, 0.72)" }}>
+          First-party functional storage only (theme, map focus, layout). No third-party
+          advertising or cross-site tracking. See our{" "}
+          {/* #D9A441, not #B8863C: the old gold measured 3.94:1 on this near-black
+              card, under AA for 12px body text. */}
+          <Link href="/cookies" style={{ color: "#D9A441", textDecoration: "underline" }}>
+            Cookie Policy
+          </Link>{" "}
+          and{" "}
+          <Link href="/privacy" style={{ color: "#D9A441", textDecoration: "underline" }}>
+            Privacy Policy
+          </Link>
+          .
+        </p>
       </div>
-      <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.6, color: "rgba(242, 236, 225, 0.72)" }}>
-        Aeolus uses only first-party functional storage to remember your
-        preferences (theme, map focus, layout). We don&apos;t run third-party
-        advertising or cross-site tracking. See our{" "}
-        <Link href="/cookies" style={{ color: "#B8863C", textDecoration: "underline" }}>
-          Cookie Policy
-        </Link>{" "}
-        and{" "}
-        <Link href="/privacy" style={{ color: "#B8863C", textDecoration: "underline" }}>
-          Privacy Policy
-        </Link>
-        .
-      </p>
 
-      <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
-        <button
-          type="button"
-          onClick={() => choose("all")}
-          style={{
-            flex: "1 1 auto",
-            padding: "10px 16px",
-            borderRadius: 999,
-            border: "none",
-            background: "#B8863C",
-            color: "#14100F",
-            fontSize: 13,
-            fontWeight: 650,
-            cursor: "pointer",
-          }}
-        >
-          Accept all
-        </button>
+      <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
         <button
           type="button"
           onClick={() => choose("essential")}
           style={{
-            flex: "1 1 auto",
-            padding: "10px 16px",
+            minHeight: 38,
+            padding: "0 16px",
             borderRadius: 999,
             border: "1px solid rgba(242, 236, 225, 0.28)",
             background: "transparent",
@@ -106,9 +108,28 @@ export function CookieConsent() {
             fontSize: 13,
             fontWeight: 600,
             cursor: "pointer",
+            whiteSpace: "nowrap",
           }}
         >
           Essential only
+        </button>
+        <button
+          type="button"
+          onClick={() => choose("all")}
+          style={{
+            minHeight: 38,
+            padding: "0 18px",
+            borderRadius: 999,
+            border: "none",
+            background: "#D9A441",
+            color: "#14100F",
+            fontSize: 13,
+            fontWeight: 650,
+            cursor: "pointer",
+            whiteSpace: "nowrap",
+          }}
+        >
+          Accept all
         </button>
       </div>
     </div>

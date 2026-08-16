@@ -49,26 +49,56 @@ import type { ScheduledFlight, FlightState } from "@/stores/simulation"
  * is the paper it is printed on. Land additionally carries the shared paper
  * grain, which is what separates "printed chart" from "vector diagram".
  */
+/**
+ * ── RE-INKED FOR THE CONSOLE REGISTER, 2026-08-16 ─────────────────────────
+ *
+ * Everything above describes the PAPER register, which the console left on
+ * 2026-08-16 (see design.md). This file was missed in that pass, so the globe
+ * kept rendering a cream sphere with near-black coastlines inside a near-black
+ * console — the single most out-of-register surface in the product, and the
+ * reason the globe view read as "no planes on it": the aircraft ARE drawn, in
+ * dark ink, at 5px, on cream, inside a dark frame. Verified 39 of 39 flights
+ * present in the DOM summary while nothing was legible on screen.
+ *
+ * The reasoning that chose these values is preserved, just inverted. A globe
+ * that is pure `#000` on a `#08090C` floor would be the same HOLE the original
+ * comment warns about, so the sphere is built from the console's own surface
+ * tokens and reads as a lit body against the floor:
+ *   sea  ≈ --ae-surface-2  #202530   (the recessed well)
+ *   land ≈ --ae-surface-3  #2D3342   (the raised plate)
+ * Land stays the LIGHTER of the two: on a chart the land is the printed plate
+ * and the sea is the ground it sits on, and that relationship should survive
+ * the register flip rather than invert with it.
+ *
+ * The name `PAPER` is kept because every call site below uses it and renaming
+ * would touch 30 lines for no behavioural gain.
+ */
 const PAPER = {
-  sea: "#FFFEF9",
-  // A warm limb shade rather than a grey one. Grey at the rim is what made the
-  // first pass read as plastic; this is the shadow paper casts, not plastic.
-  seaRim: "#EFE8DA",
-  seaRimDeep: "#E3D9C6",
-  land: "#EFE9DB",
-  landHi: "#F6F1E4",
-  coast: "rgba(28,20,38,0.46)",
-  graticule: "rgba(28,20,38,0.065)",
-  limb: "rgba(28,20,38,0.30)",
-  route: "rgba(28,20,38,0.16)",
-  shadow: "rgba(28,20,38,0.15)",
-  // The sheet the sphere sits on, so it has somewhere to cast.
-  dropShadow: "rgba(90,72,40,0.16)",
+  sea: "#202530",
+  // The limb DARKENS toward the edge here rather than warming: on a dark floor
+  // a lighter rim would read as a halo, which is the plastic look the original
+  // comment was avoiding, arrived at from the other direction.
+  seaRim: "#171B24",
+  seaRimDeep: "#0E1119",
+  land: "#2D3342",
+  landHi: "#3A4152",
+  coast: "rgba(226,232,245,0.52)",
+  graticule: "rgba(226,232,245,0.085)",
+  limb: "rgba(155,127,224,0.42)",
+  route: "rgba(226,232,245,0.20)",
+  shadow: "rgba(0,0,0,0.45)",
+  // The sphere still needs somewhere to cast, but on near-black a cast shadow
+  // is invisible — this is a faint plum bloom instead, which reads as the body
+  // being lit rather than as a shadow being cast.
+  dropShadow: "rgba(124,92,214,0.16)",
 }
 
 const TIER_R: Record<AirportTier, number> = { hub: 5.5, focus_city: 4.2, spoke: 3.2 }
+// Imported from the map's palette in spirit — the same teals, re-inked up for
+// the dark sphere exactly as MAP_COLORS was. These were #0B4F47 / #2F6D63 /
+// #4A5D55, which measure 1.2–1.6:1 on #2D3342.
 const TIER_FILL: Record<AirportTier, string> = {
-  hub: "#0B4F47", focus_city: "#2F6D63", spoke: "#4A5D55",
+  hub: "#5EE0C6", focus_city: "#33B49B", spoke: "#34A08C",
 }
 
 const ZOOM_MIN = 0.9
@@ -119,6 +149,17 @@ export type GlobeFlight = {
   color: string
   cancelled: boolean
   state: FlightState | undefined
+  /**
+   * What an APPLIED recovery plan did to this leg, if anything.
+   *
+   * The globe previously drew a track for a leg only when it was cancelled or
+   * carried a cascade order — so applying a plan changed the aircraft's COLOUR
+   * (swap plum, delayed gold) while the leg it was flying stayed trackless.
+   * The whole point of the globe is showing what shape a disruption and its
+   * recovery have across the network, and a recovery that moves aircraft
+   * without drawing where they now go answers half the question.
+   */
+  action?: "cancelled" | "swapped" | "delayed" | null
 }
 
 export function GlobeView({
@@ -490,20 +531,29 @@ export function GlobeView({
       //
       // A track therefore says "this leg is part of the disruption, or you
       // asked about it". An unaffected flight is just its aircraft.
+      //
+      // A leg is "affected" if the disruption reached it OR a plan moved it.
+      // The `action` arm is the addition: applying a plan re-routes and delays
+      // aircraft, and those are exactly the legs an operator has just decided
+      // about, so they must be the ones carrying a drawn track.
       const isAffected = (g: typeof legs[number]) =>
-        g.cancelled || (g.state?.cascade_order ?? -1) >= 0
+        g.cancelled || (g.state?.cascade_order ?? -1) >= 0 || !!g.action
 
       for (const leg of legs) {
         const sel = leg.id === selectedFlight
         if (!sel && !isAffected(leg)) continue
-        // Cancelled legs keep the dashed "no longer operating" semantic they
-        // have on the flat map — never colour-alone.
+        // A leg touched by an APPLIED PLAN is drawn in that plan's own colour
+        // rather than in the neutral route grey, because it is no longer just
+        // context — it is the outcome of a decision. Cancelled legs keep the
+        // dashed "no longer operating" semantic they have on the flat map, so
+        // the state is never colour-alone.
+        const planned = !!leg.action && leg.action !== "cancelled"
         strokeArc(
           leg.from, leg.to,
-          sel ? leg.color : PAPER.route,
-          sel ? dpr * 2.4 : Math.max(1, dpr * 0.8),
+          sel || planned ? leg.color : PAPER.route,
+          sel ? dpr * 2.4 : planned ? dpr * 1.7 : Math.max(1, dpr * 0.8),
           leg.cancelled ? [dpr * 7, dpr * 5] : null,
-          sel ? 0.95 : 0.55,
+          sel ? 0.95 : planned ? 0.85 : 0.55,
         )
       }
 
@@ -542,12 +592,21 @@ export function GlobeView({
         // `+ PI/2` because the glyph is drawn nose-up (−y) and the heading is
         // measured from +x.
         ctx.rotate(angle + Math.PI / 2)
+        // A LIT aircraft, not a flat fill. On the dark sphere a solid silhouette
+        // reads as a hole punched in the globe; the bloom underneath makes it
+        // read as a mark sitting above the surface and is what actually makes
+        // the fleet findable at 8px. Selected legs get a stronger one.
+        ctx.shadowColor = leg.color
+        ctx.shadowBlur = (sel ? 14 : 7) * dpr
         planePath(ctx, size)
         ctx.fillStyle = leg.color
         ctx.fill()
-        // A paper-coloured edge keeps every aircraft separable where the fleet
-        // bunches over a hub, whatever it is sitting on.
-        ctx.strokeStyle = PAPER.sea
+        ctx.shadowBlur = 0
+        // A DARK edge, not a paper one. The old paper-coloured hairline was
+        // lighter than most marks it bounded, so on the dark sphere it read as
+        // a halo and fattened every aircraft. Dark separates the fleet where it
+        // bunches over a hub without adding apparent mass.
+        ctx.strokeStyle = "rgba(8,9,12,0.72)"
         ctx.lineWidth = Math.max(1, dpr * 0.7)
         ctx.stroke()
 
@@ -557,7 +616,9 @@ export function GlobeView({
           ctx.beginPath()
           ctx.moveTo(-size * 0.85, -size * 0.85)
           ctx.lineTo(size * 0.85, size * 0.85)
-          ctx.strokeStyle = "#333935"
+          // Was #333935 — near-black on a near-black sphere, so the one mark
+          // that says "this leg is not operating" was invisible.
+          ctx.strokeStyle = "#D5DAE6"
           ctx.lineWidth = Math.max(1.2, dpr * 1.1)
           ctx.stroke()
         }
@@ -565,7 +626,8 @@ export function GlobeView({
           ctx.rotate(-(angle + Math.PI / 2))
           ctx.beginPath()
           ctx.arc(0, 0, size * 1.9, 0, Math.PI * 2)
-          ctx.strokeStyle = "#5B3FA8"
+          // The console register's plum. #5B3FA8 measures 1.9:1 on this sphere.
+          ctx.strokeStyle = "#B9A3EE"
           ctx.lineWidth = Math.max(1.5, dpr * 1.4)
           ctx.stroke()
         }
@@ -601,8 +663,15 @@ export function GlobeView({
         // when there is room — 15 labels on a small globe is a wall of text.
         if ((a.tier === "hub" || a.tier === "focus_city") && radius > 150 * dpr) {
           ctx.font = `600 ${Math.round(9.5 * dpr)}px ui-monospace, monospace`
-          ctx.fillStyle = "#1C1426"
           ctx.textAlign = "center"
+          // Airport codes sit over land, sea or the terminator depending on
+          // rotation, so they carry their own dark backing stroke rather than
+          // relying on whichever happens to be behind them. Paint order is
+          // stroke-then-fill so the halo never eats the glyph.
+          ctx.lineWidth = 3 * dpr
+          ctx.strokeStyle = "rgba(8,9,12,0.85)"
+          ctx.strokeText(a.ap.iata, x, y - r - 4 * dpr)
+          ctx.fillStyle = "#F2F3F7"
           ctx.fillText(a.ap.iata, x, y - r - 4 * dpr)
         }
         ctx.globalAlpha = 1

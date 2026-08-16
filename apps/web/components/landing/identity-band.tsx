@@ -26,6 +26,7 @@
 import { useEffect, useRef } from "react"
 import { ArrowDown } from "lucide-react"
 import { MaskedWordmark } from "@/components/landing/masked-wordmark"
+import { AviationSubstrate } from "@/components/landing/aviation-substrate"
 import { landingScroll, registerLandingFrame } from "@/lib/scroll"
 
 /** Reveal window, in flight-scene progress. Opens once the aircraft has pulled
@@ -117,6 +118,15 @@ export function IdentityBand() {
   return (
     <>
       <div ref={backRef} className="ae-wm-layer ae-wm-layer--back">
+        {/* FIRST child of the back layer, deliberately. It inherits the band's
+            reveal opacity and its drag transform for free, so the chart plate
+            arrives with the wordmark and is pulled out of frame with it — one
+            object, not a background the type happens to be sitting on. Painting
+            order puts it under everything else here: it carries z-index 0 while
+            the band, eyebrow and baseline are positioned with z-index auto and
+            come later in the DOM. */}
+        <AviationSubstrate />
+
         <div className="ae-wm-eyebrow">
           <span className="lp-eyebrow" style={{ color: "var(--ink)" }}>
             Aeolus

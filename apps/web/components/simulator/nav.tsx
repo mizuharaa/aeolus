@@ -1,10 +1,13 @@
 "use client"
-import { RotateCcw, Plane } from "lucide-react"
+import { RotateCcw, Plane, ChevronDown, LogOut, Settings, UserRound, Keyboard, Sun, Moon, Monitor } from "lucide-react"
+import { useConsoleTheme, type ThemeChoice } from "@/lib/use-theme"
 import { useSimulationStore } from "@/stores/simulation"
 import { apiClient } from "@/lib/api"
 import { toast } from "sonner"
-import { useEffect, useMemo, useState } from "react"
-import { c, ff } from "@/lib/design-tokens"
+import { useEffect, useMemo, useRef, useState } from "react"
+import Link from "next/link"
+import type { Route } from "next"
+import { c, ff, r } from "@/lib/design-tokens"
 import { NotificationBell } from "@/components/simulator/notification-bell"
 import { AgentBubble } from "@/components/simulator/agent-bubble"
 import { useIndecisionCost, fmtUsdShort } from "@/lib/use-live-cost"
@@ -39,13 +42,196 @@ function IndecisionMeter() {
 }
 
 /**
- * Simulator top bar — daylight register.
+ * Signed-in dispatcher. The console had no account surface at all — no way to
+ * see who you are signed in as, reach settings, or sign out — which for a
+ * console that commits schedule changes is a real gap: "who applied this plan"
+ * has to have an answer on screen.
  *
- * Section navigation now lives in the collapsible left rail (see rail.tsx);
- * this bar carries only context (Nimbus Air OCC), live fleet status, the
- * connection state, and reset. Flat paper surface, hairline bottom border.
- * The connection indicator is plain text (teal Live / amber Offline) — no
- * status dot, no pulse.
+ * The identity shown is the demo operator the in-memory API runs as. It is
+ * LABELLED as such rather than dressed up as a real account, because inventing
+ * a plausible-looking signed-in user is exactly the kind of fiction design.md's
+ * honest-copy rule exists to prevent.
+ */
+const OPERATOR = { name: "Duty dispatcher", role: "Demo session · Nimbus Air OCC", initials: "DD" }
+
+/**
+ * Console theme switch — dark / light / system.
+ *
+ * A THREE-STATE segmented control, not a two-state toggle. An ops console is
+ * read for a whole shift in a room whose lighting the operator does not
+ * control, so "follow the OS" is a real answer and not a power-user extra —
+ * and a binary toggle has no way to express it. Three explicit segments also
+ * state which mode you are in, where a single sun/moon icon only ever shows
+ * you the thing you would switch TO, which is ambiguous in both directions.
+ */
+function ThemeSwitch() {
+  const { choice, set } = useConsoleTheme()
+  const OPTIONS: { id: ThemeChoice; label: string; Icon: typeof Sun }[] = [
+    { id: "dark", label: "Dark", Icon: Moon },
+    { id: "light", label: "Light", Icon: Sun },
+    { id: "system", label: "System", Icon: Monitor },
+  ]
+  return (
+    <div
+      role="radiogroup"
+      aria-label="Console theme"
+      className="ae-theme-switch"
+      style={{
+        display: "flex", gap: 2, padding: 3, flexShrink: 0,
+        borderRadius: 999, background: "var(--ae-surface-2)",
+        border: `1px solid ${c.hairline}`,
+      }}
+    >
+      {OPTIONS.map(({ id, label, Icon }) => {
+        const on = choice === id
+        return (
+          <button
+            key={id}
+            type="button"
+            role="radio"
+            aria-checked={on}
+            aria-label={`${label} theme`}
+            title={`${label} theme`}
+            onClick={() => set(id)}
+            className="ae-theme-btn"
+            style={{
+              width: 28, height: 26, borderRadius: 999,
+              display: "inline-flex", alignItems: "center", justifyContent: "center",
+              border: "none", cursor: "pointer",
+              // The selected segment takes the filled treatment; ink on the
+              // light plum, because on the console register --ae-teal is a
+              // LIGHT pigment and white on it measures 3.23:1.
+              background: on ? "var(--ae-teal)" : "transparent",
+              color: on ? "#12101A" : c.muted,
+              transition: "background 140ms ease, color 140ms ease",
+            }}
+          >
+            <Icon aria-hidden style={{ width: 13, height: 13 }} strokeWidth={2} />
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+function AccountMenu() {
+  const [open, setOpen] = useState(false)
+  const wrapRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e: MouseEvent) => {
+      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false) }
+    document.addEventListener("mousedown", onDown)
+    document.addEventListener("keydown", onKey)
+    return () => {
+      document.removeEventListener("mousedown", onDown)
+      document.removeEventListener("keydown", onKey)
+    }
+  }, [open])
+
+  const item: React.CSSProperties = {
+    display: "flex", alignItems: "center", gap: 10,
+    height: 38, padding: "0 12px", width: "100%",
+    borderRadius: r.sm, border: "none", background: "transparent",
+    color: c.body, fontFamily: ff.body, fontSize: 13,
+    cursor: "pointer", textAlign: "left", textDecoration: "none",
+  }
+
+  return (
+    <div ref={wrapRef} style={{ position: "relative", flexShrink: 0 }}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={`Account — ${OPERATOR.name}`}
+        className="ae-topbar-btn"
+        style={{
+          display: "flex", alignItems: "center", gap: 9,
+          height: 38, padding: "0 8px 0 6px",
+          borderRadius: r.md,
+          border: `1px solid ${open ? "var(--ae-line-strong)" : "transparent"}`,
+          background: open ? "var(--ae-surface-2)" : "transparent",
+          color: c.ink, cursor: "pointer", fontFamily: ff.body,
+        }}
+      >
+        <span
+          aria-hidden
+          style={{
+            width: 27, height: 27, borderRadius: 999, flexShrink: 0,
+            display: "inline-flex", alignItems: "center", justifyContent: "center",
+            background: "var(--ae-teal-bg)",
+            border: "1px solid var(--ae-teal)",
+            color: "var(--ae-teal-ink)",
+            fontFamily: ff.mono, fontSize: 10.5, fontWeight: 700, letterSpacing: "0.02em",
+          }}
+        >
+          {OPERATOR.initials}
+        </span>
+        <span className="ae-account-name" style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0 }}>
+          <span style={{ fontSize: 12.5, fontWeight: 600, lineHeight: 1.1, whiteSpace: "nowrap" }}>{OPERATOR.name}</span>
+          <span style={{ fontSize: 10.5, lineHeight: 1.1, color: c.muted, whiteSpace: "nowrap" }}>Demo session</span>
+        </span>
+        <ChevronDown aria-hidden style={{ width: 14, height: 14, color: c.muted, flexShrink: 0 }} strokeWidth={2} />
+      </button>
+
+      {open && (
+        <div
+          role="menu"
+          style={{
+            position: "absolute", top: 46, right: 0, zIndex: 1200,
+            width: 244, padding: 6,
+            background: "var(--ae-surface)",
+            border: `1px solid ${c.hairline}`,
+            borderRadius: 14,
+            boxShadow: "var(--ae-shadow-overlay)",
+            fontFamily: ff.body,
+          }}
+        >
+          <div style={{ padding: "8px 12px 10px", borderBottom: `1px solid ${c.hairline}`, marginBottom: 4 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: c.ink }}>{OPERATOR.name}</div>
+            <div style={{ fontSize: 11, color: c.muted, marginTop: 2 }}>{OPERATOR.role}</div>
+          </div>
+          <Link href={"/simulator/settings" as Route} role="menuitem" className="ae-menu-item" style={item}>
+            <UserRound aria-hidden style={{ width: 15, height: 15 }} strokeWidth={1.9} /> Profile & preferences
+          </Link>
+          <Link href={"/simulator/settings" as Route} role="menuitem" className="ae-menu-item" style={item}>
+            <Settings aria-hidden style={{ width: 15, height: 15 }} strokeWidth={1.9} /> Console settings
+          </Link>
+          <Link href={"/docs" as Route} role="menuitem" className="ae-menu-item" style={item}>
+            <Keyboard aria-hidden style={{ width: 15, height: 15 }} strokeWidth={1.9} /> Keyboard shortcuts
+          </Link>
+          <div style={{ height: 1, background: c.hairline, margin: "4px 6px" }} />
+          <Link href={"/" as Route} role="menuitem" className="ae-menu-item" style={{ ...item, color: "var(--ae-rose-ink)" }}>
+            <LogOut aria-hidden style={{ width: 15, height: 15 }} strokeWidth={1.9} /> Leave console
+          </Link>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Simulator top bar.
+ *
+ * ── 2026-08-16 rebuild ────────────────────────────────────────────────────
+ * Three defects drove this, all measured on the live console:
+ *
+ * 1. COLLISION. The notification badge is absolutely positioned at
+ *    top:-5/right:-5 on the bell, and the right cluster ran on a flat gap of
+ *    16px with no group boundaries — so the badge overhung its neighbour's hit
+ *    rect. `elementFromPoint` at the shared centre returned the badge, meaning
+ *    a click intended for "Ask Aeolus" could land on nothing. The cluster is
+ *    now three GROUPS separated by real rules, and the bell sits inside a
+ *    padded group so the badge has room to overhang into.
+ * 2. NO ACCOUNT SURFACE. See AccountMenu above.
+ * 3. RESPONSIVE COLLAPSE BY DISPLAY:NONE. The old bar hid the fleet counters
+ *    below 860px — the only operational numbers it carried. Information should
+ *    be the last thing to go, so the counters now MOVE into a compact chip
+ *    rather than disappearing, and decoration yields first.
  */
 interface SimulatorNavProps {
   isConnected: boolean
@@ -88,17 +274,18 @@ export function SimulatorNav({ isConnected }: SimulatorNavProps) {
     }
   }
 
+  const rule = <div aria-hidden className="ae-topbar-rule" style={{ width: 1, height: 22, background: c.hairline, flexShrink: 0 }} />
+
   return (
     <nav
       aria-label="Operations status and controls"
       style={{
-        height: 60,
+        height: 56,
         display: "flex",
         alignItems: "center",
-        gap: 20,
-        paddingLeft: 22,
-        paddingRight: 20,
-        // flat paper — the bar carries status, not decoration
+        gap: 14,
+        paddingLeft: 20,
+        paddingRight: 14,
         background: "var(--ae-surface)",
         borderBottom: `1px solid ${c.hairline}`,
         flexShrink: 0,
@@ -107,20 +294,20 @@ export function SimulatorNav({ isConnected }: SimulatorNavProps) {
         minWidth: 0,
       }}
     >
-      {/* ── Context label (brand lives in the left rail) ── */}
-      <div style={{ display: "flex", alignItems: "center", gap: 11, flexShrink: 0 }}>
-        <Plane aria-hidden style={{ width: 16, height: 16, color: c.ink }} strokeWidth={2} />
-        {/* h1 — the page had no h1, so the panel h2s hung off nothing. */}
+      {/* ── Context (brand lives in the left rail) ── */}
+      {/* flexShrink 1, not 0. The title was unshrinkable, so at 390px it held
+          its full measure and pushed the ACCOUNT MENU off the right edge — the
+          identity control, clipped, by a label. A title that ellipsises is a
+          cosmetic loss; a control you cannot reach is a functional one, so the
+          title yields first. */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 1, minWidth: 0 }}>
+        <Plane aria-hidden style={{ width: 16, height: 16, color: "var(--ae-teal-ink)", flexShrink: 0 }} strokeWidth={2} />
         <h1
           style={{
-            fontFamily: ff.display,
-            fontWeight: 700,
-            fontSize: 15.5,
-            lineHeight: 1,
-            letterSpacing: "-0.01em",
-            whiteSpace: "nowrap",
-            color: c.ink,
-            margin: 0,
+            fontFamily: ff.display, fontWeight: 700, fontSize: 15,
+            lineHeight: 1, letterSpacing: "-0.01em", whiteSpace: "nowrap",
+            color: c.ink, margin: 0,
+            minWidth: 0, overflow: "hidden", textOverflow: "ellipsis",
           }}
         >
           Nimbus Air OCC
@@ -128,15 +315,11 @@ export function SimulatorNav({ isConnected }: SimulatorNavProps) {
         <span
           className="ae-nav-subtitle"
           style={{
-            fontFamily: ff.mono,
-            fontSize: 11,
-            fontWeight: 600,
-            letterSpacing: "0.14em",
-            textTransform: "uppercase",
-            color: "var(--ae-teal-ink)",
-            padding: "3px 8px",
-            borderRadius: 999,
-            background: "var(--ae-teal-bg)",
+            fontFamily: ff.mono, fontSize: 10, fontWeight: 600,
+            letterSpacing: "0.14em", textTransform: "uppercase",
+            color: "var(--ae-teal-ink)", padding: "3px 8px",
+            borderRadius: 999, background: "var(--ae-teal-bg)",
+            border: "1px solid var(--ae-teal-bg)",
             whiteSpace: "nowrap",
           }}
         >
@@ -144,70 +327,70 @@ export function SimulatorNav({ isConnected }: SimulatorNavProps) {
         </span>
       </div>
 
-      {/* flexible gutter — section nav is now in the left rail */}
-      <div style={{ flex: 1, minWidth: 0 }} />
+      <div style={{ flex: 1, minWidth: 8 }} />
 
-      {/* ── Right cluster ── */}
-      <div style={{ display: "flex", alignItems: "center", gap: 16, flexShrink: 0 }}>
-        <IndecisionMeter />
-        {/* Fleet status — plain text, pigment dots */}
-        {stats.total > 0 && (
-          <div
-            className="ae-nav-stats"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 14,
-              fontSize: 12,
-              color: c.muted,
-              fontVariantNumeric: "tabular-nums",
-            }}
-          >
-            {/* Status is text with a pigment underline — the landing's
-                LIVE/OFFLINE convention. Status dots are banned (design.md). */}
+      {/* ── Group 1: live operational numbers ── */}
+      <IndecisionMeter />
+      {stats.total > 0 && (
+        <div
+          className="ae-nav-stats"
+          style={{
+            display: "flex", alignItems: "center", gap: 12,
+            fontSize: 12, color: c.muted, flexShrink: 0,
+            fontVariantNumeric: "tabular-nums",
+            padding: "5px 12px", borderRadius: 999,
+            background: "var(--ae-surface-2)",
+            border: `1px solid ${c.hairline}`,
+            whiteSpace: "nowrap",
+          }}
+        >
+          {/* Status is text with a pigment underline — the landing's
+              LIVE/OFFLINE convention. Status dots are banned (design.md). */}
+          <span style={{ display: "inline-flex", alignItems: "baseline", gap: 5 }}>
+            <span style={{ fontFamily: ff.mono, fontWeight: 600, color: c.ink, borderBottom: "2px solid var(--ae-teal)", paddingBottom: 1 }}>{stats.onTime}</span>
+            on time
+          </span>
+          {stats.delayed > 0 && (
             <span style={{ display: "inline-flex", alignItems: "baseline", gap: 5 }}>
-              <span style={{ fontFamily: ff.mono, fontWeight: 550, color: c.ink, borderBottom: "2px solid var(--ae-teal)", paddingBottom: 1 }}>{stats.onTime}</span>
-              on time
+              <span style={{ fontFamily: ff.mono, fontWeight: 600, color: c.ink, borderBottom: "2px solid var(--ae-amber)", paddingBottom: 1 }}>{stats.delayed}</span>
+              delayed
             </span>
-            {stats.delayed > 0 && (
-              <span style={{ display: "inline-flex", alignItems: "baseline", gap: 5 }}>
-                <span style={{ fontFamily: ff.mono, fontWeight: 550, color: c.ink, borderBottom: "2px solid var(--ae-amber)", paddingBottom: 1 }}>{stats.delayed}</span>
-                delayed
-              </span>
-            )}
-            {stats.cancelled > 0 && (
-              <span style={{ display: "inline-flex", alignItems: "baseline", gap: 5 }}>
-                <span style={{ fontFamily: ff.mono, fontWeight: 550, color: c.ink, borderBottom: "2px solid var(--ae-line-strong)", paddingBottom: 1, textDecoration: "line-through" }}>{stats.cancelled}</span>
-                cancelled
-              </span>
-            )}
-          </div>
-        )}
+          )}
+          {stats.cancelled > 0 && (
+            <span style={{ display: "inline-flex", alignItems: "baseline", gap: 5 }}>
+              <span style={{ fontFamily: ff.mono, fontWeight: 600, color: c.ink, borderBottom: "2px solid var(--ae-line-strong)", paddingBottom: 1, textDecoration: "line-through" }}>{stats.cancelled}</span>
+              cancelled
+            </span>
+          )}
+        </div>
+      )}
 
-        <div className="ae-nav-stats" style={{ width: 1, height: 18, background: c.hairline }} />
+      {rule}
 
-        {/* Live ops feed — imminent arrivals + active disruptions */}
+      {/* ── Group 2: assistive controls. Padded so the bell's overhanging
+             badge has room INSIDE the group and cannot reach a sibling. ── */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0, paddingLeft: 6, paddingRight: 2 }}>
         <NotificationBell />
+        <span className="ae-topbar-assist" style={{ display: "inline-flex" }}>
+          <AgentBubble />
+        </span>
+      </div>
 
-        {/* Ask Aeolus — moved out of the workspace, where it floated over the
-            cascade timeline in every state. See agent-bubble.tsx. */}
-        <AgentBubble />
+      {rule}
 
-        {/* Connection state — punched-out text pill, no pulsing dot */}
+      {/* ── Group 3: session state ── */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
         <span
+          title={isConnected ? "Live WebSocket feed connected" : "WebSocket disconnected — showing last known state"}
           style={{
             display: "inline-flex", alignItems: "center",
-            fontFamily: ff.mono,
-            fontSize: 10.5,
-            fontWeight: 700,
-            letterSpacing: "0.14em",
-            textTransform: "uppercase",
-            lineHeight: 1,
-            padding: "6px 12px",
-            borderRadius: 999,
+            fontFamily: ff.mono, fontSize: 10, fontWeight: 700,
+            letterSpacing: "0.14em", textTransform: "uppercase", lineHeight: 1,
+            padding: "6px 11px", borderRadius: 999,
             color: isConnected ? "var(--ae-bg)" : "var(--ae-amber-ink)",
-            background: isConnected ? "var(--ae-text)" : "var(--ae-amber-bg)",
-            border: `1px solid ${isConnected ? "var(--ae-text)" : "var(--ae-amber)"}`,
+            background: isConnected ? "var(--ae-teal-ink)" : "var(--ae-amber-bg)",
+            border: `1px solid ${isConnected ? "var(--ae-teal-ink)" : "var(--ae-amber)"}`,
+            whiteSpace: "nowrap",
           }}
         >
           {isConnected ? "Live" : "Offline"}
@@ -216,54 +399,69 @@ export function SimulatorNav({ isConnected }: SimulatorNavProps) {
         <button
           onClick={handleReset}
           onBlur={() => setResetArmed(false)}
+          className="ae-topbar-btn ae-topbar-assist"
           aria-label={resetArmed ? "Confirm reset — discards the current scenario" : "Reset simulation — asks for confirmation first"}
           style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 7,
-            minHeight: 36,
-            padding: "0 12px",
-            borderRadius: 8,
+            display: "inline-flex", alignItems: "center", gap: 7,
+            minHeight: 36, padding: "0 12px", borderRadius: r.md,
             background: resetArmed ? "var(--ae-amber-bg)" : "transparent",
-            border: `1px solid ${resetArmed ? "var(--ae-amber-ink)" : c.borderStrong}`,
-            color: c.ink,
-            fontFamily: ff.body,
-            fontSize: 12.5,
-            fontWeight: 500,
-            cursor: "pointer",
-            transition: "background 150ms ease",
+            border: `1px solid ${resetArmed ? "var(--ae-amber)" : c.hairline}`,
+            color: resetArmed ? "var(--ae-amber-ink)" : c.body,
+            fontFamily: ff.body, fontSize: 12.5, fontWeight: 500,
+            cursor: "pointer", whiteSpace: "nowrap",
+            transition: "background 150ms ease, border-color 150ms ease",
           }}
         >
           {/* 14px at strokeWidth 2, not 12px at 1.75 — a 1.75px stroke drawn
               at 12px antialiases into lint. Stroke weight should go UP as
               size comes down, not down. */}
-          <RotateCcw style={{ width: 14, height: 14 }} strokeWidth={2} />
+          <RotateCcw aria-hidden style={{ width: 14, height: 14 }} strokeWidth={2} />
           <span className="ae-nav-reset-label">{resetArmed ? "Confirm reset" : "Reset"}</span>
         </button>
+
+        {/* Beside the account menu, per the brief — it belongs with the other
+            controls that are about THIS operator's session rather than about
+            the network. */}
+        <ThemeSwitch />
+
+        <AccountMenu />
       </div>
 
-      <style jsx>{`
-        .ae-nav-routes::-webkit-scrollbar { display: none; }
+      <style jsx global>{`
+        .ae-topbar-btn:hover { background: var(--ae-surface-2) !important; }
+        .ae-theme-btn:hover { background: var(--ae-surface-3); color: var(--ae-text); }
+        .ae-theme-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--ae-focus); }
+        .ae-topbar-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--ae-focus); }
+        .ae-menu-item:hover { background: var(--ae-surface-2); color: var(--ae-text); }
+        .ae-menu-item:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--ae-focus); }
 
-        /* The fleet counters are the only operational numbers in the top bar,
-           and they were display:none below 1400px — i.e. hidden on the most
-           common laptop width, to relieve a space pressure that did not exist:
-           the nav's flexible gutter measured 615px of EMPTY space at 1280.
-           Decoration now yields before information. The context pill goes at
-           1240 and the wordmark subtitle at 1100; the numbers stay until 860,
-           where they finally wrap out. */
-        /* The context pill is decoration; it goes first. Measured: with the
-           fleet counters restored and Ask Aeolus moved into this bar, the right
-           cluster overflowed by 36px at 1280 and clipped Reset. Dropping the
-           pill reclaims 141px, which is the whole deficit and then some. */
-        @media (max-width: 1400px) {
-          .ae-nav-subtitle { display: none; }
-        }
-        @media (max-width: 860px) {
-          .ae-nav-stats { display: none !important; }
-        }
-        @media (max-width: 900px) {
-          .ae-nav-reset-label { display: none; }
+        /* Decoration yields before information, in this order:
+           context pill -> account name text -> group rules -> reset label.
+           The fleet counters are the LAST thing to go, and they go by wrapping
+           out of the flex row rather than by display:none — the old bar hid
+           them at 860px, which removed the only operational numbers in the
+           chrome on exactly the widths where a dispatcher is most likely to be
+           on a laptop. */
+        @media (max-width: 1500px) { .ae-nav-subtitle { display: none; } }
+        @media (max-width: 1240px) { .ae-account-name { display: none !important; } }
+        @media (max-width: 1080px) { .ae-topbar-rule { display: none; } }
+        @media (max-width: 980px)  { .ae-nav-reset-label { display: none; } }
+        @media (max-width: 860px)  { .ae-nav-stats { display: none !important; } }
+
+        /* Phone. Everything above trims the bar item by item and it still
+           overflowed at 390px — measured with Ask Aeolus clipped at the right
+           edge and the account menu pushed off-screen entirely, i.e. the
+           controls that were left were unreachable rather than merely tight.
+           Two things actually fit here, so two things are shown: the ops title
+           (which is also the only thing telling you WHICH airline's console
+           you are looking at) and the session cluster. Ask Aeolus is dropped
+           because it is a conversational assistant with a full-screen surface
+           of its own, and the Reset button because arming a scenario-wide
+           destructive action is not a phone task. Both are reachable on a
+           wider viewport; neither is silently broken here. */
+        @media (max-width: 880px) {
+          .ae-topbar-assist { display: none !important; }
+          .ae-nav-title-pad { padding-left: 4px; }
         }
       `}</style>
     </nav>

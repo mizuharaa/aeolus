@@ -5,6 +5,7 @@ import { Toaster } from "sonner"
 import { CookieConsent } from "@/components/legal/cookie-consent"
 import { Inter } from "next/font/google";
 import { cn } from "@/lib/utils";
+import { themeInitScript } from "@/lib/use-theme";
 
 const inter = Inter({subsets:['latin'],variable:'--font-sans'});
 
@@ -63,6 +64,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             })();`,
           }}
         />
+        {/*
+          Console register, stamped BEFORE first paint.
+
+          The choice lives in localStorage, which a React effect can only read
+          after hydration — so without this the console would paint its default
+          register and then correct, i.e. a full-viewport flash of near-black or
+          near-white on every load. On a surface someone watches for a whole
+          shift, at night, that is not a cosmetic detail.
+
+          Inline and synchronous on purpose: a deferred or external script would
+          run after the first paint and reintroduce exactly the flash it exists
+          to prevent. Source of truth is lib/use-theme.ts, which adopts whatever
+          this stamped rather than re-deciding.
+        */}
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://rsms.me" crossOrigin="anonymous" />

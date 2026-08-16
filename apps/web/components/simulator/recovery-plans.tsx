@@ -10,7 +10,7 @@ import {
 } from "lucide-react"
 import { useSimulationStore, useHasActiveDisruption } from "@/stores/simulation"
 import { airportLabel, aircraftLabel } from "@/lib/labels"
-import { c, ff, r, sp, type } from "@/lib/design-tokens"
+import { c, ff, r, sp, sh, type } from "@/lib/design-tokens"
 import { CreamCallout, Eyebrow, Type } from "@/components/ds/primitives"
 import { LiveCostDisplay } from "@/components/ds/live-cost"
 
@@ -129,8 +129,28 @@ function DecisionMatrix({
   // closure runs long. Rows only appear when the backend priced a distribution.
   const uncertain = plans.some((p) => p.uncertainty)
 
-  // metric rows: label + accessor + formatter (lower is better for all)
-  const rows: { label: string; get: (p: any) => number; fmt: (v: number) => string }[] = [
+  /**
+   * Metric rows: label + accessor + formatter (lower is better for all).
+   *
+   * `rankable: false` means the row is REPORTED but never crowned.
+   *
+   * Pax·min and tCO₂e are both metrics that CANCELLING A FLIGHT ZEROES OUT: a
+   * cancelled passenger accrues no delay minutes and a cancelled flight burns
+   * no fuel. Ranking them naively meant the matrix awarded "best" to whichever
+   * plan destroyed the most — measured live, Plan D cancelled 39 of 39 flights
+   * and was crowned best on Pax·min with `0.0K` while also taking tCO₂e. A
+   * comparison table that recommends the most destructive option because
+   * destruction minimises the metric is not a rounding error, it is the table
+   * giving the wrong answer to the only question it exists to answer.
+   *
+   * The honest fix is not a smarter formula — pricing a cancelled passenger's
+   * full disruption belongs in the optimizer, not in a table cell. It is to
+   * stop asserting a winner on a metric whose scale the plan itself moves, and
+   * say so in the footnote. Cost, E[cost], Regret and FAR 117 are unaffected
+   * by this and stay rankable; Cancels is the count doing the distorting, so it
+   * is reported plainly rather than ranked as a virtue.
+   */
+  const rows: { label: string; get: (p: any) => number; fmt: (v: number) => string; rankable?: boolean }[] = [
     { label: "Cost",    get: planCost,                                        fmt: fmtUsd },
     ...(uncertain
       ? [
@@ -138,10 +158,10 @@ function DecisionMatrix({
           { label: "Regret",  get: (p: any) => p.uncertainty?.max_regret_usd ?? 0,              fmt: fmtUsd },
         ]
       : []),
-    { label: "Pax·min", get: (p) => p.total_passenger_delay_minutes || 0,     fmt: (v) => `${(v / 1000).toFixed(1)}K` },
-    { label: "tCO₂e",   get: (p) => p.total_co2_kg ?? 0,                      fmt: (v) => `${v >= 0 ? "+" : ""}${(v / 1000).toFixed(1)}` },
+    { label: "Pax·min", get: (p) => p.total_passenger_delay_minutes || 0,     fmt: (v) => `${(v / 1000).toFixed(1)}K`, rankable: false },
+    { label: "tCO₂e",   get: (p) => p.total_co2_kg ?? 0,                      fmt: (v) => `${v >= 0 ? "+" : ""}${(v / 1000).toFixed(1)}`, rankable: false },
     { label: "FAR 117", get: (p) => p.crew_violations || 0,                   fmt: (v) => (v === 0 ? "OK" : String(v)) },
-    { label: "Cancels", get: (p) => p.cancelled_flights?.length || 0,         fmt: (v) => String(v) },
+    { label: "Cancels", get: (p) => p.cancelled_flights?.length || 0,         fmt: (v) => String(v), rankable: false },
   ]
 
   const cellW = `${Math.floor(100 / (plans.length + 1))}%`
@@ -220,7 +240,8 @@ function DecisionMatrix({
         <tbody>
           {rows.map((row) => {
             const values = plans.map(row.get)
-            const best = Math.min(...values)
+            // NaN is never === a value, so an unrankable row crowns nothing.
+            const best = row.rankable === false ? NaN : Math.min(...values)
             return (
               <tr key={row.label}>
                 <td style={{ padding: "6px 4px", fontFamily: ff.body, fontSize: 10.5, color: c.muted, borderBottom: `1px solid ${c.hairline}` }}>
@@ -237,14 +258,26 @@ function DecisionMatrix({
                         padding: "6px 2px",
                         textAlign: "center",
                         fontVariantNumeric: "tabular-nums",
-                        fontWeight: isBest ? 700 : 500,
-                        color: isBest ? "var(--ae-teal-ink)" : c.body,
-                        background: sel ? "var(--ae-surface-2)" : "transparent",
+                        // EMPHASIS FOLLOWS THE ANSWER, and it was inverted.
+                        //
+                        // The best value rendered `--ae-teal-ink` #B9A3EE
+                        // (luminance 0.427) while ordinary values rendered
+                        // `--ae-text-2` #C3C8D6 (luminance 0.578) — so the
+                        // winner in every row was DARKER than the losers, at
+                        // 1.24:1 between them. In a table whose entire purpose
+                        // is answering "which plan", the answer was the least
+                        // visible ink on screen and only a 2px underline
+                        // carried it. Best is now the brightest thing in the
+                        // row and the rest step back; the underline stays as
+                        // the redundant, colour-independent channel.
+                        fontWeight: isBest ? 700 : 450,
+                        color: isBest ? c.ink : c.muted,
+                        background: sel ? "var(--ae-surface-3)" : "transparent",
                         borderBottom: `1px solid ${c.hairline}`,
                         cursor: "pointer",
                       }}
                     >
-                      <span style={isBest ? { borderBottom: "2px solid var(--ae-teal)", paddingBottom: 1 } : undefined}>
+                      <span style={isBest ? { borderBottom: "2px solid var(--ae-teal)", paddingBottom: 2 } : undefined}>
                         {row.fmt(values[i])}
                       </span>
                     </td>
@@ -256,7 +289,16 @@ function DecisionMatrix({
         </tbody>
       </table>
       <p style={{ margin: "6px 2px 0", fontFamily: ff.mono, fontSize: 11, letterSpacing: "0.04em", color: c.muted }}>
-        Teal = best of the four · click a column to inspect
+        {/* Was "Teal = best of the four". There is no teal on screen — the
+            mark renders plum, because `--ae-teal` is a token name kept for
+            call-site stability whose VALUE was re-inked long ago. An internal
+            token name had leaked into operator-facing copy and was naming a
+            colour that does not exist. Describing the SHAPE instead of the
+            hue also survives the light register and colour blindness. */}
+        Underlined = best in row · click a column to inspect
+        <br />
+        Pax·min, tCO₂e and Cancels are reported, not ranked — cancelling a
+        flight drives all three down.
       </p>
     </div>
   )
@@ -443,14 +485,23 @@ function PlanLedger({
         )}
       </AnimatePresence>
 
-      {/* ── the financial ledger ── */}
+      {/* ── the financial ledger ──
+          A RAISED surface, not an outlined void. This card was `c.canvas` on a
+          `c.canvas` panel — 1.00:1 — so a 1px hairline was the only thing
+          describing it, which is what reads as a die-cut outline rather than an
+          object. `c.raised` steps it up the elevation ladder and `sh.edge` puts
+          a lit top edge on it, which is what actually sells "raised" on a
+          near-black surface where a cast shadow does nothing. The 3px side rule
+          is gone: with a real surface it was a second, redundant edge — and the
+          detector flags exactly this construction (`side-tab`) six times across
+          the app. The applied state now colours the whole border instead. */}
       <div
         style={{
           borderRadius: r.sm,
           padding: "12px 12px 10px",
-          background: c.canvas,
-          border: `1px solid ${c.hairline}`,
-          borderLeft: `3px solid ${isApplied ? APPLIED_ACCENT : c.borderStrong}`,
+          background: c.raised,
+          border: `1px solid ${isApplied ? APPLIED_ACCENT : c.hairline}`,
+          boxShadow: sh.edge,
         }}
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
@@ -654,7 +705,8 @@ function PlanLedger({
                   title={route.cities || route.codes || s.flight_id}
                   style={{
                     display: "flex", flexDirection: "column", gap: 2, fontSize: 11,
-                    background: c.canvas, border: `1px solid ${c.hairline}`, borderRadius: r.sm, padding: "6px 8px",
+                    background: c.raised, border: `1px solid ${c.hairline}`, borderRadius: r.sm,
+                    padding: "6px 8px", boxShadow: sh.edge,
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -706,9 +758,9 @@ function UncertainHorizon({ plan }: { plan: any }) {
       style={{
         borderRadius: r.sm,
         padding: "12px 12px 10px",
-        background: c.canvas,
+        background: c.raised,
         border: `1px solid ${c.hairline}`,
-        borderLeft: "3px solid var(--ae-teal)",
+        boxShadow: sh.edge,
       }}
     >
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
@@ -788,7 +840,7 @@ function ImpactCell({
   mono?: boolean
 }) {
   return (
-    <div style={{ borderRadius: r.sm, padding: "8px 10px", border: `1px solid ${c.hairline}`, background: c.canvas }}>
+    <div style={{ borderRadius: r.sm, padding: "8px 10px", border: `1px solid ${c.hairline}`, background: c.raised, boxShadow: sh.edge }}>
       <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: c.muted, marginBottom: 2 }}>
         <Icon style={{ width: 12, height: 12 }} /> {label}
       </div>

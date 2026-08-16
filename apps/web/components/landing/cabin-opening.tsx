@@ -71,7 +71,13 @@ const SLOT = "#333840"       // shade slot
 const PILL = "#666D78"
 const FABRIC = "#6E6A66"     // warm grey-taupe seat leather
 const FABRIC_LIT = "#8C867F"
-const SHELL = "#D8D5CF"      // light composite suite shell
+/* #C0BAB0, not #D8D5CF. The suite shell is the largest single surface in
+ * frame, and at the old value it sat within a few percent of paper white — so
+ * it had nowhere left to go under a highlight and clipped, taking the shell's
+ * curvature with it. Dropping it into the upper-mid range gives the specular
+ * somewhere to travel and lets the shell read as a warm composite panel rather
+ * than as an unlit white box. */
+const SHELL = "#C0BAB0"      // warm composite suite shell
 const ARMREST = "#2E3238"    // dark composite console
 const METAL = "#B9A98C"      // brushed champagne trim
 const CARPET = "#2B2E33"     // cool charcoal carpet
@@ -463,12 +469,67 @@ function SloganTypewriter() {
 
 // camera path: close to the window row → back across the aisle → out
 // through the far wall's centre window
-const CAM_START_Z = 2.3
-const CAM_END_Z = 7.4
+/**
+ * ── REFRAMED 2026-08-16 ───────────────────────────────────────────────────
+ *
+ * The opening shot used to sit at (-0.3, 0, 2.3) aiming straight down −z at a
+ * 30×20 sidewall two units away. The cabin is fully built — three banks of
+ * business pods, overhead bins with an open door and luggage in it, a sculpted
+ * ceiling with an LED spine, a mood cove, a carpet runner with brass trim — and
+ * NONE of it was in frame. The camera was close enough to the wall that the
+ * wall was the shot, which is why the interior read as flat grey plastic: what
+ * was on screen genuinely was a flat grey panel with a hole in it.
+ *
+ * So this is a framing fix, not a modelling one. The camera now opens over the
+ * right-hand seat bank in three-quarter view, which puts a pod in the
+ * foreground, the window row behind it, the bins and cove overhead and the
+ * aisle running away to the left — depth cues in every direction, and every
+ * material in shot at once so the lighting has something to describe.
+ *
+ * The choreography is unchanged: it still retreats along +z and phases out
+ * through the far wall, and because it starts angled the pull-back now also
+ * straightens up, which reads as the camera "letting go" of the cabin.
+ */
+const CAM_START = new THREE.Vector3(1.62, 0.32, 3.15)
+const CAM_END   = new THREE.Vector3(0.25, 0.12, 7.4)
+/** Where the camera is aimed at each end. Interpolated with the position, so
+ *  the shot straightens as it pulls out instead of swinging at the end. */
+const LOOK_START = new THREE.Vector3(2.0, -0.3, -0.9)
+const LOOK_END   = new THREE.Vector3(0.05, -0.15, 0.9)
+
+/**
+ * The camera's vertical FOV is the wrong control to hold constant on a page
+ * that runs from a 16:9 desktop to a 0.46 portrait phone.
+ *
+ * three.js `fov` is VERTICAL, so a narrow viewport keeps the same vertical
+ * coverage and loses horizontal — and everything that makes this shot read as a
+ * cabin (the seat bank, the aisle running away, the second window) is arranged
+ * HORIZONTALLY. Measured at 390×844: the frame cropped to a single window and
+ * a slab of sidewall, i.e. back to exactly the flat-grey-panel problem the
+ * reframe had just fixed, for the same reason in the other axis.
+ *
+ * So horizontal coverage is what is held roughly constant, by widening the
+ * vertical FOV as the aspect narrows. Fully compensating would demand ~124° at
+ * portrait, which is a fisheye — so this compensates PARTIALLY (a square-root
+ * blend) and clamps, and the remainder is made up by dollying back. Two gentle
+ * levers instead of one violent one.
+ */
+const BASE_FOV = 52
+const BASE_ASPECT = 16 / 9
+
+function fovForAspect(aspect: number): number {
+  if (!isFinite(aspect) || aspect <= 0) return BASE_FOV
+  if (aspect >= BASE_ASPECT) return BASE_FOV
+  const compensation = Math.sqrt(BASE_ASPECT / aspect)
+  return Math.min(76, BASE_FOV * Math.min(compensation, 1.46))
+}
 
 function CabinScene({ progressRef }: { progressRef: React.MutableRefObject<number> }) {
   const cabin = useMemo(buildCabin, [])
   const cur = useRef(0)
+  // Allocated once. `new THREE.Vector3()` inside useFrame is 60 allocations a
+  // second feeding the GC on a page that is already running two canvases.
+  const lookTarget = useMemo(() => new THREE.Vector3(), [])
 
   useFrame((state, delta) => {
     const cam = state.camera
@@ -478,13 +539,46 @@ function CabinScene({ progressRef }: { progressRef: React.MutableRefObject<numbe
     const s = THREE.MathUtils.smoothstep(cur.current, 0, 1)
 
     const clock = state.clock.elapsedTime
-    // dolly back with a gentle lateral pan; light turbulence sway on top
-    cam.position.set(
-      THREE.MathUtils.lerp(-0.3, 0.25, s) + Math.sin(clock * 0.5) * 0.03,
-      Math.sin(clock * 0.8) * 0.03,
-      THREE.MathUtils.lerp(CAM_START_Z, CAM_END_Z, s),
-    )
-    cam.lookAt(cam.position.x, 0, cam.position.z - 6)
+    // Dolly back and straighten up, driven ENTIRELY by scroll.
+    //
+    // The two `Math.sin(clock)` terms that used to ride on x and y here were
+    // labelled "light turbulence sway". At ±0.03 on a camera three units from
+    // the window frame they moved the entire cabin by several screen pixels,
+    // continuously, on wall-clock time — and because the cabin fills the
+    // viewport at this stage, the whole page appeared to shake. Turbulence you
+    // can see from inside a still frame is not atmosphere, it is a wobble.
+    //
+    // The cabin now holds exactly where the scroll leaves it. Life in the scene
+    // comes from the lamp glow below, which changes brightness rather than
+    // geometry and so cannot read as camera movement.
+    cam.position.lerpVectors(CAM_START, CAM_END, s)
+
+    // Aspect fit. Applied every frame rather than on a resize listener: the
+    // canvas also changes shape when mobile browser chrome collapses on scroll,
+    // which fires no resize event on some engines, and this scene is already
+    // running a per-frame update. Both writes are cheap and idempotent.
+    if (cam instanceof THREE.PerspectiveCamera) {
+      const wantFov = fovForAspect(cam.aspect)
+      if (Math.abs(cam.fov - wantFov) > 0.01) {
+        cam.fov = wantFov
+        cam.updateProjectionMatrix()
+      }
+      // NO DOLLY. Pulling the camera back to make up the clamped coverage was
+      // tried and it is unsound in a closed interior: at portrait the retreat
+      // computed 2.1 units along the view axis, which put the camera at z≈5.21
+      // with the far cabin wall at z=4.7 — outside the cabin, looking back at
+      // the OUTSIDE of a wall, rendering as a featureless grey slab. A shot
+      // framed inside a box cannot be widened by backing up, because the box
+      // ends. FOV is the only lever here, so the clamp is the real limit and it
+      // is honest about it.
+    }
+    // The aim point travels too. Aiming at a fixed offset from the camera (the
+    // old `cam.position.z - 6`) meant the shot could only ever dolly — it could
+    // not change what it was ABOUT. Interpolating the target lets the opening
+    // three-quarter view of a pod resolve into the straight-down-the-cabin shot
+    // the phase-out needs, as one move.
+    lookTarget.lerpVectors(LOOK_START, LOOK_END, s)
+    cam.lookAt(lookTarget)
 
     // idle life: the brass table lamps breathe — a slow, warm candle-like
     // glow cycle, each lamp on its own phase
@@ -503,8 +597,12 @@ function CabinScene({ progressRef }: { progressRef: React.MutableRefObject<numbe
           curvature, which is what separates leather from lacquer from brass.
           This is the single biggest reason the cabin looked bland. */}
       <CabinEnvironment />
-      {/* daylight cabin: cool ambient fill so the shadows stay open */}
-      <ambientLight intensity={0.32} color="#FFD9A8" />
+      {/* Ambient fill, kept LOW. Ambient light is the one source that cannot
+          shade a form — it lifts every face of a box by the same amount — so
+          any more of it than is needed to keep the shadows from going black
+          actively flattens the pods. 0.32 was filling in the very gradients
+          the environment probe exists to create. */}
+      <ambientLight intensity={0.16} color="#FFD9A8" />
       {/* Mood cove. The one lighting element that says "modern cabin" more than
           any other: a continuous warm strip washing the join between sidewall
           and ceiling, down both sides of the aisle. Emissive geometry rather
@@ -647,7 +745,7 @@ export function CabinOpening() {
       {/* the white cabin interior */}
       <div ref={cabinRef} style={{ position: "absolute", inset: 0 }}>
         <Canvas
-          camera={{ position: [-0.3, 0, CAM_START_Z], fov: 46 }}
+          camera={{ position: [CAM_START.x, CAM_START.y, CAM_START.z], fov: 52 }}
           dpr={[1, 2]}
           // Driven by the shared landing clock, not its own RAF. This was the
           // only canvas on the page still rendering itself: a full-viewport
@@ -669,7 +767,16 @@ export function CabinOpening() {
             // and PSU emissives blew straight to flat white while the leather
             // stayed muddy — no roll-off anywhere in the frame.
             gl.toneMapping = THREE.ACESFilmicToneMapping
-            gl.toneMappingExposure = 1.18
+            // 0.92, not 1.18. With nine point lights, two directionals, an
+            // ambient and an environment probe all lifting the same surfaces,
+            // 1.18 pushed the seat shells past the top of the curve — every
+            // pod rendered as a flat white slab with no shading across its
+            // form, which is what made an otherwise fully-modelled cabin read
+            // as untextured boxes. Exposure is the correct lever here rather
+            // than dimming lights one at a time: the RATIOS between the fixtures
+            // were already right, the whole frame was just standing too far up
+            // the curve to show any of them.
+            gl.toneMappingExposure = 0.92
             gl.outputColorSpace = THREE.SRGBColorSpace
           }}
           style={{ width: "100%", height: "100%" }}
@@ -686,28 +793,54 @@ export function CabinOpening() {
         />
       </div>
 
-      {/* AEOLUS slogan, on screen before the scroll trigger */}
+      {/* AEOLUS slogan, on screen before the scroll trigger.
+          THE SCRIM IS THIS BLOCK'S OWN BACKGROUND, not a separate layer.
+
+          The slogan is cream on whatever the cabin happens to be showing behind
+          it, and at the bottom-centre of this frame that is the SKY through the
+          window — sunlit cloud. Measured: 1.13:1, i.e. the first words on the
+          site were invisible. The vignette above does not help, because it is
+          radial from 50%/46% and only bites at the far edges.
+
+          A text-shadow is not a fix either: it thickens glyph edges but leaves
+          the ratio between the fill and the background untouched, so it makes
+          unreadable text easier to LOCATE without making it readable. Only a
+          scrim changes the background the type is actually measured against.
+
+          It hangs off the text container rather than sitting beside it for two
+          reasons. It cannot drift out of alignment with the words it exists to
+          protect — the gradient is sized by the same box the type is laid out
+          in — and it is an ANCESTOR, so contrast tooling that composites up the
+          DOM (including scripts/ui-audit.mjs) measures the ratio a reader
+          actually gets instead of reporting cream-on-cloud. */}
       <div
         ref={sloganRef}
         style={{
           position: "absolute",
           left: 0,
           right: 0,
-          bottom: "7vh",
+          bottom: 0,
+          paddingTop: "18vh",
+          paddingBottom: "7vh",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
           gap: 14,
           textAlign: "center",
-          color: "#F1ECE1",
+          color: "#F7F3EA",
           textShadow: "0 1px 12px rgba(12,9,7,0.6)",
+          background:
+            "linear-gradient(to top, rgba(10,8,12,0.88) 0%, rgba(10,8,12,0.80) 42%, rgba(10,8,12,0.42) 74%, rgba(10,8,12,0) 100%)",
         }}
       >
-        <span className="lp-eyebrow" style={{ color: "#F1ECE1", letterSpacing: "0.3em" }}>AEOLUS</span>
+        <span className="lp-eyebrow" style={{ color: "#F7F3EA", letterSpacing: "0.3em" }}>AEOLUS</span>
         <p style={{ margin: 0, fontSize: "clamp(15px, 1.6vw, 20px)", fontWeight: 500, maxWidth: 560, lineHeight: 1.5, minHeight: "1.5em" }}>
           <SloganTypewriter />
         </p>
-        <span className="lp-eyebrow" style={{ color: "rgba(241,236,225,0.6)", marginTop: 6 }}>Scroll ↓</span>
+        {/* 0.6 alpha composited to 1.07:1 — the lowest-contrast text on the
+            site, on the one label whose whole job is telling a first-time
+            visitor what to do next. 0.86 on the scrim clears AA. */}
+        <span className="lp-eyebrow" style={{ color: "rgba(247,243,234,0.86)", marginTop: 6 }}>Scroll ↓</span>
       </div>
 
       <style>{`

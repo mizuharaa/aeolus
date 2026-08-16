@@ -85,18 +85,41 @@ export const pigment = {
  * (see cascade-timeline.tsx and flight-map.tsx), so the ramp degrades to a
  * readable generation number under monochrome, glare, or colour blindness.
  */
+/**
+ * INVERTED FOR THE DARK CONSOLE, 2026-08-16.
+ *
+ * The ramp used to run dark→light because it was drawn on warm paper: the
+ * worst cascade generation was the heaviest ink. On the #14161C console floor
+ * that reads backwards — `direct` at #3A2408 measures 1.4:1 against the panel,
+ * so the MOST severe step would be the least visible thing on screen. Severity
+ * now runs light→dark: the hit itself is the brightest mark in the frame.
+ *
+ * The three-step constraint recorded in design.md holds in this direction too,
+ * and the arithmetic is worth writing down because it is not obvious that it
+ * would. Requiring every step to clear 3:1 against the panel puts a floor of
+ * L ≥ 0.124 on all three; requiring consecutive steps to clear 3:1 of each
+ * other then forces L ≥ 0.471 on the second and L ≥ 1.513 on the third. There
+ * is no colour with luminance above 1. So, exactly as on paper, the MIDDLE
+ * step is the one that gives: `order2` is a dark fill whose brighter BORDER
+ * carries its 3:1 against the surface, and `glyph` carries the ordering as a
+ * redundant channel that survives monochrome and colour blindness.
+ *
+ * `direct` → `order1` IS gated at 3:1 (measures 3.35) because that pair is the
+ * one an operator reads under time pressure: "was this hit, or is it downstream
+ * of something that was hit". See scripts/check-contrast.mjs.
+ */
 export const cascade = {
-  direct: { fill: "#3A2408", border: "#3A2408", glyph: "0" }, // the hit itself
-  order1: { fill: "#9C6C28", border: "#9C6C28", glyph: "1" },
-  order2: { fill: "#E9D6B6", border: "#7E5A1C", glyph: "2" }, // pale fill, border holds 3:1
-  none:   { fill: "#E8E2D4", border: "#7C7568", glyph: "" },  // nominal — quiet, still bounded
-  // Cancelled is never a hue (DESIGN.md): neutral + a dashed edge at the mark.
-  cancelled: { fill: "#EDEAE3", border: "#7C7568", glyph: "✕" },
+  direct: { fill: "#FFD07A", border: "#FFD07A", glyph: "0" }, // the hit itself — brightest mark on the console
+  order1: { fill: "#9E6726", border: "#B87C33", glyph: "1" },
+  order2: { fill: "#2E2718", border: "#7D6437", glyph: "2" }, // dark fill, border holds 3:1 vs surface
+  none:   { fill: "#1E222A", border: "#5C6474", glyph: "" },  // nominal — quiet, still bounded
+  // Cancelled is never a hue (design.md): neutral + a dashed edge at the mark.
+  cancelled: { fill: "#191D24", border: "#7C8494", glyph: "✕" },
 } as const
 
-/** Ink that reads on a given cascade step (the two dark steps need paper). */
+/** Ink that reads on a given cascade step — only `direct` is light enough to need dark ink now. */
 export const cascadeInk = (step: keyof typeof cascade): string =>
-  step === "direct" || step === "order1" ? "#FFFFFF" : "#1C1426"
+  step === "direct" ? "#171308" : "#F2F3F7"
 
 export const tokens = {
   colors: {
@@ -110,6 +133,18 @@ export const tokens = {
     canvas:              "var(--ae-surface)",    // card / panel floor
     surfaceSoft:         "var(--ae-surface-2)",  // recessed panel, tab well
     surfaceStrong:       "var(--ae-surface-3)",  // track fills, deep recess
+    /**
+     * A card sitting ON a panel.
+     *
+     * The elevation ladder had no rung for this, so every card inside the
+     * context column was drawn with `canvas` — the same value as the panel
+     * behind it, 1.00:1 — and a 1px hairline was the only thing describing it.
+     * That is the "punched-out box that looks like it has layers" defect: an
+     * outline standing in for a surface. Pair it with `sh.edge`; on a near-
+     * black register the lit top edge does most of the work a cast shadow
+     * would do on paper.
+     */
+    raised:              "var(--ae-raised)",
     surfaceDark:         pigment.ink,            // ink card (both registers)
     surfaceDarkElevated: "#123349",              // raised step on ink
     hairline:            "var(--ae-line)",       // 1px borders, dividers
@@ -242,6 +277,8 @@ export const tokens = {
 
   shadow: {
     flat:        "none",
+    /** 1px lit top edge — what "raised" looks like on a near-black surface. */
+    edge:        "var(--ae-edge)",
     buttonRest:  "0 1px 2px rgba(11,36,52,0.10)",
     buttonFocus: "0 0 0 3px var(--ae-focus)",
     cardSoft:    "0 1px 2px rgba(11,36,52,0.05)",

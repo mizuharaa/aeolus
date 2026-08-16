@@ -185,7 +185,10 @@ export function PricingSection() {
           font-weight: 600;
           letter-spacing: 0.16em;
           text-transform: uppercase;
-          color: var(--accent-amber, #b8863c);
+          /* 10px uppercase mono on a 14% amber wash — the smallest type on the
+             section, so it takes the ink step. The graphic amber measured
+             3.22:1 here. */
+          color: var(--accent-amber-ink, #7a5a22);
           padding: 4px 9px;
           border-radius: 999px;
           background: color-mix(in srgb, var(--accent-amber, #b8863c) 14%, transparent);

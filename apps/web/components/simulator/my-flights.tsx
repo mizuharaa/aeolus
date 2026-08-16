@@ -6,6 +6,7 @@ import {
   Bookmark, BookmarkCheck, ChevronDown, ArrowRight,
 } from "lucide-react"
 import { useSimulationStore } from "@/stores/simulation"
+import { useWatchlist } from "@/lib/use-watchlist"
 import type { ScheduledFlight, FlightState, FleetAircraft } from "@/stores/simulation"
 import { airportLabel, aircraftLabel } from "@/lib/labels"
 import { AirportCode } from "./airport-code"
@@ -237,21 +238,16 @@ function FlightCard({
 
 export function MyFlights({ onFlightSelect }: { onFlightSelect?: (id: string | null) => void }) {
   const { schedule, flightStates, fleet } = useSimulationStore()
-  const [watchedIds, setWatchedIds]   = useState<string[]>([])
+  // The list moved to `lib/use-watchlist.ts` 2026-08-16. It lived here as local
+  // state over the same localStorage key, which made it unreachable from the
+  // flight detail panel — the bookmark button there had nowhere to write and so
+  // shipped inert. Two components reading one key as independent local state
+  // would also have desynced, because `storage` does not fire in the tab that
+  // wrote it; the hook notifies subscribers directly.
+  const { watched: watchedIds, add, remove } = useWatchlist()
   const [query, setQuery]             = useState("")
   const [showSearch, setShowSearch]   = useState(false)
   const [collapsed, setCollapsed]     = useState(false)
-
-  // Persist watchlist
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem("aeolus-watched-flights")
-      if (saved) setWatchedIds(JSON.parse(saved))
-    } catch {}
-  }, [])
-  useEffect(() => {
-    try { localStorage.setItem("aeolus-watched-flights", JSON.stringify(watchedIds)) } catch {}
-  }, [watchedIds])
 
   const searchResults = useMemo(() => {
     if (query.trim().length < 2) return []
@@ -281,12 +277,12 @@ export function MyFlights({ onFlightSelect }: { onFlightSelect?: (id: string | n
   const affectedCount = watchedFlights.filter((w) => w.state && w.state.cascade_order >= 0).length
 
   const addFlight = (id: string) => {
-    if (!watchedIds.includes(id)) setWatchedIds((prev) => [...prev, id])
+    add(id)
     setQuery("")
     setShowSearch(false)
   }
 
-  const removeFlight = (id: string) => setWatchedIds((prev) => prev.filter((w) => w !== id))
+  const removeFlight = (id: string) => remove(id)
 
   return (
     <div

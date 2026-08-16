@@ -4,19 +4,97 @@ A locked design system for this app. Every page redesign reads this file before
 emitting code. Do not regenerate per page — extend or amend this file when the
 system needs to grow.
 
-**Decision record (2026-07-15):** the old "two worlds" split (beige editorial
-landing vs. white daylight simulator) is retired. ONE world: the landing's
-control-tower editorial paper carries through the simulator. Semantic pigments
-keep their jobs everywhere.
+**Decision record (2026-07-15, REVERSED 2026-08-16):** the old "two worlds"
+split (beige editorial landing vs. white daylight simulator) is retired. ONE
+world: the landing's control-tower editorial paper carries through the
+simulator. Semantic pigments keep their jobs everywhere.
 
-**Decision record (2026-08-05):** in the simulator the CASCADE TIMELINE is the
-hero and the map is a locator. The map previously held the largest region on
-screen while spending ~97% of its marks on other carriers' ADS-B traffic, and
-the Gantt — the only surface where cause, propagation and time are legible at
-once — showed 1.96 of 18 rows identically at every viewport. Side panels are
-docked grid tracks, not floating overlays: as overlays they covered 62.4% of the
-map at 1280 and overlapped each other at 200% zoom. The console shell is fixed
-(`100dvh`, `overflow: hidden`); it must not be able to scroll away mid-incident.
+**Decision record (2026-08-16): TWO REGISTERS. The simulator is a DARK ops
+console; the landing keeps its warm paper.** This reverses 2026-07-15, and the
+evidence that forced it is worth keeping because it is a trap this gate walked
+into twice.
+
+A live audit of the console reported **zero** WCAG text failures while the
+screen was unreadable. Both readings were correct. Every foreground/background
+pair passed AA in isolation — and the four surfaces those pairs were drawn on
+(`#F5F1E8` / `#FFFEF9` / `#EFE9DB` / `#E5DCC8`) sat inside a **4% lightness
+band**, so a panel could not be told from the floor, a tab well could not be
+told from its bar, and the map could not be told from the page. WCAG 1.4.3
+governs text against ITS OWN background and 1.4.11 governs a control's
+boundary; neither says anything about whether a LAYOUT has a figure and a
+ground. `check-contrast.mjs` now carries a `SEPARATION` block asserting ≥1.12:1
+between consecutive elevation steps, in both registers. That check is the
+durable outcome here — the palette is the symptom, the missing assertion was
+the cause.
+
+A second finding: `.register-dark` was **declared but applied to nothing**. The
+simulator shell carried no register class at all, so every `/simulator` surface
+inherited `:root`. Both `.register-dark` and `.simulator-shell` are now bound
+to the same block so the console cannot silently fall back to paper.
+
+Rules that come with the split:
+- The console floor is plum-tinted (hue ~232), not neutral charcoal — the
+  register has to stay in the Aeolus family rather than defaulting to the grey
+  every admin template ships.
+- Pigments are re-inked UP, never reused. The paper plum `#5B3FA8` measures
+  1.9:1 on `#16181F`; on the console it is `#9B7FE0`.
+- **Light pigments take INK, not white.** `--ae-teal` is a light plum here, so
+  white on it measures 3.23:1. Filled controls in the console use `#12101A`.
+- On a near-black floor a cast shadow does nothing. Elevation comes from the
+  surface step plus `--ae-edge` (a 1px inset top highlight).
+- The paper register was ALSO deepened (`#F2EDE1` / `#E6DCC6` / `#D3C4A4`) to
+  clear the same separation gate, and its two text steps were re-inked down to
+  hold AA against the new darkest surface.
+
+**Decision record (2026-08-05, SUPERSEDED 2026-08-16):** in the simulator the
+CASCADE TIMELINE is the hero and the map is a locator. The map previously held
+the largest region on screen while spending ~97% of its marks on other carriers'
+ADS-B traffic, and the Gantt — the only surface where cause, propagation and
+time are legible at once — showed 1.96 of 18 rows identically at every viewport.
+Side panels are docked grid tracks, not floating overlays: as overlays they
+covered 62.4% of the map at 1280 and overlapped each other at 200% zoom. The
+console shell is fixed (`100dvh`, `overflow: hidden`); it must not be able to
+scroll away mid-incident.
+
+**Decision record (2026-08-16): ONE CONTEXT COLUMN, MAP DOMINANT, TIMELINE
+SIZED.** The shell is now `rail · [context column] · (map over timeline)`.
+
+The 2026-08-05 record made the timeline the hero because it was showing 1.96 of
+18 rows. That diagnosis was right and the remedy treated the wrong cause: the
+Gantt was starved because the map was full-width-minus-two-panels and 62%
+covered, not because the map was large. With Events and Recovery collapsed into
+a single 364px column the map finally has a shape worth giving space to, so it
+takes the remaining height and the timeline becomes the SIZED region — a real,
+resizable, persisted height instead of the remainder of a fight it kept losing.
+
+**One column, not two opposing docks.** The old shell had Events left, Recovery
+right, a mutual-exclusion rule below 1500px, an overlay fallback below 900px,
+restore logic that had to reproduce the exclusion, and a flight inspector
+floating on the map as a third surface. Four layout modes and three places a
+panel could appear is where the collisions came from — measured **16**
+overlapping interactive pairs at 1440 and **58** at 390. One column makes the
+whole class unreachable: there is exactly one place a panel can be. After the
+rebuild: **3** at 1440, and the map is one uninterrupted region at every width.
+
+- **The flight inspector is IN the column, not over the map.** The most detailed
+  surface on the console must not sit on top of the surface it describes.
+- **The rail PUSHES, it does not overlay.** It used to reserve a slim slot and
+  expand as a fixed overlay so content never reflowed; what it covered was the
+  Events panel and the left third of the map. A dispatcher must not lose sight
+  of live state to read a menu label. The cost is a reflow, so the map's
+  `ResizeObserver` is rAF-coalesced — un-coalesced, a 240ms width transition
+  fired ~15 full Leaflet re-layouts per hover with ~530 markers mounted.
+- **Product announcements do not get a full-width row.** The drone-incursion
+  banner took a permanent 44px strip above the map for a feature note, and its
+  Dismiss overlapped its own body text at 390px. It is a card inside the column.
+- **The basemap is CARTO `dark_all`.** Same cartographic restraint that chose
+  Positron over Voyager — no saturation spent on road classes or landuse —
+  inverted for the console floor.
+- **Cascade severity runs light→dark here.** On the console the direct hit is
+  the BRIGHTEST mark; `#3A2408` measured 1.4:1 on the panel. The three-step
+  constraint from 2026-08-10 holds in this direction too and the arithmetic is
+  recorded in `lib/design-tokens.ts`: every step clearing 3:1 against the panel
+  AND 3:1 of each other requires a colour with luminance above 1.0.
 
 **Decision record (2026-08-05):** VISUAL WEIGHT FOLLOWS CONSEQUENCE. A committed
 or applied state owns the filled/inverted treatment; selecting, inspecting or
@@ -76,12 +154,14 @@ editorial (control-tower editorial — dense operational surfaces on warm paper)
   cinematic demo → methodology → night CTA). Owned by `scroll-experience.tsx`.
 - App pages (`/simulator/*`): Workbench — a FIXED shell (`100dvh`,
   `overflow: hidden`, every region scrolling internally) laid out as
-  `icon rail · [Events track] · (map over cascade timeline) · [Recovery track]`.
-  The timeline is the hero and takes the remaining height; the map is a
-  resizable locator above it (default 300px, persisted). Side panels are docked
-  tracks that take width — never overlays over the map — and become overlays
-  only below 900px, where a docked panel would starve the map. No theatrical
-  motion in app chrome; functional motion only.
+  `rail · [context column] · (map over cascade timeline)`.
+  The MAP is the dominant region and takes the remaining height; the CASCADE
+  TIMELINE is a resizable dock beneath it (default 236px, persisted, clamped to
+  62% so it can never reduce the map to a strip). The CONTEXT COLUMN is one
+  docked, resizable, tabbed track (Events · Recovery · Flight, default 364px)
+  and is the ONLY place a panel may appear; it becomes a full-width sheet below
+  880px, where the map region goes `inert`. The rail PUSHES the layout on
+  expand. No theatrical motion in app chrome; functional motion only.
   - Nothing auto-opens. A panel that opens itself and pre-selects an option
     reads as a decision the operator did not make; collapsed launchers carry a
     count badge instead.

@@ -1,23 +1,21 @@
 "use client"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import dynamic from "next/dynamic"
-import { motion, AnimatePresence } from "framer-motion"
-import { Loader2, X } from "lucide-react"
+import { Loader2, AlertTriangle, PanelBottomClose, PanelBottomOpen, Layers } from "lucide-react"
 import { useSimulationStore, type ScheduledFlight, type FleetAircraft } from "@/stores/simulation"
 import { useWebSocket } from "@/lib/websocket"
 import { EventPanel } from "@/components/simulator/event-panel"
 import { CascadeTimeline } from "@/components/simulator/cascade-timeline"
 import { RecoveryPlans } from "@/components/simulator/recovery-plans"
 import { SimulatorNav } from "@/components/simulator/nav"
-import { AgentBubble } from "@/components/simulator/agent-bubble"
-import { AnnouncementBanner } from "@/components/simulator/announcement-banner"
 import { DashboardLoader } from "@/components/simulator/dashboard-loader"
 import { FlightSearch } from "@/components/simulator/flight-search"
+import { FlightDetailPanel } from "@/components/simulator/flight-detail"
+import { ContextColumn, AnnouncementCard, type ContextTab } from "@/components/simulator/context-column"
 import { apiClient } from "@/lib/api"
 import { hydrateAirportTiers } from "@/components/simulator/airports"
 import { c, ff, r, sp } from "@/lib/design-tokens"
-import { useResizable, ResizeHandle, FloatingPanel } from "@/components/simulator/workspace-chrome"
-import { CloudLightning, Waypoints, PanelBottomClose, AlertTriangle } from "lucide-react"
+import { useResizable, ResizeHandle } from "@/components/simulator/workspace-chrome"
 
 const FlightMap = dynamic(() => import("@/components/simulator/flight-map"), {
   ssr: false,
@@ -33,24 +31,25 @@ const FlightMap = dynamic(() => import("@/components/simulator/flight-map"), {
   ),
 })
 
-const NAV_H  = 60   // top-bar height (see components/simulator/nav.tsx)
+// ── Layout constants ─────────────────────────────────────────────────────
+//
+// THE MAP IS THE DOMINANT REGION AND THE TIMELINE IS THE SIZED ONE — the
+// inverse of the 2026-08-05 arrangement, and a deliberate reversal recorded in
+// design.md. That decision made the Gantt the hero because it was showing 1.96
+// of 18 rows while the basemap took every spare pixel. The cause was the map
+// being FULL-WIDTH-MINUS-TWO-PANELS and 62% covered, not the map being large:
+// with the panels collapsed into one 360px column the map finally has a shape
+// worth giving space to, and the timeline gets a real, resizable, persisted
+// height instead of the remainder of a fight it kept losing.
+const COL_W     = 364
+const COL_W_MIN = 300
+const COL_W_MAX = 560
 
-// The MAP is now the sized region and the CASCADE TIMELINE takes the remaining
-// height — the inversion this layout pass turns on. Measured before: the
-// timeline's row viewport was 94px of 871px of content, i.e. 1.96 of 18 rows
-// (10.9%), identical at 1280/1440/1920 and at 200% zoom, because every extra
-// pixel of viewport went to the basemap. The basemap answers "where", once per
-// incident; the Gantt is where cause, propagation and time are simultaneously
-// legible, and it is the surface an operator actually reads. So the timeline
-// gets flex:1 and the map gets a resizable fixed height.
-const MAP_H     = 300 // default map height; drag to taste, persisted
-const MAP_H_MIN = 200
-const MAP_H_MAX = 720
+const TL_H     = 236
+const TL_H_MIN = 150
+const TL_H_MAX = 620
 
-// Panel pigments — Events = gold (disruption), Recovery = plum (identity).
-const EVENT_ACCENT = "#B8863C"
-const RECOVERY_ACCENT = "#5B3FA8"
-const EASE = [0.22, 0.9, 0.28, 1] as const
+const TL_COLLAPSED = 34
 
 export default function SimulatorPage() {
   const {
@@ -61,104 +60,121 @@ export default function SimulatorPage() {
   const { isConnected } = useWebSocket()
   const [selectedFlight, setSelectedFlight] = useState<string | null>(null)
 
-  // Events + Recovery are now floating OVERLAY panels over a full-bleed map —
-  // not docked columns that shrink it. Open = the panel floats; closed = a
-  // slim launcher tab on that edge. The map never reflows, so there's no
-  // panel-vs-overlay collision and the map paints once and stays put.
-  const [leftOpen, setLeftOpen]     = useState(true)   // Events
-  const [rightOpen, setRightOpen]   = useState(false)  // Recovery (auto-opens on plans)
-  const [bottomOpen, setBottomOpen] = useState(true)   // cascade timeline
-  // Drag the divider to resize the MAP; the timeline absorbs the remainder.
-  const mapH = useResizable("aeolus-map-h", MAP_H, MAP_H_MIN, MAP_H_MAX, "bottom")
+  const [tab, setTab] = useState<ContextTab>("events")
+  const [colOpen, setColOpen] = useState(true)
+  const [tlOpen, setTlOpen] = useState(true)
+  const [announce, setAnnounce] = useState(true)
 
-  // Docked panels take real width, so below this the two of them plus the rail
-  // would starve the map (measured: 466px of map at 1280 with both open). Above
-  // it there is room for both. Opening one closes the other below the
-  // threshold — a structural adaptation, not a hidden element.
+  const colW = useResizable("aeolus-col-w", COL_W, COL_W_MIN, COL_W_MAX, "left")
+  const tlH  = useResizable("aeolus-tl-h",  TL_H,  TL_H_MIN,  TL_H_MAX,  "bottom")
+
+  // One breakpoint, one behaviour change. The old shell had three (1500 / 900
+  // / plus an overlay fallback) interacting with a mutual-exclusion rule, and
+  // the combinations were where the 58-collision mobile layout came from.
+  // Below `narrow` the column becomes an overlay sheet because a 300px docked
+  // column plus a 68px rail leaves a 22px map at 390px.
   const [narrow, setNarrow] = useState(false)
-  // Below this the workspace is too tight for a panel to take width at all —
-  // at a 720px viewport (what 200% zoom on a 1440 screen produces) a docked
-  // 392px panel plus the rail left the map 227px. Under it the panels go back
-  // to being overlays, which is the right trade at that size: covering part of
-  // a small map beats shrinking it to nothing.
-  const [tight, setTight] = useState(false)
   useEffect(() => {
-    const wide = window.matchMedia("(max-width: 1500px)")
-    const small = window.matchMedia("(max-width: 900px)")
-    const sync = () => { setNarrow(wide.matches); setTight(small.matches) }
+    const mq = window.matchMedia("(max-width: 880px)")
+    const sync = () => setNarrow(mq.matches)
     sync()
-    wide.addEventListener("change", sync)
-    small.addEventListener("change", sync)
-    return () => { wide.removeEventListener("change", sync); small.removeEventListener("change", sync) }
+    mq.addEventListener("change", sync)
+    return () => mq.removeEventListener("change", sync)
   }, [])
-  const openLeft = useCallback((v: boolean) => {
-    setLeftOpen(v)
-    if (v && narrow) setRightOpen(false)
-  }, [narrow])
-  const openRight = useCallback((v: boolean) => {
-    setRightOpen(v)
-    if (v && narrow) setLeftOpen(false)
-  }, [narrow])
 
-  // Restore prefs.
   useEffect(() => {
     try {
-      const wantLeft  = localStorage.getItem("aeolus-left-open") === "1"
-      const wantRight = localStorage.getItem("aeolus-right-open") === "1"
-      // Restore must obey the same mutual exclusion as openLeft/openRight.
-      // It did not, so a reload could put BOTH panels up in overlay mode and
-      // they overlapped each other by 122x362 at 720x450 — each is capped
-      // against the container and never against its sibling (356 + 392 = 748
-      // into 654px). Same class of defect as the docked branch's 128px overlap,
-      // reachable by reload rather than resize, which is why fixing the toggle
-      // handlers alone did not retire it.
-      const tightNow = window.matchMedia("(max-width: 1500px)").matches
-      if (localStorage.getItem("aeolus-left-open") !== null) setLeftOpen(wantLeft)
-      if (wantRight && !(tightNow && wantLeft)) setRightOpen(true)
-      if (localStorage.getItem("aeolus-bottom-open") === "0") setBottomOpen(false)
+      if (localStorage.getItem("aeolus-col-open") === "0") setColOpen(false)
+      if (localStorage.getItem("aeolus-tl-open") === "0") setTlOpen(false)
+      if (localStorage.getItem("aeolus-announce") === "0") setAnnounce(false)
     } catch {}
   }, [])
-  useEffect(() => { try { localStorage.setItem("aeolus-left-open",   leftOpen   ? "1" : "0") } catch {} }, [leftOpen])
-  useEffect(() => { try { localStorage.setItem("aeolus-right-open",  rightOpen  ? "1" : "0") } catch {} }, [rightOpen])
-  useEffect(() => { try { localStorage.setItem("aeolus-bottom-open", bottomOpen ? "1" : "0") } catch {} }, [bottomOpen])
+  useEffect(() => { try { localStorage.setItem("aeolus-col-open", colOpen ? "1" : "0") } catch {} }, [colOpen])
+  useEffect(() => { try { localStorage.setItem("aeolus-tl-open",  tlOpen  ? "1" : "0") } catch {} }, [tlOpen])
 
-  // Recovery plans arrive for a new disruption → float the Recovery panel out
-  // once per event wave (the user can close it; it won't nag again for the
-  // same wave). Committing a plan leaves it to the user.
-  // The Recovery panel does NOT auto-open. It used to, and combined with the
-  // panel defaulting to inspect plan A, that made a full plan analysis appear
-  // unbidden with one plan visually dominant — read, reasonably, as "a plan was
-  // auto-applied on load". Nothing should look decided until someone decides.
-  // The launcher tab carries a count badge instead: discoverable, unmissable,
-  // and it asserts nothing about the outcome.
+  const dismissAnnounce = useCallback(() => {
+    setAnnounce(false)
+    try { localStorage.setItem("aeolus-announce", "0") } catch {}
+  }, [])
 
-  // Inspecting a flight (sim or live) closes the drawers so the detail card
-  // owns the map edge with no overlap.
+  const selectedSched = useMemo(
+    () => schedule.find((f) => f.id === selectedFlight) ?? null,
+    [schedule, selectedFlight],
+  )
+  const flightEnabled = !!selectedSched || !!selectedLiveFlight
+
+  // Selecting a flight IS a request to inspect it, so the column switches to
+  // the Flight tab and opens if collapsed. It does not close the other tabs'
+  // content — they are one click away and their counts stay visible.
   useEffect(() => {
-    if (selectedFlight || selectedLiveFlight) { setLeftOpen(false); setRightOpen(false) }
-  }, [selectedFlight, selectedLiveFlight])
+    if (selectedSched || selectedLiveFlight) {
+      setTab("flight")
+      setColOpen(true)
+    }
+  }, [selectedSched, selectedLiveFlight])
 
-  // F toggles both drawers (quick "clear the map").
+  // Leaving the flight tab with nothing selected would strand an empty panel.
+  useEffect(() => {
+    if (tab === "flight" && !flightEnabled) setTab("events")
+  }, [tab, flightEnabled])
+
+  /**
+   * RECOVERY PLANS ARRIVE → SHOW THEM.
+   *
+   * design.md says "Nothing auto-opens", and that rule is kept. It was written
+   * about a 430px sheet that slid over the console covering the Events panel,
+   * and about a Recovery OVERLAY that opened itself with plan A already
+   * inspected — which read as "a plan was auto-applied on load". Both of those
+   * are decisions the operator did not make.
+   *
+   * Switching a tab in a panel that is already open is a different act. The
+   * column does not change size, nothing is covered, no plan is committed, and
+   * the operator can click straight back to Events. What it does do is answer
+   * the question they just asked: triggering a disruption IS a request to see
+   * what can be done about it, and leaving the result behind an unvisited tab
+   * badge means the console solved four recovery plans and said nothing.
+   *
+   * Guarded by a ref keyed on the plan wave, so it fires ONCE per solve. Without
+   * that, every websocket broadcast during a live disruption would yank the
+   * operator back out of whatever tab they had deliberately opened.
+   */
+  const announcedWave = useRef<string | null>(null)
+  useEffect(() => {
+    if (recoveryPlans.length === 0) {
+      announcedWave.current = null
+      return
+    }
+    // The wave identity is the set of plan ids: a re-solve for a new event
+    // produces a new set, a rebroadcast of the same solve does not.
+    const wave = recoveryPlans.map((p) => p.plan_id).join("|")
+    if (announcedWave.current === wave) return
+    announcedWave.current = wave
+    // Never steal focus from an operator mid-inspection of a specific flight.
+    if (tab === "flight") return
+    setTab("recovery")
+    setColOpen(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recoveryPlans])
+
+  const closeFlight = useCallback(() => {
+    setSelectedFlight(null)
+    setSelectedLiveFlight(null)
+    setTab("events")
+  }, [setSelectedLiveFlight])
+
+  // Keyboard: [ toggles the column, ] toggles the timeline.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "f" && e.key !== "F") return
+      if (e.key !== "[" && e.key !== "]") return
       const t = e.target as HTMLElement | null
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return
       e.preventDefault()
-      const anyOpen = leftOpen || rightOpen
-      setLeftOpen(!anyOpen); setRightOpen(!anyOpen)
+      if (e.key === "[") setColOpen((v) => !v)
+      else setTlOpen((v) => !v)
     }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
-  }, [leftOpen, rightOpen])
-
-  // Nudge Leaflet only when the timeline dock resizes (drawers overlay, so
-  // they never change the map's box).
-  useEffect(() => {
-    const t1 = window.setTimeout(() => window.dispatchEvent(new Event("resize")), 220)
-    const t2 = window.setTimeout(() => window.dispatchEvent(new Event("resize")), 480)
-    return () => { window.clearTimeout(t1); window.clearTimeout(t2) }
-  }, [bottomOpen, mapH.size, leftOpen, rightOpen])
+  }, [])
 
   const handleFlightSelect = (id: string | null) => {
     setSelectedFlight(id)
@@ -170,9 +186,7 @@ export default function SimulatorPage() {
   // on every single load for an unknown length of time without anyone noticing
   // — and, worse, why a dispatcher looking at an empty map could not tell "no
   // disruptions" from "the API is down". Both render identically when the
-  // failure is silent. Degrading gracefully is right; degrading invisibly is
-  // not. `feedErrors` names the feeds that actually failed so the banner can
-  // say which, and `bootNonce` lets Retry re-run them.
+  // failure is silent.
   const [feedErrors, setFeedErrors] = useState<string[]>([])
   const [bootNonce, setBootNonce] = useState(0)
 
@@ -183,12 +197,10 @@ export default function SimulatorPage() {
     const note = (feed: string) => (err: unknown) => {
       if (cancelled) return
       failed.push(feed)
-      // Kept in the console too: the banner tells the operator something is
-      // wrong, the console tells an engineer what.
       console.error(`[aeolus] ${feed} feed failed:`, err)
     }
 
-    const schedule = apiClient
+    const schedulePromise = apiClient
       .get<{ flights?: ScheduledFlight[] } | ScheduledFlight[]>("/simulator/schedule")
       .then((res) => {
         const d = res.data
@@ -204,38 +216,61 @@ export default function SimulatorPage() {
       .then((res) => { const a = res.data?.aircraft; if (a && a.length) setFleet(a) })
       .catch(note("Fleet"))
 
-    // Airport tiers come from the network itself, so adding an airport to the
-    // YAML is enough. The bundled tiers are a genuine fallback, so this one
-    // degrades quietly in the UI — but it is still reported to the console.
     const airports = apiClient
       .get<{ airports?: { id: string; hub_type?: string }[] }>("/airports")
       .then((res) => hydrateAirportTiers(res.data?.airports))
       .catch(note("Airports"))
 
-    void Promise.allSettled([schedule, fleet, airports]).then(() => {
+    void Promise.allSettled([schedulePromise, fleet, airports]).then(() => {
       if (!cancelled) setFeedErrors(failed)
     })
     return () => { cancelled = true }
   }, [setSchedule, setFleet, hydrateStaticFromCache, bootNonce])
 
+  const columnBody = (
+    <ContextColumn
+      tab={tab}
+      onTab={setTab}
+      flightEnabled={flightEnabled}
+      // Only as a sheet. Docked, the column's dismiss is the chevron on its
+      // map-facing edge; a second one in the tab bar would be two controls for
+      // one job at the width where there is room for neither.
+      onClose={narrow ? () => setColOpen(false) : undefined}
+      counts={{
+        events: activeEvents.length,
+        recovery: recoveryPlans.length > 0 && !appliedPlanId ? recoveryPlans.length : undefined,
+      }}
+    >
+      {tab === "events" && (
+        <div style={{ display: "flex", flexDirection: "column", minHeight: 0, flex: 1 }}>
+          {announce && <AnnouncementCard onDismiss={dismissAnnounce} />}
+          <div style={{ flex: 1, minHeight: 0 }}>
+            <EventPanel />
+          </div>
+        </div>
+      )}
+      {tab === "recovery" && (
+        <div style={{ flex: 1, minHeight: 0 }}>
+          <RecoveryPlans selectedFlight={selectedFlight} onFlightSelect={handleFlightSelect} />
+        </div>
+      )}
+      {tab === "flight" && (
+        <FlightDetailPanel
+          live={selectedLiveFlight}
+          scheduled={selectedSched}
+          onClose={closeFlight}
+        />
+      )}
+    </ContextColumn>
+  )
+
   return (
-    // overflow:hidden + fixed height. Measured before: 552px of a 1352px
-    // document (40.8%) sat below the fold at 1280x800, and scrolling to reach
-    // it took BOTH the map and the cascade timeline entirely off screen. An ops
-    // console must not be able to scroll away mid-incident, so the shell is now
-    // exactly one viewport and every region scrolls internally. The two things
-    // that lived down there moved out: the watchlist to its own route, and the
-    // 5-tile deep-link strip was deleted outright (4 of its 5 tiles were second
-    // copies of rail entries that are already permanently on screen).
+    // overflow:hidden + fixed height. An ops console must not be able to scroll
+    // away mid-incident, so the shell is exactly one viewport and every region
+    // scrolls internally.
     <div style={{ background: "var(--ae-bg)", height: "100dvh", overflow: "hidden", display: "flex", flexDirection: "column" }}>
       <DashboardLoader />
 
-      {/* The skip link the <main> landmark below was added FOR. Its comment
-          justified the landmark by saying "skip to main content" had nowhere
-          to go — and then no skip link was ever added, so it still had nowhere
-          to go. It matters more here than on a typical page: the map alone is
-          82 sequential tab stops (every airport, every flight), and without
-          this the only way past it is to hold Tab. */}
       <a
         href="#ae-workspace"
         style={{
@@ -251,15 +286,9 @@ export default function SimulatorPage() {
         Skip to workspace
       </a>
 
-      {/* Plain flex child, no sticky and no z-index. The nav needed z-[700] to
-          win against panels that could ride up over it once the page scrolled;
-          the shell no longer scrolls and the panels are docked tracks, so the
-          collision it was defending against cannot happen. */}
       <div style={{ flexShrink: 0 }}>
         <SimulatorNav isConnected={isConnected} affectedCount={activeEvents.length} />
       </div>
-
-      <AnnouncementBanner />
 
       {/* Degraded-feed banner. role="status" not "alert": the console is still
           usable on cached data, so this informs without seizing focus mid-task.
@@ -301,24 +330,6 @@ export default function SimulatorPage() {
         </div>
       )}
 
-      {/* ── Workspace ────────────────────────────────────────────────────
-          A fixed three-track row: Events | (map over timeline) | Recovery.
-
-          Two inversions from the previous shell, both driven by measurement.
-
-          1. The panels are DOCKED TRACKS, not floating overlays. As overlays
-             at z-640 they covered 62.4% of the map at 1280 with both open (the
-             steady state during a live disruption), 75.8% at 200% zoom, and at
-             200% they overlapped EACH OTHER by 128px because each was capped
-             against the viewport but never against its sibling. Docked, they
-             cannot overlap anything, the map keeps every pixel it is given,
-             and the z-index arbitration disappears.
-          2. The CASCADE TIMELINE takes the remaining height and the MAP is the
-             sized region. Before, the timeline showed 94px of 871px of content
-             — 1.96 of 18 rows, 89.2% hidden — identically at 1280/1440/1920,
-             because all extra viewport went to the basemap. The Gantt is where
-             cause, propagation and time are legible at once; the map answers
-             "where", once per incident. Drag the divider to rebalance. */}
       {/* <main>, not <div>. The console had NO main landmark and zero headings
           across 78 tab stops, so a screen-reader user had no document outline
           to navigate and "skip to main content" had nowhere to go. */}
@@ -327,102 +338,178 @@ export default function SimulatorPage() {
         tabIndex={-1}
         style={{ flex: 1, minHeight: 0, position: "relative", display: "flex", overflow: "hidden" }}
       >
-        {/* Events — docked track, left */}
-        <FloatingPanel
-          side="left" open={leftOpen} accent={EVENT_ACCENT} docked={!tight}
-          title="Events"
-          /* CloudLightning, not Zap: Zap reads "energy/instant", and the
-             event vocabulary this panel triggers is weather, ATC, crew and
-             mechanical disruption. */
-          icon={<CloudLightning style={{ width: 15, height: 15 }} strokeWidth={2} />}
-          onOpen={() => openLeft(true)} onClose={() => openLeft(false)}
-        >
-          <EventPanel />
-        </FloatingPanel>
+        {/* ── Context column ── */}
+        {colOpen && !narrow && (
+          <>
+            <div style={{ width: colW.size, flexShrink: 0, minWidth: 0, height: "100%" }}>
+              {columnBody}
+            </div>
+            <ResizeHandle
+              side="left"
+              onPointerDown={colW.onPointerDown}
+              label="Resize the working panel"
+              value={colW.size}
+              min={COL_W_MIN}
+              max={COL_W_MAX}
+              onValue={colW.setSize}
+            />
+          </>
+        )}
 
-        {/* Centre column — map over timeline */}
-        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
-          {/* MAP — sized when the timeline is open, greedy when it is collapsed */}
+        {/* Overlay sheet at narrow widths. It is a real sibling of the map, not
+            a floating card over it, so it still cannot overlap the map's own
+            controls — it replaces the map's width rather than covering it. */}
+        {colOpen && narrow && (
           <div
             style={{
-              position: "relative",
-              // flexShrink 1 + maxHeight, not a rigid basis: at a 450px-tall
-              // viewport (200% zoom) a fixed 300px map left the timeline 12px
-              // of scroller. The map now yields to the timeline's minHeight
-              // instead of starving it, so the hero stays usable at any height.
-              flex: bottomOpen ? `0 1 ${mapH.size}px` : "1 1 auto",
-              maxHeight: bottomOpen ? "62%" : undefined,
-              minHeight: bottomOpen ? 140 : 0,
-              background: c.surfaceSoft,
+              position: "absolute", inset: 0, zIndex: 800,
+              background: c.canvas,
             }}
           >
+            {columnBody}
+          </div>
+        )}
+
+        {/* ── Map over the cascade timeline ──
+            `inert` while the narrow overlay column is up. The map mounts ~530
+            ADS-B markers and every Nimbus airport as focusable DOM nodes; with
+            the sheet open over them they are invisible but still in the tab
+            order, so a keyboard or screen-reader user landed in several hundred
+            unreachable controls behind a panel. inert removes them from
+            focus, hit-testing and the accessibility tree in one attribute. */}
+        <div
+          // `inert={true}`, not `inert=""`. The empty-string form is the HTML
+          // spelling of a boolean attribute, but React reads it as the STRING
+          // "" and coerces that to false — so the attribute was emitted and did
+          // nothing, and React said so in a console warning that the audit
+          // caught. React 19 supports `inert` as a real boolean prop.
+          inert={colOpen && narrow}
+          aria-hidden={colOpen && narrow ? true : undefined}
+          style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}
+        >
+          <div style={{ flex: 1, minHeight: 120, position: "relative", background: c.surfaceSoft }}>
             <div style={{ position: "absolute", inset: 0 }}>
               <FlightMap selectedFlight={selectedFlight} onFlightSelect={handleFlightSelect} />
             </div>
 
-            {/* Search — centred in the map, which no panel covers any more, so
-                its width no longer has to be computed around the panel edges.
-                The old `clamp(190px, calc(100% - 810px), 430px)` collapsed to
-                its 190px floor below ~1200px of map width and then sat 41%
-                underneath the two panels. */}
+            {/* Search owns the TOP-CENTRE lane and nothing else is allowed in
+                it (design.md). Its width is clamped against the map's own box
+                rather than the viewport, so the instrument column on the right
+                and the panel launcher on the left both stay clear. */}
             <div
+              className="ae-map-search-lane"
               style={{
                 position: "absolute",
-                top: appliedPlanId ? 70 : sp.sm,
+                top: sp.sm,
                 left: "50%",
                 transform: "translateX(-50%)",
-                width: "min(430px, calc(100% - 120px))",
+                // 210px is the instrument column's real footprint (projection
+                // switch 139 + the 64px clearance design.md requires beside it).
+                // Below ~700px of map that subtraction leaves the search too
+                // narrow to clear the switch anyway, so the lane STACKS instead
+                // — see .ae-map-search-lane in globals.css.
+                width: "min(420px, calc(100% - 210px))",
                 zIndex: 520,
-                transition: "top 240ms ease",
               }}
             >
               <FlightSearch selectedFlight={selectedFlight} onSelect={handleFlightSelect} />
             </div>
+
+            {/* Column launcher — bottom-left lane, which no other overlay owns.
+                Visible whenever the column is closed, at every width. */}
+            {!colOpen && (
+              <button
+                type="button"
+                onClick={() => setColOpen(true)}
+                className="ae-map-launcher"
+                style={{
+                  position: "absolute", left: sp.sm, top: sp.sm, zIndex: 530,
+                  display: "inline-flex", alignItems: "center", gap: 8,
+                  height: 38, padding: "0 13px", borderRadius: r.md,
+                  border: `1px solid ${c.hairline}`,
+                  background: "var(--ae-surface)", color: c.ink,
+                  fontFamily: ff.body, fontSize: 12.5, fontWeight: 600, cursor: "pointer",
+                  boxShadow: "var(--ae-shadow-card-elev)",
+                }}
+              >
+                <Layers style={{ width: 15, height: 15 }} strokeWidth={2} />
+                Panel
+                {activeEvents.length > 0 && (
+                  <span
+                    style={{
+                      fontFamily: ff.mono, fontSize: 10, fontWeight: 700,
+                      padding: "2px 5px", borderRadius: 999,
+                      background: "var(--ae-amber-bg)", color: "var(--ae-amber-ink)",
+                    }}
+                  >
+                    {activeEvents.length}
+                  </span>
+                )}
+              </button>
+            )}
+
+            {/* Close control for the column, docked to the column's own edge so
+                it never lands in a map overlay lane. */}
+            {colOpen && !narrow && (
+              <button
+                type="button"
+                onClick={() => setColOpen(false)}
+                aria-label="Collapse the working panel"
+                title="Collapse panel  ["
+                className="ae-map-launcher"
+                style={{
+                  // 26px wide, over the 24px WCAG 2.5.8 floor. It reads as a
+                  // half-tab because its left edge is flush to the column, but
+                  // the target itself still has to be a real one.
+                  position: "absolute", left: 0, top: sp.sm, zIndex: 530,
+                  width: 26, height: 36, borderRadius: "0 8px 8px 0",
+                  display: "inline-flex", alignItems: "center", justifyContent: "center",
+                  border: `1px solid ${c.hairline}`, borderLeft: "none",
+                  background: "var(--ae-surface)", color: c.muted, cursor: "pointer",
+                }}
+              >
+                <PanelBottomClose style={{ width: 13, height: 13, transform: "rotate(90deg)" }} strokeWidth={2} />
+              </button>
+            )}
           </div>
 
-          {/* Divider — drags the MAP's height; the timeline absorbs the rest.
-              Passing value/min/max/onValue makes it a real focusable separator
-              widget: it is the only rebalancing control on the console and it
-              had tabIndex -1 and no key handler, so a keyboard user could not
-              reach it at all. */}
-          {bottomOpen && (
+          {tlOpen && (
             <ResizeHandle
               side="bottom"
-              onPointerDown={mapH.onPointerDown}
-              label="Resize map and cascade timeline"
-              value={mapH.size}
-              min={MAP_H_MIN}
-              max={MAP_H_MAX}
-              onValue={mapH.setSize}
+              onPointerDown={tlH.onPointerDown}
+              label="Resize the cascade timeline"
+              value={tlH.size}
+              min={TL_H_MIN}
+              max={TL_H_MAX}
+              onValue={tlH.setSize}
             />
           )}
 
-          {/* CASCADE TIMELINE — the hero surface */}
           <div
             style={{
-              // basis 0, not auto: with `auto` the timeline claimed its full
-              // CONTENT height (871px of rows) as its flex basis, which put the
-              // row into overflow and shrank the map to its 140px floor at
-              // every viewport. Basis 0 makes it take exactly the remainder.
-              flex: bottomOpen ? "1 1 0%" : "0 0 30px",
-              // ~4 rows of Gantt after its own 98px of header+axis chrome.
-              minHeight: bottomOpen ? 190 : 30,
+              // The timeline is the SIZED region now; the map is greedy. Height
+              // is clamped to 62% so a dragged-tall timeline can never reduce
+              // the map to a strip.
+              height: tlOpen ? Math.min(tlH.size, 620) : TL_COLLAPSED,
+              maxHeight: tlOpen ? "62%" : undefined,
+              flexShrink: 0,
               borderTop: `1px solid ${c.hairline}`,
               background: c.canvas,
               overflow: "hidden",
             }}
           >
-            {bottomOpen ? (
+            {tlOpen ? (
               <div style={{ height: "100%", position: "relative" }}>
                 <button
                   type="button"
-                  onClick={() => setBottomOpen(false)}
-                  aria-label="Collapse timeline"
-                  title="Collapse timeline"
+                  onClick={() => setTlOpen(false)}
+                  aria-label="Collapse the cascade timeline"
+                  title="Collapse timeline  ]"
+                  className="ae-map-launcher"
                   style={{
                     position: "absolute", top: sp.xs, right: sp.sm, zIndex: 30,
-                    width: 36, height: 36, borderRadius: r.sm,
-                    border: `1px solid ${c.hairline}`, background: "var(--ae-surface)",
+                    width: 32, height: 32, borderRadius: r.sm,
+                    border: `1px solid ${c.hairline}`, background: "var(--ae-surface-2)",
                     color: c.muted, cursor: "pointer", display: "inline-flex",
                     alignItems: "center", justifyContent: "center",
                   }}
@@ -434,35 +521,27 @@ export default function SimulatorPage() {
             ) : (
               <button
                 type="button"
-                onClick={() => setBottomOpen(true)}
+                onClick={() => setTlOpen(true)}
+                className="ae-map-launcher"
                 style={{
-                  width: "100%", height: 30, display: "flex", alignItems: "center", gap: sp.xs,
+                  width: "100%", height: TL_COLLAPSED, display: "flex", alignItems: "center", gap: sp.xs,
                   padding: `0 ${sp.md}px`, border: "none", background: "transparent",
                   color: c.body, cursor: "pointer", fontFamily: ff.mono, fontSize: 10.5,
                   letterSpacing: "0.14em", textTransform: "uppercase",
                 }}
               >
-                <PanelBottomClose style={{ width: 13, height: 13, transform: "rotate(180deg)" }} strokeWidth={2} />
+                <PanelBottomOpen style={{ width: 13, height: 13 }} strokeWidth={2} />
                 Cascade timeline — expand
               </button>
             )}
           </div>
         </div>
-
-        {/* Recovery — docked track, right */}
-        <FloatingPanel
-          side="right" open={rightOpen} accent={RECOVERY_ACCENT} width={392} docked={!tight}
-          title="Recovery"
-          /* Waypoints, not LineChart: recovery is aircraft swaps, crew
-             reassignment and passenger rebooking — routing, not analytics. */
-          icon={<Waypoints style={{ width: 15, height: 15 }} strokeWidth={2} />}
-          onOpen={() => openRight(true)} onClose={() => openRight(false)}
-          badge={recoveryPlans.length > 0 && !appliedPlanId ? recoveryPlans.length : undefined}
-        >
-          <RecoveryPlans selectedFlight={selectedFlight} onFlightSelect={handleFlightSelect} />
-        </FloatingPanel>
       </main>
 
+      <style jsx global>{`
+        .ae-map-launcher:hover { background: var(--ae-surface-3) !important; color: var(--ae-text) !important; }
+        .ae-map-launcher:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--ae-focus); }
+      `}</style>
     </div>
   )
 }
