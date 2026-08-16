@@ -90,10 +90,22 @@ const PROBE = `(() => {
   // map markers sitting inert behind it, which is the layout working.
   const inertly = (el) => !!el.closest("[inert]")
 
+  // Visually-hidden text (the sr-only clip pattern) is FOR screen readers, so
+  // its colour never reaches a human eye and its contrast ratio is meaningless.
+  // Reporting it as a failure is noise that buries real findings — a table
+  // caption added for accessibility should not read as an accessibility bug.
+  const srOnly = (el) => {
+    const s = getComputedStyle(el)
+    if (s.clip === "rect(0px, 0px, 0px, 0px)") return true
+    if (s.clipPath === "inset(50%)") return true
+    const r = el.getBoundingClientRect()
+    return r.width <= 1 && r.height <= 1
+  }
+
   const vis = (el) => {
     const s = getComputedStyle(el), r = el.getBoundingClientRect()
     return s.display !== "none" && s.visibility !== "hidden" && parseFloat(s.opacity) > 0.05
-      && r.width > 0 && r.height > 0 && !inertly(el)
+      && r.width > 0 && r.height > 0 && !inertly(el) && !srOnly(el)
   }
   const label = (el) => {
     const t = (el.innerText || el.textContent || "").trim().replace(/\\s+/g," ").slice(0,44)
@@ -153,11 +165,24 @@ const PROBE = `(() => {
     !!el.querySelector(":scope > .leaflet-pane") ||
     el.clientWidth * el.clientHeight > innerWidth * innerHeight * 0.35
 
+  // Map markers overlapping EACH OTHER is data density, not a layout defect —
+  // aircraft converge on hubs, that is what a hub is. Counted separately so a
+  // busy map cannot bury the collisions that are real: a control landing on
+  // another control. Overlap between a marker and a non-marker still counts.
+  const isMapMark = (el) => el.classList.contains("leaflet-marker-icon")
+
   const collisions = []
+  let markerCrowding = 0
   for (let i = 0; i < nodes.length; i++) for (let j = i+1; j < nodes.length; j++) {
     const a = nodes[i], b = nodes[j]
     if (a.el.contains(b.el) || b.el.contains(a.el)) continue
     if (isCanvasPane(a.el) || isCanvasPane(b.el)) continue
+    if (isMapMark(a.el) && isMapMark(b.el)) {
+      const ox0 = Math.min(a.r.right,b.r.right) - Math.max(a.r.left,b.r.left)
+      const oy0 = Math.min(a.r.bottom,b.r.bottom) - Math.max(a.r.top,b.r.top)
+      if (ox0 > 1 && oy0 > 1) markerCrowding++
+      continue
+    }
     const ox = Math.min(a.r.right,b.r.right) - Math.max(a.r.left,b.r.left)
     const oy = Math.min(a.r.bottom,b.r.bottom) - Math.max(a.r.top,b.r.top)
     if (ox <= 1 || oy <= 1) continue
@@ -173,7 +198,7 @@ const PROBE = `(() => {
 
   return {
     contrast: contrast.sort((x,y)=>x.got-y.got),
-    unmeasurable,
+    unmeasurable, markerCrowding,
     small, collisions: collisions.sort((x,y)=>y.frac-x.frac),
     overflowX: document.documentElement.scrollWidth > innerWidth + 1
       ? { scrollWidth: document.documentElement.scrollWidth, inner: innerWidth } : null,
@@ -258,6 +283,7 @@ for (const [key, r] of Object.entries(report)) {
   console.log(`  contrast failures : ${r.contrast.length}`)
   console.log(`  unmeasurable      : ${(r.unmeasurable || []).length}  (gradient/clipped text — check by eye)`)
   console.log(`  collisions        : ${r.collisions.length}`)
+  console.log(`  marker crowding   : ${r.markerCrowding ?? 0}  (map marks over each other — density, not a defect)`)
   console.log(`  sub-24px targets  : ${r.small.length}`)
   console.log(`  horizontal overflow: ${r.overflowX ? JSON.stringify(r.overflowX) : "none"}`)
   for (const c of r.contrast.slice(0, 14))

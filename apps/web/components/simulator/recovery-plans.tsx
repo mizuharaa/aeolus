@@ -166,18 +166,58 @@ function DecisionMatrix({
 
   const cellW = `${Math.floor(100 / (plans.length + 1))}%`
 
+  /**
+   * ROVING TABINDEX over the plan columns.
+   *
+   * The four headers were four separate tab stops and the value cells were
+   * `<td onClick>` with no role, no tabIndex and no key handler — so the
+   * matrix that answers "which plan?" was entirely dead to the keyboard, on a
+   * console where every other segmented control (the context column's tabs)
+   * already implements this pattern. A dispatcher on keyboard could reach the
+   * commit button but could not choose what it would commit.
+   *
+   * Arrow keys move between plans, Home/End jump to the ends, and only the
+   * selected column is in the tab order — so Tab crosses the whole matrix in
+   * one stop instead of four, which is the point of the pattern.
+   */
+  const headRef = useRef<HTMLTableRowElement>(null)
+  const onHeadKeyDown = (e: React.KeyboardEvent) => {
+    const keys = ["ArrowRight", "ArrowLeft", "Home", "End"]
+    if (!keys.includes(e.key)) return
+    const i = plans.findIndex((p) => p.plan_id === selectedId)
+    if (i < 0) return
+    e.preventDefault()
+    const next =
+      e.key === "Home" ? 0
+      : e.key === "End" ? plans.length - 1
+      : e.key === "ArrowRight" ? (i + 1) % plans.length
+      : (i - 1 + plans.length) % plans.length
+    const id = plans[next].plan_id
+    onSelect(id)
+    requestAnimationFrame(() => {
+      headRef.current?.querySelector<HTMLButtonElement>(`[data-plan="${id}"]`)?.focus()
+    })
+  }
+
   return (
     <div style={{ padding: `${sp.sm}px ${sp.sm}px 0` }}>
       <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: ff.mono, fontSize: 11.5 }}>
+        {/* A real caption, visually hidden. The table had none, so a screen
+            reader announced an unlabelled grid of numbers. */}
+        <caption className="ae-sr-only">
+          Recovery plan comparison. {plans.length} plans, {rows.length} metrics.
+          Use the left and right arrow keys on the plan headers to change which
+          plan is inspected.
+        </caption>
         <thead>
-          <tr>
+          <tr ref={headRef} onKeyDown={onHeadKeyDown}>
             <th style={{ width: cellW }} />
             {plans.map((p) => {
               const meta = PLAN_META[p.plan_id as keyof typeof PLAN_META] || PLAN_META.A
               const sel = p.plan_id === selectedId
               const applied = p.plan_id === appliedId
               return (
-                <th key={p.plan_id} style={{ width: cellW, padding: 0 }}>
+                <th key={p.plan_id} scope="col" style={{ width: cellW, padding: 0 }}>
                   {/* Visual weight follows CONSEQUENCE, not curiosity.
                       This was inverted: the INSPECTED tab was a punched-out ink
                       slab — the heaviest treatment in the panel — while the
@@ -188,8 +228,17 @@ function DecisionMatrix({
                       outline, which is what a reversible act should look like. */}
                   <button
                     onClick={() => onSelect(p.plan_id)}
+                    data-plan={p.plan_id}
+                    tabIndex={sel ? 0 : -1}
                     aria-pressed={sel}
                     aria-current={applied ? "true" : undefined}
+                    // The visible label is just the letter, so the accessible
+                    // name has to carry what the letter means and what state
+                    // it is in — "A" alone tells a screen-reader user nothing.
+                    aria-label={
+                      `Plan ${p.plan_id}, ${meta.label}` +
+                      (applied ? ", currently applied" : sel ? ", inspecting" : "")
+                    }
                     title={applied ? `${meta.label} — applied` : `${meta.label} — inspect`}
                     style={{
                       width: "100%",
@@ -244,16 +293,37 @@ function DecisionMatrix({
             const best = row.rankable === false ? NaN : Math.min(...values)
             return (
               <tr key={row.label}>
-                <td style={{ padding: "6px 4px", fontFamily: ff.body, fontSize: 10.5, color: c.muted, borderBottom: `1px solid ${c.hairline}` }}>
+                {/* scope="row": without it a screen reader cannot associate a
+                    value with the metric it measures, so the table reads as a
+                    bare grid of numbers. */}
+                <th
+                  scope="row"
+                  style={{
+                    padding: "6px 4px", textAlign: "left", fontWeight: 400,
+                    fontFamily: ff.body, fontSize: 10.5, color: c.muted,
+                    borderBottom: `1px solid ${c.hairline}`,
+                  }}
+                >
                   {row.label}
-                </td>
+                </th>
                 {plans.map((p, i) => {
                   const isBest = values[i] === best
                   const sel = p.plan_id === selectedId
                   return (
                     <td
                       key={p.plan_id}
+                      // Click-to-select stays, but it is now a SHORTCUT rather
+                      // than the only route: the column header is the real
+                      // control and is keyboard-operable, so these cells do not
+                      // need to be focus stops of their own — 4 plans × 6 rows
+                      // would be 24 extra tab stops for one decision. Marked
+                      // aria-hidden from interaction, not from reading: the
+                      // value still announces as table data.
                       onClick={() => onSelect(p.plan_id)}
+                      // Best is stated in TEXT for assistive tech, because the
+                      // encoding is an underline and a brightness step — both
+                      // invisible to a screen reader.
+                      aria-label={isBest ? `${row.fmt(values[i])}, best in row` : undefined}
                       style={{
                         padding: "6px 2px",
                         textAlign: "center",
@@ -346,6 +416,10 @@ function PlanLedger({
   const [armed, setArmed] = useState(false)
   const confirmRef = useRef<HTMLDivElement>(null)
   const commitRef = useRef<HTMLButtonElement>(null)
+  // Reset when the inspected plan changes — "show all" is a property of the
+  // list you are looking at, not a preference that should follow you to D.
+  const [showAllDelays, setShowAllDelays] = useState(false)
+  useEffect(() => { setShowAllDelays(false) }, [plan.plan_id])
 
   // Mouse users get the old dismiss-on-look-away behaviour without keyboard
   // users losing focus: disarm only when the pointer goes down somewhere that
@@ -656,17 +730,33 @@ function PlanLedger({
             <Clock style={{ width: 12, height: 12, color: c.statusDelayed.ink }} />
             <Eyebrow>Delays ({delayed})</Eyebrow>
           </div>
-          <div style={{ maxHeight: 132, overflowY: "auto", display: "flex", flexDirection: "column", gap: 2 }}>
-            {plan.delayed_flights.slice(0, 30).map((d: any) => {
+          {/* 260px, not 132. At 132 the box showed ~4 of up to 30 rows, so the
+              list was 87% hidden behind a scroll a dispatcher had no reason to
+              suspect. It is the second-largest list in the panel. */}
+          <div style={{ maxHeight: 260, overflowY: "auto", display: "flex", flexDirection: "column", gap: 2 }}>
+            {plan.delayed_flights.slice(0, showAllDelays ? undefined : 30).map((d: any) => {
               const route = flightRoute(d.flight_id)
               return (
-                <div
+                /* A BUTTON, not a div with a click handler.
+                   These 30 rows were `<div onClick>` — no role, no tabIndex,
+                   no key handler, no accessible name — so the delay list was
+                   readable but not operable by keyboard or screen reader, and
+                   its rows announced as plain text with no hint they do
+                   anything. The cancellation chips above are already real
+                   buttons; this list simply never got the same treatment. */
+                <button
                   key={d.flight_id}
+                  type="button"
                   title={route.cities || route.codes || d.flight_id}
                   onClick={() => onFlightSelect(d.flight_id)}
+                  aria-label={`Flight ${d.flight_id}${route.codes ? `, ${route.codes}` : ""}, delayed ${d.delay_minutes} minutes. Inspect.`}
+                  className="ae-plan-row"
                   style={{
                     display: "flex", alignItems: "center", justifyContent: "space-between",
-                    gap: sp.xs, fontSize: 11, borderRadius: r.sm, padding: "4px 8px", cursor: "pointer",
+                    gap: sp.xs, fontSize: 11, borderRadius: r.sm, padding: "5px 8px",
+                    cursor: "pointer", width: "100%", textAlign: "left",
+                    border: "1px solid transparent", background: "transparent",
+                    fontFamily: ff.body,
                   }}
                 >
                   <span style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flex: 1 }}>
@@ -680,10 +770,26 @@ function PlanLedger({
                   <span style={{ fontFamily: ff.mono, fontWeight: 600, color: c.statusDelayed.ink, flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>
                     +{d.delay_minutes}m
                   </span>
-                </div>
+                </button>
               )
             })}
-            {delayed > 30 && <p style={{ fontSize: 10, color: c.muted, padding: "2px 8px" }}>+{delayed - 30} more…</p>}
+            {/* "+N more…" was static text — the remaining flights were simply
+                unreachable, with no control and no explanation. A truncation
+                the operator cannot undo is data loss wearing an ellipsis. */}
+            {delayed > 30 && !showAllDelays && (
+              <button
+                type="button"
+                onClick={() => setShowAllDelays(true)}
+                className="ae-plan-row"
+                style={{
+                  fontSize: 10.5, color: c.link, padding: "5px 8px", textAlign: "left",
+                  border: "1px solid transparent", background: "transparent",
+                  cursor: "pointer", fontFamily: ff.body, fontWeight: 550, width: "100%",
+                }}
+              >
+                Show {delayed - 30} more delayed flights
+              </button>
+            )}
           </div>
         </div>
       )}

@@ -20,7 +20,15 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={cn("font-sans", inter.variable)}>
+    /* suppressHydrationWarning on <html> ONLY.
+       The pre-paint theme script stamps `data-console-theme` on this element
+       before React hydrates, so the client tree legitimately carries an
+       attribute the server tree does not — React reports that as a mismatch it
+       "won't patch up", which is correct and also exactly what we want, since
+       the whole point is that the attribute is decided before React runs.
+       This is the documented pattern for theme scripts. It suppresses ONE
+       level, so real mismatches anywhere inside the app still surface. */
+    <html lang="en" suppressHydrationWarning className={cn("font-sans", inter.variable)}>
       <head>
         {/*
           Browser-extension noise filter — runs before ANY other JavaScript.

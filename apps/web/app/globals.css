@@ -1539,6 +1539,39 @@ html[data-console-theme="light"] .simulator-shell .leaflet-container {
    One rule, and the leak cannot come back whichever way the engine changes. */
 .ae-map-legend:not([open]) > div { display: none; }
 
+/* Visually-hidden text.
+   This existed only inside `landing-experience.module.css`, scoped under
+   `.experience` — so a `.ae-sr-only` used anywhere in the app got NO styles and
+   rendered as ordinary visible text. Caught by the audit: a table caption added
+   for screen readers rendered as dark-on-dark body copy at 1.01:1, i.e. an
+   accessibility addition that became a contrast defect. Defined globally now.
+
+   `clip` rather than `display:none` or `width:0`: hidden text must stay in the
+   accessibility tree, and the clip-rect pattern is the one that does. */
+.ae-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Plan flight rows (delays, swaps). They are real buttons now, so they need
+   the full state set — a control with no hover and no focus ring is one a
+   keyboard user cannot locate and a mouse user cannot tell is a control. */
+.ae-plan-row:hover {
+  background: var(--ae-surface-2) !important;
+  border-color: var(--ae-line) !important;
+}
+.ae-plan-row:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--ae-focus);
+}
+
 /* NOTE: the projection switch's clearance is handled by the
    `.leaflet-control-zoom` margin above, which already reserved this lane. A
    second margin on the CONTAINER here double-counted it and pushed the zoom

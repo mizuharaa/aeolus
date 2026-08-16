@@ -24,7 +24,7 @@ import {
   HeartPulse as HeartPulseIcon, AlertTriangle as AlertTriangleIcon,
   Radio as RadioIcon, Mountain as MountainIcon, ServerCrash as ServerCrashIcon,
 } from "lucide-react"
-import { cascade } from "@/lib/design-tokens"
+import { cascade, cascadeLight } from "@/lib/design-tokens"
 import {
   deadReckon, bearing, distanceNm, cardinal, machFor,
   deriveLive, interp, isoToHour, arcPoints,
@@ -44,7 +44,7 @@ import { GlobeView, type GlobeFlight } from "./globe-view"
 //
 //    teal  = recovery / reroute / brand    amber = the ONE status color
 //    gray  = cancelled / nominal / live    (severity = amber opacity steps)
-const MAP_COLORS = {
+const MAP_DARK = {
   // Plan-applied actions. GREY = "no longer operating" (always paired with
   // the ✕ badge + dashed stroke — never color-alone), TEAL = "re-routed /
   // re-assigned", AMBER = "operating late".
@@ -98,13 +98,18 @@ const MAP_COLORS = {
   // still the quietest mark on the map: ~650 of these must not out-mass the
   // operator's own 15 airports.
   //
-  // #5C90BC, not #3D6B8C. The old value measured 2.05:1 against the filtered
-  // dark_all tile — below the 3:1 non-text floor, and in practice invisible at
-  // the 13px these render. "Quietest mark" has to mean quietest LEGIBLE mark;
-  // a tier so quiet it cannot be seen is not a tier, it is a bug that looks
-  // like restraint. 4.05:1 now, still well under operating blue's 6.62 so the
-  // weight ordering that matters (owned > ambient) is unchanged.
-  live:          "#5C90BC",
+  // The complaint that these were invisible was about SIZE, not this value.
+  // Measured, the old #3D6B8C sits at 2.96:1 on the filtered tile — quiet but
+  // present; what made it unreadable was rendering a swept-wing silhouette at
+  // 13px, where the wing is ~2px. The fix was the size bump in `liveIcon`.
+  //
+  // A first pass overshot to #5C90BC anyway and the gate caught it: at that
+  // value ambient traffic came within 1.06:1 of the SPOKE AIRPORT tier, i.e.
+  // other carriers' aircraft were about to out-mass the operator's own network
+  // — the precise bug (hidden spokes) the spoke-vs-ambient assertion exists to
+  // prevent, reintroduced while trying to fix visibility. #3F6E93 clears 3:1
+  // on the tile and stays 1.69:1 clear of spoke.
+  live:          "#3F6E93",
   liveSelected:  "#B9A3EE",
 
   // Airport tiers — mirrors the API's hub / focus_city / spoke classification
@@ -120,9 +125,113 @@ const MAP_COLORS = {
   weather:       "#D9A441",
 } as const
 
-// Overlay glass — dark register (console panel at high alpha over the tiles).
-const GLASS        = "rgba(20,22,28,0.90)"
-const GLASS_STRONG = "rgba(24,27,34,0.96)"
+/**
+ * The same vocabulary for the LIGHT console register (`light_all` basemap).
+ *
+ * Every value is the dark set's counterpart re-inked DOWN, and the semantics
+ * are unchanged: operating is blue, grey belongs to cancelled alone, hue 204
+ * stays 52° off plum, cancelled is a ghost with a dark edge and a dark glyph.
+ * Only the direction of "louder" flips, because the surface flipped.
+ *
+ * These are the values the map shipped with before the 2026-08-16 register
+ * split, so they carry that pass's contrast work forward rather than being
+ * invented — and `check-contrast.mjs` gates BOTH sets against their own
+ * basemap so neither can drift.
+ */
+const MAP_LIGHT = {
+  planCancelled: "#C9CCC9",
+  planCancelledGlyph: "#333935",
+  planCancelledInk: "#5A625D",
+  planSwap:      "#5B3FA8",
+  planSwapFlow:  "#5B3FA8",
+  planDelayed:   "#B8863C",
+
+  cascadeDirect: cascadeLight.direct.fill,
+  cascadeOrder1: cascadeLight.order1.fill,
+  cascadeOrder2: cascadeLight.order2.fill,
+
+  unaffected:    "#1C6FA8",
+  // Darker than the pre-split #8FB0C9 for the same reason the dark set was
+  // brightened: at 2.15:1 the ambient tier was quiet past the point of being
+  // legible. 3.11:1 keeps it the quietest mark that is still a mark.
+  live:          "#6E93B0",
+  liveSelected:  "#5B3FA8",
+
+  airportHub:    "#0B4F47",
+  airportFocus:  "#2F6D63",
+  airportSpoke:  "#3D6B60",
+  groundStop:    "#9A6420",
+  gdp:           "#B8863C",
+  depDelay:      "#B8863C",
+  eventEpicenter: "#B02E5C",
+  weather:       "#B8863C",
+} as const
+
+/**
+ * THE ACTIVE PALETTE — module-level, swapped by the component before render.
+ *
+ * Leaflet's canvas renderer resolves colours in JS, and the icon factories are
+ * module-level pure functions behind a cache, so a CSS variable cannot reach
+ * them and threading a `theme` parameter would mean changing eight factories
+ * and every one of their ~40 call sites.
+ *
+ * Module-level mutable state is normally a smell; here it is the right shape.
+ * There is exactly one map mounted at a time, the value is a rendering constant
+ * for the whole frame, and `setMapTheme` is called during render before any
+ * icon is built. The one real hazard is the ICON CACHE — it is keyed by string,
+ * so without the theme in the key a light-theme marker would be served from a
+ * dark-theme cache entry. `THEME_KEY` is prefixed into every key for exactly
+ * that reason; see `icon()`.
+ */
+let MAP_COLORS: typeof MAP_DARK = MAP_DARK
+let THEME_KEY = "d"
+/**
+ * The hairline that separates a mark from the basemap behind it.
+ *
+ * It is DARK on the dark chart and LIGHT on the light one — the outline's job
+ * is separation, and an outline that matches the surface it is separating from
+ * does nothing. Getting this backwards is what made the first dark pass look
+ * like a scatter of white o's: a white ring was the brightest thing in the
+ * frame, so the eye landed on the outline rather than on the pigment carrying
+ * the meaning.
+ */
+let MARK_EDGE = "rgba(8,9,12,0.78)"
+let MARK_EDGE_SOFT = "rgba(11,12,16,0.55)"
+/**
+ * Whether marks GLOW.
+ *
+ * Only on the dark chart. A coloured bloom is how a small mark becomes
+ * findable against near-black — light emitted by the pigment that carries the
+ * meaning. On a near-white chart the same bloom has nothing to be brighter
+ * than, so it stops reading as light and starts reading as BLUR: every
+ * aircraft gains a soft fringe and the silhouette's edge, which is what
+ * carries heading, goes soft. Paper marks separate by being darker than the
+ * page, which they already are.
+ */
+let MARK_GLOW = true
+
+function setMapTheme(light: boolean) {
+  const next = light ? (MAP_LIGHT as unknown as typeof MAP_DARK) : MAP_DARK
+  if (next === MAP_COLORS) return
+  MAP_COLORS = next
+  THEME_KEY = light ? "l" : "d"
+  MARK_EDGE = light ? "rgba(255,255,255,0.92)" : "rgba(8,9,12,0.78)"
+  MARK_EDGE_SOFT = light ? "rgba(255,255,255,0.75)" : "rgba(11,12,16,0.55)"
+  MARK_GLOW = !light
+  GLASS        = light ? "rgba(250,250,246,0.92)" : "rgba(20,22,28,0.90)"
+  GLASS_STRONG = light ? "rgba(252,252,249,0.96)" : "rgba(24,27,34,0.96)"
+}
+
+/**
+ * Overlay glass — the surface every floating map card sits on.
+ *
+ * Themed with everything else. These were dark literals, so in light mode the
+ * disruption card, the applied-plan HUD and the projection switch rendered as
+ * near-black slabs on a near-white chart — the last register leak, and the
+ * most visible one because those three overlays sit on top of the map.
+ */
+let GLASS        = "rgba(20,22,28,0.90)"
+let GLASS_STRONG = "rgba(24,27,34,0.96)"
 
 // ── Pure helpers ───────────────────────────────────────────────────────────────
 //
@@ -137,8 +246,13 @@ const GLASS_STRONG = "rgba(24,27,34,0.96)"
 // ── Icon cache ────────────────────────────────────────────────────────────────
 const _cache = new Map<string, L.DivIcon>()
 function icon(key: string, factory: () => L.DivIcon): L.DivIcon {
-  if (!_cache.has(key)) _cache.set(key, factory())
-  return _cache.get(key)!
+  // THEME_KEY is part of the cache key, not decoration. The factories close
+  // over the module-level `MAP_COLORS`, so a cache hit from before a theme
+  // switch would serve a dark-register marker onto a light basemap — and the
+  // cache never expires, so it would do so for the rest of the session.
+  const k = THEME_KEY + "|" + key
+  if (!_cache.has(k)) _cache.set(k, factory())
+  return _cache.get(k)!
 }
 
 /** Selected live flight — teal plane with an expanding radar ring + blink,
@@ -209,7 +323,7 @@ function liveIcon(heading: number | null, sel: boolean, velKt: number | null): L
     const op = slow ? 0.4 : 0.9
     // Hairline is dark on the dark basemap — a white outline at this size
     // doubles the mark's apparent mass and turns 650 contacts into a haze.
-    const stroke = sel ? "rgba(11,12,16,0.85)" : "rgba(11,12,16,0.55)"
+    const stroke = sel ? MARK_EDGE : MARK_EDGE_SOFT
     // The pulse rides in a SEPARATE, un-rotated layer. Nesting it inside the
     // rotated wrapper made the ring inherit the heading transform, so a scale
     // animation on a contact tracking 045° sheared it into an ellipse.
@@ -292,8 +406,10 @@ function simIcon(
      */
     const glowAlpha = sel ? "CC" : cascOrder === 0 || isSwap ? "AA" : "66"
     const glowSize = sel ? 16 : cascOrder === 0 || isSwap ? 11 : 6
-    const glow = isCancelled
-      ? "none"
+    const glow = isCancelled || !MARK_GLOW
+      // Paper still wants a contact shadow so the mark sits ABOVE the chart
+      // rather than being printed into it — just not a coloured bloom.
+      ? (isCancelled ? "none" : "drop-shadow(0 1px 2px rgba(28,20,38,0.35))")
       : `drop-shadow(0 0 ${glowSize}px ${color}${glowAlpha}) drop-shadow(0 1px 2px rgba(0,0,0,0.8))`
 
     // A cancelled leg is a GHOST: dim, desaturated, struck out. It stays
@@ -320,7 +436,7 @@ function simIcon(
         `<div style="position:relative;width:${box}px;height:${box}px;display:flex;align-items:center;justify-content:center;opacity:${opacity}">` +
         selRing +
         `<div style="transform:rotate(${r}deg);line-height:0;filter:${glow}">` +
-        airframeSvg(sz, color, "rgba(8,9,12,0.78)", isCancelled ? 2.4 : 1.8) +
+        airframeSvg(sz, color, MARK_EDGE, isCancelled ? 2.4 : 1.8) +
         `</div>` +
         strike +
         `</div>`,
@@ -359,18 +475,22 @@ type FAAStatus = { type: "ground_stop" | "ground_delay_program" | "departure_del
 /** Radius and pigment per network tier. A spoke is still an airport the
  *  operator owns, so it stays dark enough to read against ambient traffic;
  *  only its size steps down. */
-const TIER_STYLE: Record<AirportTier, { r: number; fill: string }> = {
+// A FUNCTION, not a const table. The previous object read `MAP_COLORS` at
+// module-evaluation time, which froze the dark palette into it — so switching
+// theme re-inked every mark on the map except the airports.
+const TIER_STYLE = (tier: AirportTier): { r: number; fill: string } => ({
   hub:        { r: 9,   fill: MAP_COLORS.airportHub },
   focus_city: { r: 7,   fill: MAP_COLORS.airportFocus },
   spoke:      { r: 5.5, fill: MAP_COLORS.airportSpoke },
-}
+}[tier])
 
 function airportIcon(tier: AirportTier, faa: FAAStatus | undefined, hasWx: boolean, isEvt: boolean, isSel: boolean): L.DivIcon {
   const fk = faa ? `${faa.type}:${faa.delay_minutes}` : "none"
   const key = `ap|${tier}|${fk}|${hasWx}|${isEvt}|${isSel}`
   return icon(key, () => {
-    const r = TIER_STYLE[tier].r
-    let fill: string = TIER_STYLE[tier].fill
+    const style = TIER_STYLE(tier)
+    const r = style.r
+    let fill: string = style.fill
     let ring = "", top = "", bot = ""
     if (faa?.type === "ground_stop") {
       fill = MAP_COLORS.groundStop
@@ -413,7 +533,11 @@ function airportIcon(tier: AirportTier, faa: FAAStatus | undefined, hasWx: boole
       className: "",
       iconSize: [s, s],
       iconAnchor: [s / 2, s / 2],
-      html: `<div style="position:relative;width:${s}px;height:${s}px;display:flex;align-items:center;justify-content:center">${sel}${ring}${top}${bot}<span style="position:relative;width:${r * 2}px;height:${r * 2}px;background:${fill};border:2px solid rgba(8,9,12,0.72);border-radius:9999px;box-shadow:0 0 ${r + 4}px ${fill}88, 0 0 2px ${fill};display:block"></span></div>`,
+      html: `<div style="position:relative;width:${s}px;height:${s}px;display:flex;align-items:center;justify-content:center">${sel}${ring}${top}${bot}<span style="position:relative;width:${r * 2}px;height:${r * 2}px;background:${fill};border:2px solid ${MARK_EDGE};border-radius:9999px;box-shadow:${
+        MARK_GLOW
+          ? `0 0 ${r + 4}px ${fill}88, 0 0 2px ${fill}`
+          : `0 1px 3px rgba(28,20,38,0.32)`
+      };display:block"></span></div>`,
     })
   })
 }
@@ -1187,6 +1311,11 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
   // and the map agrees with whatever the pre-paint script already stamped.
   const { resolved: consoleTheme } = useConsoleTheme()
   const lightBasemap = consoleTheme === "light"
+  // Swap the module-level palette BEFORE any icon factory runs this render.
+  // Called during render rather than in an effect on purpose: an effect fires
+  // after paint, so the first frame after a theme switch would draw every
+  // marker in the outgoing palette.
+  setMapTheme(lightBasemap)
 
   const [view, setView] = useState<"map" | "globe">("map")
   useEffect(() => {

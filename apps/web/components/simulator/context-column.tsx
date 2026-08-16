@@ -99,6 +99,7 @@ export function ContextColumn({
               key={id}
               type="button"
               role="tab"
+              id={`ae-context-tab-${id}`}
               data-tab={id}
               aria-selected={active}
               aria-controls="ae-context-body"
@@ -172,9 +173,14 @@ export function ContextColumn({
         )}
       </div>
 
+      {/* aria-labelledby was missing, so the panel announced as an unnamed
+          region — a screen-reader user landing here was told "tab panel" with
+          no indication of which of the three they were in. */}
       <div
         id="ae-context-body"
         role="tabpanel"
+        aria-labelledby={`ae-context-tab-${tab}`}
+        tabIndex={0}
         style={{ flex: 1, minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}
       >
         {children}

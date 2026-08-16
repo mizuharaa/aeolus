@@ -117,9 +117,49 @@ export const cascade = {
   cancelled: { fill: "#191D24", border: "#7C8494", glyph: "✕" },
 } as const
 
-/** Ink that reads on a given cascade step — only `direct` is light enough to need dark ink now. */
-export const cascadeInk = (step: keyof typeof cascade): string =>
-  step === "direct" ? "#171308" : "#F2F3F7"
+/**
+ * The same ramp for the LIGHT console register.
+ *
+ * Severity runs dark→light here — the direct hit is the HEAVIEST ink, which is
+ * the correct direction on paper and the exact inverse of the dark register's
+ * light→dark. That inversion is the whole reason this is a second table rather
+ * than an alpha or a filter: "most severe" means "furthest from the surface",
+ * and which direction that is depends on the surface.
+ *
+ * The three-step constraint recorded above holds identically, and so does its
+ * resolution: the MIDDLE step is the one that gives, so `order2` is a pale fill
+ * whose darker BORDER carries its 3:1, and `glyph` remains the redundant
+ * channel that survives monochrome and colour blindness in both registers.
+ */
+export const cascadeLight = {
+  direct: { fill: "#3A2408", border: "#3A2408", glyph: "0" },
+  order1: { fill: "#9C6C28", border: "#9C6C28", glyph: "1" },
+  order2: { fill: "#E9D6B6", border: "#7E5A1C", glyph: "2" }, // pale fill, border holds 3:1
+  none:   { fill: "#E8E2D4", border: "#7C7568", glyph: "" },
+  cancelled: { fill: "#EDEAE3", border: "#7C7568", glyph: "✕" },
+} as const
+
+export type CascadeRamp = typeof cascade
+export type CascadeStep = keyof typeof cascade
+
+/** The ramp for a resolved console theme. */
+export const cascadeFor = (light: boolean): CascadeRamp =>
+  (light ? cascadeLight : cascade) as CascadeRamp
+
+/**
+ * Ink that reads ON a given cascade step.
+ *
+ * Which steps need light ink flips with the register, because which steps are
+ * DARK flips with it: on the console only `direct` is bright enough to need
+ * dark ink; on paper `direct` and `order1` are the two dark steps.
+ */
+export const cascadeInkFor = (step: CascadeStep, light: boolean): string =>
+  light
+    ? (step === "direct" || step === "order1" ? "#FFFFFF" : "#1C1426")
+    : (step === "direct" ? "#171308" : "#F2F3F7")
+
+/** Dark-register convenience wrapper, kept for call sites that never theme. */
+export const cascadeInk = (step: CascadeStep): string => cascadeInkFor(step, false)
 
 export const tokens = {
   colors: {

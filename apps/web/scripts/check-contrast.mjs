@@ -220,49 +220,76 @@ line("order-1 -> order-2 fill", "each other", ratio(hex("#9E6726"), hex("#2E2718
 // Sampled from a `dark_all` land tile AFTER --ae-basemap-paper is applied.
 // Measuring against the raw tile would flatter every mark, because the filter
 // lifts the basemap ~6% — so the gate would pass values that fail on screen.
-const BASEMAP = hex("#1A1D24")
-const MARK = {
-  "airport hub":        "#5EE0C6",
-  "airport focus city": "#33B49B",
-  "airport spoke":      "#34A08C",
-  // Operating = blue, cancelled = neutral. Grey must stay unique to cancelled,
-  // so both flying tiers live in the blue family.
-  "flight operating":   "#4FA3E3",
-  "ambient ADS-B":      "#3D6B8C",
-  // Cancelled is a dim slate disc with a BRIGHT dashed border and bright glyph.
-  // As with the ramp's pale step, the border is the figure — testing the fill
-  // would fail a mark that is in fact conformant and "fix" it by making
-  // cancelled loud again.
-  "flight cancelled (border)": "#D5DAE6",
+// BOTH REGISTERS ARE GATED. Light mode ships a full second palette
+// (`MAP_LIGHT` in flight-map.tsx); leaving it ungated would mean the one theme
+// the gate does not check is the one free to drift. This block already had a
+// stale `ambient ADS-B` value the map had moved past — exactly that failure,
+// caught by writing the second half.
+const BASEMAPS = {
+  dark:  { tile: "#1A1D24", cancelledFill: "#39404E" },
+  light: { tile: "#FBF8F3", cancelledFill: "#C9CCC9" },
+}
+const MARKS = {
+  dark: {
+    "airport hub":        "#5EE0C6",
+    "airport focus city": "#33B49B",
+    "airport spoke":      "#34A08C",
+    // Operating = blue, cancelled = neutral. Grey must stay unique to
+    // cancelled, so both flying tiers live in the blue family.
+    "flight operating":   "#4FA3E3",
+    "ambient ADS-B":      "#3F6E93",
+    // Cancelled is a dim disc with a BRIGHT dashed border and bright glyph.
+    // As with the ramp's pale step, the border is the figure — testing the
+    // fill would fail a mark that is in fact conformant and "fix" it by
+    // making cancelled loud again.
+    "flight cancelled (border)": "#D5DAE6",
+  },
+  light: {
+    "airport hub":        "#0B4F47",
+    "airport focus city": "#2F6D63",
+    "airport spoke":      "#3D6B60",
+    "flight operating":   "#1C6FA8",
+    "ambient ADS-B":      "#6E93B0",
+    "flight cancelled (border)": "#333935",
+  },
 }
 
-console.log("\n\n══ map marks vs dark_all basemap #1A1D24 ══\n")
-for (const [name, color] of Object.entries(MARK)) {
-  line(name, "basemap", ratio(hex(color), BASEMAP), name === "ambient ADS-B" ? 1 : 3)
+for (const [theme, marks] of Object.entries(MARKS)) {
+  const { tile, cancelledFill } = BASEMAPS[theme]
+  console.log(`\n\n══ map marks vs ${theme}_all basemap ${tile} ══\n`)
+  for (const [name, color] of Object.entries(marks)) {
+    line(name, "basemap", ratio(hex(color), hex(tile)), name === "ambient ADS-B" ? 1 : 3)
+  }
+  // The bug that hid 11 airports: spoke vs ambient traffic were 1.36:1 apart.
+  line("spoke vs ambient", "each other", ratio(hex(marks["airport spoke"]), hex(marks["ambient ADS-B"])), 1.5)
+  // Operating vs cancelled carries the most consequential distinction on the
+  // map, so it is asserted rather than left to whoever edits the palette next.
+  line("operating vs cancelled fill", "each other", ratio(hex(marks["flight operating"]), hex(cancelledFill)), 1.6)
 }
-// The bug that hid 11 airports: spoke vs ambient traffic were 1.36:1 apart.
-line("spoke vs ambient", "each other", ratio(hex(MARK["airport spoke"]), hex(MARK["ambient ADS-B"])), 1.5)
-// Operating vs cancelled carries the most consequential distinction on the map,
-// so it is asserted rather than left to whoever edits the palette next.
-line("operating vs cancelled fill", "each other", ratio(hex(MARK["flight operating"]), hex("#39404E")), 1.6)
 
 // design.md: "Operating stays LIGHTER than cascade-direct so a nominal flight
 // can never out-weigh a disrupted one." That is an ORDERING, not a ratio, and
 // it was previously only prose — so re-inking either pigment could silently
 // invert the map's weight hierarchy while every ratio above still passed.
 //
-// On the dark register "out-weighs" means BRIGHTER, not darker, so the
-// comparison is on raw luminance rather than on contrast-vs-basemap: both
-// marks are now lighter than the tile, which would make the old ratio form
-// reward whichever is further from the basemap in EITHER direction.
-{
-  const direct = luminance(hex("#FFD07A"))
-  const operating = luminance(hex(MARK["flight operating"]))
-  const ok = direct > operating
+// The comparison is on raw LUMINANCE, not on contrast-vs-basemap, because a
+// ratio form would reward whichever mark is further from the tile in EITHER
+// direction — and the direction is the whole assertion.
+//
+// Which direction counts as "out-weighs" FLIPS with the register: on the dark
+// chart the disrupted mark must be brighter than the nominal one; on paper it
+// must be darker. Getting that backwards would pass a map whose severity
+// encoding is inverted, so both are checked explicitly.
+console.log("")
+for (const [theme, marks] of Object.entries(MARKS)) {
+  const directHex = theme === "light" ? "#3A2408" : "#FFD07A"
+  const direct = luminance(hex(directHex))
+  const operating = luminance(hex(marks["flight operating"]))
+  const ok = theme === "light" ? direct < operating : direct > operating
   if (!ok) failed++
   console.log(
-    `\n${ok ? "  ok  " : "  FAIL"} cascade-direct out-weighs operating blue on the basemap  ` +
-      `(L ${direct.toFixed(3)} > ${operating.toFixed(3)})`,
+    `${ok ? "  ok  " : "  FAIL"} ${theme}: cascade-direct out-weighs operating blue  ` +
+      `(L ${direct.toFixed(3)} ${theme === "light" ? "<" : ">"} ${operating.toFixed(3)})`,
   )
 }
 
