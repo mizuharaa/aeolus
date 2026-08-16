@@ -1111,20 +1111,12 @@ export function EventPanel() {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      {/* Panel header */}
-      <div className="panel-header shrink-0" style={{ paddingLeft: 12, paddingRight: 12 }}>
-        <div
-          className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-          style={{ background: c.surfaceSoft, border: `1px solid ${c.hairline}` }}
-        >
-          <Zap className="w-3.5 h-3.5" style={{ color: c.ink }} />
-        </div>
-        <div>
-          <div className="section-title">Event Control</div>
-          <div className="text-[11px] text-muted-foreground mt-0.5">22 disruption types · live NAS feed</div>
-        </div>
-      </div>
-
+      {/* No "Event Control" panel header any more.
+          The context column already names this panel in its tab, so the header
+          was a second title for the same thing — 56px of vertical space, above
+          a tab bar, above a list, inside a column that is itself inside a
+          tabbed shell. Its one piece of real content (the type count and feed
+          source) survives as a caption under the tab bar. */}
       <div className="flex-1 flex flex-col min-h-0">
 
         {/* Tab bar — clean segmented control (replaces the shadcn Tabs whose
@@ -1153,7 +1145,12 @@ export function EventPanel() {
                     height: 30, borderRadius: 8, border: "none", cursor: "pointer",
                     fontFamily: ff.body, fontSize: 12.5, fontWeight: on ? 650 : 500,
                     background: on ? "var(--ae-teal)" : "transparent",
-                    color: on ? "#FFFFFF" : c.muted,
+                    // DARK ink on the plum fill, not white. On the console
+                    // register --ae-teal is #9B7FE0, a LIGHT plum chosen to
+                    // read against a near-black floor — white on it measured
+                    // 3.23:1, under AA. Ink reads 5.75:1 and is also the
+                    // correct treatment for a filled control.
+                    color: on ? "#12101A" : c.muted,
                     boxShadow: on ? "0 2px 8px -3px var(--ae-teal)" : "none",
                     transition: "background 160ms ease, color 160ms ease, box-shadow 160ms ease",
                   }}
@@ -1162,7 +1159,11 @@ export function EventPanel() {
                   {t.key === "active" && activeEvents.length > 0 && (
                     <span
                       className="text-[11px] font-bold rounded-full w-4 h-4 inline-flex items-center justify-center shrink-0"
-                      style={{ background: on ? "rgba(255,255,255,0.28)" : "var(--ae-teal)", color: "#FFFFFF" }}
+                      style={
+                        on
+                          ? { background: "rgba(18,16,26,0.22)", color: "#12101A" }
+                          : { background: "var(--ae-teal)", color: "#12101A" }
+                      }
                     >
                       {activeEvents.length}
                     </span>
@@ -1170,6 +1171,11 @@ export function EventPanel() {
                 </button>
               )
             })}
+          </div>
+          {/* The one piece of content the removed panel header actually
+              carried: what this list is and where it comes from. */}
+          <div className="text-[11px] mt-1.5 px-0.5" style={{ color: c.muted }}>
+            22 disruption types · live NAS feed
           </div>
         </div>
 

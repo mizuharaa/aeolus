@@ -180,9 +180,13 @@ export function NotificationBell() {
             style={{
               position: "absolute", top: -5, right: -5, minWidth: 16, height: 16, padding: "0 4px",
               borderRadius: 99, background: imminent.length > 0 ? "var(--ae-teal)" : "var(--ae-amber)",
-              color: imminent.length > 0 ? "#fff" : "#141019", fontSize: 11, fontWeight: 700, fontFamily: ff.mono,
+              // Dark ink on BOTH pigments. On the console register --ae-teal is
+              // #9B7FE0 — a light plum picked to read against a near-black
+              // floor — so white on it measured 3.23:1, under AA for an 11px
+              // count. Both pigments are light here, so both take ink.
+              color: "#12101A", fontSize: 11, fontWeight: 700, fontFamily: ff.mono,
               display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1,
-              boxShadow: "0 0 0 2px var(--ae-bg)",
+              boxShadow: "0 0 0 2px var(--ae-surface)",
             }}
           >
             {badge > 99 ? "99+" : badge}

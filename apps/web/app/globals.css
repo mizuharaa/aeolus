@@ -40,21 +40,29 @@
     --ae-rose:  #C13A6B;           /* disruption rose */
     --ae-pink:  var(--ae-rose);
 
-    /* ── Light register — warm paper, plum-ink type ──────────────── */
-    --ae-bg:            #F5F1E8;
+    /* ── Light register — warm paper, plum-ink type ────────────────
+       DEEPENED 2026-08-16. The four surfaces used to sit inside a 4%
+       lightness band (1.04–1.07:1 between consecutive steps), so a card
+       could not be told from the floor it rested on and the paper read
+       as one flat field — the same defect that made the console fog,
+       just less obvious under full-bleed landing imagery. The steps now
+       clear 1.12:1, asserted by check-contrast.mjs's SEPARATION block.
+       Deepening the mid-tones is also what gives the beige some body
+       instead of washing everything toward off-white. */
+    --ae-bg:            #F2EDE1;
     --ae-surface:       #FFFEF9;
-    --ae-surface-2:     #EFE9DB;
-    --ae-surface-3:     #E5DCC8;
-    --ae-line:          rgba(28, 20, 38, 0.12);
-    --ae-line-strong:   rgba(28, 20, 38, 0.30);
+    --ae-surface-2:     #E6DCC6;
+    --ae-surface-3:     #D3C4A4;
+    --ae-line:          rgba(28, 20, 38, 0.14);
+    --ae-line-strong:   rgba(28, 20, 38, 0.34);
     --ae-text:          #1C1426;
-    --ae-text-2:        #5A5147;
-    /* Was #8C8272, which failed WCAG AA against every surface it lands on
-       (3.13–3.75:1 across 14 distinct pairs — every contrast failure in the
-       console traced to this one value). #675E4E holds the same warm-gray
-       character and clears 4.5:1 even on --ae-surface-3, the darkest floor it
-       sits on. Verified by apps/web/scripts/check-contrast.mjs. */
-    --ae-text-3:        #675E4E;
+    /* Both text steps re-inked DOWN alongside the surfaces. The deeper
+       --ae-surface-3 (#D3C4A4) is the darkest floor either lands on, and
+       at the old values they measured 4.49:1 and 3.66:1 there — i.e.
+       deepening the paper without re-inking the type would have traded
+       one contrast failure for another. Verified by check-contrast.mjs. */
+    --ae-text-2:        #564D43;
+    --ae-text-3:        #56503F;
 
     --ae-primary:        #1C1426;
     --ae-primary-active: #5B3FA8;
@@ -136,76 +144,121 @@
     --sidebar-ring:   oklch(0.708 0 0);
   }
 
-  /* ── App register — the simulator. Same daylight family, slightly
-     denser floor so panels/cards sit white-on-blue. The class name
-     .register-dark is historical; values are BRIGHT now. ─────────── */
-  .register-dark {
-    --ae-bg:            #F2EDE2;
-    --ae-surface:       #FFFEF9;
-    --ae-surface-2:     #EAE3D2;
-    --ae-surface-3:     #DFD4BC;
-    --ae-line:          rgba(28, 20, 38, 0.12);
-    --ae-line-strong:   rgba(28, 20, 38, 0.30);
-    --ae-text:          #1C1426;
-    --ae-text-2:        #5A5147;
-    /* Was #8C8272, which failed WCAG AA against every surface it lands on
-       (3.13–3.75:1 across 14 distinct pairs — every contrast failure in the
-       console traced to this one value). #675E4E holds the same warm-gray
-       character and clears 4.5:1 even on --ae-surface-3, the darkest floor it
-       sits on. Verified by apps/web/scripts/check-contrast.mjs. */
-    --ae-text-3:        #675E4E;
+  /* ── App register — THE OPS CONSOLE. Near-black, plum-tinted. ──────
+     Decision record 2026-08-16 (see design.md). This class previously
+     held a set of BRIGHT values within 4% lightness of :root, and — the
+     reason the console read as fog — it was never applied to anything.
+     `.simulator-shell` carried no register at all, so every /simulator
+     surface inherited the landing's warm paper. Both selectors are bound
+     here so the console cannot silently fall back to paper again.
 
-    --ae-primary:        #5B3FA8;
-    --ae-primary-active: #46307F;
+     Why dark: the console is a monitoring surface read for hours in a
+     dim ops room, and its job is to make a handful of coloured marks —
+     cascade severity, operating aircraft, disrupted airports — jump off
+     the floor. On paper those marks had to fight a 21:1 surface for
+     attention; on a near-black floor they own every bit of contrast in
+     the frame. The landing keeps its paper register; this is a
+     DELIBERATE two-world split, reversing the 2026-07-15 record.
+
+     The floor is plum-tinted (hue 232, not neutral grey) so the console
+     stays in the Aeolus family rather than defaulting to the generic
+     charcoal every admin template ships. ──────────────────────────── */
+  .register-dark,
+  .simulator-shell {
+    /* Four surfaces, each a real step apart — the separation the paper
+       register never had. Asserted by check-contrast.mjs's SEPARATION
+       block, which is the check whose absence let the fog through: every
+       text pair passed AA while the surfaces sat inside 4% of each other,
+       so nothing on the console had a figure or a ground. */
+    /* Near-black compresses contrast ratios hard — WCAG's +0.05 constant
+       dominates when luminance is ~0.005, so two visibly different dark
+       greys can measure 1.05:1. The steps below are spaced to clear
+       1.12:1 anyway, which is what makes a panel read as sitting ON the
+       floor rather than being painted into it. */
+    --ae-bg:            #08090C;  /* console floor */
+    --ae-surface:       #16181F;  /* docked panel, card */
+    --ae-surface-2:     #202530;  /* recessed well, tab bar */
+    --ae-surface-3:     #2D3342;  /* track fill, raised row */
+    --ae-line:          rgba(233, 236, 245, 0.11);
+    /* 0.42, not 0.26. --ae-line-strong bounds real controls, so 1.4.11
+       applies to it; at 0.26 it measured 1.89:1 over --ae-surface-3. */
+    --ae-line-strong:   rgba(233, 236, 245, 0.42);
+
+    --ae-text:          #F2F3F7;
+    --ae-text-2:        #C3C8D6;
+    /* Clears 4.5:1 on --ae-surface-3 (#2D3342), the LIGHTEST floor it can
+       land on, at 4.82:1. The paper register's equivalent value was the
+       single source of 14 of 15 WCAG failures, so this one is chosen
+       against the worst case rather than the common one. */
+    --ae-text-3:        #9BA2B4;
+
+    --ae-primary:        #7C5CD6;
+    --ae-primary-active: #9B7FE0;
     --ae-on-primary:     #FFFFFF;
 
-    --ae-sky-ink:   #553B9E;
-    --ae-teal-ink:  #46307F;
-    --ae-amber-ink: #7A5A22;
+    /* Pigments re-inked UP for the dark floor. The paper register's plum
+       (#5B3FA8) reads 1.9:1 on #14161C — it would be a hole, not a mark. */
+    --ae-sky:   #A78BE8;
+    --ae-teal:  #9B7FE0;
+    --ae-amber: #D9A441;
+    --ae-rust:  var(--ae-amber);
+    --ae-rose:  #E5628E;
+    --ae-pink:  var(--ae-rose);
+
+    --ae-sky-ink:   #C3B0F0;
+    --ae-teal-ink:  #B9A3EE;
+    --ae-amber-ink: #E8BE6B;
     --ae-rust-ink:  var(--ae-amber-ink);
-    --ae-rose-ink:  #A02458;
+    --ae-rose-ink:  #F58FB0;
 
-    --ae-sky-bg:     rgba(139, 111, 208, 0.14);
-    --ae-teal-bg:    rgba(91, 63, 168, 0.10);
-    --ae-amber-bg:   rgba(184, 134, 60, 0.15);
+    /* Tints are LIGHTER than the surface here, not darker — a 10% wash of
+       pigment over near-black is invisible, so these lift instead. */
+    --ae-sky-bg:     rgba(167, 139, 232, 0.16);
+    --ae-teal-bg:    rgba(155, 127, 224, 0.16);
+    --ae-amber-bg:   rgba(217, 164, 65, 0.18);
     --ae-rust-bg:    var(--ae-amber-bg);
-    --ae-rose-bg:    rgba(193, 58, 107, 0.10);
-    --ae-neutral-bg: rgba(28, 20, 38, 0.05);
-    --ae-amber-soft:  rgba(184, 134, 60, 0.55);
-    --ae-amber-soft2: rgba(184, 134, 60, 0.30);
-    --ae-rose-soft:   rgba(193, 58, 107, 0.55);
-    --ae-rose-soft2:  rgba(193, 58, 107, 0.30);
+    --ae-rose-bg:    rgba(229, 98, 142, 0.16);
+    --ae-neutral-bg: rgba(233, 236, 245, 0.07);
+    --ae-amber-soft:  rgba(217, 164, 65, 0.55);
+    --ae-amber-soft2: rgba(217, 164, 65, 0.28);
+    --ae-rose-soft:   rgba(229, 98, 142, 0.55);
+    --ae-rose-soft2:  rgba(229, 98, 142, 0.28);
 
-    /* Was rgba(91,63,168,0.35), which composites to #C6BBDD = 1.80:1 — under
-       the 3:1 WCAG 1.4.11 minimum for a non-text indicator, i.e. a focus ring
-       a low-vision keyboard user cannot see. Solid plum reads 5.66:1 at worst. */
-    --ae-focus: #5B3FA8;
+    /* 5.54:1 against the panel surface as a solid non-text mark. */
+    --ae-focus: #9B7FE0;
 
-    --ae-shadow-button:    0 1px 2px rgba(28, 20, 38, 0.12);
-    --ae-shadow-card:      0 1px 2px rgba(28, 20, 38, 0.06);
-    --ae-shadow-card-elev: 0 8px 28px rgba(28, 20, 38, 0.12);
-    --ae-shadow-overlay:   0 16px 48px rgba(28, 20, 38, 0.18);
+    /* On a near-black floor a cast shadow does nothing — elevation has to
+       come from the surface step plus a hairline top-edge highlight. These
+       stay defined so call sites keep working, but they are deliberately
+       near-invisible; `--ae-edge` is what actually lifts a card. */
+    --ae-edge:             inset 0 1px 0 rgba(255, 255, 255, 0.055);
+    --ae-shadow-button:    0 1px 2px rgba(0, 0, 0, 0.5);
+    --ae-shadow-card:      0 1px 3px rgba(0, 0, 0, 0.45);
+    --ae-shadow-card-elev: 0 10px 34px rgba(0, 0, 0, 0.55);
+    --ae-shadow-overlay:   0 24px 64px rgba(0, 0, 0, 0.68);
 
-    /* shadcn bridge — paper floor, plum action */
-    --background:   43 38% 92%;
-    --foreground:   266 30% 11%;
-    --card:         50 100% 99%;
-    --card-foreground: 266 30% 11%;
-    --primary:      256 45% 45%;           /* plum action */
+    /* shadcn bridge — console floor, plum action */
+    --background:   228 17% 6%;
+    --foreground:   228 25% 96%;
+    --card:         228 16% 10%;
+    --card-foreground: 228 25% 96%;
+    --popover:      228 16% 12%;
+    --popover-foreground: 228 25% 96%;
+    --primary:      258 60% 60%;
     --primary-foreground: 0 0% 100%;
-    --secondary:    43 34% 87%;
-    --secondary-foreground: 266 30% 11%;
-    --muted:        43 34% 87%;
-    --muted-foreground: 40 12% 40%;
-    --accent:       43 32% 82%;
-    --accent-foreground: 266 30% 11%;
-    --destructive:  339 58% 42%;
+    --secondary:    228 15% 14%;
+    --secondary-foreground: 228 25% 96%;
+    --muted:        228 15% 14%;
+    --muted-foreground: 224 13% 63%;
+    --accent:       228 14% 18%;
+    --accent-foreground: 228 25% 96%;
+    --destructive:  339 72% 64%;
     --destructive-foreground: 0 0% 100%;
-    --border:       266 30% 11% / 0.12;
-    --input:        266 30% 11% / 0.16;
-    --ring:         256 45% 45%;
+    --border:       228 20% 96% / 0.10;
+    --input:        228 20% 96% / 0.16;
+    --ring:         258 62% 71%;
 
-    color-scheme: light;
+    color-scheme: dark;
   }
 
   html { color-scheme: light;
@@ -448,7 +501,11 @@
    ══════════════════════════════════════════════════════════════════ */
 
 .leaflet-container {
-  background: #CBE3F5 !important;   /* voyager water tone */
+  /* The colour behind un-loaded tiles. It must match the basemap's OWN water
+     tone or every pan flashes a band of the wrong world at the leading edge —
+     this was `#CBE3F5`, a pale voyager blue, which on the dark register flared
+     as a bright strip on each drag. */
+  background: #10131A !important;
   font-family: var(--ae-font-body);
 }
 
@@ -498,14 +555,62 @@
 .simulator-map-shell .leaflet-tile-pane {
   filter: var(--ae-basemap-paper);
 }
-/* Restrained on purpose. sepia(0.62) with brightness(1.05) was tried and it
-   read as a sepia PHOTOGRAPH — the whole basemap washed to one cream tone and
-   Positron's land/water separation, which is carried almost entirely by
-   lightness, went with it. The basemap has to stay a legible chart first and a
-   warm one second, so this tints without lifting: no brightness gain, and a
-   touch of contrast to protect the coastline. */
+/* Restrained on purpose, and for the same reason as the paper version it
+   replaces: the basemap has to stay a legible chart FIRST and an in-register
+   one second. `dark_all` carries its land/water separation almost entirely in
+   lightness, so this must not crush it — hence no brightness cut and only a
+   light contrast trim. `hue-rotate` pulls CARTO's neutral charcoal a few
+   degrees toward the console's plum floor so the map belongs to the panel it
+   sits in instead of reading as a black rectangle pasted on top.
+
+   The earlier sepia value is kept below under `.lp` because the LANDING still
+   runs a paper register and still renders a Positron globe plate. */
 :root {
   --ae-basemap-paper: sepia(0.30) saturate(0.68) brightness(0.995) contrast(1.06);
+}
+.register-dark,
+.simulator-shell {
+  --ae-basemap-paper: saturate(0.72) contrast(1.08) hue-rotate(-8deg) brightness(1.06);
+}
+
+/* Selected-aircraft pulse. Two rings on one element (box-shadow + the
+   pseudo-element ring) so the mark reads as ACTIVE without moving the aircraft
+   itself — a scale on the marker would fight Leaflet's own zoom transform and
+   drift the contact off its true position, which on a flight-tracking surface
+   is a correctness bug, not a visual one. */
+.ae-plane-mark { position: relative; }
+.ae-plane-pulse {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 12px; height: 12px;
+  margin: -6px 0 0 -6px;
+  border-radius: 9999px;
+  border: 1.5px solid var(--ae-pulse, #B9A3EE);
+  pointer-events: none;
+  animation: ae-plane-pulse 1.9s cubic-bezier(0.22, 0.9, 0.28, 1) infinite;
+}
+@keyframes ae-plane-pulse {
+  0%   { transform: scale(0.6); opacity: 0.9; }
+  70%  { transform: scale(3.2); opacity: 0; }
+  100% { transform: scale(3.2); opacity: 0; }
+}
+/* The ring is pure decoration on a mark whose selected state is ALSO carried by
+   colour, size and the open detail card, so removing it costs no information. */
+@media (prefers-reduced-motion: reduce) {
+  .ae-plane-pulse { animation: none; transform: scale(1.9); opacity: 0.5; }
+}
+
+/* The search lane STACKS below the instrument column once the map is too
+   narrow for them to sit side by side. Measured at 390px: the switch spans
+   x 251–378 and the centred search spanned x 105–285, a 34px overlap in which
+   `elementFromPoint` returned NEITHER control — so at the width where the
+   console is hardest to use, two of its primary controls were fighting for the
+   same pixels. Stacking costs 46px of map and makes both reachable. */
+@media (max-width: 880px) {
+  .ae-map-search-lane {
+    top: 58px !important;
+    width: calc(100% - 24px) !important;
+  }
 }
 
 .leaflet-bar a {
@@ -562,14 +667,24 @@
 .leaflet-tooltip-left:before,
 .leaflet-tooltip-right:before { display: none; }
 
+/* Attribution. The hard-coded white wash was the last light-register surface
+   left on the console — it rendered as a bright chip in the map's bottom-right
+   corner, and the audit measured its link text at 1.46:1 against it because
+   the TEXT followed the register while the BACKGROUND did not. Both come from
+   tokens now, so it can never desync again.
+
+   `--ae-text-2`, not `--ae-text-3`: attribution is a legal credit with real
+   links in it, so it has to clear AA rather than sit at caption weight. */
 .leaflet-control-attribution {
-  background: rgba(255, 255, 255, 0.75) !important;
+  background: color-mix(in srgb, var(--ae-surface) 88%, transparent) !important;
   font-size: 10px !important;
   padding: 2px 6px !important;
   border-radius: 6px !important;
-  color: var(--ae-text-3) !important;
+  color: var(--ae-text-2) !important;
+  border: 1px solid var(--ae-line);
 }
-.leaflet-control-attribution a { color: var(--ae-text-3) !important; }
+.leaflet-control-attribution a { color: var(--ae-text-2) !important; }
+.leaflet-control-attribution a:hover { color: var(--ae-teal-ink) !important; }
 
 /* ══════════════════════════════════════════════════════════════════
    Scrollbars

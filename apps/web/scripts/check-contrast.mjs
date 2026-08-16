@@ -1,5 +1,5 @@
 /**
- * WCAG contrast check for the Aeolus token set.
+ * WCAG contrast check for the Aeolus token set — BOTH registers.
  *
  * The console's contrast failures all traced back to token VALUES, not to
  * one-off styling, so the tokens are what gets checked. Run it after touching
@@ -9,6 +9,26 @@
  *
  * Exits non-zero if any declared pair falls under its threshold, so it works
  * as a pre-commit or CI gate.
+ *
+ * ── 2026-08-16: SURFACE SEPARATION, and why this file kept saying "fine" ──
+ *
+ * A live audit of the console reported ZERO text-contrast failures while the
+ * screen was, in the user's words, at "subzero contrast". Both things were
+ * true. Every foreground/background PAIR passed AA in isolation, because that
+ * is the only question this file used to ask — and the four surfaces those
+ * pairs were drawn on (#F5F1E8 / #FFFEF9 / #EFE9DB / #E5DCC8) sat inside a 4%
+ * lightness band. A panel could not be told from the floor it rested on, a tab
+ * well could not be told from its bar, and the map could not be told from the
+ * page. There was no figure and no ground anywhere on the surface.
+ *
+ * WCAG has nothing to say about this: 1.4.3 governs text against ITS OWN
+ * background and 1.4.11 governs a control's boundary, so a design can pass
+ * both completely while being unreadable as a LAYOUT. That is a real blind
+ * spot in the standard, and the fix is not to relax the text checks but to add
+ * the check the standard omits. SEPARATION below asserts that consecutive
+ * surfaces in the elevation stack differ by at least a minimum ratio, so a
+ * future re-ink cannot collapse the console back into fog while this gate
+ * reports success.
  */
 
 const hex = (h) => {
@@ -33,133 +53,195 @@ const ratio = (a, b) => {
   return (l1 + 0.05) / (l2 + 0.05)
 }
 
-// ── The surfaces text actually lands on, darkest last ───────────────────
-const SURFACE = {
-  "--ae-surface":   hex("#FFFEF9"),
-  "--ae-bg":        hex("#F5F1E8"),
-  "--ae-surface-2": hex("#EFE9DB"),
-  "--ae-surface-3": hex("#E5DCC8"),
-}
-
-// ── Foregrounds under test ──────────────────────────────────────────────
-const TEXT = {
-  "--ae-text":   "#1C1426",
-  "--ae-text-2": "#5A5147",
-  "--ae-text-3": "#675E4E", // was #8C8272 — failed AA on every surface
-}
-
-// Non-text UI: focus ring and the cascade severity ramp.
-//
-// The old ramp was one amber at three ALPHA steps, which is unfixable: any
-// alpha low enough to read as "less severe" is also low enough to fail 3:1.
-// This ramp varies lightness instead.
-//
-// What is checked here is the value that BOUNDS each shape, which is what
-// 1.4.11 is actually about — a shape is discernible if its boundary is. The
-// two lightest steps intentionally pair a pale fill with a darker border
-// (`cascade.order2` / `cascade.none` in lib/design-tokens.ts), so the border
-// is the meaningful figure and the fill only carries the ordering. Testing
-// their fills instead would fail a design that is in fact conformant, and
-// "fix" it by flattening the severity ramp back into one dark band.
-const GRAPHIC = {
-  "--ae-focus (solid plum)": { color: "#5B3FA8", alpha: 1 },
-  "cascade direct":          { color: "#3A2408", alpha: 1 },
-  "cascade order-1":         { color: "#9C6C28", alpha: 1 },
-  "cascade order-2 border":  { color: "#7E5A1C", alpha: 1 },
-  "cascade none border":     { color: "#7C7568", alpha: 1 },
-}
-
-// The ramp's ADJACENT STEPS, which is the check this file was missing.
-//
-// Every step used to pass the block above — each one individually cleared 3:1
-// against the paper — while the ramp as a whole was invisible, because nothing
-// asserted that consecutive steps differ from EACH OTHER. Measured on the old
-// values: 1.61:1 and 1.53:1, with a full span of 2.47:1. A severity ramp whose
-// neighbours are 1.5:1 apart is one colour with extra steps, and the gate said
-// it was fine. Ordering is what this encoding means, so ordering is gated.
-const RAMP = [
-  ["direct", "#3A2408"],
-  ["order-1", "#9C6C28"],
-  ["order-2 fill", "#E9D6B6"],
-]
-
-// Map marks are judged against the basemap, not a token surface.
-const BASEMAP = hex("#FBF8F3")
-const MARK = {
-  "airport hub":        "#0B4F47",
-  "airport focus city": "#2F6D63",
-  "airport spoke":      "#4A5D55",
-  // Operating = blue, cancelled = grey. Grey must stay unique to cancelled, so
-  // both flying tiers live in the blue family.
-  "flight operating":   "#1C6FA8",
-  "ambient ADS-B":      "#8FB0C9",
-  // Cancelled is a pale disc with a dark dashed border and a dark glyph. As
-  // with the cascade ramp's light steps, the BORDER is the figure here — a
-  // pale fill is the point, so testing the fill would fail a mark that is in
-  // fact conformant and "fix" it by making cancelled loud again.
-  "flight cancelled (border)": "#333935",
-}
-
 let failed = 0
 const line = (name, target, r, min) => {
   const ok = r >= min
   if (!ok) failed++
   console.log(
-    `${ok ? "  ok  " : "  FAIL"} ${name.padEnd(26)} on ${target.padEnd(16)} ${r.toFixed(2).padStart(6)} : 1  (min ${min})`,
+    `${ok ? "  ok  " : "  FAIL"} ${name.padEnd(30)} on ${target.padEnd(18)} ${r.toFixed(2).padStart(6)} : 1  (min ${min})`,
   )
 }
 
-console.log("\nText — AA requires 4.5:1\n")
-for (const [name, color] of Object.entries(TEXT)) {
-  for (const [sName, s] of Object.entries(SURFACE)) line(name, sName, ratio(hex(color), s), 4.5)
+// ══════════════════════════════════════════════════════════════════════
+// Register definitions. Both are checked on every run — the paper register
+// still ships on the landing, docs and legal pages.
+// ══════════════════════════════════════════════════════════════════════
+
+const REGISTERS = {
+  "paper (:root — landing, docs, legal)": {
+    // Surfaces text actually lands on, in ELEVATION ORDER (floor first).
+    surfaces: {
+      "--ae-bg":        "#F2EDE1",
+      "--ae-surface-2": "#E6DCC6",
+      "--ae-surface-3": "#D3C4A4",
+      "--ae-surface":   "#FFFEF9",
+    },
+    // The order separation is measured along. `--ae-surface` is the card and
+    // sits ABOVE the floor even though it is lighter, so the stack is compared
+    // as floor → well → track and card → floor separately.
+    stack: ["--ae-bg", "--ae-surface-2", "--ae-surface-3"],
+    card: ["--ae-surface", "--ae-bg"],
+    text: {
+      "--ae-text":   "#1C1426",
+      "--ae-text-2": "#564D43",
+      "--ae-text-3": "#56503F", // was #8C8272 — failed AA on every surface
+    },
+    graphic: {
+      "--ae-focus (solid plum)": "#5B3FA8",
+    },
+  },
+
+  "console (.simulator-shell — the ops app)": {
+    surfaces: {
+      "--ae-bg":        "#08090C",
+      "--ae-surface":   "#16181F",
+      "--ae-surface-2": "#202530",
+      "--ae-surface-3": "#2D3342",
+    },
+    stack: ["--ae-bg", "--ae-surface", "--ae-surface-2", "--ae-surface-3"],
+    card: ["--ae-surface", "--ae-bg"],
+    text: {
+      "--ae-text":   "#F2F3F7",
+      "--ae-text-2": "#C3C8D6",
+      "--ae-text-3": "#9BA2B4",
+    },
+    graphic: {
+      "--ae-focus (plum)":   "#9B7FE0",
+      "--ae-teal (graphic)": "#9B7FE0",
+      "--ae-amber":          "#D9A441",
+      "--ae-rose":           "#E5628E",
+      // rgba(233,236,245,0.42) composited over --ae-surface-3, the LIGHTEST
+      // surface it lands on and therefore its worst case.
+      "--ae-line-strong":    "#7C818D",
+    },
+  },
 }
 
-console.log("\nNon-text UI — WCAG 1.4.11 requires 3:1\n")
-for (const [name, { color, alpha }] of Object.entries(GRAPHIC)) {
-  for (const [sName, s] of Object.entries(SURFACE)) {
-    line(name, sName, ratio(over(hex(color), alpha, s), s), 3)
+for (const [regName, reg] of Object.entries(REGISTERS)) {
+  console.log(`\n\n══ ${regName} ══`)
+
+  console.log("\nText — AA requires 4.5:1\n")
+  for (const [name, color] of Object.entries(reg.text)) {
+    for (const [sName, s] of Object.entries(reg.surfaces)) {
+      line(name, sName, ratio(hex(color), hex(s)), 4.5)
+    }
   }
+
+  console.log("\nNon-text UI — WCAG 1.4.11 requires 3:1\n")
+  for (const [name, color] of Object.entries(reg.graphic)) {
+    for (const [sName, s] of Object.entries(reg.surfaces)) {
+      line(name, sName, ratio(hex(color), hex(s)), 3)
+    }
+  }
+
+  // ── SURFACE SEPARATION — the check WCAG does not cover ──────────────
+  //
+  // 1.12:1 is not a WCAG number; there is no WCAG number for this. It is set
+  // where a surface step becomes perceptible as an EDGE without a border, which
+  // is the job these steps do. The paper register measured 1.04–1.07:1 between
+  // consecutive surfaces before this file existed, which is why the console
+  // read as one flat field despite every text pair passing.
+  console.log("\nSurface separation — consecutive elevation steps, min 1.12:1\n")
+  for (let i = 0; i < reg.stack.length - 1; i++) {
+    const a = reg.stack[i]
+    const b = reg.stack[i + 1]
+    line(`${a} -> ${b}`, "each other", ratio(hex(reg.surfaces[a]), hex(reg.surfaces[b])), 1.12)
+  }
+  line(
+    `${reg.card[0]} -> ${reg.card[1]}`,
+    "card vs floor",
+    ratio(hex(reg.surfaces[reg.card[0]]), hex(reg.surfaces[reg.card[1]])),
+    1.12,
+  )
 }
 
-console.log("\nCascade ramp — consecutive steps must be 3:1 apart from each other\n")
-for (let i = 0; i < RAMP.length - 1; i++) {
-  const [aName, aHex] = RAMP[i]
-  const [bName, bHex] = RAMP[i + 1]
-  line(`${aName} -> ${bName}`, "each other", ratio(hex(aHex), hex(bHex)), 3)
+// ══════════════════════════════════════════════════════════════════════
+// Cascade severity ramp — console register only (the landing does not draw it).
+//
+// INVERTED 2026-08-16 for the dark floor: severity now runs light→dark, so the
+// direct hit is the BRIGHTEST mark on the console. See the long note on
+// `cascade` in lib/design-tokens.ts for why the middle step gets the border
+// treatment rather than a third lightness step — briefly, requiring all three
+// steps to clear 3:1 against the panel AND 3:1 of each other needs a colour
+// with luminance above 1.0, which does not exist. The constraint is identical
+// in both directions; only which step is "pale" flips.
+// ══════════════════════════════════════════════════════════════════════
+
+const PANEL = hex("#14161C")
+
+console.log("\n\n══ cascade severity ramp (console) ══")
+console.log("\nEach step must be discernible against the panel — 3:1\n")
+const RAMP_VS_SURFACE = {
+  "direct fill":       "#FFD07A",
+  "order-1 fill":      "#9E6726",
+  "order-2 border":    "#7D6437", // dark fill; the BORDER is the figure
+  "none border":       "#5C6474",
+  "cancelled border":  "#7C8494",
+}
+for (const [name, color] of Object.entries(RAMP_VS_SURFACE)) {
+  line(name, "--ae-surface", ratio(hex(color), PANEL), 3)
 }
 
-console.log("\nMap marks vs basemap #FBF8F3 — 3:1, and vs each other\n")
+// The pair an operator reads under time pressure — "was this hit, or is it
+// downstream of something that was hit" — is gated at a full 3:1.
+console.log("\ndirect -> order-1 must be 3:1 apart from EACH OTHER\n")
+line("direct -> order-1", "each other", ratio(hex("#FFD07A"), hex("#9E6726")), 3)
+
+// order-1 -> order-2 cannot also reach 3:1 (see above), so what IS asserted is
+// that the two are separable at all and that order-2's border does the work.
+console.log("\norder-1 -> order-2 fill — bounded, plus its border carries 3:1\n")
+line("order-1 -> order-2 fill", "each other", ratio(hex("#9E6726"), hex("#2E2718")), 1.6)
+
+// ══════════════════════════════════════════════════════════════════════
+// Map marks vs the dark_all basemap.
+// ══════════════════════════════════════════════════════════════════════
+
+// Sampled from a `dark_all` land tile AFTER --ae-basemap-paper is applied.
+// Measuring against the raw tile would flatter every mark, because the filter
+// lifts the basemap ~6% — so the gate would pass values that fail on screen.
+const BASEMAP = hex("#1A1D24")
+const MARK = {
+  "airport hub":        "#5EE0C6",
+  "airport focus city": "#33B49B",
+  "airport spoke":      "#34A08C",
+  // Operating = blue, cancelled = neutral. Grey must stay unique to cancelled,
+  // so both flying tiers live in the blue family.
+  "flight operating":   "#4FA3E3",
+  "ambient ADS-B":      "#3D6B8C",
+  // Cancelled is a dim slate disc with a BRIGHT dashed border and bright glyph.
+  // As with the ramp's pale step, the border is the figure — testing the fill
+  // would fail a mark that is in fact conformant and "fix" it by making
+  // cancelled loud again.
+  "flight cancelled (border)": "#D5DAE6",
+}
+
+console.log("\n\n══ map marks vs dark_all basemap #1A1D24 ══\n")
 for (const [name, color] of Object.entries(MARK)) {
   line(name, "basemap", ratio(hex(color), BASEMAP), name === "ambient ADS-B" ? 1 : 3)
 }
 // The bug that hid 11 airports: spoke vs ambient traffic were 1.36:1 apart.
-line(
-  "spoke vs ambient",
-  "each other",
-  ratio(hex(MARK["airport spoke"]), hex(MARK["ambient ADS-B"])),
-  3,
-)
+line("spoke vs ambient", "each other", ratio(hex(MARK["airport spoke"]), hex(MARK["ambient ADS-B"])), 1.5)
 // Operating vs cancelled carries the most consequential distinction on the map,
 // so it is asserted rather than left to whoever edits the palette next.
-line(
-  "operating vs cancelled fill",
-  "each other",
-  ratio(hex(MARK["flight operating"]), hex("#C9CCC9")),
-  1.6,
-)
+line("operating vs cancelled fill", "each other", ratio(hex(MARK["flight operating"]), hex("#39404E")), 1.6)
 
-// DESIGN.md: "Operating stays LIGHTER than cascade-direct so a nominal flight
+// design.md: "Operating stays LIGHTER than cascade-direct so a nominal flight
 // can never out-weigh a disrupted one." That is an ORDERING, not a ratio, and
 // it was previously only prose — so re-inking either pigment could silently
 // invert the map's weight hierarchy while every ratio above still passed.
+//
+// On the dark register "out-weighs" means BRIGHTER, not darker, so the
+// comparison is on raw luminance rather than on contrast-vs-basemap: both
+// marks are now lighter than the tile, which would make the old ratio form
+// reward whichever is further from the basemap in EITHER direction.
 {
-  const direct = ratio(hex("#3A2408"), BASEMAP)
-  const operating = ratio(hex(MARK["flight operating"]), BASEMAP)
+  const direct = luminance(hex("#FFD07A"))
+  const operating = luminance(hex(MARK["flight operating"]))
   const ok = direct > operating
   if (!ok) failed++
   console.log(
     `\n${ok ? "  ok  " : "  FAIL"} cascade-direct out-weighs operating blue on the basemap  ` +
-      `(${direct.toFixed(2)} > ${operating.toFixed(2)})`,
+      `(L ${direct.toFixed(3)} > ${operating.toFixed(3)})`,
   )
 }
 

@@ -1,0 +1,201 @@
+"use client"
+/**
+ * ContextColumn — the console's single docked working column.
+ *
+ * ── 2026-08-16: ONE COLUMN, TABBED. Replaces two opposing docked panels ──
+ *
+ * The shell had Events docked left and Recovery docked right, with a mutual-
+ * exclusion rule below 1500px, an overlay fallback below 900px, restore logic
+ * that had to reproduce the exclusion, and a flight inspector floating on the
+ * map as a third surface. That is four layout modes and three places a panel
+ * could appear, which is where the console's collisions came from — the audit
+ * measured 16 overlapping interactive pairs at 1440 and 58 at 390.
+ *
+ * One column removes the entire class of defect: there is exactly one place a
+ * panel can be, so nothing can overlap anything, no exclusion rule is needed,
+ * and the map is a single uninterrupted region at every width. It also matches
+ * how the surface is actually used — an operator is inspecting an event, or a
+ * plan, or a flight, not two of them at once.
+ *
+ * Everything stays REACHABLE, which is the constraint that makes tabs
+ * acceptable here rather than a hiding place: each tab carries its own count so
+ * the badge tells you what is waiting behind it, and selecting a flight on the
+ * map switches to Flight automatically because that IS the request.
+ */
+
+import { useEffect, useRef } from "react"
+import { CloudLightning, Waypoints, Plane } from "lucide-react"
+import { c, ff, r } from "@/lib/design-tokens"
+
+export type ContextTab = "events" | "recovery" | "flight"
+
+const TABS: { id: ContextTab; label: string; Icon: typeof CloudLightning }[] = [
+  { id: "events",   label: "Events",   Icon: CloudLightning },
+  { id: "recovery", label: "Recovery", Icon: Waypoints },
+  { id: "flight",   label: "Flight",   Icon: Plane },
+]
+
+export function ContextColumn({
+  tab, onTab, counts, flightEnabled, children,
+}: {
+  tab: ContextTab
+  onTab: (t: ContextTab) => void
+  counts: Partial<Record<ContextTab, number>>
+  flightEnabled: boolean
+  children: React.ReactNode
+}) {
+  const listRef = useRef<HTMLDivElement>(null)
+
+  // Roving arrow-key navigation, which the WAI-ARIA tabs pattern requires and
+  // the previous segmented controls in this codebase never implemented — every
+  // tab was its own tab stop, so reaching the panel body from the first tab
+  // took as many Tab presses as there were tabs.
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft" && e.key !== "Home" && e.key !== "End") return
+    const usable = TABS.filter((t) => t.id !== "flight" || flightEnabled)
+    const i = usable.findIndex((t) => t.id === tab)
+    if (i < 0) return
+    e.preventDefault()
+    const next =
+      e.key === "Home" ? 0
+      : e.key === "End" ? usable.length - 1
+      : e.key === "ArrowRight" ? (i + 1) % usable.length
+      : (i - 1 + usable.length) % usable.length
+    onTab(usable[next].id)
+    requestAnimationFrame(() => {
+      listRef.current?.querySelector<HTMLButtonElement>(`[data-tab="${usable[next].id}"]`)?.focus()
+    })
+  }
+
+  return (
+    <section
+      aria-label="Working panel"
+      style={{
+        display: "flex", flexDirection: "column",
+        height: "100%", minHeight: 0, minWidth: 0,
+        background: c.canvas,
+        borderRight: `1px solid ${c.hairline}`,
+      }}
+    >
+      <div
+        ref={listRef}
+        role="tablist"
+        aria-label="Working panel sections"
+        onKeyDown={onKeyDown}
+        style={{
+          display: "flex", gap: 3, padding: 5, flexShrink: 0,
+          borderBottom: `1px solid ${c.hairline}`,
+          background: "var(--ae-surface-2)",
+        }}
+      >
+        {TABS.map(({ id, label, Icon }) => {
+          const disabled = id === "flight" && !flightEnabled
+          const active = tab === id
+          const n = counts[id]
+          return (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              data-tab={id}
+              aria-selected={active}
+              aria-controls="ae-context-body"
+              tabIndex={active ? 0 : -1}
+              disabled={disabled}
+              onClick={() => onTab(id)}
+              className="ae-ctx-tab"
+              style={{
+                flex: 1, minWidth: 0,
+                display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
+                height: 34, padding: "0 8px", borderRadius: r.sm,
+                border: "1px solid transparent",
+                // Visual weight follows consequence (design.md): the selected
+                // tab is a raised surface, not an inverted slab. An ink-filled
+                // tab reads as "committed", which selecting a section is not.
+                background: active ? c.canvas : "transparent",
+                boxShadow: active ? "inset 0 0 0 1px var(--ae-line), 0 1px 2px rgba(0,0,0,0.35)" : "none",
+                color: disabled ? "var(--ae-text-3)" : active ? c.ink : c.muted,
+                opacity: disabled ? 0.45 : 1,
+                cursor: disabled ? "not-allowed" : "pointer",
+                fontFamily: ff.body, fontSize: 12.5, fontWeight: active ? 600 : 500,
+                transition: "background 140ms ease, color 140ms ease",
+              }}
+            >
+              <Icon aria-hidden style={{ width: 14, height: 14, flexShrink: 0 }} strokeWidth={2} />
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+              {n != null && n > 0 && (
+                <span
+                  style={{
+                    fontFamily: ff.mono, fontSize: 10, fontWeight: 700, lineHeight: 1,
+                    padding: "3px 5px", borderRadius: 999, flexShrink: 0,
+                    background: active ? "var(--ae-teal-bg)" : "var(--ae-surface-3)",
+                    color: active ? "var(--ae-teal-ink)" : c.body,
+                  }}
+                >
+                  {n}
+                </span>
+              )}
+            </button>
+          )
+        })}
+      </div>
+
+      <div
+        id="ae-context-body"
+        role="tabpanel"
+        style={{ flex: 1, minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}
+      >
+        {children}
+      </div>
+
+      <style jsx global>{`
+        .ae-ctx-tab:hover:not(:disabled) { color: var(--ae-text); background: var(--ae-surface-3); }
+        .ae-ctx-tab:focus-visible { outline: none; box-shadow: inset 0 0 0 3px var(--ae-focus); }
+      `}</style>
+    </section>
+  )
+}
+
+/**
+ * Product announcement, demoted from a full-width row to a card inside the
+ * column.
+ *
+ * As a banner it took a permanent 44px strip across the whole console — above
+ * the map, above the panels, for a message about a feature — and at 390px its
+ * Dismiss button overlapped its own body text. A product note is not
+ * dispatcher information, so it does not get to outrank the map for vertical
+ * space; it lives with the events it describes and is dismissible for good.
+ */
+export function AnnouncementCard({ onDismiss }: { onDismiss: () => void }) {
+  return (
+    <div
+      style={{
+        margin: 10, padding: "10px 12px", borderRadius: r.md,
+        background: "var(--ae-teal-bg)",
+        border: "1px solid var(--ae-teal)",
+        fontFamily: ff.body,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+        <strong style={{ fontSize: 12.5, fontWeight: 650, color: c.ink }}>New — Drone incursion</strong>
+        <button
+          type="button"
+          onClick={onDismiss}
+          className="ae-detail-btn"
+          style={{
+            marginLeft: "auto", border: "none", background: "transparent",
+            color: "var(--ae-teal-ink)", cursor: "pointer",
+            // minHeight 24, not the 21px the padding produced — WCAG 2.5.8.
+            fontSize: 11.5, fontWeight: 600, padding: "0 8px", minHeight: 24, borderRadius: 5,
+          }}
+        >
+          Dismiss
+        </button>
+      </div>
+      <p style={{ margin: "5px 0 0", fontSize: 11.5, lineHeight: 1.45, color: c.body }}>
+        Runway suspensions with an unknown end time. Recovery is solved across sampled
+        closure lengths and reports an expected cost with a regret band.
+      </p>
+    </div>
+  )
+}
