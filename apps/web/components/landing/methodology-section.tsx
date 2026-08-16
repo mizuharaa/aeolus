@@ -94,7 +94,9 @@ export function MethodologySection() {
                   style={{
                     fontFamily: "var(--ae-font-mono)",
                     fontSize: 12,
-                    color: "var(--accent-amber)",
+                    // -ink, not the graphic amber: this is 12px text on a
+                    // near-white row and the graphic value measures 3.22:1.
+                    color: "var(--accent-amber-ink)",
                     fontWeight: 600,
                   }}
                 >

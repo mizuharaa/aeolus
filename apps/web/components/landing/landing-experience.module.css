@@ -189,6 +189,37 @@
   z-index: 1;
 }
 
+/* ── Aviation substrate ───────────────────────────────────────────────────
+   The chart plate the wordmark stands on. z-index 0 puts it under BOTH band
+   layers and under the aircraft's canvas (z 3), so it can never interfere with
+   the pass-through trick those three layers implement between them.
+
+   The warm wash is the "beige" the brief asks for, and it is applied HERE
+   rather than by re-inking `.lp --bg`: that token is the floor for the whole
+   landing including the white demo console and the pricing tables, and warming
+   it globally would have tinted surfaces that are deliberately cool. */
+.experience :global(.ae-substrate) {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  color: #6B5B43;
+  opacity: 0.5;
+  background:
+    radial-gradient(120% 90% at 50% 34%, rgba(226, 209, 176, 0.55) 0%, rgba(226, 209, 176, 0) 68%),
+    linear-gradient(178deg, #F6F1E4 0%, #EFE7D5 52%, #E9DFC9 100%);
+}
+
+/* The substrate is texture, and texture that competes with the type it sits
+   under is just noise. The drawing is held to a quiet fraction of the wash. */
+.experience :global(.ae-substrate-far)  { opacity: 0.34; }
+.experience :global(.ae-substrate-near) { opacity: 0.42; }
+
+@media (prefers-reduced-motion: reduce) {
+  .experience :global(.ae-substrate-far),
+  .experience :global(.ae-substrate-near) { transform: none !important; }
+}
+
 .experience :global(.ae-wm-layer--front) {
   z-index: 4;
 }

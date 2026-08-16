@@ -793,8 +793,16 @@
 
   --accent-blue:   #5B3FA8;  /* royal plum — identity (name kept, value re-inked) */
   --accent-purple: #8B6FD0;  /* lavender — atmosphere */
-  --accent-amber:  #B8863C;  /* beige gold — premium warmth */
+  --accent-amber:  #B8863C;  /* beige gold — GRAPHIC ONLY (rules, fills, dots) */
   --accent-teal:   #46307F;  /* deep plum ink */
+
+  /* The amber above measures 3.22:1 on this near-white floor. That clears the
+     3:1 non-text minimum, which is why it is fine as a 2px rule or a button
+     fill — and it does NOT clear 4.5:1, so every place it was used as small
+     text (the numbered step markers in methodology, the pricing note) was an
+     AA failure. Same pigment, darkened for type, mirroring --ae-amber-ink in
+     the app register. 6.47:1 on white. */
+  --accent-amber-ink: #7A5A22;
 
   background: var(--bg);
   color: var(--ink);

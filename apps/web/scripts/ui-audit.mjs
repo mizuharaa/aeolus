@@ -142,6 +142,28 @@ const PROBE = `(() => {
   }
 })()`
 
+/**
+ * Screenshot via CDP rather than `page.screenshot`.
+ *
+ * The landing runs two react-three-fiber canvases plus a 90s infinite CSS pan.
+ * Playwright's screenshot path waits for the page to reach a stable state and
+ * on this page it never does — every option combination (`animations:
+ * "disabled"`, `"allow"`, longer timeouts) still hung, because the wait is on
+ * rAF quiescence and the render loop is the point of the page. CDP's
+ * `Page.captureScreenshot` grabs the current frame with no stability wait,
+ * which is exactly the semantics an audit of a continuously-animating surface
+ * wants: photograph what is on screen right now.
+ */
+async function shoot(page, file) {
+  const session = await page.context().newCDPSession(page)
+  try {
+    const { data } = await session.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: false })
+    fs.writeFileSync(file, Buffer.from(data, "base64"))
+  } finally {
+    await session.detach().catch(() => {})
+  }
+}
+
 const browser = await chromium.launch()
 const report = {}
 
@@ -164,7 +186,7 @@ for (const vp of VIEWPORTS) {
     try {
       await page.goto(BASE + route.url, { waitUntil: "domcontentloaded", timeout: 60000 })
       await page.waitForTimeout(route.settle)
-      await page.screenshot({ path: path.join(OUT, `${key}.png`) })
+      await shoot(page, path.join(OUT, `${key}.png`))
       report[key] = await page.evaluate(PROBE)
 
       // Landing: also capture the scroll beats so the GSAP staging is visible.
@@ -172,7 +194,7 @@ for (const vp of VIEWPORTS) {
         for (const f of [0.06, 0.12, 0.18, 0.26, 0.4, 0.6]) {
           await page.evaluate((frac) => window.scrollTo({ top: document.body.scrollHeight * frac, behavior: "instant" }), f)
           await page.waitForTimeout(1600)
-          await page.screenshot({ path: path.join(OUT, `landing-scroll-${String(f).replace(".", "")}.png`) })
+          await shoot(page, path.join(OUT, `landing-scroll-${String(f).replace(".", "")}.png`))
         }
         await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }))
       }

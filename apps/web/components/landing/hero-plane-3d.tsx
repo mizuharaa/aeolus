@@ -162,9 +162,28 @@ function GeneratedAirliner({ onReady }: { onReady: () => void }) {
 
 useGLTF.preload(AIRLINER_MODEL)
 
+/**
+ * ── THE AIRCRAFT FACES LEFT, 2026-08-16 ──────────────────────────────────
+ *
+ * The manoeuvre is a BACKWARDS Q: the aircraft crosses the wordmark RIGHT to
+ * LEFT and the tail stroke curls down-left, mirroring the previous path.
+ *
+ * Both poses below are mirrored with it, and they have to be. Yaw mirrors as
+ * `θ → π − θ` (a Y-rotation takes forward +X to (cos θ, 0, −sin θ); negating x
+ * gives (−cos θ, 0, −sin θ), which is π − θ) and roll negates. Mirroring only
+ * the PATH and leaving these was the obvious cheaper edit and it does not work:
+ * the cruise pose would have slerped from yaw −0.28 to yaw +3.60 during the
+ * pull-back, i.e. a 222° rotation, and the hero would have visibly spun on its
+ * axis before flying anywhere.
+ *
+ * CLOSE keeps its x. It already sits on the right of frame, which is where a
+ * right-to-left run wants to begin — mirroring its position too would have sent
+ * the aircraft left during the pull-back and then straight back across to the
+ * right to start the cross, crossing the frame three times to make two moves.
+ */
 const CLOSE = {
   pos: new THREE.Vector3(0.72, -0.2, 1.3),
-  rot: new THREE.Euler(0.08, -0.28, 0),
+  rot: new THREE.Euler(0.08, Math.PI + 0.28, 0),
   scale: 2.16,
 }
 /**
@@ -180,8 +199,8 @@ const CLOSE = {
  * type instead of running through it.
  */
 const SIDE = {
-  pos: new THREE.Vector3(-1.9, 0.55, -0.2),
-  rot: new THREE.Euler(0.05, -0.46, 0.01),
+  pos: new THREE.Vector3(1.9, 0.55, -0.2),
+  rot: new THREE.Euler(0.05, Math.PI + 0.46, -0.01),
   scale: 0.62,
 }
 const ZOOM_START = 0.2
@@ -223,15 +242,15 @@ const Q_SIDE = new THREE.Quaternion().setFromEuler(SIDE.rot)
 const Q_PATH = new THREE.CatmullRomCurve3(
   [
     SIDE.pos.clone(),
-    new THREE.Vector3(-1.55, 0.46, -0.16), // entering the band from the left
-    new THREE.Vector3(-0.78, 0.32, -0.08), // ── across the letters ──
-    new THREE.Vector3(0.05, 0.16, 0.02),
-    new THREE.Vector3(0.88, -0.02, 0.14),
-    new THREE.Vector3(1.52, -0.26, 0.3), // clear of the S, starting to curl
-    new THREE.Vector3(1.88, -0.74, 0.52), // ── the tail of the Q ──
-    new THREE.Vector3(1.82, -1.48, 0.82),
-    new THREE.Vector3(1.52, -2.38, 1.16),
-    new THREE.Vector3(1.12, -3.4, 1.5),
+    new THREE.Vector3(1.55, 0.46, -0.16), // entering the band from the RIGHT
+    new THREE.Vector3(0.78, 0.32, -0.08), // ── across the letters ──
+    new THREE.Vector3(-0.05, 0.16, 0.02),
+    new THREE.Vector3(-0.88, -0.02, 0.14),
+    new THREE.Vector3(-1.52, -0.26, 0.3), // clear of the A, starting to curl
+    new THREE.Vector3(-1.88, -0.74, 0.52), // ── the tail of the backwards Q ──
+    new THREE.Vector3(-1.82, -1.48, 0.82),
+    new THREE.Vector3(-1.52, -2.38, 1.16),
+    new THREE.Vector3(-1.12, -3.4, 1.5),
   ],
   false,
   "catmullrom",
@@ -253,9 +272,15 @@ const Q_FRAMES = Q_PATH.computeFrenetFrames(400, false)
 // Attitude follows the two moves. Near level across the letters — a hard bank
 // while crossing would hide the silhouette edge-on exactly where it is meant to
 // read against the type — then rolling into the turn as the tail curls away.
+// NEGATED with the mirrored path: the tail now curls to the LEFT, so the
+// aircraft banks left through it. Bank is the one attitude term that has to
+// flip when a path is mirrored — pitch does not, which is why `pitchAt` below
+// is unchanged.
 const bankAt = (u: number) =>
-  THREE.MathUtils.degToRad(7) * Math.sin(Math.PI * Math.min(u / 0.4, 1)) +
-  THREE.MathUtils.degToRad(34) * THREE.MathUtils.smoothstep(u, 0.45, 0.86)
+  -(
+    THREE.MathUtils.degToRad(7) * Math.sin(Math.PI * Math.min(u / 0.4, 1)) +
+    THREE.MathUtils.degToRad(34) * THREE.MathUtils.smoothstep(u, 0.45, 0.86)
+  )
 // Likewise the nose: level through the cross, then a trim on top of what the
 // descending tangent already supplies. Kept modest — stacking a large pitch on
 // the tangent read as a near-vertical plunge.
@@ -447,11 +472,18 @@ function PlaneRig({
       group.position.lerpVectors(CLOSE.pos, SIDE.pos, zoom)
       group.quaternion.copy(Q_CLOSE).slerp(Q_SIDE, zoom)
       group.scale.setScalar(THREE.MathUtils.lerp(CLOSE.scale, SIDE.scale, zoom))
-      if (!reducedMotion) {
-        // Assign, never accumulate: `+=` on a quaternion-derived euler is how
-        // an idle bob turns into drift.
-        group.position.y += Math.sin(state.clock.elapsedTime * 0.55) * 0.018
-      }
+      // NO IDLE BOB. There used to be a `position.y += sin(elapsedTime * 0.55)
+      // * 0.018` here, intended as a floating hover. Two things made it read as
+      // a shake rather than as flight. It ran on WALL-CLOCK time while every
+      // other motion on this layer is driven by SCROLL POSITION, so it kept
+      // moving when the aircraft was meant to be held still — and the eye reads
+      // sustained unexplained movement in a hero object as instability, not
+      // life. Worse, it applied to the same `position.y` the zoom lerp had just
+      // written, so at any scroll position where the lerp was mid-flight the
+      // two fought each other frame to frame.
+      //
+      // A held aircraft is now genuinely held. Motion on this layer comes from
+      // scroll and from nothing else.
       return
     }
 
