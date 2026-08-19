@@ -1,13 +1,44 @@
 "use client"
+/**
+ * THE BOARD — /simulator, rebuilt 2026-08-17 as the Hairline Mosaic.
+ *
+ * Direction contract: the HTML comment at the top of `app/layout.tsx`
+ * (seed 688f3053). Primitives: `components/simulator/board.tsx`.
+ *
+ * ── What changed, and what deliberately did not ───────────────────────────
+ *
+ * The TOPOLOGY is inherited, not reinvented: rail · context column · (map over
+ * cascade rail). That arrangement was arrived at by measurement — 16 colliding
+ * pairs at 1440 and 58 at 390 under the old two-opposing-docks shell, 3 after —
+ * and a visual rebuild is not a reason to relitigate a result that was earned
+ * with numbers. What changed is the MATERIAL: modules instead of floating
+ * cards, hairlines instead of shadows, a white board instead of a near-black
+ * one, and colour demoted from fills to edges and marks.
+ *
+ * Regions are packed EDGE TO EDGE and each drops the rule on the side a
+ * neighbour already supplies. A dense grid that draws both sides of every seam
+ * renders 2px double-rules throughout, and that doubling is the difference
+ * between a board that reads as dense and one that reads as a cage.
+ *
+ * ── The resize fix ────────────────────────────────────────────────────────
+ *
+ * The timeline handle is `side="top"`, not `side="bottom"`. The sized region
+ * is BELOW the handle, so dragging down must shrink it and keep the divider
+ * under the pointer. It had been `bottom` since the 2026-08-16 reversal moved
+ * the sized region across the handle without changing the sign, which is the
+ * "inverted axis" the divider has been reported for. See `deltaFor` in
+ * workspace-chrome.tsx.
+ */
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import dynamic from "next/dynamic"
-import { Loader2, AlertTriangle, PanelBottomClose, PanelBottomOpen, Layers } from "lucide-react"
+import { Loader2, AlertTriangle, PanelBottomOpen, PanelLeftClose, Layers } from "lucide-react"
 import { useSimulationStore, type ScheduledFlight, type FleetAircraft } from "@/stores/simulation"
 import { useWebSocket } from "@/lib/websocket"
 import { EventPanel } from "@/components/simulator/event-panel"
 import { CascadeTimeline } from "@/components/simulator/cascade-timeline"
-import { RecoveryPlans } from "@/components/simulator/recovery-plans"
-import { SimulatorNav } from "@/components/simulator/nav"
+import { RecoveryDetail } from "@/components/simulator/recovery-detail"
+import { BoardBar } from "@/components/simulator/top-bar"
 import { DashboardLoader } from "@/components/simulator/dashboard-loader"
 import { FlightSearch } from "@/components/simulator/flight-search"
 import { FlightDetailPanel } from "@/components/simulator/flight-detail"
@@ -16,46 +47,38 @@ import { apiClient } from "@/lib/api"
 import { hydrateAirportTiers } from "@/components/simulator/airports"
 import { c, ff, r, sp } from "@/lib/design-tokens"
 import { useResizable, ResizeHandle } from "@/components/simulator/workspace-chrome"
+import { RULE, Module, Fringe, Chip } from "@/components/simulator/board"
+import { PlanCompareBoard } from "@/components/simulator/plan-compare-board"
 
 const FlightMap = dynamic(() => import("@/components/simulator/flight-map"), {
   ssr: false,
   loading: () => (
     <div className="w-full h-full flex items-center justify-center" style={{ background: c.surfaceSoft }}>
-      <div className="flex flex-col items-center gap-3">
-        <div style={{ width: 40, height: 40, borderRadius: r.lg, background: c.primary, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <Loader2 className="w-5 h-5 animate-spin" style={{ color: c.onPrimary }} />
-        </div>
-        <span style={{ fontFamily: ff.body, fontSize: 14, fontWeight: 500, color: c.body }}>Loading map…</span>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: sp.xs }}>
+        <Loader2 className="animate-spin" style={{ width: 18, height: 18, color: c.muted }} />
+        <span style={{ fontFamily: ff.mono, fontSize: 10.5, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: c.muted }}>
+          Loading map
+        </span>
       </div>
     </div>
   ),
 })
 
-// ── Layout constants ─────────────────────────────────────────────────────
-//
-// THE MAP IS THE DOMINANT REGION AND THE TIMELINE IS THE SIZED ONE — the
-// inverse of the 2026-08-05 arrangement, and a deliberate reversal recorded in
-// design.md. That decision made the Gantt the hero because it was showing 1.96
-// of 18 rows while the basemap took every spare pixel. The cause was the map
-// being FULL-WIDTH-MINUS-TWO-PANELS and 62% covered, not the map being large:
-// with the panels collapsed into one 360px column the map finally has a shape
-// worth giving space to, and the timeline gets a real, resizable, persisted
-// height instead of the remainder of a fight it kept losing.
-const COL_W     = 364
+const COL_W = 360
 const COL_W_MIN = 300
 const COL_W_MAX = 560
 
-const TL_H     = 236
+const TL_H = 236
 const TL_H_MIN = 150
 const TL_H_MAX = 620
 
-const TL_COLLAPSED = 34
+const TL_COLLAPSED = 30
 
 export default function SimulatorPage() {
   const {
     flightStates, schedule, setSchedule, setFleet, setSelectedLiveFlight,
     appliedPlanId, recoveryPlans, activeEvents, selectedLiveFlight,
-    hydrateStaticFromCache,
+    hydrateStaticFromCache, applyPlan,
   } = useSimulationStore()
   const { isConnected } = useWebSocket()
   const [selectedFlight, setSelectedFlight] = useState<string | null>(null)
@@ -66,13 +89,12 @@ export default function SimulatorPage() {
   const [announce, setAnnounce] = useState(true)
 
   const colW = useResizable("aeolus-col-w", COL_W, COL_W_MIN, COL_W_MAX, "left")
-  const tlH  = useResizable("aeolus-tl-h",  TL_H,  TL_H_MIN,  TL_H_MAX,  "bottom")
+  // "top": the timeline is BELOW this handle. See the header note.
+  const tlH = useResizable("aeolus-tl-h", TL_H, TL_H_MIN, TL_H_MAX, "top")
 
-  // One breakpoint, one behaviour change. The old shell had three (1500 / 900
-  // / plus an overlay fallback) interacting with a mutual-exclusion rule, and
-  // the combinations were where the 58-collision mobile layout came from.
-  // Below `narrow` the column becomes an overlay sheet because a 300px docked
-  // column plus a 68px rail leaves a 22px map at 390px.
+  // One breakpoint, one behaviour change. Below `narrow` the column becomes a
+  // full-width sheet, because a 300px docked column plus a 56px rail leaves a
+  // 34px map at 390px.
   const [narrow, setNarrow] = useState(false)
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 880px)")
@@ -90,7 +112,7 @@ export default function SimulatorPage() {
     } catch {}
   }, [])
   useEffect(() => { try { localStorage.setItem("aeolus-col-open", colOpen ? "1" : "0") } catch {} }, [colOpen])
-  useEffect(() => { try { localStorage.setItem("aeolus-tl-open",  tlOpen  ? "1" : "0") } catch {} }, [tlOpen])
+  useEffect(() => { try { localStorage.setItem("aeolus-tl-open", tlOpen ? "1" : "0") } catch {} }, [tlOpen])
 
   const dismissAnnounce = useCallback(() => {
     setAnnounce(false)
@@ -103,9 +125,6 @@ export default function SimulatorPage() {
   )
   const flightEnabled = !!selectedSched || !!selectedLiveFlight
 
-  // Selecting a flight IS a request to inspect it, so the column switches to
-  // the Flight tab and opens if collapsed. It does not close the other tabs'
-  // content — they are one click away and their counts stay visible.
   useEffect(() => {
     if (selectedSched || selectedLiveFlight) {
       setTab("flight")
@@ -113,43 +132,23 @@ export default function SimulatorPage() {
     }
   }, [selectedSched, selectedLiveFlight])
 
-  // Leaving the flight tab with nothing selected would strand an empty panel.
   useEffect(() => {
     if (tab === "flight" && !flightEnabled) setTab("events")
   }, [tab, flightEnabled])
 
   /**
-   * RECOVERY PLANS ARRIVE → SHOW THEM.
-   *
-   * design.md says "Nothing auto-opens", and that rule is kept. It was written
-   * about a 430px sheet that slid over the console covering the Events panel,
-   * and about a Recovery OVERLAY that opened itself with plan A already
-   * inspected — which read as "a plan was auto-applied on load". Both of those
-   * are decisions the operator did not make.
-   *
-   * Switching a tab in a panel that is already open is a different act. The
-   * column does not change size, nothing is covered, no plan is committed, and
-   * the operator can click straight back to Events. What it does do is answer
-   * the question they just asked: triggering a disruption IS a request to see
-   * what can be done about it, and leaving the result behind an unvisited tab
-   * badge means the console solved four recovery plans and said nothing.
-   *
-   * Guarded by a ref keyed on the plan wave, so it fires ONCE per solve. Without
-   * that, every websocket broadcast during a live disruption would yank the
-   * operator back out of whatever tab they had deliberately opened.
+   * Recovery plans arrive → show them. Switching a tab in a panel that is
+   * already open is not the "nothing auto-opens" rule's target: nothing is
+   * covered, the column does not resize, and no plan is committed. Guarded by
+   * a ref keyed on the plan wave so it fires once per solve rather than on
+   * every websocket rebroadcast, and never while a flight is being inspected.
    */
   const announcedWave = useRef<string | null>(null)
   useEffect(() => {
-    if (recoveryPlans.length === 0) {
-      announcedWave.current = null
-      return
-    }
-    // The wave identity is the set of plan ids: a re-solve for a new event
-    // produces a new set, a rebroadcast of the same solve does not.
+    if (recoveryPlans.length === 0) { announcedWave.current = null; return }
     const wave = recoveryPlans.map((p) => p.plan_id).join("|")
     if (announcedWave.current === wave) return
     announcedWave.current = wave
-    // Never steal focus from an operator mid-inspection of a specific flight.
     if (tab === "flight") return
     setTab("recovery")
     setColOpen(true)
@@ -162,7 +161,31 @@ export default function SimulatorPage() {
     setTab("events")
   }, [setSelectedLiveFlight])
 
-  // Keyboard: [ toggles the column, ] toggles the timeline.
+  /**
+   * THE COMPARE REGION.
+   *
+   * Comparing four plans across six metrics is a DECISION moment, not a
+   * monitoring one, and it cannot be done in a 360px column: at ~60px per
+   * plan the figures stop being comparable, which is the only reason the
+   * comparison exists. So choosing Recovery lifts the comparison over the map
+   * for as long as the decision is open, then hands the map straight back.
+   *
+   * The map is covered, not UNMOUNTED. design.md unmounts the inactive
+   * PROJECTION because map and globe are two answers to two questions and
+   * keeping both alive doubles the marker cost forever; this is a transient
+   * overlay on the same answer, and tearing down ~500 Leaflet markers to show
+   * a table — then rebuilding them seconds later — would make committing a
+   * plan feel like a page load. It goes `inert` instead, so nothing behind it
+   * is reachable by pointer, focus or a screen reader.
+   */
+  const [compareDismissed, setCompareDismissed] = useState(false)
+  // Arriving at Recovery is a fresh request to decide, so the region reopens.
+  useEffect(() => { setCompareDismissed(false) }, [tab])
+  const [inspectedPlan, setInspectedPlan] = useState<string>("A")
+  useEffect(() => { if (appliedPlanId) setInspectedPlan(appliedPlanId) }, [appliedPlanId])
+
+  const showCompare = tab === "recovery" && recoveryPlans.length > 0 && !compareDismissed && !narrow
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "[" && e.key !== "]") return
@@ -181,12 +204,8 @@ export default function SimulatorPage() {
     if (id) setSelectedLiveFlight(null)
   }
 
-  // Boot failures are SURFACED, not swallowed. Every one of these three calls
-  // used to end in `.catch(() => {})`, which is how `/network/aircraft` 404'd
-  // on every single load for an unknown length of time without anyone noticing
-  // — and, worse, why a dispatcher looking at an empty map could not tell "no
-  // disruptions" from "the API is down". Both render identically when the
-  // failure is silent.
+  // Boot failures are SURFACED, not swallowed — a dispatcher looking at an
+  // empty map must be able to tell "no disruptions" from "the API is down".
   const [feedErrors, setFeedErrors] = useState<string[]>([])
   const [bootNonce, setBootNonce] = useState(0)
 
@@ -209,8 +228,7 @@ export default function SimulatorPage() {
       })
       .catch(note("Schedule"))
 
-    // "/aircraft", not "/network/aircraft" — the latter 404s. The API mounts
-    // this router without a prefix (apps/api/src/routes/network.py).
+    // "/aircraft", not "/network/aircraft" — the latter 404s.
     const fleet = apiClient
       .get<{ aircraft?: FleetAircraft[] }>("/aircraft")
       .then((res) => { const a = res.data?.aircraft; if (a && a.length) setFleet(a) })
@@ -221,7 +239,30 @@ export default function SimulatorPage() {
       .then((res) => hydrateAirportTiers(res.data?.airports))
       .catch(note("Airports"))
 
-    void Promise.allSettled([schedulePromise, fleet, airports]).then(() => {
+    /**
+     * DISRUPTION STATE over REST, not only over the socket.
+     *
+     * This boot sequence loaded the static network — schedule, fleet, airport
+     * tiers — and left active events, recovery plans and flight states
+     * entirely to the WebSocket. So a console opened while the socket is
+     * still handshaking, blocked by a proxy, or simply slow renders the
+     * NOMINAL state during a live disruption: "142 legs, no cascades" with a
+     * ground stop running and four plans solved.
+     *
+     * That is worse than a spinner. The empty state is a claim, and the whole
+     * point of the degraded-feed banner beside it is that the operator must
+     * always be able to tell "nothing is wrong" from "I cannot see". This
+     * closed the last path where those two rendered identically.
+     *
+     * `setUpdate` merges it through the same guarded path the socket uses, so
+     * the socket's own snapshot supersedes it a moment later without a fight.
+     */
+    const simState = apiClient
+      .get<Record<string, unknown>>("/simulator/state")
+      .then((res) => { if (res.data) useSimulationStore.getState().setUpdate(res.data) })
+      .catch(note("Simulator state"))
+
+    void Promise.allSettled([schedulePromise, fleet, airports, simState]).then(() => {
       if (!cancelled) setFeedErrors(failed)
     })
     return () => { cancelled = true }
@@ -232,9 +273,6 @@ export default function SimulatorPage() {
       tab={tab}
       onTab={setTab}
       flightEnabled={flightEnabled}
-      // Only as a sheet. Docked, the column's dismiss is the chevron on its
-      // map-facing edge; a second one in the tab bar would be two controls for
-      // one job at the width where there is room for neither.
       onClose={narrow ? () => setColOpen(false) : undefined}
       counts={{
         events: activeEvents.length,
@@ -250,65 +288,58 @@ export default function SimulatorPage() {
         </div>
       )}
       {tab === "recovery" && (
-        <div style={{ flex: 1, minHeight: 0 }}>
-          <RecoveryPlans selectedFlight={selectedFlight} onFlightSelect={handleFlightSelect} />
-        </div>
+        <RecoveryDetail
+          inspectedId={inspectedPlan}
+          onOpenCompare={() => setCompareDismissed(false)}
+        />
       )}
       {tab === "flight" && (
-        <FlightDetailPanel
-          live={selectedLiveFlight}
-          scheduled={selectedSched}
-          onClose={closeFlight}
-        />
+        <FlightDetailPanel live={selectedLiveFlight} scheduled={selectedSched} onClose={closeFlight} />
       )}
     </ContextColumn>
   )
 
   return (
-    // overflow:hidden + fixed height. An ops console must not be able to scroll
-    // away mid-incident, so the shell is exactly one viewport and every region
-    // scrolls internally.
-    <div style={{ background: "var(--ae-bg)", height: "100dvh", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+    <div style={{ background: "var(--ae-bg)", height: "100dvh", overflow: "hidden", display: "flex", flexDirection: "column", width: "100%" }}>
       <DashboardLoader />
 
       <a
         href="#ae-workspace"
+        className="ae-skip"
         style={{
-          position: "absolute", left: sp.sm, top: -200, zIndex: 5000,
-          padding: `${sp.xs}px ${sp.md}px`, borderRadius: r.sm,
-          background: "var(--ae-surface)", color: c.ink,
-          border: `1px solid ${c.hairline}`, boxShadow: "0 0 0 3px var(--ae-focus)",
+          position: "absolute", left: sp.xs, top: -200, zIndex: 5000,
+          padding: `${sp.xxs}px ${sp.sm}px`, borderRadius: r.xs,
+          background: c.canvas, color: c.ink, border: RULE,
+          boxShadow: "0 0 0 3px var(--ae-focus)",
           fontFamily: ff.body, fontSize: 13, fontWeight: 600, textDecoration: "none",
         }}
-        onFocus={(e) => { e.currentTarget.style.top = `${sp.sm}px` }}
+        onFocus={(e) => { e.currentTarget.style.top = `${sp.xs}px` }}
         onBlur={(e) => { e.currentTarget.style.top = "-200px" }}
       >
         Skip to workspace
       </a>
 
-      <div style={{ flexShrink: 0 }}>
-        <SimulatorNav isConnected={isConnected} affectedCount={activeEvents.length} />
-      </div>
+      <BoardBar isConnected={isConnected} />
 
-      {/* Degraded-feed banner. role="status" not "alert": the console is still
-          usable on cached data, so this informs without seizing focus mid-task.
-          It names WHICH feed failed, because "something went wrong" leaves the
-          operator unable to judge whether what they are looking at is
-          trustworthy — and it offers the retry rather than requiring a reload
-          that would also discard their panel layout and map viewport. */}
+      {/* Degraded-feed banner. role="status", not "alert": the console is still
+          usable on cached data, so this informs without seizing focus. It names
+          WHICH feed failed, because "something went wrong" leaves the operator
+          unable to judge whether what they see is trustworthy. */}
       {feedErrors.length > 0 && (
         <div
           role="status"
           style={{
+            position: "relative",
             flexShrink: 0,
-            display: "flex", alignItems: "center", gap: sp.sm,
-            padding: `${sp.xs}px ${sp.md}px`,
+            display: "flex", alignItems: "center", gap: sp.xs,
+            padding: `${sp.xxs}px ${sp.sm}px`,
             background: "var(--ae-amber-bg)",
-            borderBottom: `1px solid var(--ae-amber)`,
-            color: c.ink, fontFamily: ff.body, fontSize: 13,
+            borderBottom: RULE,
+            color: c.ink, fontFamily: ff.body, fontSize: 12.5,
           }}
         >
-          <AlertTriangle style={{ width: 15, height: 15, color: "var(--ae-amber-ink)", flexShrink: 0 }} strokeWidth={2} />
+          <Fringe tone="rose" side="top" />
+          <AlertTriangle style={{ width: 14, height: 14, color: c.amberInk, flexShrink: 0 }} strokeWidth={2} />
           <span>
             <strong style={{ fontWeight: 650 }}>
               {feedErrors.join(" and ")} {feedErrors.length > 1 ? "feeds are" : "feed is"} unavailable.
@@ -318,11 +349,12 @@ export default function SimulatorPage() {
           <button
             type="button"
             onClick={() => { setFeedErrors([]); setBootNonce((n) => n + 1) }}
+            className="ae-bar-btn"
             style={{
-              marginLeft: "auto", minHeight: 32, padding: `0 ${sp.sm}px`,
-              fontSize: 12.5, fontWeight: 600, fontFamily: ff.body,
-              borderRadius: r.sm, border: `1px solid var(--ae-amber-ink)`,
-              background: "transparent", color: "var(--ae-amber-ink)", cursor: "pointer",
+              marginLeft: "auto", height: 26, padding: `0 ${sp.xs}px`,
+              fontSize: 12, fontWeight: 600, fontFamily: ff.body,
+              borderRadius: r.xs, border: `1px solid ${c.amberInk}`,
+              background: "transparent", color: c.amberInk, cursor: "pointer",
             }}
           >
             Retry
@@ -330,15 +362,11 @@ export default function SimulatorPage() {
         </div>
       )}
 
-      {/* <main>, not <div>. The console had NO main landmark and zero headings
-          across 78 tab stops, so a screen-reader user had no document outline
-          to navigate and "skip to main content" had nowhere to go. */}
       <main
         id="ae-workspace"
         tabIndex={-1}
         style={{ flex: 1, minHeight: 0, position: "relative", display: "flex", overflow: "hidden" }}
       >
-        {/* ── Context column ── */}
         {colOpen && !narrow && (
           <>
             <div style={{ width: colW.size, flexShrink: 0, minWidth: 0, height: "100%" }}>
@@ -347,7 +375,7 @@ export default function SimulatorPage() {
             <ResizeHandle
               side="left"
               onPointerDown={colW.onPointerDown}
-              label="Resize the working panel"
+              label="Resize the working column"
               value={colW.size}
               min={COL_W_MIN}
               max={COL_W_MAX}
@@ -356,128 +384,111 @@ export default function SimulatorPage() {
           </>
         )}
 
-        {/* Overlay sheet at narrow widths. It is a real sibling of the map, not
-            a floating card over it, so it still cannot overlap the map's own
-            controls — it replaces the map's width rather than covering it. */}
         {colOpen && narrow && (
-          <div
-            style={{
-              position: "absolute", inset: 0, zIndex: 800,
-              background: c.canvas,
-            }}
-          >
+          <div style={{ position: "absolute", inset: 0, zIndex: 800, background: c.canvas }}>
             {columnBody}
           </div>
         )}
 
-        {/* ── Map over the cascade timeline ──
-            `inert` while the narrow overlay column is up. The map mounts ~530
-            ADS-B markers and every Nimbus airport as focusable DOM nodes; with
-            the sheet open over them they are invisible but still in the tab
-            order, so a keyboard or screen-reader user landed in several hundred
-            unreachable controls behind a panel. inert removes them from
-            focus, hit-testing and the accessibility tree in one attribute. */}
+        {/* `inert` while the narrow sheet is up: the map mounts several hundred
+            focusable marks that are invisible but still in the tab order
+            behind it. `inert={true}`, never `inert=""` — React coerces the
+            empty string to false and silently drops the attribute. */}
         <div
-          // `inert={true}`, not `inert=""`. The empty-string form is the HTML
-          // spelling of a boolean attribute, but React reads it as the STRING
-          // "" and coerces that to false — so the attribute was emitted and did
-          // nothing, and React said so in a console warning that the audit
-          // caught. React 19 supports `inert` as a real boolean prop.
           inert={colOpen && narrow}
           aria-hidden={colOpen && narrow ? true : undefined}
           style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}
         >
-          <div style={{ flex: 1, minHeight: 120, position: "relative", background: c.surfaceSoft }}>
+          {/* ── The map region. Holds the map, and the compare board when a
+                 recovery decision is open. ── */}
+          <div style={{ flex: 1, minHeight: 120, position: "relative", display: "flex", flexDirection: "column" }}>
+          {showCompare && (
+            <div style={{ position: "absolute", inset: 0, zIndex: 600 }}>
+              <PlanCompareBoard
+                inspectedId={inspectedPlan}
+                onInspect={setInspectedPlan}
+                onCommit={(id) => { applyPlan(id); setCompareDismissed(true) }}
+                onClose={() => setCompareDismissed(true)}
+              />
+            </div>
+          )}
+          <Module
+            flush={["top", "left", "right"]}
+            aria-label="Network map"
+            inert={showCompare}
+            aria-hidden={showCompare ? true : undefined}
+            style={{ flex: 1, minHeight: 120 }}
+            bodyStyle={{ overflow: "hidden", position: "relative", background: c.surfaceSoft }}
+          >
             <div style={{ position: "absolute", inset: 0 }}>
               <FlightMap selectedFlight={selectedFlight} onFlightSelect={handleFlightSelect} />
             </div>
 
-            {/* Search owns the TOP-CENTRE lane and nothing else is allowed in
-                it (design.md). Its width is clamped against the map's own box
-                rather than the viewport, so the instrument column on the right
-                and the panel launcher on the left both stay clear. */}
+            {/* Search owns the top-centre lane; nothing else may enter it.
+                Width is clamped against the MAP's box, not the viewport, so
+                the instrument column on the right stays clear. */}
             <div
               className="ae-map-search-lane"
               style={{
-                position: "absolute",
-                top: sp.sm,
-                left: "50%",
-                transform: "translateX(-50%)",
-                // 210px is the instrument column's real footprint (projection
-                // switch 139 + the 64px clearance design.md requires beside it).
-                // Below ~700px of map that subtraction leaves the search too
-                // narrow to clear the switch anyway, so the lane STACKS instead
-                // — see .ae-map-search-lane in globals.css.
-                width: "min(420px, calc(100% - 210px))",
-                zIndex: 520,
+                position: "absolute", top: sp.xs, left: "50%", transform: "translateX(-50%)",
+                width: "min(420px, calc(100% - 210px))", zIndex: 520,
               }}
             >
               <FlightSearch selectedFlight={selectedFlight} onSelect={handleFlightSelect} />
             </div>
 
-            {/* Column launcher — bottom-left lane, which no other overlay owns.
-                Visible whenever the column is closed, at every width. */}
+            {/* Column launcher — bottom-left lane, owned by nothing else. */}
             {!colOpen && (
               <button
                 type="button"
                 onClick={() => setColOpen(true)}
                 className="ae-map-launcher"
                 style={{
-                  position: "absolute", left: sp.sm, top: sp.sm, zIndex: 530,
-                  display: "inline-flex", alignItems: "center", gap: 8,
-                  height: 38, padding: "0 13px", borderRadius: r.md,
-                  border: `1px solid ${c.hairline}`,
-                  background: "var(--ae-surface)", color: c.ink,
-                  fontFamily: ff.body, fontSize: 12.5, fontWeight: 600, cursor: "pointer",
-                  boxShadow: "var(--ae-shadow-card-elev)",
+                  position: "absolute", left: sp.xs, top: sp.xs, zIndex: 530,
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                  height: 30, padding: `0 ${sp.xs}px`, borderRadius: r.xs,
+                  border: `1px solid ${c.glassLine}`,
+                  background: c.glass,
+                  WebkitBackdropFilter: "var(--ae-glass-blur)",
+                  backdropFilter: "var(--ae-glass-blur)",
+                  color: c.ink, fontFamily: ff.body, fontSize: 12, fontWeight: 600, cursor: "pointer",
                 }}
               >
-                <Layers style={{ width: 15, height: 15 }} strokeWidth={2} />
+                <Layers style={{ width: 14, height: 14 }} strokeWidth={2} />
                 Panel
-                {activeEvents.length > 0 && (
-                  <span
-                    style={{
-                      fontFamily: ff.mono, fontSize: 10, fontWeight: 700,
-                      padding: "2px 5px", borderRadius: 999,
-                      background: "var(--ae-amber-bg)", color: "var(--ae-amber-ink)",
-                    }}
-                  >
-                    {activeEvents.length}
-                  </span>
-                )}
+                {activeEvents.length > 0 && <Chip tone="amber">{activeEvents.length}</Chip>}
               </button>
             )}
 
-            {/* Close control for the column, docked to the column's own edge so
-                it never lands in a map overlay lane. */}
             {colOpen && !narrow && (
               <button
                 type="button"
                 onClick={() => setColOpen(false)}
-                aria-label="Collapse the working panel"
-                title="Collapse panel  ["
+                aria-label="Collapse the working column"
+                title="Collapse column  ["
                 className="ae-map-launcher"
                 style={{
-                  // 26px wide, over the 24px WCAG 2.5.8 floor. It reads as a
-                  // half-tab because its left edge is flush to the column, but
-                  // the target itself still has to be a real one.
-                  position: "absolute", left: 0, top: sp.sm, zIndex: 530,
-                  width: 26, height: 36, borderRadius: "0 8px 8px 0",
+                  position: "absolute", left: 0, top: sp.xs, zIndex: 530,
+                  width: 26, height: 34, borderRadius: `0 ${r.xs}px ${r.xs}px 0`,
                   display: "inline-flex", alignItems: "center", justifyContent: "center",
-                  border: `1px solid ${c.hairline}`, borderLeft: "none",
-                  background: "var(--ae-surface)", color: c.muted, cursor: "pointer",
+                  border: `1px solid ${c.glassLine}`, borderLeft: "none",
+                  background: c.glass,
+                  WebkitBackdropFilter: "var(--ae-glass-blur)",
+                  backdropFilter: "var(--ae-glass-blur)",
+                  color: c.body, cursor: "pointer",
                 }}
               >
-                <PanelBottomClose style={{ width: 13, height: 13, transform: "rotate(90deg)" }} strokeWidth={2} />
+                <PanelLeftClose style={{ width: 13, height: 13 }} strokeWidth={2} />
               </button>
             )}
+          </Module>
           </div>
 
           {tlOpen && (
             <ResizeHandle
-              side="bottom"
+              side="top"
               onPointerDown={tlH.onPointerDown}
-              label="Resize the cascade timeline"
+              label="Resize the cascade rail"
               value={tlH.size}
               min={TL_H_MIN}
               max={TL_H_MAX}
@@ -485,63 +496,65 @@ export default function SimulatorPage() {
             />
           )}
 
+          {/* ── The cascade rail. Sized region; clamped to 62% so a dragged-tall
+                 rail can never reduce the map to a strip. ── */}
           <div
             style={{
-              // The timeline is the SIZED region now; the map is greedy. Height
-              // is clamped to 62% so a dragged-tall timeline can never reduce
-              // the map to a strip.
-              height: tlOpen ? Math.min(tlH.size, 620) : TL_COLLAPSED,
+              height: tlOpen ? Math.min(tlH.size, TL_H_MAX) : TL_COLLAPSED,
               maxHeight: tlOpen ? "62%" : undefined,
               flexShrink: 0,
-              borderTop: `1px solid ${c.hairline}`,
-              background: c.canvas,
               overflow: "hidden",
             }}
           >
             {tlOpen ? (
-              <div style={{ height: "100%", position: "relative" }}>
-                <button
-                  type="button"
-                  onClick={() => setTlOpen(false)}
-                  aria-label="Collapse the cascade timeline"
-                  title="Collapse timeline  ]"
-                  className="ae-map-launcher"
-                  style={{
-                    position: "absolute", top: sp.xs, right: sp.sm, zIndex: 30,
-                    width: 32, height: 32, borderRadius: r.sm,
-                    border: `1px solid ${c.hairline}`, background: "var(--ae-surface-2)",
-                    color: c.muted, cursor: "pointer", display: "inline-flex",
-                    alignItems: "center", justifyContent: "center",
-                  }}
-                >
-                  <PanelBottomClose style={{ width: 14, height: 14 }} strokeWidth={2} />
-                </button>
+              <Module
+                flush={["left", "right", "bottom"]}
+                title="Cascade rail"
+                aria-label="Cascade timeline"
+                action={
+                  <button
+                    type="button"
+                    onClick={() => setTlOpen(false)}
+                    aria-label="Collapse the cascade rail"
+                    title="Collapse rail  ]"
+                    className="ae-bar-btn"
+                    style={{
+                      // 24, not 22 — WCAG 2.5.8's floor, and `ui-audit`
+                      // reported it as the console's only sub-24px control
+                      // that was not Leaflet's own attribution markup.
+                      width: 24, height: 24, borderRadius: r.xs, border: RULE,
+                      background: "transparent", color: c.muted, cursor: "pointer",
+                      display: "inline-flex", alignItems: "center", justifyContent: "center",
+                    }}
+                  >
+                    <PanelBottomOpen style={{ width: 12, height: 12, transform: "rotate(180deg)" }} strokeWidth={2} />
+                  </button>
+                }
+                style={{ height: "100%" }}
+                bodyStyle={{ overflow: "hidden" }}
+              >
                 <CascadeTimeline selectedFlight={selectedFlight} onFlightSelect={handleFlightSelect} />
-              </div>
+              </Module>
             ) : (
               <button
                 type="button"
                 onClick={() => setTlOpen(true)}
-                className="ae-map-launcher"
+                className="ae-bar-btn"
                 style={{
-                  width: "100%", height: TL_COLLAPSED, display: "flex", alignItems: "center", gap: sp.xs,
-                  padding: `0 ${sp.md}px`, border: "none", background: "transparent",
-                  color: c.body, cursor: "pointer", fontFamily: ff.mono, fontSize: 10.5,
-                  letterSpacing: "0.14em", textTransform: "uppercase",
+                  width: "100%", height: TL_COLLAPSED, display: "flex", alignItems: "center", gap: 6,
+                  padding: `0 ${sp.sm}px`, border: "none", borderTop: RULE,
+                  background: c.surfaceSoft, color: c.body, cursor: "pointer",
+                  fontFamily: ff.mono, fontSize: 10.5, fontWeight: 600,
+                  letterSpacing: "0.12em", textTransform: "uppercase",
                 }}
               >
-                <PanelBottomOpen style={{ width: 13, height: 13 }} strokeWidth={2} />
-                Cascade timeline — expand
+                <PanelBottomOpen style={{ width: 12, height: 12 }} strokeWidth={2} />
+                Cascade rail — expand
               </button>
             )}
           </div>
         </div>
       </main>
-
-      <style jsx global>{`
-        .ae-map-launcher:hover { background: var(--ae-surface-3) !important; color: var(--ae-text) !important; }
-        .ae-map-launcher:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--ae-focus); }
-      `}</style>
     </div>
   )
 }

@@ -128,6 +128,49 @@ const REGISTERS = {
       "--ae-line-strong":    "#7C818D",
     },
   },
+
+  /**
+   * CONSOLE · LIGHT — "Hairline Mosaic", the console's default from
+   * 2026-08-17. This is a THIRD register, not the paper one reused: the
+   * landing keeps its warm beige and the console gets a cool white board,
+   * and gating only two of three would leave the shipped default ungated —
+   * which is the same class of hole as the missing SEPARATION block.
+   */
+  "console light (.simulator-shell default — the white board)": {
+    surfaces: {
+      "--ae-surface":   "#FFFFFF",
+      "--ae-bg":        "#E9EDF3",
+      "--ae-surface-2": "#D8DEE8",
+      "--ae-surface-3": "#C6CEDB",
+      "--ae-raised":    "#ECF1F7",
+    },
+    // A clean monotone ladder, unlike the other two registers: the module is
+    // the lightest thing, the floor sits below it, and wells recess further.
+    // That is what lets both "raised" and "recessed" read without a shadow.
+    stack: ["--ae-surface", "--ae-bg", "--ae-surface-2", "--ae-surface-3"],
+    card: ["--ae-surface", "--ae-bg"],
+    // A card is CUT INTO the white module, so it steps down, not up.
+    raised: ["--ae-surface", "--ae-raised"],
+    text: {
+      "--ae-text":   "#14161A",
+      "--ae-text-2": "#414B5A",
+      "--ae-text-3": "#4A5462",
+    },
+    graphic: {
+      "--ae-focus (solid plum)": "#5B3FA8",
+      "--ae-teal (graphic)":     "#5B3FA8",
+      // Re-inked DOWN from the paper register's #B8863C, which measures
+      // 3.22:1 on pure white — it cleared the non-text minimum by 0.22 and
+      // failed the moment it carried a label.
+      "--ae-amber":              "#8A5F17",
+      "--ae-rose":               "#C13A6B",
+      "--ae-fringe-mint":        "#0E7C66",
+      "--ae-fringe-violet":      "#6D4BD8",
+      // rgba(20,22,26,0.52) composited over --ae-surface-3, the DARKEST
+      // surface it lands on and therefore the worst case for a dark line.
+      "--ae-line-strong":        "#6E6E77",
+    },
+  },
 }
 
 for (const [regName, reg] of Object.entries(REGISTERS)) {
@@ -177,6 +220,61 @@ for (const [regName, reg] of Object.entries(REGISTERS)) {
 }
 
 // ══════════════════════════════════════════════════════════════════════
+// GLASS — translucent panels, gated on their COMPOSITED result.
+//
+// Added 2026-08-17 with the Hairline Mosaic rebuild, because a glass token is
+// the one surface whose declared value tells you nothing about what ships. A
+// panel declared `rgba(255,255,255,0.86)` is not white; it is whatever it
+// becomes over the thing behind it, and the thing behind it here is a map.
+//
+// The finding this block exists to record: a white glass panel over the
+// Positron basemap composites to 1.10:1 against the tile. The FILL cannot
+// carry the panel's boundary and no alpha value rescues it — white over
+// near-white has nowhere left to go. So the EDGE carries it, which is the same
+// remedy `order2` uses in the cascade ramp above. Both halves are asserted:
+// text must stay readable ON the glass, and the edge must stay visible AGAINST
+// the backdrop. Asserting only the first would pass an invisible panel.
+// ══════════════════════════════════════════════════════════════════════
+
+const GLASS = {
+  "console light": {
+    // The Positron `light_all` tile, sampled after the basemap filter.
+    backdrop: "#FBF8F3",
+    // The darkest thing the glass realistically sits on — water and road
+    // casing. Text readability is gated against THIS, not the pale tile.
+    backdropDark: "#808890",
+    fill: { color: "#FFFFFF", alpha: 0.86 },
+    edge: { color: "#14161A", alpha: 0.55 },
+    text: "#14161A",
+  },
+  "console dark": {
+    backdrop: "#1A1D24",
+    backdropDark: "#1A1D24",
+    fill: { color: "#101218", alpha: 0.84 },
+    edge: { color: "#E9ECF5", alpha: 0.42 },
+    text: "#F2F3F7",
+  },
+}
+
+console.log("\n\n══ glass — composited, not nominal ══")
+for (const [name, g] of Object.entries(GLASS)) {
+  console.log(`\n${name}\n`)
+  const onPale = over(hex(g.fill.color), g.fill.alpha, hex(g.backdrop))
+  const onDark = over(hex(g.fill.color), g.fill.alpha, hex(g.backdropDark))
+  // Body text on the glass, measured over the WORST backdrop it can cover.
+  line("text on glass", "worst backdrop", ratio(hex(g.text), onDark), 4.5)
+  // The edge is the panel's boundary, so WCAG 1.4.11's 3:1 applies to it.
+  const edgeOnMap = over(hex(g.edge.color), g.edge.alpha, hex(g.backdrop))
+  line("glass edge", "vs basemap", ratio(edgeOnMap, hex(g.backdrop)), 3)
+  // Recorded, not asserted: this is the ratio that forced the edge treatment.
+  const fillSep = ratio(onPale, hex(g.backdrop))
+  console.log(
+    `  note  ${"glass fill -> basemap".padEnd(30)} on ${"separation".padEnd(18)} ` +
+      `${fillSep.toFixed(2).padStart(6)} : 1  (edge carries the boundary instead)`,
+  )
+}
+
+// ══════════════════════════════════════════════════════════════════════
 // Cascade severity ramp — console register only (the landing does not draw it).
 //
 // INVERTED 2026-08-16 for the dark floor: severity now runs light→dark, so the
@@ -220,49 +318,76 @@ line("order-1 -> order-2 fill", "each other", ratio(hex("#9E6726"), hex("#2E2718
 // Sampled from a `dark_all` land tile AFTER --ae-basemap-paper is applied.
 // Measuring against the raw tile would flatter every mark, because the filter
 // lifts the basemap ~6% — so the gate would pass values that fail on screen.
-const BASEMAP = hex("#1A1D24")
-const MARK = {
-  "airport hub":        "#5EE0C6",
-  "airport focus city": "#33B49B",
-  "airport spoke":      "#34A08C",
-  // Operating = blue, cancelled = neutral. Grey must stay unique to cancelled,
-  // so both flying tiers live in the blue family.
-  "flight operating":   "#4FA3E3",
-  "ambient ADS-B":      "#3D6B8C",
-  // Cancelled is a dim slate disc with a BRIGHT dashed border and bright glyph.
-  // As with the ramp's pale step, the border is the figure — testing the fill
-  // would fail a mark that is in fact conformant and "fix" it by making
-  // cancelled loud again.
-  "flight cancelled (border)": "#D5DAE6",
+// BOTH REGISTERS ARE GATED. Light mode ships a full second palette
+// (`MAP_LIGHT` in flight-map.tsx); leaving it ungated would mean the one theme
+// the gate does not check is the one free to drift. This block already had a
+// stale `ambient ADS-B` value the map had moved past — exactly that failure,
+// caught by writing the second half.
+const BASEMAPS = {
+  dark:  { tile: "#1A1D24", cancelledFill: "#39404E" },
+  light: { tile: "#FBF8F3", cancelledFill: "#C9CCC9" },
+}
+const MARKS = {
+  dark: {
+    "airport hub":        "#5EE0C6",
+    "airport focus city": "#33B49B",
+    "airport spoke":      "#34A08C",
+    // Operating = blue, cancelled = neutral. Grey must stay unique to
+    // cancelled, so both flying tiers live in the blue family.
+    "flight operating":   "#4FA3E3",
+    "ambient ADS-B":      "#3F6E93",
+    // Cancelled is a dim disc with a BRIGHT dashed border and bright glyph.
+    // As with the ramp's pale step, the border is the figure — testing the
+    // fill would fail a mark that is in fact conformant and "fix" it by
+    // making cancelled loud again.
+    "flight cancelled (border)": "#D5DAE6",
+  },
+  light: {
+    "airport hub":        "#0B4F47",
+    "airport focus city": "#2F6D63",
+    "airport spoke":      "#3D6B60",
+    "flight operating":   "#1C6FA8",
+    "ambient ADS-B":      "#6E93B0",
+    "flight cancelled (border)": "#333935",
+  },
 }
 
-console.log("\n\n══ map marks vs dark_all basemap #1A1D24 ══\n")
-for (const [name, color] of Object.entries(MARK)) {
-  line(name, "basemap", ratio(hex(color), BASEMAP), name === "ambient ADS-B" ? 1 : 3)
+for (const [theme, marks] of Object.entries(MARKS)) {
+  const { tile, cancelledFill } = BASEMAPS[theme]
+  console.log(`\n\n══ map marks vs ${theme}_all basemap ${tile} ══\n`)
+  for (const [name, color] of Object.entries(marks)) {
+    line(name, "basemap", ratio(hex(color), hex(tile)), name === "ambient ADS-B" ? 1 : 3)
+  }
+  // The bug that hid 11 airports: spoke vs ambient traffic were 1.36:1 apart.
+  line("spoke vs ambient", "each other", ratio(hex(marks["airport spoke"]), hex(marks["ambient ADS-B"])), 1.5)
+  // Operating vs cancelled carries the most consequential distinction on the
+  // map, so it is asserted rather than left to whoever edits the palette next.
+  line("operating vs cancelled fill", "each other", ratio(hex(marks["flight operating"]), hex(cancelledFill)), 1.6)
 }
-// The bug that hid 11 airports: spoke vs ambient traffic were 1.36:1 apart.
-line("spoke vs ambient", "each other", ratio(hex(MARK["airport spoke"]), hex(MARK["ambient ADS-B"])), 1.5)
-// Operating vs cancelled carries the most consequential distinction on the map,
-// so it is asserted rather than left to whoever edits the palette next.
-line("operating vs cancelled fill", "each other", ratio(hex(MARK["flight operating"]), hex("#39404E")), 1.6)
 
 // design.md: "Operating stays LIGHTER than cascade-direct so a nominal flight
 // can never out-weigh a disrupted one." That is an ORDERING, not a ratio, and
 // it was previously only prose — so re-inking either pigment could silently
 // invert the map's weight hierarchy while every ratio above still passed.
 //
-// On the dark register "out-weighs" means BRIGHTER, not darker, so the
-// comparison is on raw luminance rather than on contrast-vs-basemap: both
-// marks are now lighter than the tile, which would make the old ratio form
-// reward whichever is further from the basemap in EITHER direction.
-{
-  const direct = luminance(hex("#FFD07A"))
-  const operating = luminance(hex(MARK["flight operating"]))
-  const ok = direct > operating
+// The comparison is on raw LUMINANCE, not on contrast-vs-basemap, because a
+// ratio form would reward whichever mark is further from the tile in EITHER
+// direction — and the direction is the whole assertion.
+//
+// Which direction counts as "out-weighs" FLIPS with the register: on the dark
+// chart the disrupted mark must be brighter than the nominal one; on paper it
+// must be darker. Getting that backwards would pass a map whose severity
+// encoding is inverted, so both are checked explicitly.
+console.log("")
+for (const [theme, marks] of Object.entries(MARKS)) {
+  const directHex = theme === "light" ? "#3A2408" : "#FFD07A"
+  const direct = luminance(hex(directHex))
+  const operating = luminance(hex(marks["flight operating"]))
+  const ok = theme === "light" ? direct < operating : direct > operating
   if (!ok) failed++
   console.log(
-    `\n${ok ? "  ok  " : "  FAIL"} cascade-direct out-weighs operating blue on the basemap  ` +
-      `(L ${direct.toFixed(3)} > ${operating.toFixed(3)})`,
+    `${ok ? "  ok  " : "  FAIL"} ${theme}: cascade-direct out-weighs operating blue  ` +
+      `(L ${direct.toFixed(3)} ${theme === "light" ? "<" : ">"} ${operating.toFixed(3)})`,
   )
 }
 

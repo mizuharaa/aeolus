@@ -102,7 +102,7 @@ function ThemeSwitch() {
               // light plum, because on the console register --ae-teal is a
               // LIGHT pigment and white on it measures 3.23:1.
               background: on ? "var(--ae-teal)" : "transparent",
-              color: on ? "#12101A" : c.muted,
+              color: on ? c.onTeal : c.muted,
               transition: "background 140ms ease, color 140ms ease",
             }}
           >

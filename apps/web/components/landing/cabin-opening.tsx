@@ -69,8 +69,24 @@ const FRAME_OUT = "#474C55"  // window surrounds, a shade lighter than the wall
 const FRAME_IN = "#22262C"
 const SLOT = "#333840"       // shade slot
 const PILL = "#666D78"
-const FABRIC = "#6E6A66"     // warm grey-taupe seat leather
-const FABRIC_LIT = "#8C867F"
+/* ── 2026-08-17: the seat goes back to hide, the cabin does not ───────────
+ *
+ * The note above records why this palette was pulled OFF cognac-and-brass: as
+ * a whole room it read as a period railway carriage the moment a photographic
+ * sky appeared behind it. That finding still holds and the architecture keeps
+ * its cool slate — walls, frames, carpet, console are untouched.
+ *
+ * What was over-corrected is the SEAT. #6E6A66 is a warm grey, and a warm grey
+ * hide under warm light is just grey: it gave the pods no colour of their own,
+ * so the shell (the largest pale surface in frame) took the whole shot and the
+ * cabin read as white boxes in a grey tube. Real long-haul first is a tan or
+ * camel hide precisely because it holds its colour under the cove lighting.
+ *
+ * Camel + champagne-gold trim against cool slate is the combination that reads
+ * as a modern first cabin rather than a carriage: the warmth is confined to
+ * the things a passenger touches, which is where it is in life. */
+const FABRIC = "#8A6440"     // camel hide
+const FABRIC_LIT = "#A87C50" // its lit face / seam highlight
 /* #C0BAB0, not #D8D5CF. The suite shell is the largest single surface in
  * frame, and at the old value it sat within a few percent of paper white — so
  * it had nowhere left to go under a highlight and clipped, taking the shell's
@@ -79,7 +95,10 @@ const FABRIC_LIT = "#8C867F"
  * than as an unlit white box. */
 const SHELL = "#C0BAB0"      // warm composite suite shell
 const ARMREST = "#2E3238"    // dark composite console
-const METAL = "#B9A98C"      // brushed champagne trim
+/* Champagne, warmed and given more chroma. At #B9A98C on a 0.3-roughness
+ * surface the trim was a pale grey line; the rails and inlays exist to draw
+ * gold edges around the pod and they were not drawing anything. */
+const METAL = "#C9A961"      // champagne gold trim
 const CARPET = "#2B2E33"     // cool charcoal carpet
 
 function roundedRect(w: number, h: number, r: number) {
@@ -96,6 +115,45 @@ function roundedRect(w: number, h: number, r: number) {
   s.lineTo(x, y + r)
   s.quadraticCurveTo(x, y, x + r, y)
   return s
+}
+
+/**
+ * A BEVELLED SOLID — the drop-in replacement for `BoxGeometry` on anything
+ * the camera gets close to.
+ *
+ * The cabin's pods were built from raw boxes, and at the wide FOV the portrait
+ * hero uses they are the largest objects in frame. A cube has no bevel, so it
+ * has no edge for a highlight to run along — which is why the seats read as
+ * untextured blocks no matter how the scene was lit. That was diagnosed as a
+ * lighting problem twice and it never was one: exposure and shell albedo were
+ * already corrected and the silhouette stayed flat, because the geometry has
+ * nowhere to catch light.
+ *
+ * Bevel and radius are clamped INSIDE the requested dimensions, so a call with
+ * the same numbers as the `BoxGeometry` it replaces occupies the same volume
+ * at the same position and nothing has to be re-laid-out.
+ *
+ * Cost: an extruded rounded rect at 2 bevel segments is ~10x the triangles of
+ * a box. That is why this is applied to the pod masses the camera passes and
+ * not to the fuselage, panels or luggage — see the note in `seat()`.
+ */
+function roundedBox(w: number, h: number, d: number, radius = 0.045, bevel = 0.016) {
+  const r = Math.max(0.001, Math.min(radius, Math.min(w, h) / 2 - 0.001))
+  const b = Math.max(0.001, Math.min(bevel, d / 2 - 0.001, r * 0.9))
+  const depth = Math.max(0.001, d - b * 2)
+  const geo = new THREE.ExtrudeGeometry(roundedRect(w, h, r), {
+    depth,
+    bevelEnabled: true,
+    bevelThickness: b,
+    bevelSize: b,
+    bevelSegments: 2,
+    curveSegments: 8,
+  })
+  // Extrusion runs 0 → depth with the bevel spilling ±b, so the solid spans
+  // −b … depth+b and its centre sits at depth/2. Recentre on the origin.
+  geo.translate(0, 0, -depth / 2)
+  geo.computeVertexNormals()
+  return geo
 }
 
 /**
@@ -130,17 +188,47 @@ function mat(color: string, opts: Partial<THREE.MeshPhysicalMaterialParameters> 
  */
 function seat(withLamp = false) {
   const g = new THREE.Group()
-  const leather = mat(FABRIC, { roughness: 0.7 })
-  const leatherLit = mat(FABRIC_LIT, { roughness: 0.7 })
-  const shell = mat(SHELL, { roughness: 0.45 })
-  const walnut = mat(ARMREST, { roughness: 0.55, emissiveIntensity: 0.12 })
-  const brass = mat(METAL, { roughness: 0.3, metalness: 0.75, emissiveIntensity: 0.15 })
-  const cream = mat("#F4EDDE", { roughness: 0.9 })
+  /**
+   * SHEEN is what makes these read as upholstery.
+   *
+   * Leather and fabric scatter light at grazing angles — the soft bloom you
+   * see along the roll of a cushion where it turns away from you. Without it a
+   * `MeshPhysicalMaterial` at roughness 0.7 is matte plastic, which is exactly
+   * what these seats looked like once the geometry stopped being the problem.
+   * Sheen is the cheap half of the fix and the bevel above is the other half:
+   * the bevel gives the edge somewhere to turn, sheen makes the turn glow.
+   *
+   * Clearcoat is dropped to near-zero on the hides — cognac leather is not
+   * lacquered, and the 0.18 default was putting a wet varnish highlight on
+   * every cushion.
+   */
+  const hide = { sheen: 0.55, sheenRoughness: 0.75, clearcoat: 0.02, envMapIntensity: 0.9 } as const
+  const leather = mat(FABRIC, { roughness: 0.72, ...hide, sheenColor: new THREE.Color("#C98A4B") })
+  const leatherLit = mat(FABRIC_LIT, { roughness: 0.72, ...hide, sheenColor: new THREE.Color("#E0A768") })
+  // The shell IS lacquered, so it keeps its clearcoat.
+  const shell = mat(SHELL, { roughness: 0.4, clearcoat: 0.5, clearcoatRoughness: 0.28 })
+  const walnut = mat(ARMREST, { roughness: 0.42, clearcoat: 0.55, clearcoatRoughness: 0.3, emissiveIntensity: 0.1 })
+  // Polished brass: low roughness and genuinely metallic, so the warm cove
+  // lights and the table lamp actually leave a specular streak on it.
+  const brass = mat(METAL, { roughness: 0.22, metalness: 0.92, clearcoat: 0, emissiveIntensity: 0.12 })
+  // Wool-blend pillow — the softest thing in the pod, so the strongest sheen.
+  const cream = mat("#F4EDDE", {
+    roughness: 0.95, sheen: 0.85, sheenRoughness: 0.9,
+    sheenColor: new THREE.Color("#FFF3DC"), clearcoat: 0,
+  })
 
-  // wide seat cushion with channel seams
-  const base = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.18, 0.62), leather)
+  // ── Geometry note ──────────────────────────────────────────────────────
+  // Every MASS below is a bevelled solid; every LINE (seam, channel, inlay,
+  // kick rail) stays a box. That split is deliberate and it is where the cost
+  // goes: the masses are what the silhouette is made of and what the light
+  // runs along, while a 16mm seam is two pixels wide and a bevel on it buys
+  // nothing but triangles. ~40 meshes ship per cabin, so the budget is real.
+
+  // Wide seat cushion. Generous radius on the front lip — a cushion's front
+  // edge is the roundest thing on a seat and it is the edge facing camera.
+  const base = new THREE.Mesh(roundedBox(0.62, 0.18, 0.62, 0.07, 0.03), leather)
   base.position.set(0.02, 0, 0)
-  const baseFront = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.18, 0.62), leatherLit)
+  const baseFront = new THREE.Mesh(roundedBox(0.12, 0.18, 0.62, 0.06, 0.03), leatherLit)
   baseFront.position.set(0.3, -0.01, 0)
   g.add(base, baseFront)
   for (const z of [-0.18, 0, 0.18]) {
@@ -149,8 +237,8 @@ function seat(withLamp = false) {
     g.add(seam)
   }
 
-  // reclined leather backrest with vertical channels
-  const back = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.92, 0.58), leather)
+  // Reclined leather backrest with vertical channels.
+  const back = new THREE.Mesh(roundedBox(0.2, 0.92, 0.58, 0.075, 0.028), leather)
   back.position.set(-0.28, 0.46, 0)
   back.rotation.z = -0.18
   g.add(back)
@@ -160,35 +248,39 @@ function seat(withLamp = false) {
     ch.rotation.z = -0.18
     g.add(ch)
   }
-  // plush cream headrest pillow
-  const pillow = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.22, 0.42), cream)
+  // Plush cream headrest pillow — the softest object in the pod, so it gets
+  // the largest radius relative to its size.
+  const pillow = new THREE.Mesh(roundedBox(0.16, 0.22, 0.42, 0.075, 0.034), cream)
   pillow.position.set(-0.36, 0.98, 0)
   pillow.rotation.z = -0.18
   g.add(pillow)
 
-  // cream privacy shell wrapping the back + sides (the pod)
-  const shellBack = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.15, 0.78), shell)
+  // Cream privacy shell wrapping the back + sides (the pod).
+  const shellBack = new THREE.Mesh(roundedBox(0.08, 1.15, 0.78, 0.038, 0.018), shell)
   shellBack.position.set(-0.5, 0.5, 0)
   shellBack.rotation.z = -0.12
   g.add(shellBack)
   for (const side of [1, -1] as const) {
-    const wing = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.95, 0.05), shell)
+    // A moulded shell panel: soft in silhouette, thin in section.
+    const wing = new THREE.Mesh(roundedBox(0.55, 0.95, 0.05, 0.085, 0.014), shell)
     wing.position.set(-0.22, 0.42, side * 0.4)
     wing.rotation.z = -0.06
     g.add(wing)
-    // brass trim rail on the shell edge
+    // Brass trim rail on the shell edge — a LINE, left square.
     const rail = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.03, 0.055), brass)
     rail.position.set(-0.22, 0.9, side * 0.4)
     rail.rotation.z = -0.06
     g.add(rail)
   }
 
-  // walnut console armrests with brass inlay
+  // Walnut console armrests with brass inlay. The armrest is the surface a
+  // passenger's forearm rests on and the one nearest camera on the aisle
+  // side, so its top edge is rounded rather than milled square.
   for (const side of [1, -1] as const) {
-    const console_ = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.3, 0.16), walnut)
+    const console_ = new THREE.Mesh(roundedBox(0.72, 0.3, 0.16, 0.05, 0.02), walnut)
     console_.position.set(0.02, 0.22, side * 0.39)
     g.add(console_)
-    const top = new THREE.Mesh(new THREE.BoxGeometry(0.74, 0.03, 0.18), mat("#5E4633", { roughness: 0.4 }))
+    const top = new THREE.Mesh(roundedBox(0.74, 0.03, 0.18, 0.014, 0.012), mat("#5E4633", { roughness: 0.4 }))
     top.position.set(0.02, 0.38, side * 0.39)
     g.add(top)
     const inlay = new THREE.Mesh(new THREE.BoxGeometry(0.74, 0.015, 0.02), brass)
@@ -196,16 +288,16 @@ function seat(withLamp = false) {
     g.add(inlay)
   }
 
-  // leather ottoman ahead of the seat
-  const ottoman = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.16, 0.5), leather)
+  // Leather ottoman ahead of the seat.
+  const ottoman = new THREE.Mesh(roundedBox(0.34, 0.16, 0.5, 0.055, 0.026), leather)
   ottoman.position.set(0.62, -0.04, 0)
   g.add(ottoman)
   const ottomanSeam = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.02, 0.51), leatherLit)
   ottomanSeam.position.set(0.62, 0.02, 0)
   g.add(ottomanSeam)
 
-  // brass plinth base instead of legs
-  const plinth = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.32, 0.55), mat("#3E2E20", { roughness: 0.6 }))
+  // Brass plinth base instead of legs.
+  const plinth = new THREE.Mesh(roundedBox(0.6, 0.32, 0.55, 0.035, 0.016), mat("#3E2E20", { roughness: 0.6 }))
   plinth.position.set(0, -0.28, 0)
   const kick = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.03, 0.57), brass)
   kick.position.set(0, -0.42, 0)
@@ -633,6 +725,29 @@ function CabinScene({ progressRef }: { progressRef: React.MutableRefObject<numbe
       <pointLight position={[-2.4, -0.4, 1.0]} intensity={1.5} color="#FFCE7A" distance={4.5} />
       <pointLight position={[2.4, -0.4, 3.6]} intensity={1.2} color="#FFCE7A" distance={4.5} />
       <pointLight position={[-2.4, -0.4, 3.6]} intensity={1.2} color="#FFCE7A" distance={4.5} />
+      {/* GRAZING GOLD RIM — added with the bevelled pods.
+          A bevel is only visible when light crosses it at a shallow angle; lit
+          head-on it reads as the flat face it replaced, which is why the
+          existing overhead and pool lights alone left the seats looking like
+          blocks even after the geometry changed. These two sit low and far
+          out to either side so their light rakes ALONG the cushion rolls and
+          the shell's moulded edge, and they are deliberately dim — the job is
+          to draw a highlight down an edge, not to light the cabin, which the
+          cove and the pools already do. */}
+      <pointLight position={[3.6, 0.15, 2.4]} intensity={0.85} color="#FFC864" distance={7} decay={2} />
+      <pointLight position={[-3.6, 0.15, 2.4]} intensity={0.85} color="#FFC864" distance={7} decay={2} />
+      {/* A single soft key on the nearest pod, angled down the aisle. The hero
+          frames one seat; without this it shares the row's ambient wash and
+          nothing tells the eye which pod the shot is about. */}
+      <spotLight
+        position={[1.1, 2.2, 4.4]}
+        angle={0.72}
+        penumbra={0.9}
+        intensity={2.2}
+        color="#FFDCA6"
+        distance={9}
+        decay={2}
+      />
       <primitive object={cabin} />
     </>
   )

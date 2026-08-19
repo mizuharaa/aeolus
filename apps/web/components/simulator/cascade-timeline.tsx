@@ -2,7 +2,8 @@
 import { useMemo } from "react"
 import { motion } from "framer-motion"
 import { useSimulationStore } from "@/stores/simulation"
-import { c, cascade, cascadeInk, ff, r, sp, type } from "@/lib/design-tokens"
+import { c, cascade, cascadeFor, cascadeInkFor, type CascadeStep, ff, r, sp, type } from "@/lib/design-tokens"
+import { useConsoleTheme } from "@/lib/use-theme"
 import { Eyebrow, Type } from "@/components/ds/primitives"
 
 const HOURS = Array.from({ length: 18 }, (_, i) => i + 6) // 6:00–23:00 UTC
@@ -29,8 +30,15 @@ const HOURS = Array.from({ length: 18 }, (_, i) => i + 6) // 6:00–23:00 UTC
 function getBarColor(
   status: string,
   cascadeOrder: number,
+  light: boolean,
 ): { bg: string; border: string; cancelled: boolean; glyph: string; ink: string } {
   const cancelled = status === "cancelled"
+  // The ramp follows the console theme. It has to: the map imports the same
+  // source, so a timeline stuck on one register while the map switched to the
+  // other would put the two surfaces a full severity order apart in
+  // APPEARANCE — the exact drift design.md records the shared import as
+  // existing to prevent, arriving by a new route.
+  const cascade = cascadeFor(light)
   // The GENERATION NUMBER travels with the colour. Re-spacing the ramp to 3:1
   // between neighbours made the steps visible, but "visible" is not "legible
   // at a glance across 67 stacked rows" — and DESIGN.md's own rule is that
@@ -39,12 +47,12 @@ function getBarColor(
   // over by an 0, 2 = knocked over by a 1. That is the distinction between
   // fixing a cause and fixing a symptom, and it was previously carried by
   // three browns 1.5:1 apart.
-  const step = (k: keyof typeof cascade) => ({
+  const step = (k: CascadeStep) => ({
     bg: cascade[k].fill,
     border: cascade[k].border,
     cancelled,
     glyph: cascade[k].glyph,
-    ink: cascadeInk(k),
+    ink: cascadeInkFor(k, light),
   })
   if (cascadeOrder === 0) return step("direct")
   if (cascadeOrder === 1) return step("order1")
@@ -72,6 +80,11 @@ export function CascadeTimeline({
   onFlightSelect: (id: string | null) => void
 }) {
   const { flightStates, schedule } = useSimulationStore()
+  // One source for the ramp, resolved once per render and passed down — so the
+  // legend and the bars cannot disagree about what a severity step looks like.
+  const { resolved } = useConsoleTheme()
+  const lightTheme = resolved === "light"
+  const ramp = cascadeFor(lightTheme)
 
   const displayFlights = useMemo(() => {
     const withState = schedule.map((f) => ({
@@ -127,7 +140,13 @@ export function CascadeTimeline({
               plus a 5-swatch legend cost 64px of a 192px dock, i.e. a third of
               the region, before a single flight row. */}
           <div style={{ display: "flex", alignItems: "baseline", gap: sp.xs, minWidth: 0 }}>
-            <h2 style={{ ...type("titleMd", c.ink), fontSize: 14.5, whiteSpace: "nowrap", margin: 0 }}>Cascade Timeline</h2>
+            {/* The visible name is the MODULE TAB above this row ("Cascade
+                rail"), so printing it again here was the same word twice in
+                28px of vertical space. The heading itself stays in the
+                document — the console's outline is what a screen-reader user
+                navigates by, and it had none at all before headings were
+                added — it is just no longer drawn. */}
+            <h2 className="ae-sr-only">Cascade rail</h2>
             <span style={{ ...type("caption", c.muted), fontSize: 10.5, fontFamily: ff.mono, whiteSpace: "nowrap" }}>
               18h · UTC{affectedCount > 0 ? ` · ${affectedCount} affected` : ""}
             </span>
@@ -144,14 +163,14 @@ export function CascadeTimeline({
           >
             {/* The swatches carry the generation digit too, so the key teaches
                 the redundant channel and not only the colour. */}
-            <LegendSwatch step={cascade.direct} label="Direct hit" ink={cascadeInk("direct")} />
-            <LegendSwatch step={cascade.order1} label="1st order" ink={cascadeInk("order1")} />
-            <LegendSwatch step={cascade.order2} label="2nd order" ink={cascadeInk("order2")} />
-            <LegendSwatch step={cascade.none} label="On time" />
+            <LegendSwatch step={ramp.direct} label="Direct hit" ink={cascadeInkFor("direct", lightTheme)} />
+            <LegendSwatch step={ramp.order1} label="1st order" ink={cascadeInkFor("order1", lightTheme)} />
+            <LegendSwatch step={ramp.order2} label="2nd order" ink={cascadeInkFor("order2", lightTheme)} />
+            <LegendSwatch step={ramp.none} label="On time" />
             {/* Cancelled is a PATTERN, not a colour — it overlays whichever
                 severity fill the flight already has, so it cannot be a swatch
                 in the same series as the ramp. */}
-            <LegendSwatch step={cascade.none} label="Cancelled" hatched />
+            <LegendSwatch step={ramp.none} label="Cancelled" hatched />
           </div>
         </div>
       </div>
@@ -248,7 +267,7 @@ export function CascadeTimeline({
             const leftPct = Math.max(0, ((newDep - 6) / 18) * 100)
             const widthPct = Math.max(1.2, ((newArr - newDep) / 18) * 100)
             const isSelected = selectedFlight === flight.id
-            const palette = getBarColor(flight.state.status, flight.state.cascade_order)
+            const palette = getBarColor(flight.state.status, flight.state.cascade_order, lightTheme)
             // Zebra striping removed. It was a third near-identical beige
             // behind bars that are now genuinely coloured, and measured 1.01:1
             // against the cancelled fill — the rows read as banding, not data.

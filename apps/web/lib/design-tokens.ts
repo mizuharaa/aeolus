@@ -117,9 +117,49 @@ export const cascade = {
   cancelled: { fill: "#191D24", border: "#7C8494", glyph: "✕" },
 } as const
 
-/** Ink that reads on a given cascade step — only `direct` is light enough to need dark ink now. */
-export const cascadeInk = (step: keyof typeof cascade): string =>
-  step === "direct" ? "#171308" : "#F2F3F7"
+/**
+ * The same ramp for the LIGHT console register.
+ *
+ * Severity runs dark→light here — the direct hit is the HEAVIEST ink, which is
+ * the correct direction on paper and the exact inverse of the dark register's
+ * light→dark. That inversion is the whole reason this is a second table rather
+ * than an alpha or a filter: "most severe" means "furthest from the surface",
+ * and which direction that is depends on the surface.
+ *
+ * The three-step constraint recorded above holds identically, and so does its
+ * resolution: the MIDDLE step is the one that gives, so `order2` is a pale fill
+ * whose darker BORDER carries its 3:1, and `glyph` remains the redundant
+ * channel that survives monochrome and colour blindness in both registers.
+ */
+export const cascadeLight = {
+  direct: { fill: "#3A2408", border: "#3A2408", glyph: "0" },
+  order1: { fill: "#9C6C28", border: "#9C6C28", glyph: "1" },
+  order2: { fill: "#E9D6B6", border: "#7E5A1C", glyph: "2" }, // pale fill, border holds 3:1
+  none:   { fill: "#E8E2D4", border: "#7C7568", glyph: "" },
+  cancelled: { fill: "#EDEAE3", border: "#7C7568", glyph: "✕" },
+} as const
+
+export type CascadeRamp = typeof cascade
+export type CascadeStep = keyof typeof cascade
+
+/** The ramp for a resolved console theme. */
+export const cascadeFor = (light: boolean): CascadeRamp =>
+  (light ? cascadeLight : cascade) as CascadeRamp
+
+/**
+ * Ink that reads ON a given cascade step.
+ *
+ * Which steps need light ink flips with the register, because which steps are
+ * DARK flips with it: on the console only `direct` is bright enough to need
+ * dark ink; on paper `direct` and `order1` are the two dark steps.
+ */
+export const cascadeInkFor = (step: CascadeStep, light: boolean): string =>
+  light
+    ? (step === "direct" || step === "order1" ? "#FFFFFF" : "#1C1426")
+    : (step === "direct" ? "#171308" : "#F2F3F7")
+
+/** Dark-register convenience wrapper, kept for call sites that never theme. */
+export const cascadeInk = (step: CascadeStep): string => cascadeInkFor(step, false)
 
 export const tokens = {
   colors: {
@@ -149,12 +189,51 @@ export const tokens = {
     surfaceDarkElevated: "#123349",              // raised step on ink
     hairline:            "var(--ae-line)",       // 1px borders, dividers
 
+    /**
+     * GLASS — a translucent panel, and ONLY over the map.
+     *
+     * Not a decorative treatment. It exists where a surface has to sit on the
+     * map and the operator still needs to see the network through it; anywhere
+     * else, use `canvas`. Its boundary is `glassLine`, not its fill: a white
+     * panel over the Positron basemap composites to 1.05:1 against the tile, so
+     * the fill cannot describe the panel and no alpha value fixes that. The
+     * edge carries the 3:1 instead — the same remedy the cascade ramp's pale
+     * `order2` step uses. Both halves are asserted by check-contrast.mjs's
+     * GLASS block, which composites the alpha rather than trusting the token.
+     */
+    glass:      "var(--ae-glass)",
+    glassLine:  "var(--ae-glass-line)",
+
+    /**
+     * THE SPECTRAL FRINGE — the one atmospheric use of colour on the console.
+     *
+     * Confined to a 1–2px band on a module's edge; it never fills a surface and
+     * the text field stays achromatic. Taken from cloud-edge diffraction, which
+     * is the product's own subject rather than a gradient preset. Each hue
+     * still clears 3:1 on its register's surfaces, so a fringe that happens to
+     * carry meaning is never the weak channel — but meaning is carried by a
+     * MARK first, per the never-colour-alone rule.
+     */
+    fringeMint:   "var(--ae-fringe-mint)",   // nominal / recovered
+    fringeRose:   "var(--ae-fringe-rose)",   // disrupted
+    fringeViolet: "var(--ae-fringe-violet)", // the active band
+
     // ── Type ──────────────────────────────────────────────────────────
     ink:           "var(--ae-text)",    // headings, emphasis
     body:          "var(--ae-text-2)",  // running text
     muted:         "var(--ae-text-3)",  // captions, labels
     borderStrong:  "var(--ae-line-strong)",
     onPrimary:     "var(--ae-on-primary)",
+    /**
+     * The label that sits ON a `teal` fill.
+     *
+     * Teal is a DARK plum on paper and on the light board, and a LIGHT plum on
+     * the dark console — so the label that reads on it inverts with the
+     * register, and no single literal is correct. Four call sites hardcoded
+     * `#12101A` (right for dark, 2.44:1 on the light board) and shipped an
+     * unreadable notification count. Reach for this token, never a literal.
+     */
+    onTeal:        "var(--ae-on-teal)",
 
     // ── Chromatic accents (register-aware text steps) ────────────────
     sky:       "var(--ae-sky)",        // atmosphere accent

@@ -15,8 +15,34 @@ ONLY=simulator node scripts/ui-audit.mjs shots  # narrow the run
 node scripts/shot.mjs http://localhost:3000/simulator 390 844 out.png 13000 close
 ```
 
-Current audit baseline (all four combinations): **0 contrast failures,
-0 collisions on mobile, 3 on desktop, 0 horizontal overflow.**
+Current audit baseline (all four route/viewport combinations):
+**0 contrast failures · 0 collisions on mobile, 4 on desktop (all Leaflet
+attribution) · 0 horizontal overflow · console clean of errors and warnings.**
+Both contrast gates pass, in both themes.
+
+## Done since this file was written (2026-08-16, second pass)
+
+Closed by the `/impeccable critique` round — kept here so nobody re-opens them:
+
+- **P0** "Confirm commit" was white on gold at **1.44:1** — an unreadable label
+  on the confirmation step of an irreversible dispatch. Root cause was
+  `--ae-on-primary: #FFFFFF` in a register whose own note says light pigments
+  take ink; every call site that correctly used the token got white anyway.
+- **P0** Every Recovery card was `c.canvas` on a `c.canvas` panel (**1.00:1**).
+  New `--ae-raised` rung + the `--ae-edge` highlight that was declared and
+  unused. Gated.
+- **P1** The matrix rendered its winner **darker than the losers** (1.24:1), and
+  `Math.min` crowned Plan D "best" on Pax·min *because* D cancels all 39
+  flights. Pax·min / tCO₂e / Cancels are now reported, not ranked.
+- **P1** `Unapply` was painted under the projection switch, unreachable.
+- **P2** The globe was never re-inked in the register split — cream sphere in a
+  near-black console, 39 of 39 flights present in the DOM and none legible.
+- Dead controls (bookmark, "More"), missing theme switch, recovery plans not
+  surfacing after a solve, banned status dots, keyboard access for the matrix
+  and the delay rows, full light-mode map parity.
+
+**P5 below is now the only original item still open**; P1–P4 were replaced by
+the list further down.
 
 ---
 
@@ -63,9 +89,32 @@ notification rather than a jump.
 
 ---
 
-## P3 — Three desktop collisions, all in the map's bottom-right corner
+## P2b — Generated-composition surfaces the critique named
 
-**What.** `ui-audit` reports 3 overlapping pairs at 1440, all involving the
+Grouped because they share one cause: the panel's *content* is authored for an
+airline OCC, its *surfaces* are not.
+
+- The `Strategy` block is ~360 characters of template prose at 12px in a 364px
+  column, with `${count} flight${s}` interpolation. It reads as filler because
+  it is structurally filler. `buildNarrative` also has branches for plans A, B
+  and C and falls through to a generic string for **D**.
+- 26 cancellation chips in one undifferentiated grid; no sort, no filter.
+- Sonner toasts render **cream cards in the dark register**, and their copy is
+  broken: *"KE214 arrived — Touched down at KE214"* names a flight as an
+  airport. They also fire for other carriers' ADS-B arrivals during an active
+  disruption, which is noise on top of a wrong string.
+- `recovery-plans.tsx` still `export { Sparkles }` — an unused re-export of the
+  AI-sparkle icon. `event-panel.tsx` imports 30 lucide glyphs, one per
+  disruption type, chosen by dictionary lookup.
+- "Solve time 140ms" is a first-class impact tile beside "7 FAR 117 flags".
+- `PLAN_META` short labels use `Tmrw` — a text-message abbreviation on a
+  flight-dispatch console.
+
+---
+
+## P3 — Remaining desktop collisions, in the map's bottom-right corner
+
+**What.** `ui-audit` reports 4 overlapping pairs at 1440, all involving the
 Leaflet attribution (`a "Leaflet"`, `a "CARTO"`) against the layers/key
 disclosure and the panel launcher. Overlap fractions 0.35–0.36, so partial.
 
@@ -83,21 +132,13 @@ move to bottom-right and the layers disclosure should clear it.
 
 ---
 
-## P4 — Hydration mismatch warning on the console
+## ~~P4 — Hydration mismatch warning~~ — CLOSED
 
-**What.** `ui-audit` surfaces a React hydration warning on `/simulator`
-("A tree hydrated but some attributes of the server rendered HTML didn't match").
-It is not currently breaking anything visible.
-
-**Likely cause.** A component branching on `window`/`localStorage` during the
-first render rather than in an effect. The rail reads
-`localStorage["aeolus-rail-pinned"]` and the page reads several `aeolus-*` keys;
-both gate on a `mounted` flag, so the culprit is probably elsewhere — a
-`matchMedia` read, or `notification-bell`'s time formatting.
-
-**Fix.** Bisect by commenting out the client-only reads one at a time under a
-dev build; the warning names no component, which is why this is P4 rather than
-a quick fix.
+Resolved. The cause was the pre-paint theme script stamping
+`data-console-theme` on `<html>`, which React correctly reports as a client/
+server difference. `<html suppressHydrationWarning>` is the documented pattern
+for theme scripts and suppresses exactly one level, so real mismatches inside
+the app still surface. Console now reports **zero** errors and warnings.
 
 ---
 
@@ -129,3 +170,16 @@ be a real usage mode rather than a responsive-correctness requirement.
   comment inside them fails the build. Both cost a debugging cycle already.
 - **`inert` must be `inert={true}`, not `inert=""`.** React coerces the empty
   string to false and silently drops it.
+- **`.ae-sr-only` is now global** (`globals.css`). It used to exist only inside
+  the landing's CSS module, so using it anywhere else produced *visible* text —
+  which is how a caption added for screen readers became a contrast defect.
+- **The map's icon cache is keyed by `THEME_KEY + "|" + key`.** The factories
+  close over a module-level palette and the cache never expires, so any new
+  cache key must keep that prefix or a theme switch will serve stale marks for
+  the rest of the session.
+- **`ui-audit.mjs` separates `marker crowding` from `collisions`.** Map marks
+  overlapping each other is density; a control landing on a control is a bug.
+  Don't merge the two counts back together.
+- **PowerShell `Set-Content` mangles UTF-8 in these files.** It has corrupted
+  box-drawing characters in source comments twice. Use the editor, not shell
+  rewrites, on anything containing non-ASCII.

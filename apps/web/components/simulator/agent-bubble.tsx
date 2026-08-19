@@ -275,26 +275,35 @@ export function AgentBubble() {
         )}
       </AnimatePresence>
 
+      {/* An ink-filled pill with the cyclone mark inside it made this the
+          heaviest object on a 44px bar — visual weight follows CONSEQUENCE
+          (design.md), and opening a chat panel is the least consequential act
+          available up here, well below Reset or Commit. It now wears the same
+          hairline treatment as every other bar control, and the mark is gone
+          with the rest of the AeolusMark removals. A sparkle glyph would just
+          be the same mistake in a different costume, so the affordance is the
+          word. */}
       <motion.button
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
+        className="ae-bar-btn"
         style={{
           display: "inline-flex",
           alignItems: "center",
-          gap: 9,
-          minHeight: 36,
-          padding: "0 14px",
-          borderRadius: 999,
-          background: INK,
-          color: BONE,
-          border: "1px solid rgba(240,235,223,0.16)",
+          gap: 6,
+          height: 30,
+          padding: "0 10px",
+          borderRadius: 4,
+          background: open ? "var(--ae-teal-bg)" : "transparent",
+          color: open ? "var(--ae-teal-ink)" : "var(--ae-text-2)",
+          border: `1px solid ${open ? "var(--ae-teal)" : "var(--ae-line)"}`,
           cursor: "pointer",
           fontFamily: "var(--ae-font-body)",
-          fontSize: 13,
-          fontWeight: 600,
+          fontSize: 12,
+          fontWeight: 500,
+          whiteSpace: "nowrap",
         }}
       >
-        <AeolusMark size={16} style={{ color: BONE }} accent={AMBER} />
         Ask Aeolus
       </motion.button>
     </div>

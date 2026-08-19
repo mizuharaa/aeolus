@@ -184,7 +184,7 @@ export function NotificationBell() {
               // #9B7FE0 — a light plum picked to read against a near-black
               // floor — so white on it measured 3.23:1, under AA for an 11px
               // count. Both pigments are light here, so both take ink.
-              color: "#12101A", fontSize: 11, fontWeight: 700, fontFamily: ff.mono,
+              color: c.onTeal, fontSize: 11, fontWeight: 700, fontFamily: ff.mono,
               display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1,
               boxShadow: "0 0 0 2px var(--ae-surface)",
             }}
