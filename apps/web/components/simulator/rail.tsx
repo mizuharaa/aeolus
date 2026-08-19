@@ -28,18 +28,32 @@ import Link from "next/link"
 import type { Route } from "next"
 import { usePathname } from "next/navigation"
 import { useEffect, useState } from "react"
+/**
+ * ── 2026-08-17: ONLY UNIVERSALLY RECOGNISED GLYPHS ────────────────────────
+ *
+ * Four icons were replaced because they were a private vocabulary: a
+ * dashboard-grid for the live MAP, a waypoint graph for CASCADE, compare-
+ * arrows (a diff glyph, borrowed from version control) for RECOVERY, and a
+ * speedometer for ANALYSIS. None of them is readable without being learned
+ * first, and an icon that needs a legend is not doing an icon's job on a
+ * surface someone reads under time pressure.
+ *
+ * The replacements are all glyphs a person already knows from somewhere else:
+ * a map, a clock, scales, a bar chart. Where no universal glyph exists the
+ * answer is a word, not a cleverer drawing.
+ */
 import {
-  LayoutDashboard,
+  Map as MapIcon,
   FlaskConical,
-  GitCompareArrows,
-  Waypoints,
+  Scale,
+  Clock,
   Users,
   UserRound,
-  Gauge,
+  BarChart3,
   Leaf,
   PanelLeftClose,
   PanelLeftOpen,
-  ScrollText,
+  FileText,
   Bookmark,
   Search,
   Plus,
@@ -48,7 +62,6 @@ import {
   CornerDownRight,
   type LucideIcon,
 } from "lucide-react"
-import { AeolusMark } from "@/components/ds/logo"
 import { c, ff, r } from "@/lib/design-tokens"
 import { OpsBrief } from "@/components/simulator/ops-brief"
 
@@ -64,11 +77,11 @@ type NavItem = {
  * would be a dead control at SLIM width, where children are not rendered.
  */
 const NAV: NavItem[] = [
-  { href: "/simulator", label: "Live map", Icon: LayoutDashboard },
+  { href: "/simulator", label: "Live map", Icon: MapIcon },
   {
     href: "/simulator/cascade",
     label: "Cascade",
-    Icon: Waypoints,
+    Icon: Clock,
     children: [
       { href: "/simulator/cascade", label: "Timeline" },
       { href: "/simulator/watchlist", label: "Watchlist" },
@@ -78,7 +91,7 @@ const NAV: NavItem[] = [
   {
     href: "/simulator/plans",
     label: "Recovery",
-    Icon: GitCompareArrows,
+    Icon: Scale,
     children: [
       { href: "/simulator/plans", label: "Plans" },
       { href: "/simulator/crew", label: "Crew" },
@@ -88,7 +101,7 @@ const NAV: NavItem[] = [
   {
     href: "/simulator/stress-test",
     label: "Analysis",
-    Icon: Gauge,
+    Icon: BarChart3,
     children: [
       { href: "/simulator/stress-test", label: "Stress test" },
       { href: "/simulator/carbon", label: "Carbon" },
@@ -322,27 +335,18 @@ export function SimulatorRail() {
           fontFamily: ff.body,
         }}
       >
-        {/* brand */}
-        <Link
-          href="/"
-          title="Aeolus — home"
-          style={{
-            display: "flex", alignItems: "center", gap: 12,
-            height: 56, padding: "0 0 0 23px", flexShrink: 0,
-            textDecoration: "none", color: c.ink,
-          }}
-        >
-          <AeolusMark size={21} style={{ color: "var(--ae-teal-ink)" }} />
-          <span
-            style={{
-              fontFamily: ff.display, fontWeight: 700, fontSize: 15.5,
-              letterSpacing: "0.02em", whiteSpace: "nowrap",
-              opacity: expanded ? 1 : 0, transition: "opacity 160ms ease 50ms",
-            }}
-          >
-            AEOLUS
-          </span>
-        </Link>
+        {/* No brand block.
+            The cyclone AeolusMark used to sit here with the wordmark beside
+            it. Both are gone from the console: the mark because a logo that
+            has to be explained is decoration on an operations surface, and
+            the wordmark because the board bar three pixels to the right
+            already says AEOLUS — the rail was printing the product name a
+            second time in the operator's peripheral vision, permanently, and
+            spending 56px of the nav column to do it.
+
+            That height now belongs to navigation, which is the rail's only
+            job. The route home is the "Leave the console" item in the account
+            menu, where the rest of the session controls live. */}
 
         {/* search + primary action */}
         <div style={{ padding: "2px 10px 10px", display: "flex", flexDirection: "column", gap: 8, flexShrink: 0 }}>
@@ -434,7 +438,7 @@ export function SimulatorRail() {
 
           <RailItem
             label="Daily brief"
-            Icon={ScrollText}
+            Icon={FileText}
             active={briefOpen}
             expanded={expanded}
             onClick={() => setBriefOpen(true)}

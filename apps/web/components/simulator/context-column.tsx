@@ -24,15 +24,29 @@
  */
 
 import { useEffect, useRef } from "react"
-import { CloudLightning, Waypoints, Plane, Map } from "lucide-react"
+import { Map } from "lucide-react"
 import { c, ff, r } from "@/lib/design-tokens"
 
 export type ContextTab = "events" | "recovery" | "flight"
 
-const TABS: { id: ContextTab; label: string; Icon: typeof CloudLightning }[] = [
-  { id: "events",   label: "Events",   Icon: CloudLightning },
-  { id: "recovery", label: "Recovery", Icon: Waypoints },
-  { id: "flight",   label: "Flight",   Icon: Plane },
+/**
+ * A tab is a WORD, not a word wearing a glyph.
+ *
+ * These carried CloudLightning / Waypoints / Plane. Two costs, both real.
+ * Measured: at the column's 360px default each tab gets ~114px, and icon (14)
+ * + gaps (12) + count badge (20) + padding (16) left ~52px for the label —
+ * so "Recovery" rendered as "Recov…" and, at the mobile sheet's width, as
+ * "R…". A truncated tab label is a nav item you cannot read.
+ *
+ * And none of the three glyphs was carrying meaning the word did not already
+ * carry. A lightning bolt for "Events" and a waypoint graph for "Recovery" are
+ * decoration that has to be learned; dropping them buys back the 26px that
+ * made the labels fit.
+ */
+const TABS: { id: ContextTab; label: string }[] = [
+  { id: "events",   label: "Events" },
+  { id: "recovery", label: "Recovery" },
+  { id: "flight",   label: "Flight" },
 ]
 
 export function ContextColumn({
@@ -85,12 +99,12 @@ export function ContextColumn({
         aria-label="Working panel sections"
         onKeyDown={onKeyDown}
         style={{
-          display: "flex", gap: 3, padding: 5, flexShrink: 0,
+          display: "flex", gap: 0, padding: 0, flexShrink: 0,
           borderBottom: `1px solid ${c.hairline}`,
           background: "var(--ae-surface-2)",
         }}
       >
-        {TABS.map(({ id, label, Icon }) => {
+        {TABS.map(({ id, label }) => {
           const disabled = id === "flight" && !flightEnabled
           const active = tab === id
           const n = counts[id]
@@ -108,23 +122,27 @@ export function ContextColumn({
               onClick={() => onTab(id)}
               className="ae-ctx-tab"
               style={{
+                position: "relative",
                 flex: 1, minWidth: 0,
-                display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
-                height: 34, padding: "0 8px", borderRadius: r.sm,
-                border: "1px solid transparent",
-                // Visual weight follows consequence (design.md): the selected
-                // tab is a raised surface, not an inverted slab. An ink-filled
-                // tab reads as "committed", which selecting a section is not.
+                display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5,
+                height: 30, padding: "0 6px", borderRadius: 0,
+                // A module tab, not a pill: the active one is the white module
+                // face rising out of the well, marked by a spectral band on its
+                // top edge. Visual weight follows consequence (design.md) — an
+                // ink-filled tab reads as "committed", which selecting is not.
+                border: "none",
+                borderRight: `1px solid ${c.hairline}`,
                 background: active ? c.canvas : "transparent",
-                boxShadow: active ? "inset 0 0 0 1px var(--ae-line), 0 1px 2px rgba(0,0,0,0.35)" : "none",
+                boxShadow: active ? `inset 0 2px 0 ${c.fringeViolet}` : "none",
                 color: disabled ? "var(--ae-text-3)" : active ? c.ink : c.muted,
                 opacity: disabled ? 0.45 : 1,
                 cursor: disabled ? "not-allowed" : "pointer",
-                fontFamily: ff.body, fontSize: 12.5, fontWeight: active ? 600 : 500,
+                fontFamily: ff.mono, fontSize: 10.5,
+                fontWeight: active ? 700 : 600,
+                letterSpacing: "0.10em", textTransform: "uppercase",
                 transition: "background 140ms ease, color 140ms ease",
               }}
             >
-              <Icon aria-hidden style={{ width: 14, height: 14, flexShrink: 0 }} strokeWidth={2} />
               <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
               {n != null && n > 0 && (
                 <span
@@ -206,23 +224,47 @@ export function ContextColumn({
  */
 export function AnnouncementCard({ onDismiss }: { onDismiss: () => void }) {
   return (
+    /* A ruled note, not a tinted box.
+       This was a lavender card with a plum border sitting at the top of the
+       column — the most saturated object on the console, spending a filled
+       surface on a FEATURE NOTE while live disruption state below it made do
+       with hairlines. Visual weight follows consequence, and a product
+       announcement has the least of any element here.
+       It keeps its place in the column and its dismissal; it just stops
+       shouting. The spectral fringe on its leading edge is the whole of its
+       decoration. */
     <div
       style={{
-        margin: 10, padding: "10px 12px", borderRadius: r.md,
-        background: "var(--ae-teal-bg)",
-        border: "1px solid var(--ae-teal)",
+        position: "relative",
+        padding: "8px 12px 8px 14px",
+        borderBottom: `1px solid ${c.hairline}`,
+        background: "var(--ae-surface)",
         fontFamily: ff.body,
       }}
     >
+      <span
+        aria-hidden
+        style={{
+          position: "absolute", left: 0, top: 0, bottom: 0, width: 2,
+          background: "var(--ae-fringe)",
+        }}
+      />
       <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-        <strong style={{ fontSize: 12.5, fontWeight: 650, color: c.ink }}>New — Drone incursion</strong>
+        <strong
+          style={{
+            fontFamily: ff.mono, fontSize: 10, fontWeight: 700,
+            letterSpacing: "0.12em", textTransform: "uppercase", color: c.muted,
+          }}
+        >
+          New — Drone incursion
+        </strong>
         <button
           type="button"
           onClick={onDismiss}
           className="ae-detail-btn"
           style={{
             marginLeft: "auto", border: "none", background: "transparent",
-            color: "var(--ae-teal-ink)", cursor: "pointer",
+            color: c.muted, cursor: "pointer",
             // minHeight 24, not the 21px the padding produced — WCAG 2.5.8.
             fontSize: 11.5, fontWeight: 600, padding: "0 8px", minHeight: 24, borderRadius: 5,
           }}

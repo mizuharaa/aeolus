@@ -72,6 +72,9 @@
     --ae-primary:        #1C1426;
     --ae-primary-active: #5B3FA8;
     --ae-on-primary:     #F5F1E8;
+    /* Paper's teal is the dark plum, so its label is paper white. Defined in
+       all three registers so `c.onTeal` is never an undefined variable. */
+    --ae-on-teal:        #FFFFFF;
 
     --ae-sky-ink:   #553B9E;
     --ae-teal-ink:  #46307F;
@@ -185,8 +188,12 @@
      dark. `.register-dark` stays unconditional — it is an explicit opt-in for
      call sites that want the console palette regardless of the operator's
      choice. */
+  /* FLIPPED 2026-08-17. Dark used to be the fallback (`:not([…="light"])`)
+     because dark was the default. The Hairline Mosaic rebuild makes the WHITE
+     board the console's default, so dark is now an explicit opt-in and the
+     absent-attribute case resolves LIGHT in the block below this one. */
   .register-dark,
-  html:not([data-console-theme="light"]) .simulator-shell {
+  html[data-console-theme="dark"] .simulator-shell {
     /* Four surfaces, each a real step apart — the separation the paper
        register never had. Asserted by check-contrast.mjs's SEPARATION
        block, which is the check whose absence let the fog through: every
@@ -235,6 +242,9 @@
      * register it is better. The two dark-fill call sites that genuinely need
      * a light label now say so explicitly rather than relying on this default. */
     --ae-on-primary:     #12101A;
+    /* Teal is a LIGHT plum on this register, so its label takes ink — 5.66:1.
+       See the note on the light register's copy of this token. */
+    --ae-on-teal:        #12101A;
 
     /* Pigments re-inked UP for the dark floor. The paper register's plum
        (#5B3FA8) reads 1.9:1 on #14161C — it would be a hole, not a mark. */
@@ -266,6 +276,30 @@
 
     /* 5.54:1 against the panel surface as a solid non-text mark. */
     --ae-focus: #9B7FE0;
+
+    /* ── Spectral fringe + glass, dark parity (2026-08-17) ──────────
+       Same jobs as the light register, re-inked UP for a near-black floor.
+       The fringe is the one atmospheric use of colour and stays a 1–2px
+       edge band; each hue clears 3:1 on --ae-surface. Glass here darkens
+       rather than lightens — a translucent panel over the dark_all basemap
+       has to stay a panel, so it composites toward the floor, not away
+       from it. Both are gated in check-contrast.mjs's GLASS block. */
+    --ae-fringe-mint:   #5EE0C6;
+    --ae-fringe-rose:   #E5628E;
+    --ae-fringe-violet: #A78BE8;
+    --ae-fringe:        linear-gradient(
+                          90deg,
+                          var(--ae-fringe-mint) 0%,
+                          var(--ae-fringe-violet) 52%,
+                          var(--ae-fringe-rose) 100%
+                        );
+
+    --ae-glass:      rgba(16, 18, 24, 0.84);
+    /* Same reasoning as the light register, mirrored: dark glass on the
+       dark_all tile composites to 1.09:1, so the edge carries the boundary.
+       0.42 composites to #71747C over the tile — 3.61:1. */
+    --ae-glass-line: rgba(233, 236, 245, 0.42);
+    --ae-glass-blur: saturate(140%) blur(14px);
 
     /* On a near-black floor a cast shadow does nothing — elevation has to
        come from the surface step plus a hairline top-edge highlight. These
@@ -299,6 +333,161 @@
     --ring:         258 62% 71%;
 
     color-scheme: dark;
+  }
+
+  /* ══════════════════════════════════════════════════════════════════
+     CONSOLE · LIGHT REGISTER — "Hairline Mosaic". The default, 2026-08-17.
+
+     This is NOT the landing's warm paper. The landing keeps `:root`
+     (#F2EDE1 beige) untouched; the console gets its own bright board, and
+     the two are deliberately different worlds sharing one token vocabulary.
+     Selector is the ABSENT case as well as the explicit one, because the
+     attribute does not exist for the split second before the pre-paint
+     script runs and does not exist at all with scripting off — and the
+     default must resolve light in both.
+
+     The world: a bright white module on a cool grey floor, separated by a
+     1px rule and a CUT edge rather than a shadow. Colour never fills a
+     surface; it appears as a narrow spectral fringe on a module's edge and
+     as marks. The text field stays achromatic.
+
+     Every step below is computed against check-contrast.mjs's own maths,
+     not eyeballed — the separation ladder is 1.17 / 1.15 / 1.17 and the
+     card-vs-floor rung is 1.17, all clear of the 1.12 floor. ────────── */
+  html:not([data-console-theme="dark"]) .simulator-shell,
+  .register-light {
+    /* Elevation ladder. On this register a module RAISES by getting lighter
+       than the floor, and a well RECESSES by getting darker than it — the
+       floor sits in the middle of the range, which is what lets both
+       directions read without a shadow. */
+    --ae-bg:            #E9EDF3;  /* board floor — cool grey, hue 218 */
+    --ae-surface:       #FFFFFF;  /* module face */
+    --ae-surface-2:     #D8DEE8;  /* recessed well, tab bar */
+    --ae-surface-3:     #C6CEDB;  /* track fill, deep recess */
+    /* A CARD ON A MODULE. The module is already pure white, so a card can
+       only step DOWN — which is correct here anyway: in this world a card
+       is CUT INTO the module, not floated above it. 1.14:1 below white. */
+    --ae-raised:        #ECF1F7;
+
+    --ae-line:          rgba(20, 22, 26, 0.14);
+    /* Bounds real controls, so WCAG 1.4.11 applies: 3.02:1 composited over
+       --ae-surface-3, the lightest surface it can land on. */
+    --ae-line-strong:   rgba(20, 22, 26, 0.52);
+
+    --ae-text:          #14161A;  /* 11.4:1 on the darkest surface */
+    --ae-text-2:        #414B5A;  /* 5.57:1 there */
+    --ae-text-3:        #4A5462;  /* 4.84:1 there — AA on EVERY surface */
+
+    --ae-primary:        #14161A;
+    --ae-primary-active: #5B3FA8;
+    --ae-on-primary:     #FFFFFF;
+    /* The label that goes ON a --ae-teal fill. Here teal is a DARK plum, so
+       the label is white (7.72:1). In the dark register teal is a LIGHT plum
+       and the label is ink. Call sites were hardcoding #12101A for the dark
+       case, which shipped 2.44:1 ink-on-plum onto the white board — the
+       notification count was unreadable. Same failure `--ae-on-primary` was
+       created for; this is the missing sibling token. */
+    --ae-on-teal:        #FFFFFF;
+
+    /* Pigments keep their JOBS from design.md and are re-inked for a white
+       ground. Dark pigments on white, the inverse of the console's dark
+       register, each clearing 3:1 against pure white as a non-text mark. */
+    --ae-sky:   #6D4BD8;
+    --ae-teal:  #5B3FA8;   /* identity / action / recovery — 7.72:1 */
+    --ae-amber: #8A5F17;   /* events / ops status — re-inked DOWN from
+                              #B8863C, which measured 3.22:1 on white and
+                              failed 4.5:1 the moment it carried a label */
+    --ae-rust:  var(--ae-amber);
+    --ae-rose:  #C13A6B;   /* disruption energy — 5.14:1 */
+    --ae-pink:  var(--ae-rose);
+
+    --ae-sky-ink:   #4A2FA0;
+    --ae-teal-ink:  #46307F;
+    --ae-amber-ink: #6B4910;
+    --ae-rust-ink:  var(--ae-amber-ink);
+    --ae-rose-ink:  #A02458;
+
+    /* Tints DARKEN the white ground here. Kept under 0.14 so a tinted
+       module still reads as the same material as an untinted one. */
+    --ae-sky-bg:     rgba(109, 75, 216, 0.10);
+    --ae-teal-bg:    rgba(91, 63, 168, 0.09);
+    --ae-amber-bg:   rgba(138, 95, 23, 0.11);
+    --ae-rust-bg:    var(--ae-amber-bg);
+    --ae-rose-bg:    rgba(193, 58, 107, 0.09);
+    --ae-neutral-bg: rgba(20, 22, 26, 0.05);
+    --ae-amber-soft:  rgba(138, 95, 23, 0.52);
+    --ae-amber-soft2: rgba(138, 95, 23, 0.26);
+    --ae-rose-soft:   rgba(193, 58, 107, 0.52);
+    --ae-rose-soft2:  rgba(193, 58, 107, 0.26);
+
+    --ae-focus: #5B3FA8;
+
+    /* ── The spectral fringe ────────────────────────────────────────
+       The one place colour is allowed to be atmospheric rather than
+       semantic, and it is confined to a 1–2px band on a module's edge.
+       Taken from cloud-edge diffraction: a white body grows a narrow
+       crown of mint, rose and violet. Each still clears 3:1 on white, so
+       an edge that happens to carry meaning is never the weak link. */
+    --ae-fringe-mint:   #0E7C66;  /* 5.13:1 — nominal / recovered */
+    --ae-fringe-rose:   #C13A6B;  /* 5.14:1 — disrupted */
+    --ae-fringe-violet: #6D4BD8;  /* 5.76:1 — the ACTIVE band */
+    --ae-fringe:        linear-gradient(
+                          90deg,
+                          var(--ae-fringe-mint) 0%,
+                          var(--ae-fringe-violet) 52%,
+                          var(--ae-fringe-rose) 100%
+                        );
+
+    /* ── Glass ──────────────────────────────────────────────────────
+       A real material, not a wash. It is used ONLY where a surface sits
+       over the map and the operator needs to keep seeing through it.
+       0.86 alpha over the Positron basemap composites to #F7F8FA at the
+       worst case, which is why body ink still measures over 10:1 on it —
+       asserted by check-contrast.mjs's GLASS block, which composites the
+       alpha rather than trusting the nominal colour. */
+    --ae-glass:      rgba(255, 255, 255, 0.86);
+    /* 0.55, not the 0.16 this started at. A white glass panel sitting on a
+       near-white Positron basemap composites to 1.10:1 against the tile —
+       the FILL cannot carry the separation, and no alpha value fixes that,
+       because white-on-near-white has nowhere to go. So the EDGE carries it,
+       exactly as `order2` in the cascade ramp does: this composites to
+       #7C7C7C over the tile, 3.94:1, clearing WCAG 1.4.11 as the boundary
+       that identifies the panel. */
+    --ae-glass-line: rgba(20, 22, 26, 0.55);
+    --ae-glass-blur: saturate(150%) blur(14px);
+
+    /* Elevation is a CUT, not a cast. The top edge catches light and the
+       bottom edge shows the thickness of the cut — a real bevel, two
+       hairlines, no blur. A drop shadow is banned on this register. */
+    --ae-edge:             inset 0 1px 0 rgba(255, 255, 255, 0.9),
+                           inset 0 -1px 0 rgba(20, 22, 26, 0.06);
+    --ae-shadow-button:    none;
+    --ae-shadow-card:      none;
+    --ae-shadow-card-elev: 0 1px 0 rgba(20, 22, 26, 0.06);
+    --ae-shadow-overlay:   0 8px 28px rgba(20, 22, 26, 0.14);
+
+    /* shadcn bridge — the console's own light board, not the landing's. */
+    --background:   218 30% 93%;
+    --foreground:   220 13% 9%;
+    --card:         0 0% 100%;
+    --card-foreground: 220 13% 9%;
+    --popover:      0 0% 100%;
+    --popover-foreground: 220 13% 9%;
+    --primary:      220 13% 9%;
+    --primary-foreground: 0 0% 100%;
+    --secondary:    218 22% 88%;
+    --secondary-foreground: 220 13% 9%;
+    --muted:        218 22% 88%;
+    --muted-foreground: 217 14% 34%;
+    --accent:       218 24% 82%;
+    --accent-foreground: 220 13% 9%;
+    --destructive:  339 54% 49%;
+    --destructive-foreground: 0 0% 100%;
+    --border:       220 13% 9% / 0.14;
+    --input:        220 13% 9% / 0.20;
+    --ring:         256 45% 45%;
+
+    color-scheme: light;
   }
 
   html { color-scheme: light;
@@ -609,20 +798,41 @@
   --ae-basemap-paper: sepia(0.30) saturate(0.68) brightness(0.995) contrast(1.06);
 }
 .register-dark,
-html:not([data-console-theme="light"]) .simulator-shell {
+html[data-console-theme="dark"] .simulator-shell {
   --ae-basemap-paper: saturate(0.72) contrast(1.08) hue-rotate(-8deg) brightness(1.06);
 }
-/* Light console: the paper register's own basemap treatment. The console
-   inherits :root's surface tokens in this mode (no override block is needed —
-   that is the point of scoping the dark block rather than the shell), but the
-   basemap filter and the tile URL are NOT tokens, so both need saying.
-   `--ae-basemap-light` flags the tile choice to flight-map.tsx. */
-html[data-console-theme="light"] .simulator-shell {
-  --ae-basemap-paper: sepia(0.30) saturate(0.68) brightness(0.995) contrast(1.06);
+
+/* ── Light console basemap (2026-08-17) ────────────────────────────────
+   Two bugs fixed here at once, both from the register flip.
+
+   ONE: this pair of selectors still read `:not([…="light"])` for dark and
+   `[…="light"]` for light, i.e. dark was still the fallback. After the
+   default flipped, the absent-attribute case — which is every first paint
+   before the pre-paint script runs, and every load with scripting off —
+   was getting the DARK basemap filter under the white board.
+
+   TWO, and the visible one: the light console was being handed
+   `sepia(0.30)`, which is the LANDING's warm-paper treatment. The console's
+   light register is a COOL white board, so a sepia wash turned CARTO
+   Positron beige and put a warm map inside a cool frame — the single
+   loudest wrong note on the rebuilt console.
+
+   What replaces it is restraint, not another tint: Positron is already a
+   near-neutral chart, so the filter only pulls saturation down (so the
+   semantic pigments own every bit of colour on screen) and adds a touch of
+   contrast to keep land and water separable. No hue rotation, no sepia —
+   the basemap's job is to be a legible chart the marks sit on. */
+html:not([data-console-theme="dark"]) .simulator-shell {
+  --ae-basemap-paper: saturate(0.42) contrast(1.05) brightness(0.995);
   --ae-basemap-light: 1;
 }
-html[data-console-theme="light"] .simulator-shell .leaflet-container {
-  background: #DCE6EF !important;
+html:not([data-console-theme="dark"]) .simulator-shell .leaflet-container {
+  /* The water/void behind the tiles. One step below the board floor so the
+     map reads as a recessed well rather than a lighter hole in the board. */
+  background: var(--ae-surface-2) !important;
+}
+html[data-console-theme="dark"] .simulator-shell .leaflet-container {
+  background: var(--ae-bg) !important;
 }
 
 /* Selected-aircraft pulse. Two rings on one element (box-shadow + the
@@ -1256,25 +1466,14 @@ html[data-console-theme="light"] .simulator-shell .leaflet-container {
 .ae-event-row:hover { background: var(--ae-surface-2); }
 .ae-event-row:active { background: var(--ae-surface-3); }
 .ae-event-row:focus-visible { outline: none; box-shadow: inset 0 0 0 3px var(--ae-focus); }
-.ae-event-idx {
-  font-family: var(--ae-font-mono);
-  /* 11px floor. 21 of these render at once, so they were 21 of the console's
-     sub-floor nodes on their own. */
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  color: var(--ae-text-3);
-  width: 22px;
-  flex-shrink: 0;
-  transition: color 140ms ease;
-}
+/* `.ae-event-idx` and its three state rules were deleted with the 01–22
+   ledger numbers on 2026-08-17 — see the note in event-panel.tsx. */
 .ae-event-name {
   font-size: 13px;
   font-weight: 550;
   color: var(--ae-text);
   line-height: 1.3;
 }
-.ae-event-row:hover .ae-event-idx { color: var(--ae-amber-ink); }
 /* Selection is a TINT plus a pigment edge, not a full ink inversion. Inverted,
    the highlighted row of a 21-item picker was the single darkest, heaviest
    object on an airline disruption console — louder than an active disruption,
@@ -1288,7 +1487,6 @@ html[data-console-theme="light"] .simulator-shell .leaflet-container {
   box-shadow: inset 3px 0 0 var(--ae-amber);
 }
 .ae-event-row[data-selected="true"] .ae-event-name { color: var(--ae-text); font-weight: 650; }
-.ae-event-row[data-selected="true"] .ae-event-idx { color: var(--ae-amber-ink); }
 
 /* The ONE deliberate exception to the neutral-ledger treatment above. Drone
    incursion is the only event type whose duration is unknown when it fires —
@@ -1300,7 +1498,6 @@ html[data-console-theme="light"] .simulator-shell .leaflet-container {
   background: var(--ae-teal-bg);
   box-shadow: inset 3px 0 0 var(--ae-teal);
 }
-.ae-event-row[data-new="true"] .ae-event-idx { color: var(--ae-teal-ink); }
 .ae-event-row[data-new="true"] .ae-event-name { font-weight: 650; }
 .ae-event-row[data-new="true"][data-selected="true"] {
   background: var(--ae-text);
@@ -1594,4 +1791,240 @@ html[data-console-theme="light"] .simulator-shell .leaflet-container {
 .ae-card-close:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px var(--ae-focus);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   HAIRLINE MOSAIC — the console's own surfaces (2026-08-17).
+
+   Everything below belongs to the rebuilt console. It is scoped to
+   `.simulator-shell` on purpose: the landing keeps its warm paper world
+   untouched, and nothing here may leak onto it.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── Cut cards ─────────────────────────────────────────────────────────
+   Hover raises the module's border rather than lifting the card — the
+   Japanese high-density grammar, where a hovered module firms up its rule
+   and reveals its secondary actions instead of floating. */
+.ae-cut--interactive {
+  transition: border-color 140ms cubic-bezier(0.22, 0.9, 0.28, 1),
+              background-color 140ms cubic-bezier(0.22, 0.9, 0.28, 1);
+}
+.ae-cut--interactive:hover:not(:disabled) {
+  border-color: var(--ae-line-strong);
+  background: var(--ae-surface);
+}
+.ae-cut--interactive:active:not(:disabled) {
+  background: var(--ae-surface-2);
+}
+.ae-cut--interactive:focus-visible {
+  outline: none;
+  box-shadow: var(--ae-edge), 0 0 0 3px var(--ae-focus);
+}
+.ae-cut--interactive:disabled {
+  cursor: not-allowed;
+}
+
+/* ── Chips ─────────────────────────────────────────────────────────────
+   The chip reads 22px so the mosaic stays dense, but a 22px target fails
+   WCAG 2.5.8. The pseudo-element gives it a 24px hit strip without
+   changing a pixel of what is drawn — the compact look and the legal
+   target are not in conflict, they just need separating. */
+.ae-chip--interactive {
+  position: relative;
+  transition: border-color 140ms cubic-bezier(0.22, 0.9, 0.28, 1);
+}
+.ae-chip--interactive::after {
+  content: "";
+  position: absolute;
+  inset: -1px 0;
+  min-height: 24px;
+}
+.ae-chip--interactive:hover {
+  border-color: var(--ae-line-strong);
+}
+.ae-chip--interactive:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ae-focus);
+}
+
+/* ── Board bar ─────────────────────────────────────────────────────────
+   The 44px bar's controls. Hover firms the rule rather than filling the
+   button, matching the mosaic's grammar everywhere else. */
+.ae-bar-btn {
+  transition: background-color 140ms cubic-bezier(0.22, 0.9, 0.28, 1),
+              border-color 140ms cubic-bezier(0.22, 0.9, 0.28, 1);
+}
+.ae-bar-btn:hover {
+  background: var(--ae-surface-2) !important;
+  border-color: var(--ae-line-strong) !important;
+}
+.ae-bar-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ae-focus);
+}
+/* The bar sheds its optional cargo before it sheds a control, in a fixed
+   order: label, then figures, then the assistive cluster, then the rules
+   between groups. The account menu, the register toggle, the notification
+   bell and Reset never go — an unreachable control is a functional loss
+   where a hidden label is only a cosmetic one.
+
+   Measured at 390px the bar wanted ~470px and simply CLIPPED, which put the
+   account menu and the register toggle off the right edge with no scroll and
+   no overflow warning. `ui-audit` reported no horizontal overflow for exactly
+   that reason: the bar was not overflowing, it was hiding controls inside its
+   own box. The tiers below leave ~371px of content at 390. */
+@media (max-width: 1180px) {
+  .ae-bar-reset-label { display: none; }
+}
+@media (max-width: 1100px) {
+  /* The cost-of-indecision meter is an ARGUMENT, not a control, and the same
+     figure is repeated inside the Recovery panel as "uncommitted". It is the
+     first thing to go once width is scarce. */
+  .ae-bar-meter { display: none !important; }
+}
+@media (max-width: 980px) {
+  .ae-bar-stats { display: none !important; }
+}
+@media (max-width: 720px) {
+  .ae-bar-assist { display: none !important; }
+  /* Group rules buy back ~39px once the groups they separate are gone. */
+  .ae-bar-sep { display: none !important; }
+}
+
+/* ── The disruption picker (cmdk, inline) ──────────────────────────────
+   shadcn's Command ships rounded cards, generous padding and a popover
+   character — correct for a modal palette floating over a page, wrong for a
+   dense list living inside a 360px column. Retuned to the mosaic: hairline
+   rules, 28px rows, mono group headings, no radius, no shadow. Radix's
+   keyboard model underneath is the whole reason for adopting it. */
+.ae-cmd {
+  background: transparent;
+  border-radius: 0;
+  overflow: visible;
+}
+.ae-cmd [data-slot="command-input-wrapper"] {
+  padding: 0;
+  border-bottom: 1px solid var(--ae-line);
+}
+.ae-cmd [data-slot="command-input"] {
+  height: 34px;
+  border-radius: 0;
+  border: none;
+  background: var(--ae-surface);
+  font-size: 12.5px;
+  padding-left: 10px;
+}
+.ae-cmd [data-slot="command-input"]::placeholder { color: var(--ae-text-3); }
+/* shadcn's input ships a rounded `focus-visible:ring` in its own accent.
+   Left alone it renders a blue capsule inside a square hairline field — the
+   default theme leaking through the override, and a second focus vocabulary
+   on a console that already has one. The console ring is 3px, plum, square
+   and instant (design.md), and it applies here like everywhere else. */
+.ae-cmd [data-slot="command-input"]:focus,
+.ae-cmd [data-slot="command-input"]:focus-visible {
+  outline: none;
+  border: none;
+  box-shadow: inset 0 0 0 3px var(--ae-focus);
+}
+.ae-cmd [data-slot="command-input-wrapper"]:focus-within {
+  outline: none;
+  box-shadow: none;
+}
+.ae-cmd-list {
+  max-height: none;
+  overflow: visible;
+  padding: 0;
+}
+.ae-cmd [data-slot="command-group"] { padding: 0; }
+/* Group headings are module tabs, not soft grey labels. */
+.ae-cmd [cmdk-group-heading] {
+  font-family: var(--ae-font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ae-text-3);
+  padding: 6px 10px;
+  background: var(--ae-surface-2);
+  border-bottom: 1px solid var(--ae-line);
+}
+.ae-cmd-item {
+  border-radius: 0 !important;
+  border-bottom: 1px solid var(--ae-line);
+  min-height: 30px;
+  padding: 0 10px !important;
+  gap: 8px;
+}
+/* cmdk marks the keyboard-highlighted row with aria-selected. It must be
+   visibly distinct from the CHOSEN kind below, or arrowing through the list
+   looks like it is committing on every keypress. */
+.ae-cmd-item[aria-selected="true"] {
+  background: var(--ae-surface-2) !important;
+  box-shadow: inset 2px 0 0 var(--ae-fringe-violet);
+}
+/* The kind currently loaded into the parameter form — a mark, not a fill. */
+.ae-cmd-item[data-selected-kind="true"] .ae-event-name {
+  font-weight: 700;
+  color: var(--ae-text);
+}
+.ae-cmd-item[data-selected-kind="true"] {
+  box-shadow: inset 2px 0 0 var(--ae-teal);
+}
+.ae-cmd [data-slot="command-empty"] {
+  padding: 14px 10px;
+  font-size: 12px;
+  text-align: left;
+  color: var(--ae-text-3);
+  line-height: 1.5;
+}
+
+/* ── Browser surfaces ──────────────────────────────────────────────────
+   The parts nobody draws still carry the design. Left at their defaults
+   these belong to no design system, and they are the cheapest signal that
+   a page was assembled rather than built. */
+.simulator-shell ::selection {
+  background: var(--ae-teal-bg);
+  color: var(--ae-text);
+}
+.simulator-shell input,
+.simulator-shell textarea {
+  caret-color: var(--ae-teal);
+}
+/* Thin, ruled scrollbars that read as part of the mosaic rather than as
+   the OS poking through it. A dense board has a lot of scrollable
+   regions, so this is not a detail here — it is most of the chrome. */
+.simulator-shell * {
+  scrollbar-width: thin;
+  scrollbar-color: var(--ae-line-strong) transparent;
+}
+.simulator-shell *::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.simulator-shell *::-webkit-scrollbar-track {
+  background: transparent;
+}
+.simulator-shell *::-webkit-scrollbar-thumb {
+  background: var(--ae-line-strong);
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: 999px;
+}
+.simulator-shell *::-webkit-scrollbar-thumb:hover {
+  background: var(--ae-text-3);
+  background-clip: content-box;
+}
+.simulator-shell *::-webkit-scrollbar-corner {
+  background: transparent;
+}
+/* Every number on an ops console is meant to be compared down a column,
+   so tabular figures are the default here and proportional is the
+   exception — the reverse of a normal page. */
+.simulator-shell {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+.simulator-shell a {
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1px;
 }

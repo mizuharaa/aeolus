@@ -15,6 +15,14 @@ import { airportLabel } from "@/lib/labels"
 import { AirportCode } from "./airport-code"
 import { c, ff, r } from "@/lib/design-tokens"
 import { ButtonPrimary, Eyebrow } from "@/components/ds/primitives"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
 
 // Airports + ARTCC facilities are surfaced as ICAO-only codes that mean nothing
 // to a non-airline-ops viewer. These helpers turn raw codes into "KORD — Chicago
@@ -107,13 +115,17 @@ const EVENT_CATEGORIES: { label: string; events: EventKind[] }[] = [
   { label: "Security & Emergency", events: ["security_event","airport_emergency","cyber_incident"] },
 ]
 
-// Running ledger index 01–22 across categories, in EVENT_CATEGORIES order.
-const EVENT_INDEX: Record<EventKind, string> = (() => {
-  const m = {} as Record<EventKind, string>
-  let n = 0
-  for (const cat of EVENT_CATEGORIES) for (const v of cat.events) m[v] = String(++n).padStart(2, "0")
-  return m
-})()
+// The 01–22 ledger index was REMOVED on 2026-08-17.
+//
+// It numbered the event types by their position in the hardcoded
+// EVENT_CATEGORIES array. That sequence is not information: nobody refers to
+// "event 07", the numbers change meaning the moment a type is added in the
+// middle, and they are not an ID the API knows. What they were was decoration
+// that looked like data — the most expensive kind, because it reads as
+// meaningful and then rewards nobody who tries to use it.
+//
+// Deleting them also hands 22px per row back to a 360px column, across 22
+// rows, which is the density this board is supposed to be spending on content.
 
 const EVENT_DESCRIPTIONS: Record<EventKind, string> = {
   drone_incursion:
@@ -1119,64 +1131,63 @@ export function EventPanel() {
           source) survives as a caption under the tab bar. */}
       <div className="flex-1 flex flex-col min-h-0">
 
-        {/* Tab bar — clean segmented control (replaces the shadcn Tabs whose
-            default pill outline rendered broken). Active tab: teal fill. */}
-        <div className="px-3 py-2 shrink-0" style={{ borderBottom: `1px solid ${c.hairline}` }}>
-          <div
-            style={{
-              display: "flex", gap: 4, padding: 3, borderRadius: 10,
-              background: "var(--ae-surface-2)", border: `1px solid ${c.hairline}`,
-            }}
-          >
-            {([
-              { key: "trigger", label: "Events" },
-              { key: "live", label: "Live" },
-              { key: "active", label: "Active" },
-            ] as const).map((t) => {
-              const on = tab === t.key
-              return (
-                <button
-                  key={t.key}
-                  onClick={() => setTab(t.key)}
-                  className="ae-tab-btn"
-                  data-on={on}
-                  style={{
-                    flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
-                    height: 30, borderRadius: 8, border: "none", cursor: "pointer",
-                    fontFamily: ff.body, fontSize: 12.5, fontWeight: on ? 650 : 500,
-                    background: on ? "var(--ae-teal)" : "transparent",
-                    // DARK ink on the plum fill, not white. On the console
-                    // register --ae-teal is #9B7FE0, a LIGHT plum chosen to
-                    // read against a near-black floor — white on it measured
-                    // 3.23:1, under AA. Ink reads 5.75:1 and is also the
-                    // correct treatment for a filled control.
-                    color: on ? "#12101A" : c.muted,
-                    boxShadow: on ? "0 2px 8px -3px var(--ae-teal)" : "none",
-                    transition: "background 160ms ease, color 160ms ease, box-shadow 160ms ease",
-                  }}
-                >
-                  {t.label}
-                  {t.key === "active" && activeEvents.length > 0 && (
-                    <span
-                      className="text-[11px] font-bold rounded-full w-4 h-4 inline-flex items-center justify-center shrink-0"
-                      style={
-                        on
-                          ? { background: "rgba(18,16,26,0.22)", color: "#12101A" }
-                          : { background: "var(--ae-teal)", color: "#12101A" }
-                      }
-                    >
-                      {activeEvents.length}
-                    </span>
-                  )}
-                </button>
-              )
-            })}
-          </div>
-          {/* The one piece of content the removed panel header actually
-              carried: what this list is and where it comes from. */}
-          <div className="text-[11px] mt-1.5 px-0.5" style={{ color: c.muted }}>
-            22 disruption types · live NAS feed
-          </div>
+        {/* Sub-tabs, in the mosaic's tab grammar rather than a filled pill.
+            The pill was a plum-filled capsule with a coloured drop shadow —
+            the loudest object in the column, spending a saturated fill and a
+            glow on "which of three lists am I looking at". Here the active
+            tab is the white module face rising out of the well, marked by the
+            spectral band, exactly like the column's own tabs one level up. */}
+        <div
+          role="tablist"
+          aria-label="Event sections"
+          className="shrink-0"
+          style={{ display: "flex", borderBottom: `1px solid ${c.hairline}`, background: "var(--ae-surface-2)" }}
+        >
+          {([
+            { key: "trigger", label: "Trigger" },
+            { key: "live", label: "Live feed" },
+            { key: "active", label: "Active" },
+          ] as const).map((t) => {
+            const on = tab === t.key
+            return (
+              <button
+                key={t.key}
+                role="tab"
+                aria-selected={on}
+                onClick={() => setTab(t.key)}
+                className="ae-ctx-tab"
+                style={{
+                  position: "relative",
+                  flex: 1, minWidth: 0,
+                  display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5,
+                  height: 28, padding: "0 6px",
+                  border: "none", borderRight: `1px solid ${c.hairline}`,
+                  background: on ? c.canvas : "transparent",
+                  boxShadow: on ? `inset 0 2px 0 ${c.fringeViolet}` : "none",
+                  color: on ? c.ink : c.muted,
+                  cursor: "pointer",
+                  fontFamily: ff.mono, fontSize: 10,
+                  fontWeight: on ? 700 : 600,
+                  letterSpacing: "0.10em", textTransform: "uppercase",
+                  transition: "background 140ms ease, color 140ms ease",
+                }}
+              >
+                {t.label}
+                {t.key === "active" && activeEvents.length > 0 && (
+                  <span
+                    style={{
+                      fontFamily: ff.mono, fontSize: 9.5, fontWeight: 700, lineHeight: 1,
+                      padding: "2px 4px", borderRadius: 2,
+                      border: `1px solid ${on ? c.amber : c.hairline}`,
+                      color: c.amberInk,
+                    }}
+                  >
+                    {activeEvents.length}
+                  </span>
+                )}
+              </button>
+            )
+          })}
         </div>
 
         {/* ── Trigger tab ── */}
@@ -1189,44 +1200,62 @@ export function EventPanel() {
               quiet voice, no 21-icon rainbow. Selected row inverts to ink
               (Airtable editorial pattern). Styles: .ae-event-row in
               globals.css, all 8 states. */}
-          <div className="space-y-4">
-            {EVENT_CATEGORIES.map((cat) => {
-              const catEvents = cat.events.map((v) => EVENT_TYPES.find((e) => e.value === v)!).filter(Boolean)
-              return (
-                <div key={cat.label}>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span
-                      className="text-[11px] font-bold uppercase"
-                      style={{ letterSpacing: "0.12em", color: c.muted, fontFamily: ff.mono }}
-                    >
-                      {cat.label}
-                    </span>
-                    <span style={{ flex: 1, height: 1, background: c.hairline }} />
-                  </div>
-                  <div>
+          {/* ── THE PICKER ────────────────────────────────────────────────
+              An inline cmdk palette, not a modal one. The list is already on
+              screen in an open panel, so putting it behind a dialog would add
+              a keystroke and a layer to reach something the operator can
+              currently see. Inline `Command` gives the same thing the dialog
+              would — type-to-filter, arrow keys, Enter to pick — without the
+              interruption.
+
+              It replaces 22 always-expanded rows across six category
+              headings, which is ~900px of scroll in a 360px column to reach
+              "Volcanic ash". Typing `vol` is one gesture. The categories
+              survive as groups, so someone who does not know what the types
+              are called can still browse. */}
+          <Command
+            className="ae-cmd"
+            /* Filter on the label AND the API kind, so both "ground stop" and
+               `ground_stop` land — the operator's word and the engine's. */
+            filter={(value, search) => {
+              const q = search.trim().toLowerCase()
+              if (!q) return 1
+              return value.toLowerCase().includes(q) ? 1 : 0
+            }}
+          >
+            <CommandInput placeholder="Search disruptions — drone, ground stop, KORD…" />
+            <CommandList className="ae-cmd-list">
+              <CommandEmpty>
+                No disruption type matches that. The engine ships 22; try{" "}
+                <strong style={{ color: c.body }}>weather</strong>,{" "}
+                <strong style={{ color: c.body }}>crew</strong> or{" "}
+                <strong style={{ color: c.body }}>runway</strong>.
+              </CommandEmpty>
+              {EVENT_CATEGORIES.map((cat) => {
+                const catEvents = cat.events.map((v) => EVENT_TYPES.find((e) => e.value === v)!).filter(Boolean)
+                return (
+                  <CommandGroup key={cat.label} heading={cat.label}>
                     {catEvents.map((et) => (
-                      <button
+                      <CommandItem
                         key={et.value}
-                        onClick={() => selectKind(et.value)}
-                        className="ae-event-row"
-                        data-selected={selectedKind === et.value}
-                        /* The one event type whose duration is unknown at
-                           trigger time gets the only non-neutral row in the
-                           ledger — see .ae-event-row[data-new] in globals.css. */
-                        data-new={et.value === "drone_incursion" ? "true" : undefined}
+                        value={`${et.label} ${et.value}`}
+                        onSelect={() => selectKind(et.value)}
+                        className="ae-cmd-item"
+                        data-selected-kind={selectedKind === et.value ? "true" : undefined}
                       >
-                        <span className="ae-event-idx">{EVENT_INDEX[et.value]}</span>
                         <span className="ae-event-name">{et.label}</span>
+                        {/* The one event type whose duration is unknown at
+                            trigger time is the only marked row in the list. */}
                         {et.value === "drone_incursion" && (
                           <span className="ae-event-new">New · uncertain</span>
                         )}
-                      </button>
+                      </CommandItem>
                     ))}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
+                  </CommandGroup>
+                )
+              })}
+            </CommandList>
+          </Command>
 
         </div>
 

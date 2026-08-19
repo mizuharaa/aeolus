@@ -1,6 +1,11 @@
 "use client"
 /**
- * Console theme — dark (default) / light / follow the system.
+ * Console theme — light (default) / dark / follow the system.
+ *
+ * The default flipped to LIGHT on 2026-08-17 with the Hairline Mosaic rebuild.
+ * The console's own light register is no longer the landing's warm paper: it is
+ * a dedicated bright-white board, and it is what the operator gets unless they
+ * ask for the dark one. Dark remains a full, gated parity register.
  *
  * ── Why a class on the shell rather than a data-attribute on <html> ───────
  *
@@ -36,9 +41,9 @@ const KEY = "aeolus-console-theme"
 export function resolveTheme(choice: ThemeChoice): ResolvedTheme {
   if (choice === "system") {
     return typeof window !== "undefined" &&
-      window.matchMedia("(prefers-color-scheme: light)").matches
-      ? "light"
-      : "dark"
+      window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light"
   }
   return choice
 }
@@ -50,25 +55,25 @@ export function resolveTheme(choice: ThemeChoice): ResolvedTheme {
 export const themeInitScript = `
 (function(){
   try {
-    var c = localStorage.getItem(${JSON.stringify(KEY)}) || "dark";
+    var c = localStorage.getItem(${JSON.stringify(KEY)}) || "light";
     var r = c === "system"
-      ? (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark")
+      ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
       : c;
     document.documentElement.setAttribute("data-console-theme", r);
   } catch (e) {
-    document.documentElement.setAttribute("data-console-theme", "dark");
+    document.documentElement.setAttribute("data-console-theme", "light");
   }
 })();
 `
 
 export function useConsoleTheme() {
-  const [choice, setChoice] = useState<ThemeChoice>("dark")
-  const [resolved, setResolved] = useState<ResolvedTheme>("dark")
+  const [choice, setChoice] = useState<ThemeChoice>("light")
+  const [resolved, setResolved] = useState<ResolvedTheme>("light")
 
   // Adopt whatever the init script already decided, so the hook never causes a
   // second paint on mount.
   useEffect(() => {
-    let saved: ThemeChoice = "dark"
+    let saved: ThemeChoice = "light"
     try {
       const raw = localStorage.getItem(KEY)
       if (raw === "dark" || raw === "light" || raw === "system") saved = raw
@@ -80,9 +85,9 @@ export function useConsoleTheme() {
   // Only "system" needs to keep listening.
   useEffect(() => {
     if (choice !== "system") return
-    const mq = window.matchMedia("(prefers-color-scheme: light)")
+    const mq = window.matchMedia("(prefers-color-scheme: dark)")
     const sync = () => {
-      const next: ResolvedTheme = mq.matches ? "light" : "dark"
+      const next: ResolvedTheme = mq.matches ? "dark" : "light"
       setResolved(next)
       document.documentElement.setAttribute("data-console-theme", next)
     }

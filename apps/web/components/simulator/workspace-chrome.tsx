@@ -21,21 +21,35 @@ import { c, ff } from "@/lib/design-tokens"
 /**
  * How far a pointer move grows the sized region, per handle position.
  *
- * The sign follows one rule: WHICH SIDE OF THE HANDLE THE SIZED REGION IS ON.
+ * The sign follows one rule, and the rule is about the REGION, not the handle:
+ * WHICH SIDE OF THE HANDLE THE SIZED REGION IS ON.
  *
- *   left   handle right of the region  → moving right grows it   (pos - startPos)
- *   right  handle left of the region   → moving left grows it    (startPos - pos)
- *   bottom handle BELOW the region     → moving down grows it    (pos - startPos)
+ *   left   region left of the handle,  handle on its right → right grows it
+ *   right  region right of the handle, handle on its left  → left grows it
+ *   bottom region ABOVE the handle,    handle beneath it   → down grows it
+ *   top    region BELOW the handle,    handle above it     → up grows it
  *
- * `bottom` used to reuse `right`'s formula. That is correct for a handle above
- * a region that grows upward, which is not this handle: it sits under the map
- * and sizes the map. The result was a divider that ran AWAY from the cursor —
- * pulling down, the direction that should enlarge the map, collapsed it to its
- * 200px floor and moved the handle ~250px upward. It then persisted that to
- * localStorage, so one wrong drag survived a reload.
+ * ── The bug this shape exists to close, twice ─────────────────────────────
+ *
+ * `bottom` originally reused `right`'s formula and the divider ran away from
+ * the cursor; that was fixed on 2026-08-10 for the arrangement of the day,
+ * where the handle sat under the MAP and sized the map.
+ *
+ * The 2026-08-16 reversal then made the TIMELINE the sized region — the handle
+ * stayed put but what it sizes moved to the other side of it — and nobody
+ * flipped the sign back. So `bottom` was being used for a region below the
+ * handle: dragging down grew the timeline, which pushed the divider UP, away
+ * from the pointer. Reported as "the UI resizing has inverted axis".
+ *
+ * The fix is not another sign flip in place. It is naming the fourth case, so
+ * the next topology change picks the side that describes it instead of reusing
+ * whichever constant happens to be nearest.
  */
-function deltaFor(side: "left" | "right" | "bottom", pos: number, startPos: number): number {
-  return side === "right" ? startPos - pos : pos - startPos
+export type HandleSide = "left" | "right" | "bottom" | "top"
+
+function deltaFor(side: HandleSide, pos: number, startPos: number): number {
+  // right + top: the region grows as the pointer moves toward the origin.
+  return side === "right" || side === "top" ? startPos - pos : pos - startPos
 }
 
 export function useResizable(
@@ -43,7 +57,7 @@ export function useResizable(
   initial: number,
   min: number,
   max: number,
-  side: "left" | "right" | "bottom" = "left",
+  side: HandleSide = "left",
 ) {
   const [size, setSize] = useState(initial)
   const [dragging, setDragging] = useState(false)
@@ -64,15 +78,17 @@ export function useResizable(
       e.preventDefault()
       draggingRef.current = true
       setDragging(true)
-      const startPos = side === "bottom" ? e.clientY : e.clientX
+      // "top" and "bottom" both size a HEIGHT, so both read clientY.
+      const rowAxis = side === "bottom" || side === "top"
+      const startPos = rowAxis ? e.clientY : e.clientX
       const startSize = size
       try { (e.target as HTMLElement).setPointerCapture?.(e.pointerId) } catch {}
-      document.body.style.cursor = side === "bottom" ? "row-resize" : "col-resize"
+      document.body.style.cursor = rowAxis ? "row-resize" : "col-resize"
       document.body.style.userSelect = "none"
 
       const move = (ev: PointerEvent) => {
         if (!draggingRef.current) return
-        const pos = side === "bottom" ? ev.clientY : ev.clientX
+        const pos = rowAxis ? ev.clientY : ev.clientX
         setSize(Math.min(max, Math.max(min, startSize + deltaFor(side, pos, startPos))))
       }
       const up = () => {
@@ -123,7 +139,7 @@ export function ResizeHandle({
   bigStep = 64,
 }: {
   onPointerDown: (e: React.PointerEvent) => void
-  side?: "left" | "right" | "bottom"
+  side?: HandleSide
   label?: string
   value?: number
   min?: number
@@ -135,15 +151,19 @@ export function ResizeHandle({
 }) {
   const [hot, setHot] = useState(false)
   const [focused, setFocused] = useState(false)
-  const horizontal = side === "bottom"
+  const horizontal = side === "bottom" || side === "top"
   const keyboard = value !== undefined && min !== undefined && max !== undefined && !!onValue
 
-  // Grow keys point the way the region grows: for the bottom handle the map is
-  // ABOVE it, so ArrowDown enlarges — the same relationship the drag now honours.
+  // Grow keys point the way the region actually grows, which is the same rule
+  // the drag uses — and it has to be derived from `side`, not from the axis.
+  // Deriving it from the axis alone is how the keyboard kept agreeing with a
+  // drag that was itself inverted: both were wrong in the same direction, so
+  // testing one against the other proved nothing.
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (!keyboard) return
-    const grow = horizontal ? "ArrowDown" : "ArrowRight"
-    const shrink = horizontal ? "ArrowUp" : "ArrowLeft"
+    const growsTowardOrigin = side === "right" || side === "top"
+    const grow = horizontal ? (growsTowardOrigin ? "ArrowUp" : "ArrowDown") : (growsTowardOrigin ? "ArrowLeft" : "ArrowRight")
+    const shrink = horizontal ? (growsTowardOrigin ? "ArrowDown" : "ArrowUp") : (growsTowardOrigin ? "ArrowRight" : "ArrowLeft")
     const amount = e.shiftKey ? bigStep : step
     // A FUNCTIONAL update, not `value + amount`.
     //

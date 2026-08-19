@@ -140,7 +140,13 @@ export function CascadeTimeline({
               plus a 5-swatch legend cost 64px of a 192px dock, i.e. a third of
               the region, before a single flight row. */}
           <div style={{ display: "flex", alignItems: "baseline", gap: sp.xs, minWidth: 0 }}>
-            <h2 style={{ ...type("titleMd", c.ink), fontSize: 14.5, whiteSpace: "nowrap", margin: 0 }}>Cascade Timeline</h2>
+            {/* The visible name is the MODULE TAB above this row ("Cascade
+                rail"), so printing it again here was the same word twice in
+                28px of vertical space. The heading itself stays in the
+                document — the console's outline is what a screen-reader user
+                navigates by, and it had none at all before headings were
+                added — it is just no longer drawn. */}
+            <h2 className="ae-sr-only">Cascade rail</h2>
             <span style={{ ...type("caption", c.muted), fontSize: 10.5, fontFamily: ff.mono, whiteSpace: "nowrap" }}>
               18h · UTC{affectedCount > 0 ? ` · ${affectedCount} affected` : ""}
             </span>

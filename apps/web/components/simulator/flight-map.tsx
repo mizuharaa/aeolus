@@ -210,6 +210,40 @@ let MARK_EDGE_SOFT = "rgba(11,12,16,0.55)"
  */
 let MARK_GLOW = true
 
+/**
+ * The contact shadow under a LIVE ADS-B airframe — register-aware.
+ *
+ * This was hardcoded `drop-shadow(0 1px 3px rgba(0,0,0,0.65))`, tuned for the
+ * dark chart and applied on both. The ambient feed mounts on the order of 500
+ * other-carrier contacts, so on the white board that shipped ~500 soft black
+ * smudges over a near-white basemap — read, correctly, as a generated-looking
+ * haze. It is also the wrong physics: on a light chart a mark is legible
+ * because it is DARKER than the ground, so a black bloom around it adds mass
+ * without adding information.
+ *
+ * Light gets a tight, nearly-opaque 1px contact shadow that seats the mark on
+ * the chart. Dark keeps the softer one, where the ground genuinely is black.
+ */
+let CONTACT_SHADOW = "drop-shadow(0 1px 3px rgba(0,0,0,0.65))"
+
+/**
+ * Mark size multiplier, per register.
+ *
+ * Every airframe size on this map was tuned against the near-black chart,
+ * where a mark needs MASS to be findable — a 28px direct hit is 28px because
+ * at 18px it disappeared into the floor. On the white board the same mark is
+ * near-black on near-white, so it already owns the maximum contrast available
+ * and the extra mass buys nothing; what it produces instead is a swarm of
+ * chunky dark silhouettes covering the routes they are drawn on.
+ *
+ * The severity ORDERING is untouched — direct still reads largest, ambient
+ * still smallest — the whole ramp is just scaled to what a light chart needs.
+ */
+let MARK_SCALE = 1
+
+/** Sizes are a ramp, so they scale together and round consistently. */
+const scaled = (px: number) => Math.round(px * MARK_SCALE)
+
 function setMapTheme(light: boolean) {
   const next = light ? (MAP_LIGHT as unknown as typeof MAP_DARK) : MAP_DARK
   if (next === MAP_COLORS) return
@@ -218,8 +252,14 @@ function setMapTheme(light: boolean) {
   MARK_EDGE = light ? "rgba(255,255,255,0.92)" : "rgba(8,9,12,0.78)"
   MARK_EDGE_SOFT = light ? "rgba(255,255,255,0.75)" : "rgba(11,12,16,0.55)"
   MARK_GLOW = !light
-  GLASS        = light ? "rgba(250,250,246,0.92)" : "rgba(20,22,28,0.90)"
-  GLASS_STRONG = light ? "rgba(252,252,249,0.96)" : "rgba(24,27,34,0.96)"
+  MARK_SCALE = light ? 0.78 : 1
+  CONTACT_SHADOW = light
+    ? "drop-shadow(0 1px 1px rgba(20,22,26,0.28))"
+    : "drop-shadow(0 1px 3px rgba(0,0,0,0.65))"
+  // Cool white, not the landing's cream — the console's light register is a
+  // cool board and a warm overlay on it reads as a different material.
+  GLASS        = light ? "rgba(255,255,255,0.86)" : "rgba(16,18,24,0.84)"
+  GLASS_STRONG = light ? "rgba(255,255,255,0.95)" : "rgba(20,23,30,0.95)"
 }
 
 /**
@@ -318,7 +358,7 @@ function liveIcon(heading: number | null, sel: boolean, velKt: number | null): L
     // being dimmer and thinner-stroked (see `live` above) while staying large
     // enough to read AS an aircraft, which is the whole point of drawing an
     // airframe rather than a dot.
-    const sz = sel ? 32 : 16
+    const sz = scaled(sel ? 32 : 16)
     const fill = sel ? MAP_COLORS.liveSelected : MAP_COLORS.live
     const op = slow ? 0.4 : 0.9
     // Hairline is dark on the dark basemap — a white outline at this size
@@ -337,7 +377,7 @@ function liveIcon(heading: number | null, sel: boolean, velKt: number | null): L
       html:
         `<div class="ae-plane-mark" style="width:${sz}px;height:${sz}px">` +
         pulse +
-        `<div style="width:${sz}px;height:${sz}px;transform:rotate(${hdg}deg);transform-origin:center;opacity:${op};filter:drop-shadow(0 1px 3px rgba(0,0,0,0.65))">` +
+        `<div style="width:${sz}px;height:${sz}px;transform:rotate(${hdg}deg);transform-origin:center;opacity:${op};filter:${CONTACT_SHADOW}">` +
         airframeSvg(sz, fill, stroke, sel ? 1.6 : 2.2) +
         `</div></div>`,
     })
@@ -368,10 +408,14 @@ function simIcon(
   // Cancelled markers are intentionally small + faded so the live-operating
   // network dominates. We still draw them — clickable, tooltipped — but they
   // should never out-shout an active reroute.
-  const sz = isCancelled
+  const sz = scaled(isCancelled
     ? (sel ? 24 : 18)
-    : (sel ? 34 : cascOrder === 0 ? 28 : cascOrder >= 1 ? 22 : 18)
+    : (sel ? 34 : cascOrder === 0 ? 28 : cascOrder >= 1 ? 22 : 18))
 
+  // THEME_KEY is part of the cache key by contract — the icon factories close
+  // over a module-level palette and the cache never expires, so a key without
+  // it serves stale marks for the rest of the session after a register switch.
+  // MARK_SCALE varies with the register too, and rides in on the same prefix.
   const key = `sim5|${r}|${color}|${sel}|${cascOrder}|${isCancelled ? "x" : isSwap ? "s" : "_"}`
   return icon(key, () => {
     /**

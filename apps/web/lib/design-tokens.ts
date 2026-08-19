@@ -189,12 +189,51 @@ export const tokens = {
     surfaceDarkElevated: "#123349",              // raised step on ink
     hairline:            "var(--ae-line)",       // 1px borders, dividers
 
+    /**
+     * GLASS — a translucent panel, and ONLY over the map.
+     *
+     * Not a decorative treatment. It exists where a surface has to sit on the
+     * map and the operator still needs to see the network through it; anywhere
+     * else, use `canvas`. Its boundary is `glassLine`, not its fill: a white
+     * panel over the Positron basemap composites to 1.05:1 against the tile, so
+     * the fill cannot describe the panel and no alpha value fixes that. The
+     * edge carries the 3:1 instead — the same remedy the cascade ramp's pale
+     * `order2` step uses. Both halves are asserted by check-contrast.mjs's
+     * GLASS block, which composites the alpha rather than trusting the token.
+     */
+    glass:      "var(--ae-glass)",
+    glassLine:  "var(--ae-glass-line)",
+
+    /**
+     * THE SPECTRAL FRINGE — the one atmospheric use of colour on the console.
+     *
+     * Confined to a 1–2px band on a module's edge; it never fills a surface and
+     * the text field stays achromatic. Taken from cloud-edge diffraction, which
+     * is the product's own subject rather than a gradient preset. Each hue
+     * still clears 3:1 on its register's surfaces, so a fringe that happens to
+     * carry meaning is never the weak channel — but meaning is carried by a
+     * MARK first, per the never-colour-alone rule.
+     */
+    fringeMint:   "var(--ae-fringe-mint)",   // nominal / recovered
+    fringeRose:   "var(--ae-fringe-rose)",   // disrupted
+    fringeViolet: "var(--ae-fringe-violet)", // the active band
+
     // ── Type ──────────────────────────────────────────────────────────
     ink:           "var(--ae-text)",    // headings, emphasis
     body:          "var(--ae-text-2)",  // running text
     muted:         "var(--ae-text-3)",  // captions, labels
     borderStrong:  "var(--ae-line-strong)",
     onPrimary:     "var(--ae-on-primary)",
+    /**
+     * The label that sits ON a `teal` fill.
+     *
+     * Teal is a DARK plum on paper and on the light board, and a LIGHT plum on
+     * the dark console — so the label that reads on it inverts with the
+     * register, and no single literal is correct. Four call sites hardcoded
+     * `#12101A` (right for dark, 2.44:1 on the light board) and shipped an
+     * unreadable notification count. Reach for this token, never a literal.
+     */
+    onTeal:        "var(--ae-on-teal)",
 
     // ── Chromatic accents (register-aware text steps) ────────────────
     sky:       "var(--ae-sky)",        // atmosphere accent

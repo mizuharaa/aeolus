@@ -128,6 +128,49 @@ const REGISTERS = {
       "--ae-line-strong":    "#7C818D",
     },
   },
+
+  /**
+   * CONSOLE · LIGHT — "Hairline Mosaic", the console's default from
+   * 2026-08-17. This is a THIRD register, not the paper one reused: the
+   * landing keeps its warm beige and the console gets a cool white board,
+   * and gating only two of three would leave the shipped default ungated —
+   * which is the same class of hole as the missing SEPARATION block.
+   */
+  "console light (.simulator-shell default — the white board)": {
+    surfaces: {
+      "--ae-surface":   "#FFFFFF",
+      "--ae-bg":        "#E9EDF3",
+      "--ae-surface-2": "#D8DEE8",
+      "--ae-surface-3": "#C6CEDB",
+      "--ae-raised":    "#ECF1F7",
+    },
+    // A clean monotone ladder, unlike the other two registers: the module is
+    // the lightest thing, the floor sits below it, and wells recess further.
+    // That is what lets both "raised" and "recessed" read without a shadow.
+    stack: ["--ae-surface", "--ae-bg", "--ae-surface-2", "--ae-surface-3"],
+    card: ["--ae-surface", "--ae-bg"],
+    // A card is CUT INTO the white module, so it steps down, not up.
+    raised: ["--ae-surface", "--ae-raised"],
+    text: {
+      "--ae-text":   "#14161A",
+      "--ae-text-2": "#414B5A",
+      "--ae-text-3": "#4A5462",
+    },
+    graphic: {
+      "--ae-focus (solid plum)": "#5B3FA8",
+      "--ae-teal (graphic)":     "#5B3FA8",
+      // Re-inked DOWN from the paper register's #B8863C, which measures
+      // 3.22:1 on pure white — it cleared the non-text minimum by 0.22 and
+      // failed the moment it carried a label.
+      "--ae-amber":              "#8A5F17",
+      "--ae-rose":               "#C13A6B",
+      "--ae-fringe-mint":        "#0E7C66",
+      "--ae-fringe-violet":      "#6D4BD8",
+      // rgba(20,22,26,0.52) composited over --ae-surface-3, the DARKEST
+      // surface it lands on and therefore the worst case for a dark line.
+      "--ae-line-strong":        "#6E6E77",
+    },
+  },
 }
 
 for (const [regName, reg] of Object.entries(REGISTERS)) {
@@ -174,6 +217,61 @@ for (const [regName, reg] of Object.entries(REGISTERS)) {
       1.12,
     )
   }
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// GLASS — translucent panels, gated on their COMPOSITED result.
+//
+// Added 2026-08-17 with the Hairline Mosaic rebuild, because a glass token is
+// the one surface whose declared value tells you nothing about what ships. A
+// panel declared `rgba(255,255,255,0.86)` is not white; it is whatever it
+// becomes over the thing behind it, and the thing behind it here is a map.
+//
+// The finding this block exists to record: a white glass panel over the
+// Positron basemap composites to 1.10:1 against the tile. The FILL cannot
+// carry the panel's boundary and no alpha value rescues it — white over
+// near-white has nowhere left to go. So the EDGE carries it, which is the same
+// remedy `order2` uses in the cascade ramp above. Both halves are asserted:
+// text must stay readable ON the glass, and the edge must stay visible AGAINST
+// the backdrop. Asserting only the first would pass an invisible panel.
+// ══════════════════════════════════════════════════════════════════════
+
+const GLASS = {
+  "console light": {
+    // The Positron `light_all` tile, sampled after the basemap filter.
+    backdrop: "#FBF8F3",
+    // The darkest thing the glass realistically sits on — water and road
+    // casing. Text readability is gated against THIS, not the pale tile.
+    backdropDark: "#808890",
+    fill: { color: "#FFFFFF", alpha: 0.86 },
+    edge: { color: "#14161A", alpha: 0.55 },
+    text: "#14161A",
+  },
+  "console dark": {
+    backdrop: "#1A1D24",
+    backdropDark: "#1A1D24",
+    fill: { color: "#101218", alpha: 0.84 },
+    edge: { color: "#E9ECF5", alpha: 0.42 },
+    text: "#F2F3F7",
+  },
+}
+
+console.log("\n\n══ glass — composited, not nominal ══")
+for (const [name, g] of Object.entries(GLASS)) {
+  console.log(`\n${name}\n`)
+  const onPale = over(hex(g.fill.color), g.fill.alpha, hex(g.backdrop))
+  const onDark = over(hex(g.fill.color), g.fill.alpha, hex(g.backdropDark))
+  // Body text on the glass, measured over the WORST backdrop it can cover.
+  line("text on glass", "worst backdrop", ratio(hex(g.text), onDark), 4.5)
+  // The edge is the panel's boundary, so WCAG 1.4.11's 3:1 applies to it.
+  const edgeOnMap = over(hex(g.edge.color), g.edge.alpha, hex(g.backdrop))
+  line("glass edge", "vs basemap", ratio(edgeOnMap, hex(g.backdrop)), 3)
+  // Recorded, not asserted: this is the ratio that forced the edge treatment.
+  const fillSep = ratio(onPale, hex(g.backdrop))
+  console.log(
+    `  note  ${"glass fill -> basemap".padEnd(30)} on ${"separation".padEnd(18)} ` +
+      `${fillSep.toFixed(2).padStart(6)} : 1  (edge carries the boundary instead)`,
+  )
 }
 
 // ══════════════════════════════════════════════════════════════════════
