@@ -4,313 +4,259 @@ A locked design system for this app. Every page redesign reads this file before
 emitting code. Do not regenerate per page — extend or amend this file when the
 system needs to grow.
 
-**Decision record (2026-07-15, REVERSED 2026-08-16):** the old "two worlds"
-split (beige editorial landing vs. white daylight simulator) is retired. ONE
-world: the landing's control-tower editorial paper carries through the
-simulator. Semantic pigments keep their jobs everywhere.
+---
 
-**Decision record (2026-08-16): TWO REGISTERS. The simulator is a DARK ops
-console; the landing keeps its warm paper.** This reverses 2026-07-15, and the
-evidence that forced it is worth keeping because it is a trap this gate walked
-into twice.
+## Decision record (2026-08-19): ONE WORLD, ONE REGISTER — THE PAPER BOARD
 
-A live audit of the console reported **zero** WCAG text failures while the
-screen was unreadable. Both readings were correct. Every foreground/background
-pair passed AA in isolation — and the four surfaces those pairs were drawn on
-(`#F5F1E8` / `#FFFEF9` / `#EFE9DB` / `#E5DCC8`) sat inside a **4% lightness
-band**, so a panel could not be told from the floor, a tab well could not be
-told from its bar, and the map could not be told from the page. WCAG 1.4.3
-governs text against ITS OWN background and 1.4.11 governs a control's
-boundary; neither says anything about whether a LAYOUT has a figure and a
-ground. `check-contrast.mjs` now carries a `SEPARATION` block asserting ≥1.12:1
-between consecutive elevation steps, in both registers. That check is the
-durable outcome here — the palette is the symptom, the missing assertion was
-the cause.
+The console is rebuilt as a **departure board rendered in warm paper**. This
+replaces the visual world; it does not touch product truth, the API, the
+macrostructure, or the landing.
 
-A second finding: `.register-dark` was **declared but applied to nothing**. The
-simulator shell carried no register class at all, so every `/simulator` surface
-inherited `:root`. Both `.register-dark` and `.simulator-shell` are now bound
-to the same block so the console cannot silently fall back to paper.
+**What this reverses.** The 2026-08-16 record made the console a dark ops
+surface, and a later pass added a third register — a cool-grey board floor
+(`#E9EDF3`, hue 218) scoped to `.simulator-shell`. Three registers existed at
+once: warm paper on `:root`, cool grey on the console, dark behind a toggle.
+The console had drifted off the product's own beige world entirely, which is
+what "keep the beige theme" was actually asking for. **The cool-grey values and
+the dark register are both deleted. There is one register.**
 
-Rules that come with the split:
-- The console floor is plum-tinted (hue ~232), not neutral charcoal — the
-  register has to stay in the Aeolus family rather than defaulting to the grey
-  every admin template ships.
-- Pigments are re-inked UP, never reused. The paper plum `#5B3FA8` measures
-  1.9:1 on `#16181F`; on the console it is `#9B7FE0`.
-- **Light pigments take INK, not white.** `--ae-teal` is a light plum here, so
-  white on it measures 3.23:1. Filled controls in the console use `#12101A`.
-- On a near-black floor a cast shadow does nothing. Elevation comes from the
-  surface step plus `--ae-edge` (a 1px inset top highlight).
-- The paper register was ALSO deepened (`#F2EDE1` / `#E6DCC6` / `#D3C4A4`) to
-  clear the same separation gate, and its two text steps were re-inked down to
-  hold AA against the new darkest surface.
+**Why a departure board.** The dispatcher's own object. Its grammar coincides
+with three rules this system already enforced rather than fighting them: status
+is a **word**, cancelled is a **word**, and flight IDs and times are
+**fixed-pitch**. It also refuses both category ruts — the dark mission-control
+console with neon glow, and the pastel SaaS dashboard with KPI donuts.
 
-**Decision record (2026-08-05, SUPERSEDED 2026-08-16):** in the simulator the
-CASCADE TIMELINE is the hero and the map is a locator. The map previously held
-the largest region on screen while spending ~97% of its marks on other carriers'
-ADS-B traffic, and the Gantt — the only surface where cause, propagation and
-time are legible at once — showed 1.96 of 18 rows identically at every viewport.
-Side panels are docked grid tracks, not floating overlays: as overlays they
-covered 62.4% of the map at 1280 and overlapped each other at 200% zoom. The
-console shell is fixed (`100dvh`, `overflow: hidden`); it must not be able to
-scroll away mid-incident.
+**The seam is a motion artifact, not an ornament.** At rest a card is a clean
+rounded module. A split-flap seam appears only for the duration of a real state
+change. A permanent printed seam is skeuomorphic decoration and is banned.
 
-**Decision record (2026-08-16): ONE CONTEXT COLUMN, MAP DOMINANT, TIMELINE
-SIZED.** The shell is now `rail · [context column] · (map over timeline)`.
+**Consequence: elevation has only one channel now.** With the static seam gone,
+figure and ground rest entirely on the surface step and the gap between modules.
+That is why the separation floor is raised below.
 
-The 2026-08-05 record made the timeline the hero because it was showing 1.96 of
-18 rows. That diagnosis was right and the remedy treated the wrong cause: the
-Gantt was starved because the map was full-width-minus-two-panels and 62%
-covered, not because the map was large. With Events and Recovery collapsed into
-a single 364px column the map finally has a shape worth giving space to, so it
-takes the remaining height and the timeline becomes the SIZED region — a real,
-resizable, persisted height instead of the remainder of a fight it kept losing.
+## Decision record (2026-08-19): THE SEPARATION FLOOR IS 1.25, NOT 1.12
 
-**One column, not two opposing docks.** The old shell had Events left, Recovery
-right, a mutual-exclusion rule below 1500px, an overlay fallback below 900px,
-restore logic that had to reproduce the exclusion, and a flight inspector
-floating on the map as a third surface. Four layout modes and three places a
-panel could appear is where the collisions came from — measured **16**
-overlapping interactive pairs at 1440 and **58** at 390. One column makes the
-whole class unreachable: there is exactly one place a panel can be. After the
-rebuild: **3** at 1440, and the map is one uninterrupted region at every width.
+The gate was right and its threshold was too low. The previous light board
+passed `SEPARATION` at **1.17 / 1.15 / 1.17** against a floor of 1.12 and still
+read as flat to its user. An assertion that admits the failure it exists to
+prevent is not doing work.
 
-- **The flight inspector is IN the column, not over the map.** The most detailed
-  surface on the console must not sit on top of the surface it describes.
-- **The rail PUSHES, it does not overlay.** It used to reserve a slim slot and
-  expand as a fixed overlay so content never reflowed; what it covered was the
-  Events panel and the left third of the map. A dispatcher must not lose sight
-  of live state to read a menu label. The cost is a reflow, so the map's
-  `ResizeObserver` is rAF-coalesced — un-coalesced, a 240ms width transition
-  fired ~15 full Leaflet re-layouts per hover with ~530 markers mounted.
-- **Product announcements do not get a full-width row.** The drone-incursion
-  banner took a permanent 44px strip above the map for a feature note, and its
-  Dismiss overlapped its own body text at 390px. It is a card inside the column.
-- **The basemap is CARTO `dark_all`.** Same cartographic restraint that chose
-  Positron over Voyager — no saturation spent on road classes or landuse —
-  inverted for the console floor.
-- **Cascade severity runs light→dark here.** On the console the direct hit is
-  the BRIGHTEST mark; `#3A2408` measured 1.4:1 on the panel. The three-step
-  constraint from 2026-08-10 holds in this direction too and the arithmetic is
-  recorded in `lib/design-tokens.ts`: every step clearing 3:1 against the panel
-  AND 3:1 of each other requires a colour with luminance above 1.0.
+`check-contrast.mjs` now asserts **≥1.25 between consecutive elevation steps**.
+Every value below was solved against that script's own maths, not eyeballed.
 
-**Decision record (2026-08-05):** VISUAL WEIGHT FOLLOWS CONSEQUENCE. A committed
-or applied state owns the filled/inverted treatment; selecting, inspecting or
-hovering gets an outline or a tint. This was inverted in two places and both
-read as "already decided": the inspected plan tab was an ink slab while the
-applied plan had a 3px border, and the selected row of a 21-item event picker
-was the darkest object on the console.
-
-**Decision record (2026-08-10):** THE MAP HAS TWO PROJECTIONS, and the globe is
-an exception to "App pages MUST NOT use enrichment" granted on function, not on
-looks. The flat map answers *where is this airport*; the globe answers *what
-shape does this disruption have across the network*. Great-circle legs are the
-honest geometry for the second question and a Mercator tile is not — on a flat
-projection a transcon leg is drawn as a straight line that lies about the path
-the aircraft flies. Rules that come with the exception:
-- Both registers are WHITE. The flat basemap moved from CARTO Voyager to
-  Positron (`light_all`); the globe is a paper sphere. Voyager spent saturated
-  colour on road classes and landuse that mean nothing operationally, forcing
-  every semantic pigment to compete with the basemap.
-- ONE source of truth for meaning. The globe imports `cascColor` and the marks'
-  semantics from the map rather than restating them, so a projection switch is
-  never also a change of vocabulary.
-- The FLAT MAP is the accessible surface: every mark there is a focusable DOM
-  node with a full-sentence name. The globe is a canvas, so it carries a text
-  summary and keyboard camera controls, and the switch between the two is
-  always reachable. A canvas-only view of the network would not be shippable.
-- The inactive projection is UNMOUNTED, not hidden.
-
-**Decision record (2026-08-10):** SEVERITY IS NEVER COLOUR-ALONE, AND THE RAMP
-IS GATED ON ADJACENCY. The cascade ramp's neighbours measured 1.61:1 and 1.53:1
-with a full span of 2.47:1 — every step passed the contrast gate individually
-because the gate only ever compared each step to the paper, never to the step
-beside it. Rendered, the product's core encoding was one brown. Now:
-- consecutive steps are ≥3:1 apart, asserted by `check-contrast.mjs`;
-- each bar and marker carries its GENERATION DIGIT (`0`/`1`/`2`) as a redundant
-  channel, so the encoding survives monochrome, glare and colour blindness;
-- `order2` is deliberately a pale fill whose dark border carries its 3:1. Three
-  steps at 3:1 span 9:1; also requiring the middle step to clear 3:1 against
-  near-white paper needs 27:1 of range and this surface has ~21:1. The
-  constraint is real, so it is written down rather than rediscovered.
-- `direct` must stay heavier than operating blue on the basemap. That was prose
-  and is now an assertion in the gate.
-
-**Decision record (2026-08-10):** A HANDLE'S DRAG DIRECTION FOLLOWS WHICH SIDE
-THE SIZED REGION IS ON. The map/timeline divider reused the right-hand panel's
-formula, so pulling down — the direction that enlarges the map — collapsed it to
-its floor and sent the handle away from the cursor, then persisted that to
-`localStorage`. Resize handles are also real `separator` widgets: focusable,
-arrow-key operable, `aria-valuenow`, with a 24px hit strip around a 6px rule.
-Keyboard nudges use React's functional updater, never `value + step`.
+Keep the 2026-08-16 lesson that produced the check in the first place, because
+it is the durable part: WCAG 1.4.3 governs text against ITS OWN background and
+1.4.11 governs a control's boundary. Neither says anything about whether a
+LAYOUT has a figure and a ground, so a screen can pass both completely and be
+unreadable. A zero-failure contrast report is not evidence of a readable screen.
 
 ## Genre
-editorial (control-tower editorial — dense operational surfaces on warm paper)
+
+Operational board — a dispatcher's departure board rendered in warm paper.
 
 ## Macrostructure family
-- Marketing pages (`/`): staged scroll experience (opening wordmark → hero →
-  cinematic demo → methodology → night CTA). Owned by `scroll-experience.tsx`.
-- App pages (`/simulator/*`): Workbench — a FIXED shell (`100dvh`,
-  `overflow: hidden`, every region scrolling internally) laid out as
-  `rail · [context column] · (map over cascade timeline)`.
-  The MAP is the dominant region and takes the remaining height; the CASCADE
-  TIMELINE is a resizable dock beneath it (default 236px, persisted, clamped to
-  62% so it can never reduce the map to a strip). The CONTEXT COLUMN is one
-  docked, resizable, tabbed track (Events · Recovery · Flight, default 364px)
-  and is the ONLY place a panel may appear; it becomes a full-width sheet below
-  880px, where the map region goes `inert`. The rail PUSHES the layout on
-  expand. No theatrical motion in app chrome; functional motion only.
-  - Nothing auto-opens. A panel that opens itself and pre-selects an option
-    reads as a decision the operator did not make; collapsed launchers carry a
-    count badge instead.
+
+- Marketing pages (`/`): staged scroll experience. Owned by `scroll-experience.tsx`.
+  **Untouched by this world.** See the landing boundary below.
+- App pages (`/simulator/*`): **the board.** A FIXED shell (`100dvh`,
+  `overflow: hidden`, every region scrolling internally) laid out as:
+
+  ```
+  rail · [ masthead strip                    ]
+         [ network module    | recovery module ]
+         [ cascade board module               ]
+  ```
+
+  A full-width **masthead strip** of status tiles runs under the top bar and
+  carries the headline counts and the burn meter — these are board headlines,
+  not nav chrome. Below it, **modules are cut into the paper floor**: each is a
+  white face on the buff floor with a real gap between them, and a small header
+  tab. The map is a module, not wallpaper. The cascade board is a module.
 - Content pages (`/docs`, legal): Long Document, typography only.
+
+## THE LANDING BOUNDARY — read before touching any token
+
+`:root` belongs to the landing. **10+ landing components read `--ae-*` directly**
+(`components/landing/*`, the demo subtree, footer, pricing, four-plans,
+masked-wordmark, methodology, final-cta, aviation-substrate).
+
+- The console's register is scoped to **`.simulator-shell`**. Never re-derive
+  `:root` to serve the console.
+- A rendered baseline of the landing's 46 `:root` values is kept at
+  `.landing-baseline/root-tokens.json` (gitignored, local guard). Re-capture
+  after any token work and diff; **any change there is a landing regression.**
 
 ## Colors
 
-Authoritative source: `apps/web/app/globals.css` (`--ae-*`, two registers:
-`:root` and `.register-dark`) surfaced through `apps/web/lib/design-tokens.ts`.
+Authoritative source: `apps/web/app/globals.css`, surfaced through
+`apps/web/lib/design-tokens.ts`. Verify every change with
+`node apps/web/scripts/check-contrast.mjs`, which fails the build.
 
-An earlier revision of this section documented a `--color-*` family that **does
-not exist anywhere in the codebase**, with values that did not match the real
-tokens. Those names are gone; the table below is the shipped set. Verify any
-change with `node apps/web/scripts/check-contrast.mjs`, which fails the build
-on a contrast regression.
+### The elevation ladder (console register)
 
-### Surfaces and type
-| Token | Light (`:root`) | Job |
+Solved at ≥1.25 between consecutive steps. A module RAISES by being lighter
+than the floor; a well RECESSES by being darker.
+
+| Token | Value | Job | Step |
+|---|---|---|---|
+| `--ae-surface` | `#FFFEF9` | module face | — |
+| `--ae-bg` | `#E8DFCB` | board floor | 1.312 below surface |
+| `--ae-surface-2` | `#D2C4A5` | well, tab bar, masthead ground | 1.301 below bg |
+| `--ae-surface-3` | `#BFAE88` | track fill, deep recess | 1.265 below surface-2 |
+
+**A card inside a module steps DOWN to the floor colour.** The module face is
+already the lightest surface, so a card on it cannot raise. There is no separate
+`--ae-raised` step; that token is retired.
+
+### Type
+
+| Token | Value | Job |
 |---|---|---|
-| `--ae-bg` | `#F5F1E8` | page floor |
-| `--ae-surface` | `#FFFEF9` | card / panel |
-| `--ae-surface-2` | `#EFE9DB` | recessed well, tab bar |
-| `--ae-surface-3` | `#E5DCC8` | track fill, deep recess |
-| `--ae-line` | `rgba(28,20,38,0.12)` | hairline |
-| `--ae-text` | `#1C1426` | headings, emphasis |
-| `--ae-text-2` | `#5A5147` | running text |
-| `--ae-text-3` | `#675E4E` | captions, labels — **AA on every surface** |
-| `--ae-focus` | `#5B3FA8` | focus ring — **solid, ≥3:1 as a non-text mark** |
+| `--ae-text` | `#1C1426` | headings, emphasis, identity ink |
+| `--ae-text-2` | `#38332A` | running text |
+| `--ae-text-3` | `#443F31` | captions, labels — **AA on every surface incl. `#BFAE88`** |
+| `--ae-focus` | `#5B3FA8` | focus ring — solid, ≥3:1 as a non-text mark |
 
-`--ae-text-3` and `--ae-focus` were `#8C8272` and `rgba(91,63,168,0.35)`. The
-first produced 14 of the 15 WCAG failures on the console at 3.13–3.75:1; the
-second composited to 1.80:1, under the 3:1 non-text minimum. Do not lighten
-either without re-running the contrast gate.
+`--ae-text-3` was `#56503F` and measures **3.68:1** on the new darkest surface,
+i.e. an AA failure. It is re-inked to `#443F31` (4.81:1). Do not lighten either
+text step without re-running the gate.
 
 ### Pigments — semantic, never decorative
-| Pigment | Value | Job |
-|---|---|---|
-| plum | `--ae-teal #5B3FA8` | identity, action, recovery, active state (name kept, value re-inked) |
-| lavender | `--ae-sky #8B6FD0` | atmosphere |
-| gold | `--ae-amber #B8863C` | events, ops status, delayed |
-| rose | `--ae-rose #C13A6B` | disruption energy |
-| ops blue | `#1C6FA8` (map literal) | a flight that is OPERATING — in the air, on its trajectory |
 
-- **Cancelled is NEVER a hue**: neutral + strike / ✕ / dashed edge. It is a PALE
-  GHOST (`#C9CCC9` disc, dark dashed border, dark glyph), not a solid mid-grey
-  disc — "no longer operating" should recede, and the old mid-grey sat at 1.14:1
-  against the operating blue, i.e. separable by hue but identical in lightness.
-- **Operating is blue; grey belongs to cancelled alone.** Grey previously meant
-  three different things — owned nominal, ambient traffic, and cancelled — so
-  "not flying" had no colour of its own. Hue 204 was chosen against the rest of
-  the palette, not by eye: 52 degrees off plum, 31 off the airport teals, 168 off
-  the amber cascade ramp. Operating stays LIGHTER than cascade-direct (5.10 vs
-  7.05 on the basemap) so a nominal flight can never out-weigh a disrupted one.
-  Ambient other-carrier traffic is the same family one step quieter (`#8FB0C9`,
-  2.15:1) and must stay >=3:1 clear of the faintest airport tier.
-- **Cascade severity has ONE source**: the `cascade` ramp in
-  `lib/design-tokens.ts`, imported by both the timeline and the map. It varies
-  LIGHTNESS, not alpha — an alpha ramp faint enough to read as "less severe"
-  also falls under 3:1, and where a step must stay pale its BORDER carries the
-  contrast so severity is never colour-alone. Never redeclare these locally:
-  the map and timeline once disagreed by a full cascade order under a comment
-  claiming they matched.
-- Map marks are canvas literals (`MAP_COLORS`, `pigment.*`) — Leaflet's canvas
-  renderer cannot read a CSS variable. Anything carrying SHARED meaning is
-  imported from `design-tokens`, not restated.
-- Airport tiers follow the network's own `hub_type` from `GET /api/v1/airports`
-  (hub / focus_city / spoke) — never a hand-maintained list, which was wrong in
-  both directions and hid 11 of 15 airports.
+| Pigment | Value | Job | On floor |
+|---|---|---|---|
+| plum | `--ae-teal` `#5B3FA8` | identity, action, recovery, active state | 5.82:1 |
+| gold | `--ae-amber` `#9A6B27` | events, ops status, delayed | 3.52:1 |
+| rose | `--ae-rose` `#C13A6B` | disruption | 3.88:1 |
+| ops blue | `#1C6FA8` (map literal) | a flight that is OPERATING | 4.08:1 |
+| ambient | `#93A9BC` (map literal) | other carriers' traffic — deliberately quiet | 1.83:1 |
+
+**Gold was `#B8863C` and fails on the deeper paper: 2.43:1 as a mark, 3.19:1 as
+text.** It is re-inked to `#9A6B27`, the lightest value that clears both
+thresholds. This is the cost of a floor that actually separates, and it is the
+right trade.
+
+**Colour never fills a region.** Strategy is Restrained: paper neutrals plus
+pigment as marks, underlines and narrow edge accents only.
+
+**Cancelled is NEVER a hue.** Neutral, struck, dashed edge, and the word
+CANCELLED. It recedes; it does not compete.
+
+### Cascade ramp — one source, gated on adjacency
+
+`lib/design-tokens.ts` owns it; the map and the cascade board both import it and
+neither redeclares it. They once disagreed by a full cascade order under a
+comment claiming they matched.
+
+| Step | Fill | Adjacent ratio |
+|---|---|---|
+| 0 · direct | `#1E1533` | — |
+| 1 · first order | `#906520` | 3.36:1 from direct |
+| 2 · second order | `#DCD2B9` fill + `#5E4E2E` border | 3.43:1 from first |
+
+Span 11.54:1. Step 2 is a pale fill whose **border** carries its contrast —
+three steps at 3:1 need 9:1 of span, and requiring the middle step to also clear
+3:1 against near-white needs ~27:1, which this surface does not have. The
+constraint is real, so it is recorded rather than rediscovered.
+
+**Severity is never colour alone.** Every bar and marker carries its generation
+digit `0`/`1`/`2`. Operating blue stays lighter than direct, so a nominal flight
+can never out-weigh a disrupted one.
 
 ## Typography
-- Display: Inter Display 600–800, −0.01…−0.035em, roman only (no italic headers)
-- Body: Inter 400/500
-- Mono: JetBrains Mono — flight IDs, timestamps, tabular ops data, eyebrows
-- Eyebrow: 10.5px mono, 600, 0.14em tracking, uppercase — THE one caps style,
-  and the `Eyebrow` primitive in `components/ds/primitives.tsx` is its only
-  correct implementation. An audit measured 8 competing uppercase treatments on
-  one screen; 7 inline ones remain and should migrate to the primitive.
-- No display serif anywhere. Fraunces is retired — an italic display serif
-  dropped into a sans landing is a recognisable generated-page tell, and the
-  stylesheet is no longer loaded. Emphasis comes from weight and size.
+
+- Display: Inter Display 600–800, roman only. No display serif anywhere.
+- Body: Inter 400/500.
+- Mono: **JetBrains Mono, promoted.** It is the board's native voice — every
+  flight ID, time, count, money figure, and status word.
+- Eyebrow: 10.5px mono, 600, 0.14em, uppercase — THE one caps style. The
+  `Eyebrow` primitive in `components/ds/primitives.tsx` is its only correct
+  implementation.
 
 ## Spacing
-4-pt scale via `tokens.spacing` (`lib/design-tokens.ts`). Named tokens only.
+
+4-pt scale via `tokens.spacing`. Named tokens only.
 
 ## Motion
-- Easings: cubic-bezier(0.22, 0.9, 0.28, 1) for UI state; GSAP staging is
-  landing-only. App chrome: ≤240ms functional transitions, transform/opacity.
-- Reduced-motion: landing collapses to static dawn; app transitions ≤150ms fade.
+
+- **The flip is the signature gesture and the only one.** It fires on a genuine
+  state change — a flight's status changing, a plan committing — never on
+  hover, never on mount, never on scroll. The seam exists only during the flip.
+- **Hover changes rule weight, never position.** A card that translates on hover
+  is banned outright; it was the single most-cited tell in the surface this
+  world replaces.
+- Easing `cubic-bezier(0.22, 0.9, 0.28, 1)`. App chrome ≤240ms, transform and
+  opacity only.
+- Reduced motion: the flip becomes an instant word swap at ≤150ms, no transform.
+
+## Absolute bans
+
+Enforceable ones are checked by `scripts/check-design.mjs`; a line the ban does
+not describe is exempted inline with `design-ok: <reason>`.
+
+- No hover translate or lift, anywhere.
+- No glow, bloom, or `drop-shadow` used as atmosphere. The aircraft glyph's
+  plum glow (`MARK_GLOW`) is deleted; a contact shadow for legibility on the
+  basemap is the only shadow a mark may carry.
+- No gradient sheen.
+- No status dots — status is text with a pigment underline.
+- No cancelled-as-hue.
+- No second caps style.
+- No permanent printed flap seam.
+- No dark register, no theme toggle.
+- App pages MUST NOT use enrichment; function carries the page. The globe
+  remains the one exception, granted on function.
 
 ## Microinteractions stance
-- Silent success over celebratory toasts (sonner toasts carry data, not confetti)
-- Status is TEXT, never dots: "LIVE"/"OFFLINE" pill, counts with pigment
-  underline. Status dots are banned everywhere (landing + app).
+
+- Silent success over celebratory toasts; toasts carry data.
+- Nothing auto-opens and nothing pre-decides. Collapsed launchers carry a count.
+- Irreversible actions arm before they fire, stating the consequence in the
+  operator's own units ("67 delayed · 14 FAR 117 flags · $3.18M"). Inline.
+- Visual weight follows consequence: committed and applied own the filled
+  treatment; selecting, inspecting and hovering get outline or tint.
 - Focus ring: 3px `var(--ae-focus)`, instant, never animated.
 
-## CTA voice
-- Primary: ink fill (landing) / register primary (app), 8–10px radius, verb-led
-- Secondary: hairline outline, ink text
-- Map tools: 40px paper squares with hairline border, one vertical instrument
-  column at the map's top-right — the column is the ONLY owner of that corner.
-  Floating overlays (banners, tickets) must clear it: `right ≥ 64px`.
+## Navigation
+
+- The **wordmark is a link.** From any `/simulator/*` route it returns to
+  `/simulator`. A separate explicit control reaches the marketing site. The
+  console previously had no home affordance at all.
+- `SimulatorRail` is canonical for route↔icon pairing; the rail PUSHES, it does
+  not overlay.
 
 ## Components
 
-Shared primitives live in `apps/web/components/ds/primitives.tsx`; simulator
-chrome in `apps/web/components/simulator/`. Reuse before adding — the drift in
-this system has come from re-implementing, not from gaps.
+Shared primitives in `components/ds/primitives.tsx`; simulator chrome in
+`components/simulator/`. Reuse before adding — the drift in this system has come
+from re-implementing, not from gaps.
 
-| Component | Where | Contract |
-|---|---|---|
-| `Eyebrow` | `ds/primitives.tsx` | the ONE caps style. Mono, 10.5px, 600, 0.14em. |
-| `StatusBadge` | `ds/primitives.tsx` | pigment UNDERLINE + text. Never a dot. |
-| `Type`, `Hairline`, `CreamCallout` | `ds/primitives.tsx` | type roles, rules, inset notes. |
-| `FloatingPanel` | `simulator/workspace-chrome.tsx` | side panel. `docked` (default true) = grid track; `docked={false}` = overlay. Collapses to an edge-rail launcher with an optional count badge. |
-| `useResizable` / `ResizeHandle` | `simulator/workspace-chrome.tsx` | pointer-drag sizing with min/max clamp and localStorage persistence. |
-| `SimulatorPageShell` | `simulator/page-shell.tsx` | wrapper for every secondary `/simulator/*` route (breadcrumbs, title, actions). Note the name — not `PageShell`. |
-| `SimulatorRail` | `simulator/rail.tsx` | the persistent left icon rail. **Canonical for route↔icon pairing** — any other surface linking the same route uses the rail's glyph. |
-| `AgentBubble` | `simulator/agent-bubble.tsx` | "Ask Aeolus". Lives in the top bar, not floating over the workspace. |
+| Component | Contract |
+|---|---|
+| `Eyebrow` | the ONE caps style |
+| `StatusBadge` | pigment UNDERLINE + text, never a dot |
+| `Module` | white face on the floor, header tab, gap-separated. The board's unit. |
+| `FlapCard` | rounded card; flips only on real state change; no resting seam |
+| `SimulatorPageShell` | wrapper for secondary `/simulator/*` routes |
 
 Every interactive component ships default, hover, focus-visible, active,
 disabled, loading and empty. Half a set is not a component.
 
-- **Empty states state the truth**, they do not draw nothing and they do not
-  draw filler. The timeline says "Network nominal — N legs, no cascades" rather
-  than back-filling 18 undifferentiated grey rows.
-- **Empty-state copy must name a control that exists.** The Recovery panel once
-  said "trigger an event from the left rail"; the rail is route navigation and
-  has no trigger.
-- **Irreversible actions arm before they fire.** Commit and Reset both take two
-  clicks, and the first states the consequence in the operator's own units
-  ("67 delayed · 14 FAR 117 flags · $3.18M"). Inline, not a modal.
-- **Targets are ≥24px** (WCAG 2.5.8), ≥44px for primary actions.
-- **Overlay lanes on the map are owned, one each**: disruption card top-left,
-  search top-centre, zoom top-right, layers+key bottom-centre. A new overlay
-  claims a lane or joins an existing cluster; it does not stack.
-
-## Per-page allowances
-- Landing MAY use enrichment (CSS-art demo console, 3D paper dart, SVG ribbons).
-- App pages MUST NOT use enrichment — function carries the page.
-- Content pages: typography only.
+- Empty states state the truth and name a control that exists.
+- Targets ≥24px, ≥44px for primary actions.
+- Map overlay lanes are owned, one each; a new overlay claims a lane or joins a
+  cluster, never stacks.
 
 ## What pages MUST share
-- The AeolusMark cyclone logo (no airplane, no globe in brand marks)
-- Paper/ink registers + semantic pigments above
-- Inter/Inter Display + JetBrains Mono pairing
-- Eyebrow style, focus ring, no-status-dots rule, honest-copy rule
-  (no invented metrics; simulation data is labeled as simulation)
+
+Paper/ink register and semantic pigments · Inter / Inter Display / JetBrains
+Mono · the eyebrow style · the focus ring · no-status-dots · the honest-copy
+rule (no invented metrics; simulation data labelled as simulation; Nimbus Air is
+fictional and never presented as a real carrier).
 
 ## What pages MAY differ on
-- The landing runs GSAP-staged registers (dawn/noon/night); the app stays on
-  its bright paper register end to end.
-- Map/timeline data-viz uses canvas-literal pigments.
+
+The landing runs GSAP-staged registers and keeps its own `:root` values; the
+console stays on the board register end to end. Map and cascade data-viz use
+canvas-literal pigments imported from `design-tokens`, because Leaflet's canvas
+renderer cannot read a CSS variable.

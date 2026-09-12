@@ -409,3 +409,6 @@ results/
 
 # ui-audit.mjs screenshot output (regenerated each run)
 apps/web/shots/
+
+# Landing regression baseline for the console rebuild (local guard, not shared state)
+.landing-baseline/

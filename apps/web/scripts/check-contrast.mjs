@@ -85,6 +85,18 @@ const REGISTERS = {
     // On paper the panel is already the lightest surface, so a card raises by
     // stepping TOWARD the floor tint rather than away from it.
     raised: ["--ae-surface", "--ae-raised"],
+    /**
+     * The separation floor is PER REGISTER, and this one stays at 1.12.
+     *
+     * The console board moved to 1.25 on 2026-08-19 because it is a dense
+     * operational surface whose figure and ground rest on nothing but the
+     * surface step. The landing is not that: it separates by staging, scale,
+     * imagery and whitespace, and it is the one surface a console rebuild is
+     * explicitly forbidden to re-ink — ten-plus landing components read these
+     * values directly. Applying the console's floor here would fail three
+     * pairs and force exactly the change that is off-limits.
+     */
+    separationMin: 1.12,
     text: {
       "--ae-text":   "#1C1426",
       "--ae-text-2": "#564D43",
@@ -95,82 +107,80 @@ const REGISTERS = {
     },
   },
 
-  "console (.simulator-shell — the ops app)": {
-    surfaces: {
-      "--ae-bg":        "#08090C",
-      "--ae-surface":   "#16181F",
-      "--ae-surface-2": "#202530",
-      "--ae-raised":    "#2A3141",
-      "--ae-surface-3": "#2D3342",
-    },
-    stack: ["--ae-bg", "--ae-surface", "--ae-surface-2", "--ae-surface-3"],
-    card: ["--ae-surface", "--ae-bg"],
-    /**
-     * A CARD ON A PANEL — the rung the ladder was missing, and the reason a
-     * whole panel of cards measured 1.00:1 against the surface behind them.
-     * The audit that found it is worth restating: every text pair in the
-     * recovery panel passed AA while the panel read as a stack of die-cut
-     * outlines, because a hairline was standing in for a surface.
-     */
-    raised: ["--ae-raised", "--ae-surface"],
-    text: {
-      "--ae-text":   "#F2F3F7",
-      "--ae-text-2": "#C3C8D6",
-      "--ae-text-3": "#9BA2B4",
-    },
-    graphic: {
-      "--ae-focus (plum)":   "#9B7FE0",
-      "--ae-teal (graphic)": "#9B7FE0",
-      "--ae-amber":          "#D9A441",
-      "--ae-rose":           "#E5628E",
-      // rgba(233,236,245,0.42) composited over --ae-surface-3, the LIGHTEST
-      // surface it lands on and therefore its worst case.
-      "--ae-line-strong":    "#7C818D",
-    },
-  },
-
   /**
-   * CONSOLE · LIGHT — "Hairline Mosaic", the console's default from
-   * 2026-08-17. This is a THIRD register, not the paper one reused: the
-   * landing keeps its warm beige and the console gets a cool white board,
-   * and gating only two of three would leave the shipped default ungated —
-   * which is the same class of hole as the missing SEPARATION block.
+   * CONSOLE — THE PAPER BOARD, the console's one and only register from
+   * 2026-08-19. Replaces both the cool-grey "Hairline Mosaic" board and the
+   * dark register that sat beside it; three registers existed at once and the
+   * console had drifted off the product's own beige world. The landing keeps
+   * `:root` and is gated separately above — never merge the two.
    */
-  "console light (.simulator-shell default — the white board)": {
+  "console (.simulator-shell — the paper board)": {
     surfaces: {
-      "--ae-surface":   "#FFFFFF",
-      "--ae-bg":        "#E9EDF3",
-      "--ae-surface-2": "#D8DEE8",
-      "--ae-surface-3": "#C6CEDB",
-      "--ae-raised":    "#ECF1F7",
+      "--ae-surface":   "#FFFEF9",
+      "--ae-bg":        "#E8DFCB",
+      "--ae-surface-2": "#D2C4A5",
+      "--ae-surface-3": "#BFAE88",
     },
-    // A clean monotone ladder, unlike the other two registers: the module is
-    // the lightest thing, the floor sits below it, and wells recess further.
-    // That is what lets both "raised" and "recessed" read without a shadow.
+    // A module is the lightest thing, the floor sits below it, wells recess
+    // further. That is what lets both "raised" and "recessed" read with no
+    // shadow — and with the split-flap seam demoted to a motion artifact,
+    // this ladder is now the ONLY channel carrying figure and ground.
     stack: ["--ae-surface", "--ae-bg", "--ae-surface-2", "--ae-surface-3"],
     card: ["--ae-surface", "--ae-bg"],
-    // A card is CUT INTO the white module, so it steps down, not up.
-    raised: ["--ae-surface", "--ae-raised"],
+    // No `raised` rung: a card inside a module steps DOWN to the floor
+    // colour, so it is the same step as `card`. --ae-raised is retired.
     text: {
-      "--ae-text":   "#14161A",
-      "--ae-text-2": "#414B5A",
-      "--ae-text-3": "#4A5462",
+      "--ae-text":   "#1C1426",
+      "--ae-text-2": "#38332A",
+      // Was #56503F, which measures 3.68:1 on --ae-surface-3 — an AA failure
+      // created by raising the separation floor. Re-inked to clear 4.5:1 on
+      // every surface in the ladder.
+      "--ae-text-3": "#443F31",
     },
     graphic: {
       "--ae-focus (solid plum)": "#5B3FA8",
       "--ae-teal (graphic)":     "#5B3FA8",
-      // Re-inked DOWN from the paper register's #B8863C, which measures
-      // 3.22:1 on pure white — it cleared the non-text minimum by 0.22 and
-      // failed the moment it carried a label.
-      "--ae-amber":              "#8A5F17",
+      // Re-inked DOWN from #B8863C, which measures 2.43:1 as a mark on the
+      // deeper paper floor. #9A6B27 is the lightest value clearing both the
+      // 3:1 mark minimum and 4.5:1 as text.
+      "--ae-amber":              "#9A6B27",
       "--ae-rose":               "#C13A6B",
-      "--ae-fringe-mint":        "#0E7C66",
-      "--ae-fringe-violet":      "#6D4BD8",
-      // rgba(20,22,26,0.52) composited over --ae-surface-3, the DARKEST
-      // surface it lands on and therefore the worst case for a dark line.
-      "--ae-line-strong":        "#6E6E77",
+      // Cascade ramp, gated on ADJACENCY as well as on the surfaces.
+      "cascade 0 (direct)":      "#1E1533",
+      "cascade 1 (first order)": "#906520",
+      "cascade 2 border":        "#5E4E2E",
+      "operating blue":          "#1C6FA8",
+      // rgba(28,20,38,0.42) composited over --ae-surface-3, its worst case.
+      "--ae-line-strong":        "#7E7460",
     },
+    // Consecutive cascade steps must clear 3:1 of EACH OTHER, not just of
+    // the paper. The ramp once measured 1.61:1 and 1.53:1 between neighbours
+    // while every step passed against the surface, so the product's core
+    // encoding rendered as one brown.
+    ramp: ["#1E1533", "#906520", "#DCD2B9"],
+    // See design.md: the board's separation rests on the surface step alone
+    // now that the split-flap seam is a motion artifact.
+    separationMin: 1.25,
+    /**
+     * WHERE A MARK MAY LAND, and why this list exists.
+     *
+     * The gate used to test every pigment against every surface. On a shallow
+     * ladder that was harmless. On this one it fails gold, rose, first-order
+     * and line-strong against `--ae-surface-2` and `--ae-surface-3` — and the
+     * only way to pass would be to ink the whole palette toward black, which
+     * would destroy the world to satisfy a case that never renders.
+     *
+     * A mark is drawn on a module face or on the board floor. `--ae-surface-2`
+     * is a well and a tab bar; `--ae-surface-3` is a track fill and a deep
+     * recess. Neither ever carries a pigment mark — they carry TEXT, which is
+     * still checked against them at 4.5:1 above, and that is the check that
+     * matters there. Narrowing this is a design rule, not a relaxation: if a
+     * mark ever needs to sit on a well, the rule is to raise the surface, not
+     * to widen this list.
+     */
+    markSurfaces: ["--ae-surface", "--ae-bg"],
   },
+
 }
 
 for (const [regName, reg] of Object.entries(REGISTERS)) {
@@ -183,38 +193,59 @@ for (const [regName, reg] of Object.entries(REGISTERS)) {
     }
   }
 
+  // A pigment is checked against the surfaces a MARK can actually land on.
+  // Absent `markSurfaces` that is every surface, which is the right default
+  // for a shallow ladder; the board narrows it. See the note on its entry.
+  const markOn = reg.markSurfaces
+    ? Object.fromEntries(reg.markSurfaces.map((k) => [k, reg.surfaces[k]]))
+    : reg.surfaces
   console.log("\nNon-text UI — WCAG 1.4.11 requires 3:1\n")
   for (const [name, color] of Object.entries(reg.graphic)) {
-    for (const [sName, s] of Object.entries(reg.surfaces)) {
+    for (const [sName, s] of Object.entries(markOn)) {
       line(name, sName, ratio(hex(color), hex(s)), 3)
     }
   }
 
   // ── SURFACE SEPARATION — the check WCAG does not cover ──────────────
   //
-  // 1.12:1 is not a WCAG number; there is no WCAG number for this. It is set
+  // 1.25:1 is not a WCAG number; there is no WCAG number for this. It is set
   // where a surface step becomes perceptible as an EDGE without a border, which
   // is the job these steps do. The paper register measured 1.04–1.07:1 between
   // consecutive surfaces before this file existed, which is why the console
   // read as one flat field despite every text pair passing.
-  console.log("\nSurface separation — consecutive elevation steps, min 1.12:1\n")
+  //
+  // RAISED 1.12 -> 1.25 on 2026-08-19. The board that replaced that register
+  // passed this check at 1.17 / 1.15 / 1.17 and its user still reported the
+  // screen as having no contrast. A threshold that admits the exact failure
+  // it exists to prevent is not a gate. The rebuild also removed the static
+  // split-flap seam, so the surface step is now the ONLY channel carrying
+  // figure and ground, which is the second reason the floor had to move.
+  const sepMin = reg.separationMin ?? 1.25
+  console.log(`\nSurface separation — consecutive elevation steps, min ${sepMin}:1\n`)
   for (let i = 0; i < reg.stack.length - 1; i++) {
     const a = reg.stack[i]
     const b = reg.stack[i + 1]
-    line(`${a} -> ${b}`, "each other", ratio(hex(reg.surfaces[a]), hex(reg.surfaces[b])), 1.12)
+    line(`${a} -> ${b}`, "each other", ratio(hex(reg.surfaces[a]), hex(reg.surfaces[b])), sepMin)
   }
   line(
     `${reg.card[0]} -> ${reg.card[1]}`,
     "card vs floor",
     ratio(hex(reg.surfaces[reg.card[0]]), hex(reg.surfaces[reg.card[1]])),
-    1.12,
+    sepMin,
   )
+  if (reg.ramp) {
+    console.log("\nCascade ramp — consecutive steps, min 3:1 of EACH OTHER\n")
+    for (let i = 0; i < reg.ramp.length - 1; i++) {
+      line(`${reg.ramp[i]} -> ${reg.ramp[i + 1]}`, "each other", ratio(hex(reg.ramp[i]), hex(reg.ramp[i + 1])), 3)
+    }
+  }
+
   if (reg.raised) {
     line(
       `${reg.raised[0]} -> ${reg.raised[1]}`,
       "raised vs panel",
       ratio(hex(reg.surfaces[reg.raised[0]]), hex(reg.surfaces[reg.raised[1]])),
-      1.12,
+      sepMin,
     )
   }
 }

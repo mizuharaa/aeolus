@@ -354,51 +354,68 @@
      Every step below is computed against check-contrast.mjs's own maths,
      not eyeballed — the separation ladder is 1.17 / 1.15 / 1.17 and the
      card-vs-floor rung is 1.17, all clear of the 1.12 floor. ────────── */
-  html:not([data-console-theme="dark"]) .simulator-shell,
+  /* ── THE PAPER BOARD — the console's one and only register ─────────
+     2026-08-19. Replaces the cool-grey board (#E9EDF3, hue 218) that this
+     block used to hold, and the dark register that sat beside it. Three
+     registers existed at once and the console had drifted off the product's
+     own beige world entirely; see design.md.
+
+     THE LANDING KEEPS `:root`. Ten-plus landing components read --ae-*
+     directly, so this register is scoped to .simulator-shell and never
+     re-derives :root. A rendered baseline of the landing's values lives in
+     .landing-baseline/root-tokens.json — diff it after any token work.
+
+     The world: a departure board. A white module face raises off a buff
+     paper floor with a real gap between modules; a well recesses below it.
+     Elevation is the surface step, full stop — the split-flap seam is a
+     MOTION artifact that exists only during a state change, so it cannot
+     help carry figure and ground at rest.
+
+     Every value below is solved against check-contrast.mjs's own maths.
+     The separation ladder is 1.312 / 1.301 / 1.265 against a floor raised
+     from 1.12 to 1.25 — the old board passed at 1.17/1.15/1.17 and still
+     read as flat, which is an assertion admitting the failure it exists to
+     prevent. ──────────────────────────────────────────────────────────── */
+  .simulator-shell,
   .register-light {
-    /* Elevation ladder. On this register a module RAISES by getting lighter
-       than the floor, and a well RECESSES by getting darker than it — the
-       floor sits in the middle of the range, which is what lets both
-       directions read without a shadow. */
-    --ae-bg:            #E9EDF3;  /* board floor — cool grey, hue 218 */
-    --ae-surface:       #FFFFFF;  /* module face */
-    --ae-surface-2:     #D8DEE8;  /* recessed well, tab bar */
-    --ae-surface-3:     #C6CEDB;  /* track fill, deep recess */
-    /* A CARD ON A MODULE. The module is already pure white, so a card can
-       only step DOWN — which is correct here anyway: in this world a card
-       is CUT INTO the module, not floated above it. 1.14:1 below white. */
-    --ae-raised:        #ECF1F7;
+    /* Elevation ladder. A module RAISES above the floor; a well RECESSES
+       below it. A card INSIDE a module steps DOWN to the floor colour —
+       the module face is already the lightest surface, so there is no
+       --ae-raised step and that token is retired. */
+    --ae-bg:            #E8DFCB;  /* board floor */
+    --ae-surface:       #FFFEF9;  /* module face */
+    --ae-surface-2:     #D2C4A5;  /* well, tab bar, masthead ground */
+    --ae-surface-3:     #BFAE88;  /* track fill, deep recess */
 
-    --ae-line:          rgba(20, 22, 26, 0.14);
-    /* Bounds real controls, so WCAG 1.4.11 applies: 3.02:1 composited over
-       --ae-surface-3, the lightest surface it can land on. */
-    --ae-line-strong:   rgba(20, 22, 26, 0.52);
+    --ae-line:          rgba(28, 20, 38, 0.14);
+    /* Bounds real controls, so WCAG 1.4.11 applies against the lightest
+       surface it can land on. */
+    --ae-line-strong:   rgba(28, 20, 38, 0.42);
 
-    --ae-text:          #14161A;  /* 11.4:1 on the darkest surface */
-    --ae-text-2:        #414B5A;  /* 5.57:1 there */
-    --ae-text-3:        #4A5462;  /* 4.84:1 there — AA on EVERY surface */
+    --ae-text:          #1C1426;  /* 8.17:1 on the darkest surface */
+    --ae-text-2:        #38332A;  /* 5.75:1 there */
+    --ae-text-3:        #443F31;  /* 4.81:1 there — AA on EVERY surface.
+                                     Was #56503F, which measures 3.68:1 on
+                                     the deeper paper: an AA failure created
+                                     by raising the separation floor. */
 
-    --ae-primary:        #14161A;
+    --ae-primary:        #1C1426;
     --ae-primary-active: #5B3FA8;
-    --ae-on-primary:     #FFFFFF;
-    /* The label that goes ON a --ae-teal fill. Here teal is a DARK plum, so
-       the label is white (7.72:1). In the dark register teal is a LIGHT plum
-       and the label is ink. Call sites were hardcoding #12101A for the dark
-       case, which shipped 2.44:1 ink-on-plum onto the white board — the
-       notification count was unreadable. Same failure `--ae-on-primary` was
-       created for; this is the missing sibling token. */
-    --ae-on-teal:        #FFFFFF;
+    --ae-on-primary:     #FFFEF9;
+    /* The label that goes ON a --ae-teal fill. Teal is a dark plum here, so
+       the label is paper. */
+    --ae-on-teal:        #FFFEF9;
 
-    /* Pigments keep their JOBS from design.md and are re-inked for a white
-       ground. Dark pigments on white, the inverse of the console's dark
-       register, each clearing 3:1 against pure white as a non-text mark. */
+    /* Pigments keep their JOBS from design.md, re-inked for the deeper
+       paper floor. Each clears 3:1 on --ae-bg as a non-text mark. */
     --ae-sky:   #6D4BD8;
-    --ae-teal:  #5B3FA8;   /* identity / action / recovery — 7.72:1 */
-    --ae-amber: #8A5F17;   /* events / ops status — re-inked DOWN from
-                              #B8863C, which measured 3.22:1 on white and
-                              failed 4.5:1 the moment it carried a label */
+    --ae-teal:  #5B3FA8;   /* identity / action / recovery — 5.82:1 on floor */
+    --ae-amber: #9A6B27;   /* events / ops status / delayed — re-inked DOWN
+                              from #B8863C, which measured 2.43:1 as a mark
+                              and 3.19:1 as text on this floor. #9A6B27 is
+                              the LIGHTEST value clearing both. */
     --ae-rust:  var(--ae-amber);
-    --ae-rose:  #C13A6B;   /* disruption energy — 5.14:1 */
+    --ae-rose:  #C13A6B;   /* disruption — 3.88:1 on floor */
     --ae-pink:  var(--ae-rose);
 
     --ae-sky-ink:   #4A2FA0;
@@ -407,84 +424,56 @@
     --ae-rust-ink:  var(--ae-amber-ink);
     --ae-rose-ink:  #A02458;
 
-    /* Tints DARKEN the white ground here. Kept under 0.14 so a tinted
-       module still reads as the same material as an untinted one. */
+    /* Tints DARKEN the paper ground. Kept low so a tinted module still
+       reads as the same material as an untinted one. */
     --ae-sky-bg:     rgba(109, 75, 216, 0.10);
     --ae-teal-bg:    rgba(91, 63, 168, 0.09);
-    --ae-amber-bg:   rgba(138, 95, 23, 0.11);
+    --ae-amber-bg:   rgba(154, 107, 39, 0.12);
     --ae-rust-bg:    var(--ae-amber-bg);
     --ae-rose-bg:    rgba(193, 58, 107, 0.09);
-    --ae-neutral-bg: rgba(20, 22, 26, 0.05);
-    --ae-amber-soft:  rgba(138, 95, 23, 0.52);
-    --ae-amber-soft2: rgba(138, 95, 23, 0.26);
+    --ae-neutral-bg: rgba(28, 20, 38, 0.05);
+    --ae-amber-soft:  rgba(154, 107, 39, 0.52);
+    --ae-amber-soft2: rgba(154, 107, 39, 0.26);
     --ae-rose-soft:   rgba(193, 58, 107, 0.52);
     --ae-rose-soft2:  rgba(193, 58, 107, 0.26);
 
-    --ae-focus: #5B3FA8;
-
-    /* ── The spectral fringe ────────────────────────────────────────
-       The one place colour is allowed to be atmospheric rather than
-       semantic, and it is confined to a 1–2px band on a module's edge.
-       Taken from cloud-edge diffraction: a white body grows a narrow
-       crown of mint, rose and violet. Each still clears 3:1 on white, so
-       an edge that happens to carry meaning is never the weak link. */
-    --ae-fringe-mint:   #0E7C66;  /* 5.13:1 — nominal / recovered */
-    --ae-fringe-rose:   #C13A6B;  /* 5.14:1 — disrupted */
-    --ae-fringe-violet: #6D4BD8;  /* 5.76:1 — the ACTIVE band */
-    --ae-fringe:        linear-gradient(
-                          90deg,
-                          var(--ae-fringe-mint) 0%,
-                          var(--ae-fringe-violet) 52%,
-                          var(--ae-fringe-rose) 100%
-                        );
-
     /* ── Glass ──────────────────────────────────────────────────────
-       A real material, not a wash. It is used ONLY where a surface sits
-       over the map and the operator needs to keep seeing through it.
-       0.86 alpha over the Positron basemap composites to #F7F8FA at the
-       worst case, which is why body ink still measures over 10:1 on it —
-       asserted by check-contrast.mjs's GLASS block, which composites the
-       alpha rather than trusting the nominal colour. */
-    --ae-glass:      rgba(255, 255, 255, 0.86);
-    /* 0.55, not the 0.16 this started at. A white glass panel sitting on a
-       near-white Positron basemap composites to 1.10:1 against the tile —
-       the FILL cannot carry the separation, and no alpha value fixes that,
-       because white-on-near-white has nowhere to go. So the EDGE carries it,
-       exactly as `order2` in the cascade ramp does: this composites to
-       #7C7C7C over the tile, 3.94:1, clearing WCAG 1.4.11 as the boundary
-       that identifies the panel. */
-    --ae-glass-line: rgba(20, 22, 26, 0.55);
-    --ae-glass-blur: saturate(150%) blur(14px);
+       Used ONLY where a surface sits over the map and the operator needs
+       to keep seeing through it. Warm-tinted to match the board rather
+       than washing it cool. The EDGE carries the separation, not the fill:
+       a pale glass panel on a pale basemap has nowhere to go. */
+    --ae-glass:      rgba(255, 254, 249, 0.88);
+    --ae-glass-line: rgba(28, 20, 38, 0.55);
+    --ae-glass-blur: saturate(140%) blur(14px);
 
-    /* Elevation is a CUT, not a cast. The top edge catches light and the
-       bottom edge shows the thickness of the cut — a real bevel, two
-       hairlines, no blur. A drop shadow is banned on this register. */
-    --ae-edge:             inset 0 1px 0 rgba(255, 255, 255, 0.9),
-                           inset 0 -1px 0 rgba(20, 22, 26, 0.06);
+    /* Elevation is a CUT, not a cast. Two hairlines, no blur. A drop
+       shadow is banned on this register — the surface step carries it. */
+    --ae-edge:             inset 0 1px 0 rgba(255, 255, 255, 0.75),
+                           inset 0 -1px 0 rgba(28, 20, 38, 0.07);
     --ae-shadow-button:    none;
     --ae-shadow-card:      none;
-    --ae-shadow-card-elev: 0 1px 0 rgba(20, 22, 26, 0.06);
-    --ae-shadow-overlay:   0 8px 28px rgba(20, 22, 26, 0.14);
+    --ae-shadow-card-elev: 0 1px 0 rgba(28, 20, 38, 0.07);
+    --ae-shadow-overlay:   0 8px 28px rgba(28, 20, 38, 0.14);
 
-    /* shadcn bridge — the console's own light board, not the landing's. */
-    --background:   218 30% 93%;
-    --foreground:   220 13% 9%;
-    --card:         0 0% 100%;
-    --card-foreground: 220 13% 9%;
-    --popover:      0 0% 100%;
-    --popover-foreground: 220 13% 9%;
-    --primary:      220 13% 9%;
-    --primary-foreground: 0 0% 100%;
-    --secondary:    218 22% 88%;
-    --secondary-foreground: 220 13% 9%;
-    --muted:        218 22% 88%;
-    --muted-foreground: 217 14% 34%;
-    --accent:       218 24% 82%;
-    --accent-foreground: 220 13% 9%;
+    /* shadcn bridge — the paper board. */
+    --background:   41 41% 85%;
+    --foreground:   270 30% 12%;
+    --card:         50 60% 99%;
+    --card-foreground: 270 30% 12%;
+    --popover:      50 60% 99%;
+    --popover-foreground: 270 30% 12%;
+    --primary:      270 30% 12%;
+    --primary-foreground: 50 60% 99%;
+    --secondary:    41 35% 74%;
+    --secondary-foreground: 270 30% 12%;
+    --muted:        41 35% 74%;
+    --muted-foreground: 40 16% 23%;
+    --accent:       41 30% 64%;
+    --accent-foreground: 270 30% 12%;
     --destructive:  339 54% 49%;
-    --destructive-foreground: 0 0% 100%;
-    --border:       220 13% 9% / 0.14;
-    --input:        220 13% 9% / 0.20;
+    --destructive-foreground: 50 60% 99%;
+    --border:       270 30% 12% / 0.14;
+    --input:        270 30% 12% / 0.20;
     --ring:         256 45% 45%;
 
     color-scheme: light;
