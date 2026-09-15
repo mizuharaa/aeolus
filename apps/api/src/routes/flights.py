@@ -64,7 +64,9 @@ async def get_live_flights(
         "limit": limit,
         "cache_age_sec": status["cache_age_sec"],
         "authenticated": status["authenticated"],
-        "source": "opensky-network.org",
+        # Which feed actually served this — opensky locally, adsb.lol/adsb.fi
+        # in production (OpenSky blocks datacenter IPs).
+        "source": status["provider"],
     }
 
 
@@ -90,7 +92,7 @@ async def search_flights(
         "query": q,
         "results": results,
         "count": len(results),
-        "source": "opensky-network.org",
+        "source": opensky.status()["provider"],
     }
 
 

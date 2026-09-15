@@ -11,6 +11,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 
 from src.core.config import settings
+from src.data.adsb import AdsbClient
+from src.data.feed import LiveFlightFeed
 from src.data.opensky import OpenSkyClient
 from src.network import cache
 from src.optimizer.milp import RecoveryOptimizer
@@ -199,7 +201,9 @@ async def lifespan(app: FastAPI):
     )
     weather_client = WeatherClient()
 
-    # OpenSky Network — load OAuth2 credentials (JSON file or env vars)
+    # Live aircraft feed. OpenSky blocks datacenter IPs, so production runs
+    # the keyless community aggregators (ADSB_PROVIDER=adsblol) while local
+    # development keeps OpenSky (the default).
     _client_id = settings.opensky_client_id
     _client_secret = settings.opensky_client_secret
     if not (_client_id and _client_secret):
@@ -218,10 +222,14 @@ async def lifespan(app: FastAPI):
         except Exception as _e:
             logger.warning("OpenSky: could not load credentials.json — %s", _e)
 
-    opensky = OpenSkyClient(
-        client_id=_client_id or None,
-        client_secret=_client_secret or None,
-    )
+    live_feed: LiveFlightFeed
+    if settings.adsb_provider == "adsblol":
+        live_feed = AdsbClient()
+    else:
+        live_feed = OpenSkyClient(
+            client_id=_client_id or None,
+            client_secret=_client_secret or None,
+        )
 
     # Load network
     flights, aircraft, crews = _load_network()
@@ -239,24 +247,22 @@ async def lifespan(app: FastAPI):
     app.state.optimizer = optimizer
     app.state.weather = weather_client
     app.state.engine = engine
-    app.state.opensky = opensky
+    app.state.opensky = live_feed
     app.state.repository = repository
 
     # Background tasks
     asyncio.create_task(weather_client.fetch_metars())
     asyncio.create_task(weather_client.start_background_fetch(settings.weather_fetch_interval_secs))
 
-    # Pre-warm OpenSky cache
-    asyncio.create_task(_prefetch_opensky(opensky))
+    # Pre-warm the live-flight cache
+    asyncio.create_task(_prefetch_opensky(live_feed))
 
     logger.info(
-        "Olus ready — %d flights, %d aircraft, %d crew pairings | OpenSky: %s",
+        "Olus ready — %d flights, %d aircraft, %d crew pairings | live feed: %s",
         len(flights),
         len(aircraft),
         len(crews),
-        "authenticated"
-        if (_client_id and _client_secret)
-        else "anonymous (set OPENSKY_CLIENT_ID/SECRET for live planes)",
+        live_feed.status()["provider"],
     )
 
     yield
@@ -266,13 +272,13 @@ async def lifespan(app: FastAPI):
     logger.info("Olus API shut down cleanly")
 
 
-async def _prefetch_opensky(client: OpenSkyClient) -> None:
-    """Pre-warm the OpenSky cache at startup so first request is fast."""
+async def _prefetch_opensky(client: LiveFlightFeed) -> None:
+    """Pre-warm the live-flight cache at startup so first request is fast."""
     try:
         flights = await client.get_us_flights()
-        logger.info("OpenSky pre-warm: %d flights cached", len(flights))
+        logger.info("Live feed pre-warm: %d flights cached", len(flights))
     except Exception as exc:
-        logger.warning("OpenSky pre-warm failed: %s", exc)
+        logger.warning("Live feed pre-warm failed: %s", exc)
 
 
 app = FastAPI(

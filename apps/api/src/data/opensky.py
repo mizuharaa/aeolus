@@ -24,8 +24,8 @@ import httpx
 from src.data.airlines import (
     AIRLINE_NAMES,
     callsign_to_iata_flight,
-    parse_flight_query,
 )
+from src.data.feed import LiveFlightFeed
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ CACHE_TTL_ANONYMOUS = 30
 TOKEN_REFRESH_BUFFER_SEC = 300
 
 
-class OpenSkyClient:
+class OpenSkyClient(LiveFlightFeed):
     """
     Async OpenSky Network client with OAuth2 Bearer token auth.
 
@@ -79,12 +79,11 @@ class OpenSkyClient:
         self._token_expires: float = 0.0
         self._token_lock = asyncio.Lock()
 
-        # Flight state cache
-        self._cache: list[dict] = []
-        self._cache_ts: float = 0.0
-        self._last_fetch_attempt: float = 0.0  # time of last fetch attempt (success or failure)
-        self._lock = asyncio.Lock()
-        self._last_error: Optional[str] = None
+        super().__init__(
+            cache_ttl=CACHE_TTL_AUTHENTICATED
+            if (self._has_oauth or self._use_proxy)
+            else CACHE_TTL_ANONYMOUS
+        )
 
         if self._use_proxy:
             logger.info("OpenSky: relay mode via %s", self._proxy_base)
@@ -131,114 +130,13 @@ class OpenSkyClient:
                 return None
 
     # ── Public API ────────────────────────────────────────────────────────────
+    #
+    # get_us_flights / search / get_by_icao24 and the stale-while-revalidate
+    # cache live in LiveFlightFeed; this client only supplies the fetch.
 
-    async def get_us_flights(self, force: bool = False) -> list[dict]:
-        """
-        Return all tracked flights over US airspace.
-
-        Stale-while-revalidate: if any cached data exists (even past TTL),
-        return it immediately and kick off a background refresh. This keeps
-        the endpoint fast even when the OpenSky connection is slow or blocked.
-
-        If the cache is empty AND a fetch was attempted recently (within 60s),
-        return [] immediately instead of blocking again — avoids hammering a
-        blocked OpenSky connection on every request.
-
-        Only blocks synchronously on the very first call (truly empty cache,
-        no recent attempt).
-        """
-        ttl = (
-            CACHE_TTL_AUTHENTICATED if (self._has_oauth or self._use_proxy) else CACHE_TTL_ANONYMOUS
-        )
-        now = time.monotonic()
-        age = now - self._cache_ts
-        attempt_age = now - self._last_fetch_attempt
-
-        # Fresh cache — return immediately.
-        if not force and self._cache and age < ttl:
-            return self._cache
-
-        # Stale non-empty cache — return now, refresh in background.
-        if self._cache and not force:
-            logger.debug(
-                "OpenSky: stale cache (%ds old) — returning now, refreshing in background", int(age)
-            )
-            asyncio.create_task(self._do_refresh())
-            return self._cache
-
-        # Empty cache but we tried recently — return [] rather than blocking.
-        if not force and self._last_fetch_attempt > 0 and attempt_age < 60:
-            logger.debug(
-                "OpenSky: no cache, last attempt %ds ago — skipping fetch", int(attempt_age)
-            )
-            return []
-
-        # Must fetch synchronously (first call or forced).
-        async with self._lock:
-            # Re-check after acquiring lock.
-            now = time.monotonic()
-            age = now - self._cache_ts
-            attempt_age = now - self._last_fetch_attempt
-            if not force and self._cache and age < ttl:
-                return self._cache
-            if not force and self._last_fetch_attempt > 0 and attempt_age < 60:
-                return self._cache
-
-            self._last_fetch_attempt = time.monotonic()
-            raw = await self._fetch_states(**US_BBOX)
-            if raw is not None:
-                self._cache = self._parse_states(raw)
-                self._cache_ts = time.monotonic()
-                self._last_error = None
-                logger.debug(
-                    "OpenSky: cached %d US flights (auth=%s)", len(self._cache), self._has_oauth
-                )
-            else:
-                logger.warning("OpenSky fetch failed — no cache available")
-
-            return self._cache
-
-    async def _do_refresh(self) -> None:
-        """Background cache refresh — holds the write lock while fetching."""
-        async with self._lock:
-            self._last_fetch_attempt = time.monotonic()
-            raw = await self._fetch_states(**US_BBOX)
-            if raw is not None:
-                self._cache = self._parse_states(raw)
-                self._cache_ts = time.monotonic()
-                self._last_error = None
-                logger.debug("OpenSky: background refresh — %d flights", len(self._cache))
-            else:
-                logger.debug("OpenSky: background refresh failed — keeping stale cache")
-
-    async def search(self, query: str) -> list[dict]:
-        """Search live flights by IATA/ICAO flight number (e.g. 'AA123', 'UAL456')."""
-        flights = await self.get_us_flights()
-        q = query.strip().upper()
-        if not q:
-            return []
-
-        icao_prefix, iata_code, num = parse_flight_query(q)
-        results: list[dict] = []
-
-        if icao_prefix:
-            target = icao_prefix + num
-            results = [f for f in flights if f["callsign"].startswith(target)]
-
-        if not results and iata_code:
-            target = iata_code + num
-            results = [f for f in flights if (f.get("flight_iata") or "").startswith(target)]
-
-        if not results:
-            results = [f for f in flights if q in f["callsign"]]
-
-        return results[:20]
-
-    async def get_by_icao24(self, icao24: str) -> Optional[dict]:
-        """Look up a single aircraft by ICAO 24-bit transponder hex."""
-        flights = await self.get_us_flights()
-        target = icao24.lower().strip()
-        return next((f for f in flights if f["icao24"] == target), None)
+    async def _fetch_flights(self) -> Optional[list[dict]]:
+        raw = await self._fetch_states(**US_BBOX)
+        return self._parse_states(raw) if raw is not None else None
 
     async def get_route(self, icao24: str, hours_back: int = 36) -> Optional[dict]:
         """
@@ -323,15 +221,11 @@ class OpenSkyClient:
     def status(self) -> dict:
         now = time.monotonic()
         return {
-            "cached_flights": len(self._cache),
-            "cache_age_sec": round(now - self._cache_ts, 1) if self._cache_ts else None,
-            "last_attempt_age_sec": round(now - self._last_fetch_attempt, 1)
-            if self._last_fetch_attempt
-            else None,
+            **super().status(),
+            "provider": "opensky",
             "authenticated": self._has_oauth or self._use_proxy,
             "relay": self._proxy_base,
             "token_valid": bool(self._token and now < self._token_expires),
-            "last_error": self._last_error,
         }
 
     # ── Private ───────────────────────────────────────────────────────────────

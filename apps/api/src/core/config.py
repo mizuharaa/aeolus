@@ -83,5 +83,9 @@ class Settings(BaseSettings):
     opensky_username: str = ""
     opensky_password: str = ""
 
+    # Live aircraft feed: "opensky" (default — local dev) or "adsblol"
+    # (production: keyless adsb.lol + adsb.fi, which allow datacenter IPs).
+    adsb_provider: Literal["opensky", "adsblol"] = "opensky"
+
 
 settings = Settings()
