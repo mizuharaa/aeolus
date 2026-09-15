@@ -61,9 +61,9 @@ export function LandingNav() {
           <span className={styles.bars} aria-hidden="true"><i /><i /><i /></span><span>Explore</span>
         </button>
         <Link className={styles.brand} href="/" aria-label="Olus home">
-          <svg data-logo-mark className={styles.mark} viewBox="0 0 36 36" aria-hidden="true">
+          <span className={styles.markSlot}><svg data-logo-mark className={styles.mark} viewBox="0 0 36 36" aria-hidden="true">
             <path d="M5 23C8 12 17 5 26 7C35 9 31 20 22 26C13 32 3 27 5 23ZM9 22C10 26 16 27 22 23C28 19 31 12 25 11C19 9 12 15 9 22Z" fill="currentColor" stroke="currentColor" strokeWidth=".7" />
-          </svg>
+          </svg></span>
           <span data-nav-wordmark className={styles.brandText}>olus</span>
         </Link>
         <nav data-nav-chrome className={styles.navRight} aria-label="Quick links">
