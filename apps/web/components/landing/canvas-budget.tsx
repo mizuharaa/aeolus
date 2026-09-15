@@ -2,7 +2,7 @@
 
 import { useEffect } from "react"
 import { useThree } from "@react-three/fiber"
-import { getLandingQualityProfile } from "@/lib/scroll"
+import { getLandingQualityProfile, landingDpr } from "@/lib/scroll"
 
 /**
  * Apply the shared capability budget without installing a separate monitor
@@ -13,7 +13,8 @@ export function CanvasBudget() {
   const setDpr = useThree((state) => state.setDpr)
 
   useEffect(() => {
-    setDpr(getLandingQualityProfile().dprMax)
+    getLandingQualityProfile()
+    setDpr(landingDpr())
   }, [setDpr])
 
   return null

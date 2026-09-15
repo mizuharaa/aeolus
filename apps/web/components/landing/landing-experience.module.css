@@ -210,6 +210,20 @@
     linear-gradient(178deg, #F6F1E4 0%, #EFE7D5 52%, #E9DFC9 100%);
 }
 
+/* Paper grain, tiled. A real chart is printed on stock, and the single biggest
+   reason a flat tint reads as "bland" is that it has no surface — but the
+   turbulence that supplies the tooth is generated once at 180px and repeated,
+   not evaluated across the full viewport on every frame. Same construction as
+   `.ae-globe-surface::after` below. */
+.experience :global(.ae-substrate-grain) {
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 10rem 10rem;
+  opacity: 0.055;
+  pointer-events: none;
+}
+
 /* The substrate is texture, and texture that competes with the type it sits
    under is just noise. The drawing is held to a quiet fraction of the wash. */
 .experience :global(.ae-substrate-far)  { opacity: 0.34; }

@@ -127,14 +127,6 @@ export function AviationSubstrate() {
     <div className="ae-substrate" aria-hidden="true">
       <svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" width="100%" height="100%">
         <defs>
-          {/* Paper grain. A real chart is printed on stock, and the single
-              biggest reason a flat tint reads as "bland" is that it has no
-              surface. fractalNoise at this scale is invisible as a pattern and
-              only registers as tooth. */}
-          <filter id="ae-grain" x="0" y="0" width="100%" height="100%">
-            <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves={3} seed={7} result="n" />
-            <feColorMatrix in="n" type="saturate" values="0" />
-          </filter>
           {/* The graticule — meridians and parallels at chart spacing. */}
           <pattern id="ae-graticule" width="96" height="96" patternUnits="userSpaceOnUse">
             <path d="M96 0 L0 0 0 96" fill="none" stroke="currentColor" strokeWidth="0.7" />
@@ -170,9 +162,25 @@ export function AviationSubstrate() {
           />
         </g>
 
-        {/* Grain sits over the drawing so it tooths the lines too. */}
-        <rect width="1600" height="900" filter="url(#ae-grain)" opacity={0.055} />
       </svg>
+      {/* ── THE GRAIN IS A TILE NOW, NOT A FULL-VIEWPORT FILTER ──────────────
+          This was `<rect width=1600 height=900 filter="url(#ae-grain)">` —
+          a live `feTurbulence` at 3 octaves stretched over the whole of a
+          `position: fixed; inset: 0` layer. Chromium runs SVG filters on the
+          CPU, on the main thread, over every device pixel of the rect, and the
+          two plates above rewrite their transforms on every frame of the
+          flight scene, so the whole noise field was regenerated with them.
+          That is the per-pixel main-thread work that made the page freeze in
+          proportion to screen size: at 2560x1440 @2x the rect covers 14.7M
+          device pixels, and a CDP profile of this scroll band put 21,340ms of
+          a 21,403ms window inside the compositor with 22ms of JS in it.
+
+          The same texture out of a 180px tile is one filter pass on 32k
+          pixels, cached and repeated — which is how the globe surface's grain
+          has always been done in this file's own stylesheet. Same look, and it
+          is now a sibling of the drawing rather than a child of it, which is
+          why it still tooths the lines: it paints after the svg. */}
+      <span className="ae-substrate-grain" aria-hidden />
     </div>
   )
 }

@@ -97,6 +97,34 @@ export function LaptopStage({
   const screenRef = useRef<HTMLDivElement>(null)
   const hinge = useRef(staticMode ? 1 : 0)
   const push = useRef(staticMode ? 1 : 0)
+  /**
+   * The rig's layout height, measured by the observer below instead of read
+   * inside the frame callback.
+   *
+   * `rig.offsetHeight` was read every frame, right after writing
+   * `lid.style.transform` — a write then a read, which forces a synchronous
+   * layout of a 22,000px document carrying four pinned sections. This callback
+   * is registered for the whole life of the page, not just while the demo is
+   * on screen, so the page paid that relayout on every frame of every section.
+   * Measured in a CDP profile: 1,952ms of self time in this one callback over
+   * a 31s window, the largest block of JS on the page. The height only changes
+   * when the layout does, and ResizeObserver reports the layout box (the rig's
+   * own scale transform does not disturb it), so there is nothing to observe
+   * per frame.
+   */
+  const rigHeight = useRef(0)
+
+  useEffect(() => {
+    const rig = rigRef.current
+    if (!rig) return
+    rigHeight.current = rig.offsetHeight
+    if (typeof ResizeObserver === "undefined") return
+    const observer = new ResizeObserver(() => {
+      rigHeight.current = rig.offsetHeight
+    })
+    observer.observe(rig)
+    return () => observer.disconnect()
+  }, [])
 
   useEffect(() => {
     if (staticMode) return
@@ -136,7 +164,7 @@ export function LaptopStage({
       // above centre — at full push that put the top of the screen out of the
       // viewport. The translate is in screen px and composes before the scale,
       // so it is not itself magnified.
-      const recentre = pushed * PUSH_RECENTRE * rig.offsetHeight
+      const recentre = pushed * PUSH_RECENTRE * rigHeight.current
       rig.style.transform =
         `translate3d(0, calc(${shut * 5}% + ${recentre.toFixed(1)}px), 0) ` +
         `scale(${scale.toFixed(4)})`

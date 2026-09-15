@@ -10,6 +10,8 @@
  * network, labelled as such — not real customer claims.
  */
 
+import { useEffect, useRef, useState } from "react"
+
 import { Rise } from "@/components/landing/motion"
 
 const PARTNERS = ["MERIDIAN", "NORTHWIND", "CALDERA AIR", "ALTUS", "VESPER", "HELIOS"]
@@ -32,10 +34,38 @@ const BOIL_ID = "ae-tb-boil"
 
 export function TrustedBy() {
   const f = (n: number) => `${BOIL_ID}-${n}`
+  /**
+   * The boil only runs while the strip is on screen.
+   *
+   * Six spans swapping between three `feTurbulence` + `feDisplacementMap`
+   * filters three times a second is six CPU turbulence passes per swap, and
+   * it ran for the life of the document — including the four seconds a visitor
+   * spends at the top of a 22,000px page looking at the cabin. These were the
+   * only CSS animations running at idle on the whole landing.
+   */
+  const stripRef = useRef<HTMLElement>(null)
+  const [boiling, setBoiling] = useState(false)
+
+  useEffect(() => {
+    const strip = stripRef.current
+    if (!strip) return
+    if (!("IntersectionObserver" in window)) {
+      setBoiling(true)
+      return
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => setBoiling(Boolean(entry?.isIntersecting)),
+      { rootMargin: "10% 0px" },
+    )
+    observer.observe(strip)
+    return () => observer.disconnect()
+  }, [])
 
   return (
     <section
+      ref={stripRef}
       aria-label="Reference carriers"
+      data-boiling={boiling}
       style={{
         position: "relative",
         padding: "clamp(70px, 10vh, 120px) clamp(20px, 4vw, 56px)",
@@ -107,6 +137,8 @@ export function TrustedBy() {
         .tb-boil {
           display: inline-block;
           filter: url(#${f(0)});
+        }
+        section[data-boiling="true"] .tb-boil {
           animation: tb-boil-cycle 0.32s steps(1) infinite;
         }
         @keyframes tb-boil-cycle {
