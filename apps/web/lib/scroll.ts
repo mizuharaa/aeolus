@@ -433,6 +433,10 @@ export function resetLandingScene(scene: LandingScene, value = 0) {
 
 export function markLandingAssetReady(asset: string) {
   readyAssets.add(asset)
+  // New content in a scene, with no scroll movement to announce it. Without
+  // this the airliner GLB can land while the visitor is parked inside the pin
+  // and the canvas would hold the frame it drew before the model existed.
+  invalidateLandingScenes()
   queueLandingRefresh()
 }
 
