@@ -1,4 +1,4 @@
-# Aeolus simulator — handoff
+# Olus simulator — handoff
 
 **Written:** 2026-08-05
 **Branch:** `fix/scroll-reveals-and-dashboard-a11y` (off `main` @ `3470ef3`)
@@ -49,7 +49,7 @@ left deliberately for its owner to decide on.
 
 Both were already running and are **not managed by this work**:
 - web `http://localhost:3000` — `next dev`
-- api `http://localhost:8000` — uvicorn, `aeolus-api 0.2.0`
+- api `http://localhost:8000` — uvicorn, `olus-api 0.2.0`
 
 ⚠️ **Never run `npm run build` while the dev server is up** — it rewrites
 `.next` and the dev server then 404s on `layout.css`/`main-app.js`. Kill dev,
@@ -76,7 +76,7 @@ The map held the largest region (653,528px² @1280) spending ~97% of its marks o
 cause, propagation and time are legible at once — showed **1.96 of 18 rows**,
 identically at 1280/1440/1920, because every extra viewport pixel went to the
 basemap. Now the map is a resizable fixed height (`MAP_H = 300`, persisted under
-`aeolus-map-h`) and the timeline takes the remainder.
+`olus-map-h`) and the timeline takes the remainder.
 Measured: **1.96 → 10 rows @1440, 14 @1920.**
 *Gotcha:* the timeline must use `flex: 1 1 0%`, **not** `1 1 auto`. With `auto`
 it claims its 871px of content as flex basis, the row overflows, and the map

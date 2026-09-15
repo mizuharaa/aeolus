@@ -1,7 +1,7 @@
 /* Hallmark system stamp
  * genre: editorial control tower · tone: cinematic, operational, exact
  * palette anchor: deep plum · structural fingerprint: Feature Stack, H2 split-to-centre, F2 pinned event theatre
- * theme: studied-DNA (user references + locked Aeolus design.md) · enrichment: render-gated WebGL, PBR airframe, natural Earth with amber borders, inertial laptop rig + live OCC
+ * theme: studied-DNA (user references + locked Olus design.md) · enrichment: render-gated WebGL, PBR airframe, natural Earth with amber borders, inertial laptop rig + live OCC
  * pre-emit critique: P5 H5 E5 S5 R5 V5
  * contrast: pass (40–41) · nav: N9 · footer: Ft5 · slop: pass (42–45)
  * honest: pass (46) · chrome: pass (47) · tokens: pass (48) · responsive/icons: pass (30, 49)
@@ -2094,4 +2094,49 @@
   .experience :global(.ae-globe-pin) {
     height: 100dvh;
   }
+}
+
+/* Approved Olus opening. Existing laptop geometry and DOM aperture stay shared. */
+.experience:global(.olus-landing) {
+  --flight-night:var(--ink-900);
+  --flight-night-2:var(--ink-800);
+  --flight-paper:var(--bone-050);
+  --flight-amber:var(--disrupt);
+  --flight-violet:var(--neutral-arc);
+  --bg:var(--ink-900);
+  --ink:var(--text-hi);
+  --muted:var(--text-mid);
+  --border:var(--ink-500);
+  --panel:var(--ink-700);
+  background:var(--ink-900);
+}
+.experience:global(.olus-landing) :global(.dm-section) { margin-top:0; background:var(--ink-900); }
+.experience:global(.olus-landing) :global(.dm-headline-title span) { color:var(--text-mid); }
+.experience:global(.olus-landing) :global(.olus-demo-controls) {
+  position:absolute; inset:96px 24px auto; z-index:6; display:flex; flex-wrap:wrap;
+  justify-content:center; align-items:center; gap:16px; color:var(--text-mid); font-size:13px;
+}
+.experience:global(.olus-landing) :global(.olus-demo-controls button),
+.experience:global(.olus-landing) :global(.olus-demo-controls a) {
+  min-height:44px; padding:8px 12px; border:1px solid var(--control-border); border-radius:999px;
+  color:var(--text-hi); background:var(--ink-800); text-decoration:none; cursor:pointer;
+}
+.experience:global(.olus-landing) :global(.olus-demo-controls :focus-visible) { outline:2px solid var(--recover); outline-offset:3px; }
+.experience:global(.olus-landing) :global(.dm-headline) { padding-block-start:180px; }
+@media(max-width:639px), (prefers-reduced-motion:reduce) {
+  .experience:global(.olus-landing) :global(.dm-section) { padding-block:64px; }
+  .experience:global(.olus-landing) :global(.olus-demo-controls) { position:relative; inset:auto; padding:0 24px; }
+  .experience:global(.olus-landing) :global(.dm-pin) { height:auto; min-height:0; display:flex; flex-direction:column; overflow:hidden; padding:32px 0; gap:24px; }
+  .experience:global(.olus-landing) :global(.dm-headline) { position:relative; inset:auto; padding-top:0; }
+  .experience:global(.olus-landing) :global(.dm-captions-row) { display:none; }
+  .experience:global(.olus-landing) :global(.dm-product-wrap) { height:auto; min-height:0; width:min(100%,900px); aspect-ratio:1 / 1.05; }
+  .experience:global(.olus-landing) :global(.dm-laptop-rig) { width:90%; max-width:none; height:auto; transform:none!important; transform-origin:50% 50%; }
+  .experience:global(.olus-landing) :global(.dm-laptop-lid) { transform:none!important; }
+  .experience:global(.olus-landing) :global(.dm-laptop-screen) { opacity:1!important; visibility:visible!important; }
+}
+
+.experience:global(.olus-landing) :global(.dm-headline-title) { font-weight:500; max-width:22ch; }
+@media(max-width:639px), (prefers-reduced-motion:reduce) {
+ .experience:global(.olus-landing) :global(.dm-headline) { padding-inline:24px; }
+ .experience:global(.olus-landing) :global(.dm-headline-title) { font-size:clamp(32px,7vw,60px); }
 }

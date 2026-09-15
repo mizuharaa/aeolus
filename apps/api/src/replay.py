@@ -20,7 +20,7 @@ otherwise vary:
 wall-clock measurement of that run, not a recovery decision.
 
 Usage:
-    python -m src.replay <scenario_id> [--db path/to/aeolus.db]
+    python -m src.replay <scenario_id> [--db path/to/olus.db]
 """
 
 from __future__ import annotations
@@ -38,9 +38,9 @@ from src.network import cache
 from src.optimizer.milp import RecoveryOptimizer
 from src.predictor.cascade import CascadePredictor
 from src.simulator.engine import SimulationEngine
-from src.store.repository import ScenarioRepository
+from src.store.repository import ScenarioRepository, default_db_path
 
-DEFAULT_DB_PATH = Path(__file__).parent.parent / "state" / "aeolus.db"
+DEFAULT_DB_PATH = default_db_path()
 
 
 class _FrozenWeatherClient:
@@ -91,7 +91,7 @@ async def replay_scenario(
 
 
 def _main() -> None:
-    parser = argparse.ArgumentParser(description="Replay a saved Aeolus scenario from its seed")
+    parser = argparse.ArgumentParser(description="Replay a saved Olus scenario from its seed")
     parser.add_argument("scenario_id")
     parser.add_argument("--db", default=str(DEFAULT_DB_PATH))
     args = parser.parse_args()

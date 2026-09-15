@@ -3,7 +3,7 @@
  * The operator's watchlist, shared.
  *
  * The list already existed — `my-flights.tsx` has kept it in
- * `localStorage["aeolus-watched-flights"]` since before the console rebuild —
+ * `localStorage["olus-watched-flights"]` since before the console rebuild —
  * but it was PRIVATE to that component, which is why the bookmark button on the
  * flight detail panel was a dead control: there was nowhere for it to write.
  *
@@ -15,7 +15,7 @@
 
 import { useCallback, useSyncExternalStore } from "react"
 
-const KEY = "aeolus-watched-flights"
+const KEY = "olus-watched-flights"
 
 let ids: string[] = []
 let hydrated = false

@@ -224,7 +224,7 @@ function AccountMenu() {
  *    top:-5/right:-5 on the bell, and the right cluster ran on a flat gap of
  *    16px with no group boundaries — so the badge overhung its neighbour's hit
  *    rect. `elementFromPoint` at the shared centre returned the badge, meaning
- *    a click intended for "Ask Aeolus" could land on nothing. The cluster is
+ *    a click intended for "Ask Olus" could land on nothing. The cluster is
  *    now three GROUPS separated by real rules, and the bell sits inside a
  *    padded group so the badge has room to overhang into.
  * 2. NO ACCOUNT SURFACE. See AccountMenu above.
@@ -449,12 +449,12 @@ export function SimulatorNav({ isConnected }: SimulatorNavProps) {
         @media (max-width: 860px)  { .ae-nav-stats { display: none !important; } }
 
         /* Phone. Everything above trims the bar item by item and it still
-           overflowed at 390px — measured with Ask Aeolus clipped at the right
+           overflowed at 390px — measured with Ask Olus clipped at the right
            edge and the account menu pushed off-screen entirely, i.e. the
            controls that were left were unreachable rather than merely tight.
            Two things actually fit here, so two things are shown: the ops title
            (which is also the only thing telling you WHICH airline's console
-           you are looking at) and the session cluster. Ask Aeolus is dropped
+           you are looking at) and the session cluster. Ask Olus is dropped
            because it is a conversational assistant with a full-screen surface
            of its own, and the Reset button because arming a scenario-wide
            destructive action is not a phone task. Both are reachable on a

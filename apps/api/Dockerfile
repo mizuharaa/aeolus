@@ -31,10 +31,10 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 COPY apps/api/src/ ./apps/api/src/
 COPY data/ ./data/
 
-RUN useradd -m -u 1001 aeolus \
+RUN useradd -m -u 1001 olus \
     && mkdir -p /app/apps/api/state \
-    && chown -R aeolus:aeolus /app
-USER aeolus
+    && chown -R olus:olus /app
+USER olus
 
 WORKDIR /app/apps/api
 

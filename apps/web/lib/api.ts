@@ -13,7 +13,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<{ data: T }
     res = await fetch(url, { cache: "no-store", ...init })
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
-    throw new Error(`Unable to reach the Aeolus API (${message})`)
+    throw new Error(`Unable to reach the Olus API (${message})`)
   }
 
   if (!res.ok) {

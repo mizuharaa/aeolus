@@ -66,6 +66,13 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def default_db_path(state_dir: Path | None = None) -> Path:
+    directory = state_dir if state_dir is not None else Path(__file__).resolve().parents[2] / "state"
+    legacy = directory / "aeolus.db"
+    # ponytail: reuse the live legacy DB including its WAL; rename only during a coordinated offline migration.
+    return legacy if legacy.exists() else directory / "olus.db"
+
+
 class ScenarioRepository:
     """Small, synchronous repository — one shared connection guarded by a
     lock (check_same_thread=False means ANY thread may touch it; the lock

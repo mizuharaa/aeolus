@@ -1,8 +1,8 @@
 "use client"
 /**
- * HeroPlane3D — the textured airliner, flown down THROUGH the AEOLUS wordmark.
+ * HeroPlane3D — the textured airliner, flown down THROUGH the OLUS wordmark.
  *
- * The model is the shipped GLB (`/models/aeolus-airliner.glb`): one 30k-vertex
+ * The model is the shipped GLB (`/models/olus-airliner.glb`): one 30k-vertex
  * mesh carrying a baked base-colour atlas, a normal map, a metallic-roughness
  * map and an emissive map — window rows, doors, panel lines, the gold cheatline
  * and the plum fin are all IN the maps. A previous pass replaced it with a
@@ -13,7 +13,7 @@
  * Choreography (one pinned scene, scrubbed by scroll):
  *   0.00–0.20  a close 3/4 hero view holds while the cabin's sky lifts away
  *   0.20–0.48  pulls out and left to a cruise pose, clearing the lower frame
- *   0.35–0.62  the AEOLUS wordmark wipes in underneath (IdentityBand)
+ *   0.35–0.62  the OLUS wordmark wipes in underneath (IdentityBand)
  *   0.62–1.00  ONE continuous descent: the aircraft banks right, noses over,
  *              crosses the wordmark band — passing in front of the letter tops
  *              and behind their lower halves — and leaves through the bottom
@@ -41,7 +41,7 @@ import { CanvasBudget } from "@/components/landing/canvas-budget"
 
 /** Recorded in ASSETS.md. Base colour, normal, metallic-roughness and emissive
  * are baked into this file — there is no separate texture to wire up. */
-const AIRLINER_MODEL = "/models/aeolus-airliner.glb"
+const AIRLINER_MODEL = "/models/olus-airliner.glb"
 
 function StudioEnvironment() {
   const { gl, scene } = useThree()
@@ -220,7 +220,7 @@ const Q_SIDE = new THREE.Quaternion().setFromEuler(SIDE.rot)
  * The Q. Two moves in one continuous curve:
  *
  *   u 0.00 → 0.45   THE CROSS. The aircraft tracks left-to-right straight
- *                   ACROSS the AEOLUS wordmark, holding y inside the letter
+ *                   ACROSS the OLUS wordmark, holding y inside the letter
  *                   band so it passes through the letterforms rather than
  *                   diagonally past them. This is the beat the brief asks for:
  *                   a crossing, not a fly-by.
@@ -345,8 +345,8 @@ function Contrail({
             vec2 centered = gl_PointCoord - 0.5;
             float radial = 1.0 - smoothstep(0.08, 0.5, length(centered));
             float filament = 0.76 + 0.24 * smoothstep(0.5, 0.0, abs(centered.y));
-            vec3 aeolusVapor = vec3(0.42, 0.34, 0.68);
-            gl_FragColor = vec4(aeolusVapor, radial * filament * vAlpha * uOpacity * 0.34);
+            vec3 olusVapor = vec3(0.42, 0.34, 0.68);
+            gl_FragColor = vec4(olusVapor, radial * filament * vAlpha * uOpacity * 0.34);
           }
         `,
       }),
@@ -574,7 +574,7 @@ export function HeroPlane3D() {
         fill
         priority
         sizes="100vw"
-        src="/images/aeolus-airliner-poster.webp"
+        src="/images/olus-airliner-poster.webp"
       />
       <Canvas
         camera={{ position: [0.55, -0.28, 8.6], fov: 32 }}

@@ -1,5 +1,5 @@
 """
-Tests for the Aeolus cascade predictor (src/predictor/cascade.py).
+Tests for the Olus cascade predictor (src/predictor/cascade.py).
 
 Tests cover:
 - Rule-based fallback prediction (no model loaded)

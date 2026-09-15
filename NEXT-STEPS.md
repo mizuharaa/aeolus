@@ -1,4 +1,4 @@
-# Aeolus — parked work
+# Olus — parked work
 
 Written 2026-08-16, at the end of the UI/UX revamp on `feat/ui-revamp`.
 Ordered by impact. Each item says what the defect IS, what was measured, and

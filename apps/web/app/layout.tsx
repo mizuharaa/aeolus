@@ -1,19 +1,20 @@
-import type { Metadata } from "next"
+﻿import type { Metadata } from "next"
 import "./globals.css"
 import { Providers } from "@/components/providers"
 import { Toaster } from "sonner"
 import { CookieConsent } from "@/components/legal/cookie-consent"
 import { Inter } from "next/font/google";
 import { cn } from "@/lib/utils";
-import { themeInitScript } from "@/lib/use-theme";
+import { brandStorageScript, themeInitScript } from "@/lib/brand";
 
 const inter = Inter({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
-  title: "Aeolus — Nimbus Air OCC",
+  metadataBase: new URL("https://olus.sh"),
+  title: "Olus — Airline disruption recovery",
   description: "Real-time aircraft disruption simulation and recovery engine.",
   openGraph: {
-    title: "Aeolus — Nimbus Air OCC",
+    title: "Olus — Airline disruption recovery",
     description: "Real-time aircraft disruption simulation and recovery engine.",
   },
 }
@@ -35,7 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           MetaMask injects `chrome-extension://nkbihfbeogaeaoehlefnkodbefgpgknn/scripts/inpage.js`
           into every page and throws `Failed to connect to MetaMask` when its
           service worker is asleep. We don't import any Web3 / wallet code
-          anywhere in Aeolus, so we silently swallow those errors before
+          anywhere in Olus, so we silently swallow those errors before
           Next's dev overlay can pop them up as if they were our bug.
           MUST be inline + `<head>` so it registers before extension scripts.
         */}
@@ -86,7 +87,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           to prevent. Source of truth is lib/use-theme.ts, which adopts whatever
           this stamped rather than re-deciding.
         */}
-        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        <script dangerouslySetInnerHTML={{ __html: brandStorageScript + themeInitScript }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://rsms.me" crossOrigin="anonymous" />
@@ -115,7 +116,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           aria-hidden
           style={{ display: "none" }}
           dangerouslySetInnerHTML={{
-            __html: `<!-- AEOLUS CONSOLE · DIRECTION CONTRACT · seed 688f3053
+            __html: `<!-- OLUS CONSOLE · DIRECTION CONTRACT · seed 688f3053
 THESIS: A dispatcher's screen is a board that holds the whole network at once. Density is the
   feature. Refuses the SaaS arrangement — four stat cards, one chart, a table — that spends a
   1440px screen on whitespace while the flight that is on fire sits below the fold.
@@ -125,8 +126,8 @@ OWN-WORLD: Bright white ground, ink #14161A. Hairline-ruled modules packed edge 
   Elevation is a cut face, never a drop shadow. State is a mark, never a hue.
 STORY: The operator sees what broke, how far it will spread, what the four plans trade against
   each other, and commits one — without leaving the board.
-FIRST VIEWPORT: 44px bar (AEOLUS as plain type, live on-time/cancelled counts, register switch,
-  Ask Aeolus). Below: 56px rail, a 360px context column of tabbed modules, the map taking the
+FIRST VIEWPORT: 44px bar (OLUS as plain type, live on-time/cancelled counts, register switch,
+  Ask Olus). Below: 56px rail, a 360px context column of tabbed modules, the map taking the
   whole remaining field, and the cascade as a scrub rail beneath it that snaps to time pitch.
 FORM: Hairline Mosaic — dealt challenger (japanese-high-density-web), beat assigned candidate 7
   (Departure Board) on audience identification and product clarity. Raised by Iridescent Cloud
@@ -140,7 +141,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
           {children}
           <CookieConsent />
           {/* bottom-right, not top-right: at top-right the toast landed on the
-              ops bar's own right cluster and covered Ask Aeolus, the LIVE state
+              ops bar's own right cluster and covered Ask Olus, the LIVE state
               and Reset — arrival notices obscuring the controls they should
               never compete with. The workspace's bottom-right is the docked
               Recovery track, which the toast is allowed to overlay briefly
@@ -170,3 +171,4 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
     </html>
   )
 }
+

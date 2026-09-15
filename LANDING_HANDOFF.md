@@ -1,4 +1,4 @@
-# Aeolus landing handoff
+# Olus landing handoff
 
 **Last updated:** 2026-07-30 (second pass). The first pass today described a
 scene set where the airliner was a hand-built procedural model, the demo was a
@@ -11,9 +11,9 @@ three changed — read "Second pass" below before anything else.
 
 | Symptom reported | Root cause | Fix |
 | --- | --- | --- |
-| "the plane animation is bugged, the textures are not connected" | The GLB had been replaced by `ProceduralAirliner`, a lathe-and-extrude model whose materials carried **no maps at all** — flat colours only | The shipped `aeolus-airliner.glb` is back (baked base-colour / normal / metallic-roughness / emissive, 29,911 verts). The procedural model is deleted. |
-| "too many blank space beige in the landing when flying theres nothing" | The flight pin ran `+=400%` and its last three viewports had nothing in them but the aircraft | Pin is `+=200%`, and the AEOLUS wordmark now reveals **inside** it. Document height 18,567px → 10,899px. |
-| "the flying trajectory of the plane must fly down and go through the aeolus text" | — | `IdentityBand` (new) paints the wordmark twice, straddling the aircraft's canvas: back copy at z 1, plane at z 3, front copy clipped to its lower 48% at z 4. `Q_PATH` was re-authored to descend through the band. |
+| "the plane animation is bugged, the textures are not connected" | The GLB had been replaced by `ProceduralAirliner`, a lathe-and-extrude model whose materials carried **no maps at all** — flat colours only | The shipped `olus-airliner.glb` is back (baked base-colour / normal / metallic-roughness / emissive, 29,911 verts). The procedural model is deleted. |
+| "too many blank space beige in the landing when flying theres nothing" | The flight pin ran `+=400%` and its last three viewports had nothing in them but the aircraft | Pin is `+=200%`, and the OLUS wordmark now reveals **inside** it. Document height 18,567px → 10,899px. |
+| "the flying trajectory of the plane must fly down and go through the olus text" | — | `IdentityBand` (new) paints the wordmark twice, straddling the aircraft's canvas: back copy at z 1, plane at z 3, front copy clipped to its lower 48% at z 4. `Q_PATH` was re-authored to descend through the band. |
 | "when demo plays its suppose not to be a scroll trigger, its a demo video" | The 25s loop AND the lid hinge were both scrubbed by `landingScroll.scenes.demo` inside a 520vh pin | Pin deleted. An IntersectionObserver plays/pauses the timeline on its own clock; it loops; the chapter chips seek it. The lid opens on a wall-clock delay, and the hinge (not scroll) drives the title-card and caption crossfades. |
 | "the laptop screen aint even on the frame, cant see anything" | The push-in scaled the composite **1.52×**, driving the lid hundreds of px above the viewport; and the 1280×800 surface was scaled to **0.56**, so 9.5px labels painted at 5.3px | Settle scale capped at 1.06, and the rig's width is derived from the stage height ÷ 1.10 to budget for the base's perspective overhang. The OCC surface renders **1:1** — the `--dm-screen-scale` machinery is gone. |
 | "laptop doesnt look like a macbook, make it more roundy curved" | Proportions and radii were wrong; radii were fixed rem values, so the curve flattened as the device grew | Real 13" Air ratios (lid and base both 0.698 W), radii as a share of width via `--dm-r`, anodised side rails, a camera lens instead of a notch bar, a front lip, and a contact shadow. |

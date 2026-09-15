@@ -3,7 +3,7 @@ import Link from "next/link"
 import { motion } from "framer-motion"
 import { BarChart3, Shield, Zap, Database, Cloud } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
-import { AeolusLogo } from "@/components/ds/logo"
+import { OlusLogo } from "@/components/ds/logo"
 
 function Section({ id, title, icon: Icon, children }: { id: string; title: string; icon: any; children: React.ReactNode }) {
   return (
@@ -51,8 +51,8 @@ export default function DocsPage() {
       <div className="sticky top-0 z-50 flex justify-center pt-3 px-4">
         <nav className="w-full max-w-6xl nav-pill-surface h-12 flex items-center justify-between px-4 md:px-6">
           <Link href="/" className="flex items-center gap-2">
-            <AeolusLogo size={28} />
-            <span className="font-display font-medium">Aeolus</span>
+            <OlusLogo size={28} />
+            <span className="font-display font-medium">Olus</span>
           </Link>
           <div className="flex gap-6 text-sm text-muted-foreground">
             <Link href="/simulator" className="hover:text-ink font-medium transition-colors">Simulator</Link>
@@ -65,7 +65,7 @@ export default function DocsPage() {
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <div className="section-badge mb-4"><BarChart3 className="w-3.5 h-3.5" />Technical methodology</div>
-          <h1 className="font-display text-5xl font-medium tracking-tight mb-4">How Aeolus works</h1>
+          <h1 className="font-display text-5xl font-medium tracking-tight mb-4">How Olus works</h1>
           <p className="text-xl text-muted-foreground leading-relaxed max-w-2xl">
             A deep dive into the optimizer formulation, cascade predictor, crew legality engine, and data sources powering the simulation.
           </p>
@@ -84,7 +84,7 @@ export default function DocsPage() {
             <p>
               Large carriers (Delta, United) operate proprietary Operations Control Center (OCC) software built over decades.
               Regional carriers — Breeze, Avelo, Frontier, JSX, Sun Country — rely on expensive third-party tools and manual dispatcher judgment.
-              Aeolus is an open-source OCC reference implementation.
+              Olus is an open-source OCC reference implementation.
             </p>
             <div className="rounded-xl border border-border bg-secondary/30 p-4 font-mono text-xs">
               <div className="text-muted-foreground mb-2">{"// Cascade propagation example"}</div>

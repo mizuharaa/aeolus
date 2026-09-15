@@ -1,4 +1,4 @@
-# Aeolus — Design System
+# Olus — Design System
 
 > **Superseded note (2026-07-15):** the "two worlds" split below is retired —
 > the simulator now shares the landing's paper/ink editorial register.
@@ -76,17 +76,17 @@ bands (cobalt/violet/amber) traveling horizontally through the letters. One
 geometry renders twice: faint across the whole stage + vivid clipped inside
 a `<clipPath><text>` — so color slithers *through* the type. GSAP loops both
 copies from a single tween per ribbon (they can never drift). Used for
-"AEOLUS" (opening) and "RUN A DISRUPTION." (night CTA — letters flip to bone
+"OLUS" (opening) and "RUN A DISRUPTION." (night CTA — letters flip to bone
 automatically because the fill is `var(--ink)`).
 
-**Logo**: `ds/logo.tsx` `AeolusMark` — an abstract cyclone: three arcs of
+**Logo**: `ds/logo.tsx` `OlusMark` — an abstract cyclone: three arcs of
 decreasing radius spiraling into a center; outer two take `currentColor`,
 the core arc is always amber. No airplane, no globe, no tile. Mirrored in
-`app/icon.svg` (beige tile). `AeolusLogo` is a compat alias.
+`app/icon.svg` (beige tile). `OlusLogo` is a compat alias.
 
 ## 4. Landing structure (page.tsx → scroll-experience.tsx)
 
-1. `OpeningWordmarkStage` — brand row, masked AEOLUS, and **paper planes**
+1. `OpeningWordmarkStage` — brand row, masked OLUS, and **paper planes**
    (`planes.tsx` DriftPlane: two-tone folded darts that travel across the
    section on scroll scrub + a gentle framer bob). No abstract shape
    clutter, no airport-code strips. Scrubbed parallax exit, no pinning.
@@ -161,7 +161,7 @@ foreground browsers run 1:1.)
 ## 7. Dashboard AI placeholder
 
 `components/simulator/agent-bubble.tsx`, mounted once in
-`app/simulator/page.tsx`: an ink "Ask Aeolus" pill (bottom-right) expanding
+`app/simulator/page.tsx`: an ink "Ask Olus" pill (bottom-right) expanding
 to a panel with example commands and a disabled input — honest copy ("Not
 connected yet — ships with the agent backend"). Landing identity (ink/bone/
 amber) so the brand reads across pages. One file + one mount line to remove

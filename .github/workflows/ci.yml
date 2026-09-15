@@ -19,7 +19,7 @@ jobs:
       run:
         working-directory: apps/api
 
-    # Aeolus is a fully in-memory simulator — no DB/cache/queue at runtime, so
+    # Olus is a fully in-memory simulator — no DB/cache/queue at runtime, so
     # CI needs no service containers. Tests load the Nimbus network from YAML.
     env:
       PYTHONPATH: .
@@ -120,7 +120,7 @@ jobs:
           push: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          tags: aeolus-api:ci
+          tags: olus-api:ci
 
       - name: Build web image (no push)
         uses: docker/build-push-action@v5
@@ -129,4 +129,4 @@ jobs:
           push: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          tags: aeolus-web:ci
+          tags: olus-web:ci

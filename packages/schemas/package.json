@@ -1,7 +1,7 @@
 {
-  "name": "@aeolus/schemas",
+  "name": "@olus/schemas",
   "version": "1.0.0",
-  "description": "Shared TypeScript schemas for Aeolus frontend and tooling",
+  "description": "Shared TypeScript schemas for Olus frontend and tooling",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {

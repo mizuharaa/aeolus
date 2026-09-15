@@ -1,7 +1,7 @@
 import Link from "next/link"
 import type { Route } from "next"
 import type { ReactNode } from "react"
-import { AeolusMark } from "@/components/ds/logo"
+import { OlusMark } from "@/components/ds/logo"
 
 /**
  * LegalPage — shared shell for the privacy / terms / cookie documents. Warm
@@ -33,9 +33,9 @@ export function LegalPage({
           }}
         >
           <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: "var(--ink)" }}>
-            <AeolusMark size={26} />
+            <OlusMark size={26} />
             <span style={{ fontFamily: "var(--ae-font-display)", fontWeight: 650, fontSize: 16.5, letterSpacing: "-0.01em" }}>
-              Aeolus
+              Olus
             </span>
           </Link>
           <Link href="/" className="lp-eyebrow" style={{ textDecoration: "none" }}>

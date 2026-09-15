@@ -1,6 +1,6 @@
 "use client"
 /**
- * AviationSubstrate — the ground the AEOLUS wordmark stands on.
+ * AviationSubstrate — the ground the OLUS wordmark stands on.
  *
  * ── The brief: "the beige background looks really bland, add aviation effects,
  *    no AI slop icons" ───────────────────────────────────────────────────────

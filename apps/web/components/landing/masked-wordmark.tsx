@@ -83,7 +83,7 @@ const SWELL = [
 ]
 
 export function MaskedWordmark({
-  text = "AEOLUS",
+  text = "OLUS",
   className,
   instanceKey,
   style,

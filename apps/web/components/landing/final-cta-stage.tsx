@@ -13,11 +13,11 @@ import { Rise, StaggerItem } from "@/components/landing/motion"
 import { DriftPlane } from "@/components/landing/planes"
 
 const LOG = [
-  { prompt: true, text: "aeolus trigger --event weather_closure --airport KORD --severity 4" },
+  { prompt: true, text: "olus trigger --event weather_closure --airport KORD --severity 4" },
   { text: "cascade   47 direct · 61 first-order · 39 second-order", right: "2.1 ms" },
   { text: "solve     plans A · B · C · D", right: "8.4 ms" },
   { text: "ranked    B — minimize pax impact", right: "$2.4M · 0 flags" },
-  { prompt: true, text: "aeolus apply B" },
+  { prompt: true, text: "olus apply B" },
   { text: "committed 118 actions · network recovering", right: "14:33Z" },
 ]
 

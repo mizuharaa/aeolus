@@ -1,28 +1,28 @@
 # =============================================================================
-# Aeolus — Airline Disruption Simulation & Recovery Engine
+# Olus — Airline Disruption Simulation & Recovery Engine
 # Docker Compose — Full Stack
 #
-# Aeolus is a deterministic in-memory simulator: the API loads the Nimbus Air
+# Olus is a deterministic in-memory simulator: the API loads the Nimbus Air
 # network from YAML on startup and holds all state in process. There is no
 # database, cache, queue, or auth tier to provision — just the API and the web
 # frontend. (Live data is pulled over HTTPS from OpenSky / NWS / FAA at runtime.)
 # =============================================================================
 
 networks:
-  aeolus-net:
+  olus-net:
     driver: bridge
 
 services:
 
   # ---------------------------------------------------------------------------
-  # Aeolus API — FastAPI / Python backend
+  # Olus API — FastAPI / Python backend
   # ---------------------------------------------------------------------------
-  aeolus-api:
+  olus-api:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
       target: production
-    container_name: aeolus-api
+    container_name: olus-api
     restart: unless-stopped
     environment:
       # App
@@ -49,20 +49,20 @@ services:
       retries: 5
       start_period: 45s
     networks:
-      - aeolus-net
+      - olus-net
     volumes:
       # Hot-reload: mount source + data for local dev (comment out for prod)
       - ./apps/api/src:/app/apps/api/src:ro
       - ./data:/app/data:ro
       - ./credentials:/app/credentials:ro
     labels:
-      com.aeolus.service: "api"
-      com.aeolus.version: "0.1.0"
+      com.olus.service: "api"
+      com.olus.version: "0.1.0"
 
   # ---------------------------------------------------------------------------
-  # Aeolus Web — Next.js 14 frontend
+  # Olus Web — Next.js 14 frontend
   # ---------------------------------------------------------------------------
-  aeolus-web:
+  olus-web:
     build:
       context: apps/web
       dockerfile: Dockerfile
@@ -70,18 +70,18 @@ services:
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
         NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL:-ws://localhost:8000}
-    container_name: aeolus-web
+    container_name: olus-web
     restart: unless-stopped
     environment:
       NODE_ENV: production
       # Server-side REST proxy target (container network, not browser-visible).
-      API_URL: http://aeolus-api:8000
+      API_URL: http://olus-api:8000
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
       NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL:-ws://localhost:8000}
     ports:
       - "3000:3000"
     depends_on:
-      aeolus-api:
+      olus-api:
         condition: service_healthy
     healthcheck:
       # Alpine image has wget but no curl, and Next.js (standalone) binds IPv4
@@ -92,7 +92,7 @@ services:
       retries: 5
       start_period: 60s
     networks:
-      - aeolus-net
+      - olus-net
     labels:
-      com.aeolus.service: "web"
-      com.aeolus.version: "0.1.0"
+      com.olus.service: "web"
+      com.olus.version: "0.1.0"

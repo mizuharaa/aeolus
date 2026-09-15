@@ -92,7 +92,7 @@ async function fetchAdsb(url: string, timeoutMs: number): Promise<AdsbLolAircraf
     const res = await fetch(url, {
       cache: "no-store",
       signal: controller.signal,
-      headers: { "User-Agent": "Aeolus/0.2 (github.com/mizuharaa/aeolus)" },
+      headers: { "User-Agent": "Olus/0.2 (github.com/mizuharaa/olus)" },
     })
     if (!res.ok) return []
     const body = (await res.json()) as { ac?: AdsbLolAircraft[] }

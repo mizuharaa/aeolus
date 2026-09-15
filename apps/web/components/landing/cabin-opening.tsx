@@ -908,7 +908,7 @@ export function CabinOpening() {
         />
       </div>
 
-      {/* AEOLUS slogan, on screen before the scroll trigger.
+      {/* OLUS slogan, on screen before the scroll trigger.
           THE SCRIM IS THIS BLOCK'S OWN BACKGROUND, not a separate layer.
 
           The slogan is cream on whatever the cabin happens to be showing behind
@@ -948,7 +948,7 @@ export function CabinOpening() {
             "linear-gradient(to top, rgba(10,8,12,0.88) 0%, rgba(10,8,12,0.80) 42%, rgba(10,8,12,0.42) 74%, rgba(10,8,12,0) 100%)",
         }}
       >
-        <span className="lp-eyebrow" style={{ color: "#F7F3EA", letterSpacing: "0.3em" }}>AEOLUS</span>
+        <span className="lp-eyebrow" style={{ color: "#F7F3EA", letterSpacing: "0.3em" }}>OLUS</span>
         <p style={{ margin: 0, fontSize: "clamp(15px, 1.6vw, 20px)", fontWeight: 500, maxWidth: 560, lineHeight: 1.5, minHeight: "1.5em" }}>
           <SloganTypewriter />
         </p>

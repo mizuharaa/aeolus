@@ -1,183 +1,87 @@
 "use client"
-/**
- * LandingNav — fixed editorial nav. Transparent over the opening wordmark,
- * inks in as you leave it; every color reads the stage tokens so the nav
- * re-inks itself automatically as GSAP walks the page through its registers.
- * On desktop the links show inline; below 820px they collapse into a sheet
- * toggled by a hamburger. The brand mark gets a subtle 3D tilt on hover.
- *
- * Rendering constraint (Chromium): inside this fixed layer, var()-based
- * colors must come from CSS CLASSES (.lp-nav, .lp-nav-link, .lp-btn--ink),
- * never inline styles — inline var() references are not re-resolved when the
- * stage variables retint. The bar fill is a child span whose backgroundColor
- * scroll-experience tweens as a literal value.
- */
 
+import Image from "next/image"
 import Link from "next/link"
-import type { Route } from "next"
-import { ArrowRight, Menu, X } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
+import { ArrowUpRight, X } from "lucide-react"
+import { useLayoutEffect, useRef, useState } from "react"
+import { gsap, ScrollTrigger } from "./gsap"
+import { getLenis } from "@/lib/scroll"
+import { media } from "@/lib/media"
+import styles from "./opening.module.css"
 
-const LINKS = [
-  { href: "/scenarios", label: "Scenarios" },
-  { href: "/docs", label: "Methodology" },
-  { href: "/simulator", label: "Simulator" },
-] as const
+const items = [
+  { label: "Platform", href: "/simulator", image: media.hero, tone: "night" },
+  { label: "Solver", href: "/docs#optimizer", image: media.approach, tone: "clear" },
+  { label: "Scenarios", href: "/scenarios", image: media.sunset, tone: "dawn" },
+  { label: "Benchmarks", href: "/simulator/stress-test", image: media.approach, tone: "night" },
+  { label: "Docs", href: "/docs", image: media.hero, tone: "clear" },
+  { label: "About", href: "/docs#architecture", image: media.cabin, tone: "dawn" },
+]
 
 export function LandingNav() {
   const navRef = useRef<HTMLElement>(null)
-  const [menuOpen, setMenuOpen] = useState(false)
+  const dialogRef = useRef<HTMLDialogElement>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const [open, setOpen] = useState(false)
+  const [tone, setTone] = useState("night")
+  const hoverBlocked = useRef(false)
+  const closeRef = useRef<() => void>(() => {})
 
-  useEffect(() => {
-    const nav = navRef.current
-    if (!nav) return
-    // Scroll-linked morph: the bar pans + fades in progressively as the opening
-    // wordmark leaves, rather than snapping on at a threshold. Written straight
-    // to style in a rAF so it's buttery at any scroll speed / FPS.
-    let ticking = false
-    const apply = () => {
-      const vh = window.innerHeight
-      const p = Math.min(1, Math.max(0, (window.scrollY - vh * 0.22) / (vh * 0.24)))
-      const eased = p * p * (3 - 2 * p) // smoothstep
-      nav.style.opacity = String(eased)
-      nav.style.transform = `translateY(${(1 - eased) * -14}px)`
-      nav.style.pointerEvents = eased > 0.5 ? "auto" : "none"
-      ticking = false
-    }
-    const onScroll = () => { if (!ticking) { ticking = true; requestAnimationFrame(apply) } }
-    apply()
-    window.addEventListener("scroll", onScroll, { passive: true })
-    return () => window.removeEventListener("scroll", onScroll)
+  useLayoutEffect(() => {
+    const nav = navRef.current!
+    const mm = gsap.matchMedia()
+    mm.add("all", () => {
+      ScrollTrigger.create({ start: 80, end: "max", toggleClass: { targets: nav, className: styles.scrolled } })
+    })
+    return () => mm.revert()
   }, [])
 
-  // close the mobile sheet on resize up to desktop
-  useEffect(() => {
-    const onResize = () => { if (window.innerWidth > 820) setMenuOpen(false) }
-    window.addEventListener("resize", onResize)
-    return () => window.removeEventListener("resize", onResize)
-  }, [])
+  useLayoutEffect(() => {
+    if (!open) return
+    const dialog = dialogRef.current!
+    dialog.showModal()
+    getLenis()?.stop()
+    dialog.querySelector<HTMLAnchorElement>("a")?.focus()
+    const finish = () => { hoverBlocked.current = true; dialog.close(); setOpen(false); getLenis()?.start(); triggerRef.current?.focus() }
+    const mm = gsap.matchMedia()
+    mm.add("(prefers-reduced-motion: no-preference)", () => {
+      const timeline = gsap.timeline()
+      timeline.fromTo(dialog, { clipPath: "inset(0 0 100% 0)", opacity: 0 }, { clipPath: "inset(0)", opacity: 1, duration: .5, ease: "expo.out" })
+        .fromTo(dialog.querySelectorAll("[data-menu-image]"), { scaleY: .03, clipPath: "inset(0 0 95% 0)" }, { scaleY: 1, clipPath: "inset(0)", duration: .7, stagger: .06, ease: "expo.out" }, .08)
+      closeRef.current = () => { if (timeline.time() === 0) finish(); else timeline.eventCallback("onReverseComplete", finish).timeScale(.85).reverse() }
+    }, dialog)
+    mm.add("(prefers-reduced-motion: reduce)", () => { closeRef.current = finish }, dialog)
+    return () => { mm.revert(); dialog.close(); getLenis()?.start() }
+  }, [open])
 
   return (
-    <nav
-      ref={navRef}
-      className="lp-nav"
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 60,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        height: 62,
-        padding: "0 clamp(20px, 4vw, 40px)",
-        opacity: 0,
-        pointerEvents: "none",
-        transform: "translateY(-14px)",
-        willChange: "opacity, transform",
-      }}
-    >
-      {/* Bar fill — GSAP tweens this backgroundColor per stage register. */}
-      <span
-        className="lp-nav-fill"
-        aria-hidden
-        style={{ position: "absolute", inset: 0, zIndex: -1, background: "rgba(250, 250, 248, 0.94)" }}
-      />
-
-      {/* wordmark logo — the hero statement text IS the brand now */}
-      <Link href="/" aria-label="Aeolus home" className="lp-nav-link lp-nav-brand" style={{ display: "flex", alignItems: "center" }}>
-        <span className="lp-nav-mark lp-nav-wordmark" style={{ display: "inline-flex", transformStyle: "preserve-3d" }}>
-          AEOLUS
-        </span>
-      </Link>
-
-      {/* desktop links */}
-      <div className="lp-nav-desktop" style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        {LINKS.map((l) => (
-          <Link
-            key={l.href}
-            href={l.href as Route}
-            className="lp-nav-link lp-nav-inline-link"
-            style={{ padding: "8px 14px", fontSize: 13.5, fontWeight: 550, opacity: 0.82 }}
-          >
-            {l.label}
-          </Link>
-        ))}
-      </div>
-
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <Link
-          href="/simulator"
-          className="lp-btn lp-btn--ink lp-nav-cta"
-          style={{ padding: "9px 18px", fontSize: 13.5 }}
-        >
-          Launch simulator
-          <ArrowRight style={{ width: 14, height: 14 }} strokeWidth={2.25} />
-        </Link>
-
-        {/* mobile hamburger */}
-        <button
-          type="button"
-          className="lp-nav-burger lp-nav-link"
-          aria-label={menuOpen ? "Close menu" : "Open menu"}
-          aria-expanded={menuOpen}
-          onClick={() => setMenuOpen((v) => !v)}
-          style={{
-            display: "none",
-            width: 40,
-            height: 40,
-            alignItems: "center",
-            justifyContent: "center",
-            background: "transparent",
-            border: "1px solid var(--border)",
-            borderRadius: 10,
-            cursor: "pointer",
-          }}
-        >
-          {menuOpen ? <X style={{ width: 18, height: 18 }} strokeWidth={2} /> : <Menu style={{ width: 18, height: 18 }} strokeWidth={2} />}
+    <>
+      <header ref={navRef} className={styles.nav}>
+        <button ref={triggerRef} data-nav-chrome className={styles.menuButton} aria-label="Open navigation" aria-haspopup="dialog" aria-expanded={open} onPointerLeave={() => { hoverBlocked.current = false }} onPointerEnter={event => { if (event.pointerType === "mouse" && !hoverBlocked.current) setOpen(true) }} onClick={() => setOpen(true)}>
+          <span className={styles.bars} aria-hidden="true"><i /><i /><i /></span><span>Explore</span>
         </button>
-      </div>
-
-      {/* mobile sheet */}
-      {menuOpen && (
-        <div
-          className="lp-nav-sheet"
-          style={{
-            position: "absolute",
-            top: 62,
-            left: 0,
-            right: 0,
-            display: "flex",
-            flexDirection: "column",
-            padding: "10px 16px 18px",
-            borderBottom: "1px solid var(--border)",
-            background: "var(--panel)",
-          }}
-        >
-          {LINKS.map((l) => (
-            <Link
-              key={l.href}
-              href={l.href as Route}
-              className="lp-nav-link"
-              onClick={() => setMenuOpen(false)}
-              style={{ padding: "13px 6px", fontSize: 16, fontWeight: 600, borderBottom: "1px solid var(--border)" }}
-            >
-              {l.label}
-            </Link>
-          ))}
-          <Link
-            href="/simulator"
-            className="lp-btn lp-btn--ink"
-            onClick={() => setMenuOpen(false)}
-            style={{ marginTop: 14, justifyContent: "center", padding: "12px 18px" }}
-          >
-            Launch simulator
-            <ArrowRight style={{ width: 15, height: 15 }} strokeWidth={2.25} />
-          </Link>
-        </div>
-      )}
-
-    </nav>
+        <Link className={styles.brand} href="/" aria-label="Olus home">
+          <svg data-logo-mark className={styles.mark} viewBox="0 0 36 36" aria-hidden="true">
+            <path d="M5 23C8 12 17 5 26 7C35 9 31 20 22 26C13 32 3 27 5 23ZM9 22C10 26 16 27 22 23C28 19 31 12 25 11C19 9 12 15 9 22Z" fill="currentColor" stroke="currentColor" strokeWidth=".7" />
+          </svg>
+          <span data-nav-wordmark className={styles.brandText}>olus</span>
+        </Link>
+        <nav data-nav-chrome className={styles.navRight} aria-label="Quick links">
+          <Link href="/docs" className={styles.docsLink}>Docs <ArrowUpRight size={14} /></Link>
+          <Link href="/simulator" className={styles.button + " " + styles.primary}><span className={styles.workspaceLong}>Open workspace</span><span className={styles.workspaceShort}>Workspace</span></Link>
+        </nav>
+      </header>
+      <dialog ref={dialogRef} className={styles.menu} data-tone={tone} aria-label="Explore Olus" onCancel={event => { event.preventDefault(); closeRef.current() }} onClick={event => { if (event.target === dialogRef.current) closeRef.current() }}>
+        <div className={styles.menuGlow} aria-hidden="true">{["night", "dawn", "clear"].map(value => <span key={value} data-gradient={value} style={{ opacity: tone === value ? 1 : 0 }} />)}</div>
+        <div className={styles.menuHeader}><p>A clearer view of recovery.</p><button className={styles.close} onClick={() => closeRef.current()} aria-label="Close navigation"><X size={20} /></button></div>
+        <nav className={styles.menuGrid} aria-label="Explore">
+          {items.map((item, index) => <a key={item.label} href={item.href} className={styles.menuItem} onPointerEnter={() => setTone(item.tone)} onFocus={() => setTone(item.tone)} onClick={() => closeRef.current()}>
+            <span data-menu-image className={styles.menuImage}><Image src={item.image.src} alt="" fill sizes="(max-width:767px) 45vw, 30vw" placeholder="blur" /></span>
+            <span className={styles.menuLabel}>{item.label}<ArrowUpRight size={18} /><small>{String(index + 1).padStart(2, "0")}</small></span>
+          </a>)}
+        </nav>
+        <div className={styles.menuFoot}><span>Airline recovery, made inspectable.</span><span>Simulated operations · Nimbus Air</span></div>
+      </dialog>
+    </>
   )
 }

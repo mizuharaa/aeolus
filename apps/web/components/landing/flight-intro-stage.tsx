@@ -12,7 +12,7 @@ import {
 /**
  * Scroll room for the cabin → airframe → identity shot. The imagery lives in
  * fixed layers so the camera can cross the cabin wall without a DOM cut, and so
- * the AEOLUS wordmark can be stacked around the aircraft's canvas rather than
+ * the OLUS wordmark can be stacked around the aircraft's canvas rather than
  * waiting in a section below it.
  *
  * The pin was 400% of the viewport and its last three viewports were bare

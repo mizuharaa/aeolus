@@ -1,5 +1,5 @@
 /**
- * Aeolus Design System — canonical tokens. CONTROL-TOWER EDITORIAL edition (landing palette).
+ * Olus Design System — canonical tokens. CONTROL-TOWER EDITORIAL edition (landing palette).
  *
  * The vocabulary:
  *

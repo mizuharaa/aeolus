@@ -1,6 +1,6 @@
 "use client"
 /**
- * PricingSection — MVP edition. One plan, one card. Aeolus is free while it's
+ * PricingSection — MVP edition. One plan, one card. Olus is free while it's
  * in MVP, so the section states that plainly: a single centered card with a
  * price, what's included, and one CTA. Hover lifts the card and lights the
  * border in plum; the feature list is the informative payload. When paid
@@ -90,7 +90,7 @@ export function PricingSection() {
           </span>
         </h2>
         <p style={{ margin: 0, color: "var(--muted, var(--ae-text-3))", fontSize: 15.5, lineHeight: 1.6 }}>
-          Aeolus is in MVP, so the full engine is open with no paywall. Paid tiers for large fleets and
+          Olus is in MVP, so the full engine is open with no paywall. Paid tiers for large fleets and
           teams will come later — for now, everything below is yours.
         </p>
       </div>

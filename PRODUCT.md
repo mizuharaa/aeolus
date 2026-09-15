@@ -1,4 +1,4 @@
-# Product
+﻿# Product
 
 <!-- impeccable:product-schema 1 -->
 
@@ -14,7 +14,7 @@ out, aircraft are out of position — and they are deciding under time pressure 
 incomplete information. Their job on this surface is to see what broke, see how far
 it will spread, compare the recovery options, and commit one.
 
-**Secondary: people evaluating Aeolus** — reached through the marketing landing at
+**Secondary: people evaluating Olus** — reached through the marketing landing at
 `/`, not the console. The landing carries the persuasion; the console does not.
 Confirmed 2026-08-17: *"Landing is for visuals, but dashboard … still is a genuine
 ops tool for dispatcher."*
@@ -54,7 +54,7 @@ and which one they are committing to.
 - Optionally overlays live public feeds: OpenSky ADS-B positions, NWS weather
   alerts, FAA NAS ground stops and GDPs, METARs. Degrades to synthetic when feeds
   are unavailable — degradation must stay visible, never silent.
-- Scenario state persists to SQLite (`apps/api/state/aeolus.db`) so a restart
+- Scenario state persists to SQLite (`apps/api/state/olus.db`) so a restart
   mid-incident does not lose the timeline.
 - Real-time updates arrive over `ws://…/ws/simulation`.
 - The console is a fixed shell: `100dvh`, `overflow: hidden`, every region
@@ -78,10 +78,10 @@ and which one they are committing to.
 
 ## Brand Commitments
 
-- Product name **Aeolus**. Console chrome carries the **plain "Aeolus" wordmark as
-  type only — no logo mark**. The cyclone AeolusMark is retired from the console
+- Product name **Olus**. Console chrome carries the **plain "Olus" wordmark as
+  type only — no logo mark**. The cyclone OlusMark is retired from the console
   and from the browser tab; the favicon becomes a plain letterform.
-  *(Decision 2026-08-17, reversing DESIGN.md's "all pages must share the AeolusMark".)*
+  *(Decision 2026-08-17, reversing DESIGN.md's "all pages must share the OlusMark".)*
 - **Only universally recognised icons.** No bespoke glyph vocabulary; an icon that
   needs a legend is not an icon.
 - **Honest copy.** No invented metrics, no fabricated customers or benchmarks.
@@ -95,7 +95,7 @@ and which one they are committing to.
 - 11 scenarios: `data/scenarios/`.
 - Live public feeds, no API key required: OpenSky, NWS `api.weather.gov`, FAA
   `nasstatus.faa.gov`.
-- Deployed at `https://aeolus-cj1s.vercel.app/`.
+- Deployed at `https://olus.sh/`.
 - **No real airline customer, no testimonial, no benchmark, no case study exists.**
   Future work must not invent one. Nimbus Air is fictional and must never be
   presented as a real carrier.
@@ -130,3 +130,8 @@ and which one they are committing to.
 - The flat map is the accessible projection: every mark is a focusable DOM node
   with a full-sentence name. A canvas-only view of the network is not shippable.
 - Reduced motion: app transitions collapse to ≤150ms fades.
+
+## Current rebuild — 2026-09-14
+
+Brand: olus (Olus in prose). The opening is an aviation photograph followed by the live MacBook recovery demo. `docs/OLUS-MASTER-BUILD-PROMPT.md` is the accepted rebuild direction; `docs/opening-handoff.md` separates implemented work from later stages. Marketing examples are illustrative, not customer or benchmark claims. The dispatcher dashboard remains the next major product workstream after the globe.
+

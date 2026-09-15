@@ -1,5 +1,5 @@
 """
-Base classes for all Aeolus disruption events.
+Base classes for all Olus disruption events.
 """
 
 from __future__ import annotations

@@ -1,5 +1,5 @@
 /**
- * Aeolus UI audit harness.
+ * Olus UI audit harness.
  *
  * Drives a real Chromium against the dev server and reports, per route:
  *   - screenshots at desktop + mobile
@@ -237,7 +237,7 @@ for (const vp of VIEWPORTS) {
   // underneath a 760px dialog and reports its buttons as colliding with
   // whatever they happen to land on. Auditing the steady state is the point.
   await ctx.addInitScript(() => {
-    try { localStorage.setItem("aeolus-cookie-consent", "essential") } catch {}
+    try { localStorage.setItem("olus-cookie-consent", "essential") } catch {}
   })
   const page = await ctx.newPage()
   const consoleErrors = []

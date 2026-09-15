@@ -1,14 +1,14 @@
 /**
  * Compute-heavy workflow — disruption → cascade → MILP recovery.
  *
- * Aeolus keeps all simulation state in a single in-memory engine, so this
+ * Olus keeps all simulation state in a single in-memory engine, so this
  * script uses ONE virtual user. Running many VUs against POST /events/trigger
  * or /recovery/solve will race on shared state and produce misleading results.
  *
  * Expect p95 latency in the tens of seconds when OR-Tools runs (solver timeout
  * defaults to 30s in config).
  *
- *   cd aeolus
+ *   cd olus
  *   k6 run benchmarks/k6/compute-workflow.js
  *
  *   k6 run -e SOLVER_ITERATIONS=5 benchmarks/k6/compute-workflow.js

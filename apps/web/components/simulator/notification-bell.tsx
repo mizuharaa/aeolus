@@ -116,11 +116,11 @@ export function NotificationBell() {
   }, [])
 
   useEffect(() => {
-    try { if (localStorage.getItem("aeolus-arrival-popups") === "0") setPopups(false) } catch {}
+    try { if (localStorage.getItem("olus-arrival-popups") === "0") setPopups(false) } catch {}
   }, [])
   const togglePopups = () => setPopups((v) => {
     const next = !v
-    try { localStorage.setItem("aeolus-arrival-popups", next ? "1" : "0") } catch {}
+    try { localStorage.setItem("olus-arrival-popups", next ? "1" : "0") } catch {}
     return next
   })
 

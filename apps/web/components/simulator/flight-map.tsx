@@ -1364,11 +1364,11 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
   const [view, setView] = useState<"map" | "globe">("map")
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("aeolus-map-view")
+      const saved = localStorage.getItem("olus-map-view")
       if (saved === "globe" || saved === "map") setView(saved)
     } catch {}
   }, [])
-  useEffect(() => { try { localStorage.setItem("aeolus-map-view", view) } catch {} }, [view])
+  useEffect(() => { try { localStorage.setItem("olus-map-view", view) } catch {} }, [view])
 
   // 5s tick — smooth enough for dead reckoning, far fewer re-renders
   useEffect(() => {
@@ -2357,7 +2357,7 @@ export default function FlightMap({ selectedFlight, onFlightSelect }: Props) {
       )}
 
       {/* Layer toggles — bottom-LEFT (the bottom-right is owned by the fixed
-          Ask-Aeolus bubble; keeping them apart avoids the overlap). */}
+          Ask-Olus bubble; keeping them apart avoids the overlap). */}
       {/* Legend — bottom-CENTRE, and centred for a specific reason: the two
           floating panels are inset from the left and right map edges at z-640,
           either can be open, and the legend sits at z-400. Bottom-left put it

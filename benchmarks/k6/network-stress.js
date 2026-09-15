@@ -4,7 +4,7 @@
  * CPU-heavy, read-only on simulation state (does not mutate the engine).
  * Safe with low concurrency; scale VUs slowly.
  *
- *   cd aeolus
+ *   cd olus
  *   k6 run benchmarks/k6/network-stress.js
  */
 import { check, sleep } from 'k6';

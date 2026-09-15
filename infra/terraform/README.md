@@ -1,6 +1,6 @@
-# Aeolus AWS deployment
+# Olus AWS deployment
 
-This stack runs both Aeolus containers on one `t3a.small` ECS container
+This stack runs both Olus containers on one `t3a.small` ECS container
 instance behind an Application Load Balancer. It deliberately targets a
 $40–50/month portfolio budget instead of maximum availability.
 
@@ -12,7 +12,7 @@ $40–50/month portfolio budget instead of maximum availability.
 - One ALB with path routing:
   - `/api/v1/*`, `/ws/*`, and `/health` route to FastAPI.
   - All other paths route to Next.js, including its native API routes.
-- EFS stores `apps/api/state/aeolus.db` across task replacements.
+- EFS stores `apps/api/state/olus.db` across task replacements.
 - ECR stores five recent API and web images.
 - CloudWatch retains seven days of logs.
 - AWS Budgets enforces a $50/month guardrail.
@@ -57,8 +57,8 @@ because the ECR repositories do not contain images yet.
 
 ```powershell
 terraform init
-terraform plan -out aeolus.tfplan
-terraform apply aeolus.tfplan
+terraform plan -out olus.tfplan
+terraform apply olus.tfplan
 terraform output
 ```
 

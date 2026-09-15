@@ -126,7 +126,7 @@ def _golden_bytes(stream: list[dict]) -> bytes:
 
 @pytest.mark.parametrize("event", EVENTS)
 def test_persisted_scenario_replays_to_byte_identical_event_streams(tmp_path, monkeypatch, event):
-    db_path = tmp_path / "aeolus.db"
+    db_path = tmp_path / "olus.db"
     repo = ScenarioRepository(db_path)
     engine = SimulationEngine(FLIGHTS, AIRCRAFT, CREWS, repository=repo)
     asyncio.run(

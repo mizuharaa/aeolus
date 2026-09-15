@@ -7,7 +7,7 @@ description: >
   two hours. 22 flights were affected and arrivals held or diverted to an
   alternate roughly 150 km away.
 
-  NETWORK MAPPING — this is NOT a Vietnamese network. Aeolus loads exactly one
+  NETWORK MAPPING — this is NOT a Vietnamese network. Olus loads exactly one
   network (Nimbus Air, US) from data/network/*.yaml, so a VN YAML dropped in
   beside it would be dead data until multi-network loading exists. The incident
   is therefore mapped STRUCTURALLY onto Nimbus rather than fudged:
@@ -16,7 +16,7 @@ description: >
                             matching the real count of affected flights, and it
                             is a single dominant field for its region.
     Alternate ~150 km   ->  no equivalent. The closest airport pair in the
-                            Nimbus network is KJFK-KBOS at ~306 km, and Aeolus
+                            Nimbus network is KJFK-KBOS at ~306 km, and Olus
                             models no diversion mechanic at all. The diversions
                             are recorded in metadata only, exactly as in
                             dfw_runway_closure — not silently reproduced.
@@ -74,4 +74,4 @@ metadata:
   alternate_distance_km: 150
   alternate_note: >
     Real alternate sits ~150 km from the field; no Nimbus pair is that close
-    and Aeolus has no diversion mechanic, so diversions are metadata only.
+    and Olus has no diversion mechanic, so diversions are metadata only.

@@ -99,7 +99,7 @@ export function TrustedBy() {
           }}
         >
           Illustrative reference carriers for the synthetic Nimbus Air network.
-          Aeolus runs the same recovery engine against any fleet you model.
+          Olus runs the same recovery engine against any fleet you model.
         </p>
       </div>
 

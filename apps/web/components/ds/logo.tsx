@@ -1,18 +1,18 @@
 /**
- * AeolusMark — the Aeolus brand mark.
+ * OlusMark — the Olus brand mark.
  *
- * Aeolus is the keeper of the winds, so the mark is three wind strokes:
+ * Olus is the keeper of the winds, so the mark is three wind strokes:
  * clean tapering lines that curl forward like streamlines over a wing.
  * Monochrome, drawn in currentColor (set `style={{ color }}` to re-ink),
  * no gradients, no badge tile, no gloss — it prints like type.
  *
- * `AeolusLogo` keeps the historical name/props so no call site churns;
+ * `OlusLogo` keeps the historical name/props so no call site churns;
  * legacy `ink` / `accent` / `radius` props are accepted for compatibility.
  */
 
 import type { CSSProperties } from "react"
 
-export function AeolusMark({
+export function OlusMark({
   size = 34,
   accent: _accent,
   ink: _ink,
@@ -30,7 +30,7 @@ export function AeolusMark({
   return (
     <span
       className={className}
-      aria-label="Aeolus"
+      aria-label="Olus"
       role="img"
       style={{ display: "inline-flex", flexShrink: 0, width: size, height: size, ...style }}
     >
@@ -51,7 +51,7 @@ export function AeolusMark({
   )
 }
 
-export function AeolusLogo({
+export function OlusLogo({
   size = 34,
   radius: _radius, // kept for call-site compatibility
   className,
@@ -62,5 +62,5 @@ export function AeolusLogo({
   className?: string
   style?: CSSProperties
 }) {
-  return <AeolusMark size={size} className={className} style={style} />
+  return <OlusMark size={size} className={className} style={style} />
 }

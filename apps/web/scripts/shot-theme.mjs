@@ -7,8 +7,8 @@ const browser = await chromium.launch()
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } })
 await ctx.addInitScript(([t]) => {
   try {
-    localStorage.setItem("aeolus-cookie-consent", "essential")
-    localStorage.setItem("aeolus-console-theme", t)
+    localStorage.setItem("olus-cookie-consent", "essential")
+    localStorage.setItem("olus-console-theme", t)
   } catch {}
 }, [theme])
 const page = await ctx.newPage()

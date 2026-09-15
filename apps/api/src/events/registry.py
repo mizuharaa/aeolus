@@ -1,4 +1,4 @@
-"""Event registry and factory for Aeolus disruption events."""
+"""Event registry and factory for Olus disruption events."""
 
 from __future__ import annotations
 

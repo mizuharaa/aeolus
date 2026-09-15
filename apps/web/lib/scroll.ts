@@ -218,31 +218,29 @@ export function mountLandingScroll() {
 
   lenis = new Lenis({
     lerp: 0.085,
-    wheelMultiplier: 0.9,
-    touchMultiplier: 1.4,
-    syncTouch: true,
-    syncTouchLerp: 0.06,
+    wheelMultiplier: 1,
+    syncTouch: false,
     gestureOrientation: "vertical",
     autoRaf: false,
   })
   if (process.env.NODE_ENV !== "production") {
     ;(
       window as typeof window & {
-        __aeolusLenis?: Lenis
-        __aeolusLandingScroll?: typeof landingScroll
-        __aeolusScrollTrigger?: typeof ScrollTrigger
+        __olusLenis?: Lenis
+        __olusLandingScroll?: typeof landingScroll
+        __olusScrollTrigger?: typeof ScrollTrigger
       }
-    ).__aeolusLenis = lenis
+    ).__olusLenis = lenis
     ;(
       window as typeof window & {
-        __aeolusLandingScroll?: typeof landingScroll
+        __olusLandingScroll?: typeof landingScroll
       }
-    ).__aeolusLandingScroll = landingScroll
+    ).__olusLandingScroll = landingScroll
     ;(
       window as typeof window & {
-        __aeolusScrollTrigger?: typeof ScrollTrigger
+        __olusScrollTrigger?: typeof ScrollTrigger
       }
-    ).__aeolusScrollTrigger = ScrollTrigger
+    ).__olusScrollTrigger = ScrollTrigger
   }
   removeLenisListener = lenis.on("scroll", syncLenisState)
   syncLenisState(lenis)
@@ -270,21 +268,21 @@ function unmountLandingScroll() {
   if (process.env.NODE_ENV !== "production") {
     delete (
       window as typeof window & {
-        __aeolusLenis?: Lenis
-        __aeolusLandingScroll?: typeof landingScroll
-        __aeolusScrollTrigger?: typeof ScrollTrigger
+        __olusLenis?: Lenis
+        __olusLandingScroll?: typeof landingScroll
+        __olusScrollTrigger?: typeof ScrollTrigger
       }
-    ).__aeolusLenis
+    ).__olusLenis
     delete (
       window as typeof window & {
-        __aeolusLandingScroll?: typeof landingScroll
+        __olusLandingScroll?: typeof landingScroll
       }
-    ).__aeolusLandingScroll
+    ).__olusLandingScroll
     delete (
       window as typeof window & {
-        __aeolusScrollTrigger?: typeof ScrollTrigger
+        __olusScrollTrigger?: typeof ScrollTrigger
       }
-    ).__aeolusScrollTrigger
+    ).__olusScrollTrigger
   }
   lenis = null
   removeLenisListener = null

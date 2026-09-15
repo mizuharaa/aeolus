@@ -1,4 +1,4 @@
-# Root compose context for aeolus-api — keep the build context small.
+# Root compose context for olus-api — keep the build context small.
 
 .git
 .gitignore

@@ -1,15 +1,15 @@
 <!-- hallmark: genre=technical audit · tone=evidence-led · anchor=warm-paper/ink · fingerprint=ranked failure register → target architecture → delivery roadmap -->
 
-# Aeolus full-stack audit
+# Olus full-stack audit
 
 **Audit date:** 2026-07-22  
-**Repository:** `aeolus-work`  
+**Repository:** `olus-work`
 **Baseline:** current working tree at `da0a125` (`chore: Persistence engineer`, 2026-07-17), including the local uncommitted changes present during the audit  
 **Audit mode:** read-only inspection and verification; no application code was changed  
 
 ## Executive verdict
 
-Aeolus is an unusually convincing **operations-research prototype** with a real FastAPI domain model, an OR-Tools recovery engine, replay-oriented tests, a visually ambitious control surface, and a deployable AWS outline. It is not yet a safe or truthful multi-user full-stack product.
+Olus is an unusually convincing **operations-research prototype** with a real FastAPI domain model, an OR-Tools recovery engine, replay-oriented tests, a visually ambitious control surface, and a deployable AWS outline. It is not yet a safe or truthful multi-user full-stack product.
 
 The biggest problem is architectural, not cosmetic: the deployed API exposes a single anonymous, process-wide simulation to every visitor. Any visitor can mutate, reset, reseed, solve, or apply recovery actions to that shared state. That state is then partly persisted through a synchronous SQLite connection mounted on EFS, while the browser intentionally preserves stale optimistic state over authoritative empty server snapshots. This makes isolation, concurrency, recovery, auditability, and horizontal scaling unreliable.
 
@@ -73,9 +73,9 @@ Priority means release impact, not just implementation difficulty.
 
 **Evidence**
 
-- `apps/api/aeolus_api/main.py:227-238` installs one `app.state.engine` for the entire process.
+- `apps/api/olus_api/main.py:227-238` installs one `app.state.engine` for the entire process.
 - The generated OpenAPI document has no security schemes. Fourteen state-changing endpoints are public, including event deletion/triggering, recovery application, solving, simulator reset/reseed, scenario load, weather refresh, and stress/cascade playtests.
-- `apps/api/aeolus_api/main.py:326-328` and `apps/api/aeolus_api/ws/handlers.py:49-65` accept websocket connections without authentication, authorization, origin validation, or a workspace/run boundary.
+- `apps/api/olus_api/main.py:326-328` and `apps/api/olus_api/ws/handlers.py:49-65` accept websocket connections without authentication, authorization, origin validation, or a workspace/run boundary.
 - The same singleton supplies events, recovery plans, flight state, and websocket snapshots to all connected browsers.
 
 **Failure mode**
@@ -98,10 +98,10 @@ Visitor A can reset or apply a plan while visitor B is evaluating a different di
 **Evidence**
 
 - `apps/web/app/docs/page.tsx:107-179` describes three recovery plans and decision variables/constraints for operation, delay, aircraft, crew, continuity, FAR 117, capacity, closures, and crew legality.
-- `apps/api/aeolus_api/optimizer/milp.py:111-122` explicitly describes the present decision space as cancellation and swap; delay is a fixed predicted input. The model construction at `:260-283` creates cancellation variables and AOG-related swaps, not the full advertised network model.
+- `apps/api/olus_api/optimizer/milp.py:111-122` explicitly describes the present decision space as cancellation and swap; delay is a fixed predicted input. The model construction at `:260-283` creates cancellation variables and AOG-related swaps, not the full advertised network model.
 - Crew legality is evaluated after the solve at `milp.py:641-655`; `crew_reassignments` remains empty. The counting path at `:681-745` uses placeholder-like accumulated duty/rest values rather than an authoritative crew roster and pairing model.
 - Spare aircraft can be selected without a complete time/position/type/availability network.
-- `apps/api/aeolus_api/main.py:195` initializes `CascadePredictor()` without a trained model. The predictor describes a deterministic physics path with optional XGBoost, while `apps/web/app/docs/page.tsx:194-245` presents XGBoost performance and training claims as current capability.
+- `apps/api/olus_api/main.py:195` initializes `CascadePredictor()` without a trained model. The predictor describes a deterministic physics path with optional XGBoost, while `apps/web/app/docs/page.tsx:194-245` presents XGBoost performance and training claims as current capability.
 - The methodology page at `apps/web/app/docs/page.tsx:347-370` says Postgres 16/Timescale, Redis 7, XGBoost, Fargate, and an SVG map. The repository currently uses SQLite/in-memory state, no Redis, an EC2-backed ECS service, and Leaflet.
 
 **Failure mode**
@@ -122,10 +122,10 @@ A returned low-cost plan may violate an airport, aircraft, crew, time, or networ
 
 **Evidence**
 
-- The engine has an `_event_lock` around only one trigger path (`apps/api/aeolus_api/simulator/engine.py:167,236-245`). Cancel, reset, reseed, apply, and unapply paths at `:382-569` mutate the same state outside that lock.
-- The reset route (`apps/api/aeolus_api/routes/simulator.py:51-57`) mutates state without broadcasting a new authoritative snapshot, leaving existing websocket clients stale.
+- The engine has an `_event_lock` around only one trigger path (`apps/api/olus_api/simulator/engine.py:167,236-245`). Cancel, reset, reseed, apply, and unapply paths at `:382-569` mutate the same state outside that lock.
+- The reset route (`apps/api/olus_api/routes/simulator.py:51-57`) mutates state without broadcasting a new authoritative snapshot, leaving existing websocket clients stale.
 - Scenario load resets and triggers multiple events as a sequence rather than a single transactional command; a mid-sequence failure leaves a partial scenario.
-- `apps/api/aeolus_api/persistence/repository.py:68-120` uses one synchronous `sqlite3` connection with `check_same_thread=False` and per-operation commits from async request paths.
+- `apps/api/olus_api/persistence/repository.py:68-120` uses one synchronous `sqlite3` connection with `check_same_thread=False` and per-operation commits from async request paths.
 - `infra/terraform/main.tf:606-643` places the SQLite file on EFS. SQLite locking/latency over a network filesystem, a process singleton, and one ECS task prevent safe horizontal scaling.
 
 **Required change**
@@ -169,14 +169,14 @@ Use a monotonic server `revision`, make complete snapshots authoritative even wh
 
 ### AEO-006 — the fleet endpoint contract is broken
 
-The web requests `/network/aircraft` in `apps/web/app/simulator/page.tsx:136` and `components/simulator/page-shell.tsx:55`; the backend defines `/aircraft` in `apps/api/aeolus_api/routes/network.py:59` under `/api/v1`. A rendered simulator request returned 404, so fleet labels can silently degrade.
+The web requests `/network/aircraft` in `apps/web/app/simulator/page.tsx:136` and `components/simulator/page-shell.tsx:55`; the backend defines `/aircraft` in `apps/api/olus_api/routes/network.py:59` under `/api/v1`. A rendered simulator request returned 404, so fleet labels can silently degrade.
 
 Choose one resource path, generate the client from OpenAPI, and add a contract smoke test that boots API + web and exercises every server-side proxy call. The currently unused `packages/schemas` is not a contract solution: the web does not import it and CI does not validate it.
 
 ### AEO-007 — API, websocket, relay, and browser hardening are absent
 
-- `apps/api/aeolus_api/config.py:16,21-25,58` defaults debug on, CORS to `*`, and retains a `change-me` JWT setting even though auth is not implemented.
-- `apps/api/aeolus_api/main.py:291-297` allows wildcard methods/headers. Websockets lack auth, origin, message size, connection, backpressure, and slow-send limits; broadcast is sequential at `main.py:785-800`.
+- `apps/api/olus_api/config.py:16,21-25,58` defaults debug on, CORS to `*`, and retains a `change-me` JWT setting even though auth is not implemented.
+- `apps/api/olus_api/main.py:291-297` allows wildcard methods/headers. Websockets lack auth, origin, message size, connection, backpressure, and slow-send limits; broadcast is sequential at `main.py:785-800`.
 - Stress, reseed, and playtest payload collections are not bounded before parsing/work begins.
 - `apps/web/app/api/flights-live/route.ts:64-93` makes the OpenSky relay public whenever `OSKY_RELAY_KEY` is unset and may spend server-side OAuth quota.
 - The Next response has no explicit CSP, HSTS, frame, referrer, permissions, MIME-sniffing, or cross-origin isolation policy. The inline global error suppressor in `apps/web/app/layout.tsx:33-64` also forces a CSP exception and hides some failures.
@@ -185,7 +185,7 @@ Add central principal-aware authorization, allowlisted CORS/origins, per-princip
 
 ### AEO-008 — expensive solving can stall the API process
 
-`apps/api/aeolus_api/routes/recovery.py:101-108` calls synchronous `optimizer.solve` directly inside an async route. By contrast, event triggering already uses `asyncio.to_thread`. One long solve can occupy the event loop that also serves health, REST, and websocket clients.
+`apps/api/olus_api/routes/recovery.py:101-108` calls synchronous `optimizer.solve` directly inside an async route. By contrast, event triggering already uses `asyncio.to_thread`. One long solve can occupy the event loop that also serves health, REST, and websocket clients.
 
 Interim: use a bounded executor, a timeout, and a global concurrency semaphore. Product architecture: enqueue immutable solve jobs, process them in isolated workers with CPU/memory/time limits, persist progress, and stream job status. Cancellation must terminate work, not merely hide a result.
 
@@ -496,7 +496,7 @@ Approximate source inventory: 19,199 TSX lines across 78 files; 11,442 Python li
 
 ## Go/no-go gates
 
-Aeolus is ready for a public production launch only when all of the following are true:
+Olus is ready for a public production launch only when all of the following are true:
 
 - [ ] Anonymous traffic cannot mutate shared state or consume unbounded relay/solver resources.
 - [ ] Tenant isolation and authorization are covered by adversarial integration tests.

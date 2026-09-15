@@ -5,7 +5,7 @@ import type { Config } from "tailwindcss"
 import tailwindcssAnimate from "tailwindcss-animate"
 
 /**
- * Tailwind config — Aeolus daylight sky system.
+ * Tailwind config — Olus daylight sky system.
  *
  * Source of truth: apps/web/lib/design-tokens.ts + globals.css.
  *

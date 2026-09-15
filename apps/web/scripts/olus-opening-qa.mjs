@@ -1,0 +1,41 @@
+import { chromium } from 'playwright';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import { createRequire } from 'node:module';
+const require=createRequire(import.meta.url);
+const out='../../docs/verification/opening';fs.mkdirSync(out,{recursive:true});
+const browser=await chromium.launch({channel:'msedge',headless:true});
+const results={checks:[],errors:[],axe:{},viewports:[]};
+const check=(name,ok,detail)=>{results.checks.push({name,pass:!!ok,detail});if(!ok)console.log('FAIL',name,detail)};
+const context=await browser.newContext({viewport:{width:1440,height:900},recordVideo:{dir:out,size:{width:1440,height:900}}});
+await context.addInitScript(()=>{try{localStorage.setItem('olus-cookie-consent','essential')}catch{};window.__intro={};const observer=new MutationObserver(()=>{const mark=document.querySelector('[data-logo-mark]');if(mark&&!window.__intro.mark)window.__intro.mark=mark;const root=document.querySelector('[data-intro-running]');if(root&&!window.__intro.start)window.__intro.start=performance.now();if(document.querySelector('[data-ready=true]')&&!window.__intro.end)window.__intro.end=performance.now()});observer.observe(document,{subtree:true,attributes:true,childList:true})});
+const page=await context.newPage();page.on('pageerror',e=>results.errors.push(e.message));
+await page.goto('http://localhost:3001',{waitUntil:'domcontentloaded'});await page.waitForSelector('[data-ready=true]');await page.waitForTimeout(400);
+const intro=await page.evaluate(()=>({same:window.__intro.mark===document.querySelector('[data-logo-mark]'),duration:window.__intro.end-window.__intro.start,ended:sessionStorage.getItem('olus-intro-seen')}));
+check('same DOM logo survives intro',intro.same,intro);check('intro completes within 2.5 seconds',intro.duration<=2500,intro.duration);
+await page.screenshot({path:out+'/desktop.png'});
+await page.addScriptTag({path:require.resolve('axe-core/axe.min.js')});
+results.axe.opening=await page.evaluate(async()=>{const r=await axe.run({include:[document.querySelector('[data-ready]')]},{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21aa','wcag22aa']}});return r.violations.map(v=>({id:v.id,impact:v.impact,nodes:v.nodes.map(n=>({target:n.target,summary:n.failureSummary}))}))});
+check('opening axe AA',results.axe.opening.length===0,results.axe.opening);
+const menu=page.getByRole('button',{name:'Open navigation'});await menu.hover();await page.waitForTimeout(1200);
+check('mouse hover opens menu',await page.locator('dialog[open]').count()===1);
+check('first focused item is Platform',await page.evaluate(()=>document.activeElement?.textContent?.startsWith('Platform')));
+for(let i=0;i<10;i++)await page.keyboard.press('Tab');check('menu traps keyboard focus',await page.evaluate(()=>!!document.activeElement?.closest('dialog')));
+results.axe.menu=await page.evaluate(async()=>{const r=await axe.run('dialog[open]',{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21aa','wcag22aa']}});return r.violations.map(v=>({id:v.id,nodes:v.nodes.map(n=>n.target)}))});
+check('menu axe AA',results.axe.menu.length===0,results.axe.menu);await page.screenshot({path:out+'/menu.png'});await page.keyboard.press('Escape');await page.waitForTimeout(1500);
+check('Escape closes without reopening',await page.locator('dialog[open]').count()===0);check('close returns focus to trigger',await menu.evaluate(el=>el===document.activeElement));
+await page.mouse.move(1100,700);
+await page.evaluate(()=>window.__olusLenis.scrollTo(700,{duration:1.1}));await page.waitForTimeout(1600);await page.screenshot({path:out+'/hero-scroll.png'});
+await page.evaluate(()=>{const t=window.__olusScrollTrigger.getAll().find(t=>t.trigger?.id==='demo');window.__olusLenis.scrollTo(t.start+(t.end-t.start)*.55,{duration:2.5})});await page.waitForTimeout(4500);await page.screenshot({path:out+'/macbook.png'});
+check('demo timeline playing',await page.evaluate(()=>window.__demoTL&&!window.__demoTL.paused()));await page.getByRole('button',{name:'Pause demo',exact:true}).click();await page.waitForTimeout(200);const time=await page.evaluate(()=>window.__demoTL.time());await page.waitForTimeout(700);check('pause holds demo time',Math.abs(await page.evaluate(()=>window.__demoTL.time())-time)<.02);await page.getByRole('button',{name:'Replay',exact:true}).click();check('replay returns to beginning',await page.evaluate(()=>window.__demoTL.time()<.1));await page.getByRole('button',{name:'Play demo',exact:true}).click();await page.waitForTimeout(1500);
+await page.reload({waitUntil:'domcontentloaded'});await page.waitForSelector('[data-ready=true]');check('reload replays intro',await page.evaluate(()=>!!window.__intro.start));
+const video=page.video();await page.close();await context.close();await video.saveAs(out+'/opening-desktop.webm');check('review recording is nonempty',fs.statSync(out+'/opening-desktop.webm').size>10000);
+for(const width of [320,390,768,1024,1440,1920,2560]){
+ const p=await browser.newPage({viewport:{width,height:900}});p.on('pageerror',e=>results.errors.push(e.message));await p.addInitScript(()=>{localStorage.setItem('olus-cookie-consent','essential');sessionStorage.setItem('olus-intro-seen','1')});await p.goto('http://localhost:3001',{waitUntil:'domcontentloaded'});await p.waitForSelector('[data-ready=true]');await p.waitForTimeout(300);
+ const brightness=await p.locator('[data-hero]').evaluate(el=>getComputedStyle(el).filter);check('hero stays visible at '+width,brightness==='none'||Number(brightness.match(/[\d.]+/)?.[0])>=.79,brightness);
+ const dimensions=await p.evaluate(()=>({overflow:document.documentElement.scrollWidth-innerWidth,h1:document.querySelector('h1').getBoundingClientRect().toJSON(),nav:[...document.querySelector('header').children].map(e=>e.getBoundingClientRect().toJSON())}));results.viewports.push({width,...dimensions});check('no overflow at '+width,dimensions.overflow<=1);
+ if(width===390){await p.screenshot({path:out+'/mobile.png'});await p.locator('#demo').scrollIntoViewIfNeeded();await p.waitForTimeout(500);await p.screenshot({path:out+'/mobile-demo.png'});check('mobile has static readable demo',await p.locator('#demo').getAttribute('data-static')==='true')}
+ if(width===320)await p.screenshot({path:out+'/320.png'});await p.close();
+}
+const reduced=await browser.newPage({viewport:{width:1440,height:900},reducedMotion:'reduce'});await reduced.addInitScript(()=>localStorage.setItem('olus-cookie-consent','essential'));await reduced.goto('http://localhost:3001',{waitUntil:'domcontentloaded'});await reduced.waitForSelector('[data-ready=true]');await reduced.waitForTimeout(700);const pins=await reduced.evaluate(()=>window.__olusScrollTrigger?.getAll().filter(t=>t.pin).map(t=>t.trigger?.id)||[]);check('reduced motion has no pins',pins.length===0,pins);await reduced.screenshot({path:out+'/reduced-motion.png'});await reduced.close();
+check('no browser runtime errors',results.errors.length===0,results.errors);fs.writeFileSync(out+'/results.json',JSON.stringify(results,null,2));await browser.close();console.log(JSON.stringify({checks:results.checks,errors:results.errors},null,2));assert.ok(results.checks.every(c=>c.pass),'See results.json for failing checks');

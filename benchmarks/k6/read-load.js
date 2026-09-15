@@ -8,7 +8,7 @@
  * Note: /network re-parses all YAML files on every request, so its p95 is
  * higher than lightweight endpoints. Latency is reported as trends only.
  *
- *   cd aeolus
+ *   cd olus
  *   k6 run benchmarks/k6/read-load.js
  */
 import { check, sleep } from 'k6';

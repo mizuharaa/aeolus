@@ -1,0 +1,5 @@
+import {chromium} from 'playwright';
+const b=await chromium.launch({channel:'msedge',headless:true});const p=await b.newPage({viewport:{width:1440,height:900}});
+p.on('console',m=>{if(m.type()==='error')console.log('CONSOLE',m.text())});p.on('pageerror',e=>console.log('ERROR',e.message));p.on('requestfailed',r=>console.log('REQUEST',r.url(),r.failure()));
+await p.goto('http://localhost:3001',{waitUntil:'networkidle',timeout:120000});await p.waitForTimeout(5000);
+console.log(JSON.stringify(await p.evaluate(()=>({html:document.documentElement.outerHTML.slice(0,600),body:document.body.innerText.slice(0,500),cover:[...document.querySelectorAll('[data-intro-cover]')].map(e=>({html:e.outerHTML,style:getComputedStyle(e).display})),mounted:document.querySelector('[data-intro-mounted]')?.outerHTML.slice(0,200),scripts:[...document.scripts].filter(s=>s.src).map(s=>s.src),elements:document.elementsFromPoint(700,400).map(e=>({tag:e.tagName,cls:e.className,opacity:getComputedStyle(e).opacity}))})),null,2));await b.close();

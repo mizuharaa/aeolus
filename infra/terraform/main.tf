@@ -146,7 +146,7 @@ resource "aws_security_group" "ecs_host" {
 
 resource "aws_security_group" "task" {
   name        = "${local.name_prefix}-task"
-  description = "ALB access to Aeolus containers"
+  description = "ALB access to Olus containers"
   vpc_id      = aws_vpc.main.id
 
   ingress {
@@ -175,7 +175,7 @@ resource "aws_security_group" "task" {
 
 resource "aws_security_group" "efs" {
   name        = "${local.name_prefix}-efs"
-  description = "NFS from the Aeolus task"
+  description = "NFS from the Olus task"
   vpc_id      = aws_vpc.main.id
 
   ingress {
@@ -250,6 +250,7 @@ resource "aws_efs_access_point" "state" {
   }
 
   root_directory {
+    # Preserve the physical state directory across the product rebrand.
     path = "/aeolus"
     creation_info {
       owner_gid   = 1001

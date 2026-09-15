@@ -6,7 +6,7 @@
 
 import Link from "next/link"
 import type { Route } from "next"
-import { AeolusMark } from "@/components/ds/logo"
+import { OlusMark } from "@/components/ds/logo"
 
 export function LandingFooter() {
   return (
@@ -15,10 +15,10 @@ export function LandingFooter() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 32, flexWrap: "wrap" }}>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, color: "var(--ink)" }}>
-              <AeolusMark size={26} />
+              <OlusMark size={26} />
               <div>
                 <div style={{ fontFamily: "var(--ae-font-display)", fontWeight: 650, fontSize: 15, letterSpacing: "-0.01em" }}>
-                  Aeolus
+                  Olus
                 </div>
                 <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>Open-source OCC reference</div>
               </div>
@@ -80,7 +80,7 @@ export function LandingFooter() {
             gap: 16,
           }}
         >
-          <span>Aeolus is a research artifact. Not a substitute for production OCC software.</span>
+          <span>Olus is a research artifact. Not a substitute for production OCC software.</span>
           <span style={{ fontFamily: "var(--ae-font-mono)" }}>v0.5.0 · Apache 2.0</span>
         </div>
       </div>

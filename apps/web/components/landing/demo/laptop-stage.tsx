@@ -157,7 +157,7 @@ export function LaptopStage({
       ref={rootRef}
       className="dm-laptop"
       data-static={staticMode}
-      aria-label="Aeolus OCC dashboard on a laptop"
+      aria-label="Olus OCC dashboard on a laptop"
     >
       <div ref={rigRef} className="dm-laptop-rig">
         <div ref={lidRef} className="dm-laptop-lid">

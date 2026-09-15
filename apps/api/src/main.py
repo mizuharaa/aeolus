@@ -1,5 +1,5 @@
 """
-Aeolus FastAPI application — entry point.
+Olus FastAPI application — entry point.
 """
 
 import logging
@@ -19,7 +19,7 @@ from src.routes import agent, events, live, network, playtest, predict, recovery
 from src.routes.flights import router as flights_router
 from src.routes.passengers import router as passengers_router
 from src.simulator.engine import SimulationEngine
-from src.store.repository import ScenarioRepository
+from src.store.repository import ScenarioRepository, default_db_path
 from src.weather.client import WeatherClient
 from src.ws.handlers import simulation_ws_handler
 
@@ -189,7 +189,7 @@ def _minimal_network():
 async def lifespan(app: FastAPI):
     import asyncio
 
-    logger.info("Starting Aeolus API...")
+    logger.info("Starting Olus API...")
 
     # Initialise components
     predictor = CascadePredictor()
@@ -228,7 +228,7 @@ async def lifespan(app: FastAPI):
 
     # Scenario persistence — snapshots the timeline + recovery plans on
     # every transition so a restart mid-disruption doesn't lose them.
-    repo_path = Path(__file__).parent.parent / "state" / "aeolus.db"
+    repo_path = default_db_path()
     repository = ScenarioRepository(repo_path)
     engine = SimulationEngine(flights, aircraft, crews, repository=repository)
     if engine.restore_from_repository():
@@ -250,7 +250,7 @@ async def lifespan(app: FastAPI):
     asyncio.create_task(_prefetch_opensky(opensky))
 
     logger.info(
-        "Aeolus ready — %d flights, %d aircraft, %d crew pairings | OpenSky: %s",
+        "Olus ready — %d flights, %d aircraft, %d crew pairings | OpenSky: %s",
         len(flights),
         len(aircraft),
         len(crews),
@@ -263,7 +263,7 @@ async def lifespan(app: FastAPI):
 
     await weather_client.close()
     repository.close()
-    logger.info("Aeolus API shut down cleanly")
+    logger.info("Olus API shut down cleanly")
 
 
 async def _prefetch_opensky(client: OpenSkyClient) -> None:
@@ -276,7 +276,7 @@ async def _prefetch_opensky(client: OpenSkyClient) -> None:
 
 
 app = FastAPI(
-    title="Aeolus API",
+    title="Olus API",
     description="Airline disruption simulation and recovery engine — real flight data via OpenSky Network",
     version="0.2.0",
     lifespan=lifespan,
@@ -323,7 +323,7 @@ async def not_found_handler(request: Request, exc):
         content={
             "error": "route_not_found",
             "detail": f"No flight plan for {request.method} {request.url.path} — this endpoint never departed.",
-            "aeolus": r"  ✈  __/\__   this route isn't on the board",
+            "olus": r"  ✈  __/\__   this route isn't on the board",
             "hint": "Check /docs for the endpoints that actually fly.",
         },
     )
@@ -335,7 +335,7 @@ async def health(request: Request):
     opensky_status = opensky.status() if opensky else {"available": False}
     return {
         "status": "ok",
-        "service": "aeolus-api",
+        "service": "olus-api",
         "version": "0.2.0",
         "opensky": opensky_status,
     }

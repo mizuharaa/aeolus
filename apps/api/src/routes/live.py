@@ -381,7 +381,7 @@ async def get_weather_alerts():
                 NWS_ALERTS_URL,
                 params={"status": "actual", "message_type": "alert", "limit": 250},
                 headers={
-                    "User-Agent": "AeolusOCC/1.0 (aviation-education; contact=aeolus@example.com)"
+                    "User-Agent": "OlusOCC/1.0 (aviation-education; contact=olus@example.com)"
                 },
             )
             resp.raise_for_status()

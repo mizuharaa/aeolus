@@ -158,9 +158,9 @@ const SHORTCUTS: { keys: string; does: string }[] = [
 export default function SettingsPage() {
   const { choice, resolved, set } = useConsoleTheme()
 
-  const [ambient, setAmbient] = useStoredFlag("aeolus-map-ambient", true)
-  const [labels, setLabels] = useStoredFlag("aeolus-map-labels", true)
-  const [announce, setAnnounce] = useStoredFlag("aeolus-announce", true)
+  const [ambient, setAmbient] = useStoredFlag("olus-map-ambient", true)
+  const [labels, setLabels] = useStoredFlag("olus-map-labels", true)
+  const [announce, setAnnounce] = useStoredFlag("olus-announce", true)
 
   const REGISTERS: { id: ThemeChoice; label: string; Icon: typeof Sun; help: string }[] = [
     { id: "light", label: "Light", Icon: Sun, help: "The white board" },
@@ -170,7 +170,7 @@ export default function SettingsPage() {
 
   const resetLayout = () => {
     try {
-      for (const k of ["aeolus-col-w", "aeolus-tl-h", "aeolus-col-open", "aeolus-tl-open"]) {
+      for (const k of ["olus-col-w", "olus-tl-h", "olus-col-open", "olus-tl-open"]) {
         localStorage.removeItem(k)
       }
     } catch {}

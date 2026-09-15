@@ -1,5 +1,5 @@
 /**
- * Ask-Aeolus copilot — rate-limiter benchmark.
+ * Ask-Olus copilot — rate-limiter benchmark.
  *
  * Hammers POST /agent/ask with concurrent VUs and verifies the app-level
  * token bucket (10/min, burst 4 per IP) does its job:

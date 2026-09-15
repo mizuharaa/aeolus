@@ -1,7 +1,7 @@
 /**
  * Quick sanity check — run this first before heavier benchmarks.
  *
- *   cd aeolus
+ *   cd olus
  *   k6 run benchmarks/k6/smoke.js
  *
  *   k6 run -e BASE_URL=http://localhost:8000 benchmarks/k6/smoke.js
@@ -38,7 +38,7 @@ export default function () {
     const res = http.get(`${BASE_URL}/health`, { tags: { name: 'health' } });
     const ok = check(res, {
       'health status 200': (r) => r.status === 200,
-      'health service aeolus-api': (r) => r.json('service') === 'aeolus-api',
+      'health service olus-api': (r) => r.json('service') === 'olus-api',
     });
     failRate.add(!ok);
   });

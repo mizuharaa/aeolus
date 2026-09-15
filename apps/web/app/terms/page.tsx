@@ -2,22 +2,22 @@ import type { Metadata } from "next"
 import { LegalPage } from "@/components/legal/legal-page"
 
 export const metadata: Metadata = {
-  title: "Terms of Service — Aeolus",
-  description: "Terms for using the Aeolus airline-disruption simulator, a research artifact provided as-is.",
+  title: "Terms of Service — Olus",
+  description: "Terms for using the Olus airline-disruption simulator, a research artifact provided as-is.",
 }
 
 export default function TermsPage() {
   return (
     <LegalPage title="Terms of Service" updated="July 4, 2026">
       <p>
-        These terms govern your use of the Aeolus web application and simulator.
-        By using Aeolus you agree to them. Aeolus is an open-source research and
+        These terms govern your use of the Olus web application and simulator.
+        By using Olus you agree to them. Olus is an open-source research and
         demonstration project, not a commercial product.
       </p>
 
-      <h2>1. What Aeolus is</h2>
+      <h2>1. What Olus is</h2>
       <p>
-        Aeolus simulates airline disruptions and computes recovery plans for a
+        Olus simulates airline disruptions and computes recovery plans for a
         <strong> fictional carrier, &quot;Nimbus Air&quot;</strong>. It is a
         modelling and educational tool. It is <strong>not</strong> certified
         operational software, is not a substitute for a real airline Operations
@@ -27,7 +27,7 @@ export default function TermsPage() {
 
       <h2>2. No warranty</h2>
       <p>
-        Aeolus is provided <strong>&quot;as is&quot; and &quot;as available&quot;,
+        Olus is provided <strong>&quot;as is&quot; and &quot;as available&quot;,
         without warranties of any kind</strong>, express or implied, including
         merchantability, fitness for a particular purpose, and non-infringement.
         Outputs — cascades, cost figures, crew-legality flags, carbon estimates —
@@ -38,20 +38,20 @@ export default function TermsPage() {
       <p>
         To the maximum extent permitted by law, the maintainers are not liable
         for any direct, indirect, incidental, consequential, or special damages
-        arising from your use of, or inability to use, Aeolus — including any
+        arising from your use of, or inability to use, Olus — including any
         reliance on its outputs.
       </p>
 
       <h2>4. Acceptable use</h2>
       <ul>
-        <li>Do not use Aeolus for any unlawful purpose or to violate anyone&apos;s rights.</li>
+        <li>Do not use Olus for any unlawful purpose or to violate anyone&apos;s rights.</li>
         <li>Do not attempt to disrupt, overload, or compromise the service or the public data sources it relies on.</li>
-        <li>Do not represent Aeolus outputs as authoritative operational guidance.</li>
+        <li>Do not represent Olus outputs as authoritative operational guidance.</li>
       </ul>
 
       <h2>5. Open-source license</h2>
       <p>
-        The Aeolus source code is released under the <strong>Apache License
+        The Olus source code is released under the <strong>Apache License
         2.0</strong>. Your use, modification, and redistribution of the code are
         governed by that license, which controls over these terms where they
         differ regarding the code itself.
@@ -59,7 +59,7 @@ export default function TermsPage() {
 
       <h2>6. Third-party data & services</h2>
       <p>
-        Aeolus displays public data (FAA, NWS/NOAA, open ADS-B) and uses
+        Olus displays public data (FAA, NWS/NOAA, open ADS-B) and uses
         third-party fonts and map tiles, each subject to its own terms. We make no
         warranty about the availability or accuracy of those third-party sources.
       </p>

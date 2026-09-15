@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Train the Aeolus cascade disruption predictor (XGBoost).
+Train the Olus cascade disruption predictor (XGBoost).
 
 Generates synthetic training data from the YAML network, trains two models:
   - delay_regressor:   predict delay_minutes given disruption features
@@ -216,7 +216,7 @@ def train(n_samples: int, output_dir: Path) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Train Aeolus cascade predictor")
+    parser = argparse.ArgumentParser(description="Train Olus cascade predictor")
     parser.add_argument("--n-samples", type=int, default=50_000, help="Training sample count")
     parser.add_argument("--output-dir", type=str, default="models", help="Model output directory")
     args = parser.parse_args()

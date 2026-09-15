@@ -212,7 +212,7 @@ async function fetchFaa() {
 
 async function fetchNws() {
   try {
-    const r = await fetch(NWS_URL, { headers: { "User-Agent": "(aeolus-occ.app, ops@aeolus-occ.app)", Accept: "application/geo+json" } })
+    const r = await fetch(NWS_URL, { headers: { "User-Agent": "(olus-occ.app, ops@olus-occ.app)", Accept: "application/geo+json" } })
     if (!r.ok) throw new Error(`NWS ${r.status}`)
     return parseNws(await r.json())
   } catch (e) {

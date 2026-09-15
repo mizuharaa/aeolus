@@ -16,8 +16,8 @@ const browser = await chromium.launch()
 const ctx = await browser.newContext({ viewport: { width: +w, height: +h }, deviceScaleFactor: 1 })
 await ctx.addInitScript(([close]) => {
   try {
-    localStorage.setItem("aeolus-cookie-consent", "essential")
-    if (close) localStorage.setItem("aeolus-col-open", "0")
+    localStorage.setItem("olus-cookie-consent", "essential")
+    if (close) localStorage.setItem("olus-col-open", "0")
   } catch {}
 }, [!!closePanel])
 

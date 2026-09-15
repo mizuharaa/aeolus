@@ -6,8 +6,8 @@
  * the old bar carried is still here or has moved somewhere it is easier to
  * reach; nothing was dropped. The moves, and why:
  *
- *   · The BRAND is now the plain word "Aeolus" set in type. The cyclone
- *     AeolusMark and the little plane glyph are both gone from the console —
+ *   · The BRAND is now the plain word "Olus" set in type. The cyclone
+ *     OlusMark and the little plane glyph are both gone from the console —
  *     a mark that has to be explained is decoration on an operations surface,
  *     and the plane icon was doing nothing the word did not already do.
  *   · The THEME SWITCH's three-state control moved into Settings. The bar
@@ -268,7 +268,7 @@ export function BoardBar({ isConnected }: { isConnected: boolean }) {
           whiteSpace: "nowrap",
         }}
       >
-        Aeolus
+        Olus
       </span>
 
       {sep}

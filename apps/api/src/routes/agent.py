@@ -1,5 +1,5 @@
 """
-Ask Aeolus — the grounded dispatcher copilot.
+Ask Olus — the grounded dispatcher copilot.
 
 POST /agent/ask takes a plain-language question, snapshots the live engine
 state (active events, cascade summary, recovery plans, fleet status), and
@@ -154,7 +154,7 @@ def _engine_context(engine) -> str:
     return "\n".join(lines)
 
 
-SYSTEM_PROMPT = """You are Aeolus, the copilot inside an airline Operations Control Center console.
+SYSTEM_PROMPT = """You are Olus, the copilot inside an airline Operations Control Center console.
 The OPS STATE block below is the ground truth from a deterministic simulation engine
 (CP-SAT recovery optimizer + physics cascade predictor). Answer the dispatcher's
 question using ONLY those numbers — never invent flights, costs, or plans that are

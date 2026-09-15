@@ -35,8 +35,8 @@ class Settings(BaseSettings):
         return [o.strip() for o in raw.split(",") if o.strip()]
 
     # Database
-    database_url: str = "postgresql+asyncpg://aeolus:aeolus@localhost:5432/aeolus"
-    database_url_sync: str = "postgresql://aeolus:aeolus@localhost:5432/aeolus"
+    database_url: str = "postgresql+asyncpg://olus:olus@localhost:5432/olus"
+    database_url_sync: str = "postgresql://olus:olus@localhost:5432/olus"
     db_pool_size: int = 10
     db_max_overflow: int = 20
 
@@ -61,13 +61,13 @@ class Settings(BaseSettings):
 
     # AWS
     aws_region: str = "us-east-1"
-    s3_bucket: str = "aeolus-artifacts"
+    s3_bucket: str = "olus-artifacts"
     s3_model_prefix: str = "models/"
 
     # Mapbox (for backend validation only)
     mapbox_token: str = ""
 
-    # Gemini — the "Ask Aeolus" copilot. Key comes from env only, never code.
+    # Gemini — the "Ask Olus" copilot. Key comes from env only, never code.
     gemini_api_key: str = ""
     gemini_model: str = "gemini-flash-latest"
     # App-level token bucket for /agent/ask (per client IP)

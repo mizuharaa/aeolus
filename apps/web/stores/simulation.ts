@@ -262,7 +262,7 @@ function pickRecord<V>(
 }
 
 /** Bump the suffix to announce the next feature; the old key just goes stale. */
-const ANNOUNCEMENT_KEY = "aeolus-announcement-drone-incursion"
+const ANNOUNCEMENT_KEY = "olus-announcement-drone-incursion"
 
 export const useSimulationStore = create<SimulationStore>((set, get) => ({
   flightStates: {},
@@ -349,7 +349,7 @@ export const useSimulationStore = create<SimulationStore>((set, get) => ({
     // dashboard boot). Read back by hydrateStaticFromCache().
     try {
       if (schedule.length > 0)
-        sessionStorage.setItem("aeolus-schedule-cache", JSON.stringify({ schedule, ts: Date.now() }))
+        sessionStorage.setItem("olus-schedule-cache", JSON.stringify({ schedule, ts: Date.now() }))
     } catch {}
     set({ schedule })
   },
@@ -357,7 +357,7 @@ export const useSimulationStore = create<SimulationStore>((set, get) => ({
   setFleet: (fleet) => {
     try {
       if (fleet.length > 0)
-        sessionStorage.setItem("aeolus-fleet-cache", JSON.stringify({ fleet, ts: Date.now() }))
+        sessionStorage.setItem("olus-fleet-cache", JSON.stringify({ fleet, ts: Date.now() }))
     } catch {}
     set({ fleet })
   },
@@ -365,14 +365,14 @@ export const useSimulationStore = create<SimulationStore>((set, get) => ({
   hydrateStaticFromCache: () => {
     try {
       if (get().schedule.length === 0) {
-        const raw = sessionStorage.getItem("aeolus-schedule-cache")
+        const raw = sessionStorage.getItem("olus-schedule-cache")
         if (raw) {
           const { schedule } = JSON.parse(raw) as { schedule: ScheduledFlight[]; ts: number }
           if (Array.isArray(schedule) && schedule.length > 0) set({ schedule })
         }
       }
       if (get().fleet.length === 0) {
-        const raw = sessionStorage.getItem("aeolus-fleet-cache")
+        const raw = sessionStorage.getItem("olus-fleet-cache")
         if (raw) {
           const { fleet } = JSON.parse(raw) as { fleet: FleetAircraft[]; ts: number }
           if (Array.isArray(fleet) && fleet.length > 0) set({ fleet })
@@ -440,7 +440,7 @@ export const useSimulationStore = create<SimulationStore>((set, get) => ({
     // empty map while the next ADS-B fetch is in flight (stops the "constant
     // loading" feel). Read back by hydrateLiveFromCache().
     try {
-      sessionStorage.setItem("aeolus-live-cache", JSON.stringify({ flights, ts: stamp }))
+      sessionStorage.setItem("olus-live-cache", JSON.stringify({ flights, ts: stamp }))
     } catch {}
     set({ liveFlights: flights, liveFlightsTs: stamp })
   },
@@ -448,7 +448,7 @@ export const useSimulationStore = create<SimulationStore>((set, get) => ({
   hydrateLiveFromCache: () => {
     if (get().liveFlights.length > 0) return
     try {
-      const raw = sessionStorage.getItem("aeolus-live-cache")
+      const raw = sessionStorage.getItem("olus-live-cache")
       if (!raw) return
       const { flights, ts } = JSON.parse(raw) as { flights: LiveFlight[]; ts: number }
       // Only trust a recent cache (90s) — older than that and the positions

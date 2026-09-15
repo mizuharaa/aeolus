@@ -1,10 +1,6 @@
 /**
- * Landing page — "control-tower editorial".
- *
- * Warm beige paper, huge ink type with cobalt/violet/amber ribbon masks,
- * and a pinned cinematic demo of one full recovery loop (agent command →
- * cursor → cascade → four plans → commit). All staging lives in
- * LandingScrollExperience; this file is just the route.
+ * Olus aviation opening and preserved interactive MacBook demo.
+ * Remaining sections retain their current implementations pending staged review.
  */
 
 import { LandingScrollExperience } from "@/components/landing/scroll-experience"

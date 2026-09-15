@@ -34,7 +34,7 @@ import {
 } from "react"
 import { CloudLightning, FileText, LayoutGrid, Leaf, Route, Users } from "lucide-react"
 import { gsap } from "@/components/landing/gsap"
-import { AeolusMark } from "@/components/ds/logo"
+import { OlusMark } from "@/components/ds/logo"
 import { DemoMap } from "@/components/landing/demo/demo-map"
 import { AgentCommandDemo } from "@/components/landing/demo/agent-command-demo"
 import { CursorChoreography } from "@/components/landing/demo/cursor-choreography"
@@ -90,6 +90,8 @@ export function CinematicSimulatorDemo() {
   const tlRef = useRef<gsap.core.Timeline | null>(null)
   const [staticMode, setStaticMode] = useState(false)
   const [screenReady, setScreenReady] = useState(false)
+  const [paused, setPaused] = useState(false)
+  const pausedRef = useRef(false)
   const sceneRef = useRef(0)
   // 0 nominal · 1 disrupted/hold · 2 recovering · 3 stable — drives the plane loop
   const phaseRef = useRef(0)
@@ -103,8 +105,11 @@ export function CinematicSimulatorDemo() {
   }, [])
 
   useEffect(() => {
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    setStaticMode(reduced)
+    const preference = window.matchMedia("(prefers-reduced-motion: reduce), (max-width: 639px)")
+    const sync = () => setStaticMode(preference.matches)
+    sync()
+    preference.addEventListener("change", sync)
+    return () => preference.removeEventListener("change", sync)
   }, [])
 
   const connectScreen = useCallback((node: HTMLDivElement | null) => {
@@ -398,7 +403,7 @@ export function CinematicSimulatorDemo() {
         let playing = false
         const syncPlayback = () => {
           const progress = landingScroll.scenes.demo
-          const shouldPlay = progress > 0.36 && progress < 0.88
+          const shouldPlay = progress > 0.36 && progress < 0.88 && !pausedRef.current && !document.hidden
           if (shouldPlay === playing) return
           playing = shouldPlay
           if (shouldPlay) {
@@ -422,7 +427,7 @@ export function CinematicSimulatorDemo() {
             scrollTrigger: {
               trigger: root,
               start: "top top",
-              end: mobile ? "+=300%" : "+=520%",
+              end: mobile ? "+=240%" : "+=320%",
               scrub: 1.1,
               pin: true,
               pinSpacing: true,
@@ -460,7 +465,8 @@ export function CinematicSimulatorDemo() {
   const seekTo = (i: number) => {
     const tl = tlRef.current
     if (!tl) return
-    tl.play(SCENE_STARTS[i] + 0.05)
+    tl.seek(SCENE_STARTS[i] + 0.05)
+    if (!pausedRef.current) tl.play()
   }
 
   return (
@@ -473,15 +479,22 @@ export function CinematicSimulatorDemo() {
       style={{ position: "relative" }}
     >
       <div className="dm-pin">
+        <div className="olus-demo-controls">
+          <span>Illustrative recovery · Nimbus Air</span>
+          {!staticMode && <button type="button" aria-pressed={paused} onClick={() => {
+            pausedRef.current = !pausedRef.current
+            setPaused(pausedRef.current)
+          }}>{paused ? "Play demo" : "Pause demo"}</button>}
+          {!staticMode && <button type="button" onClick={() => { tlRef.current?.seek(0); sceneRef.current = -1 }}>Replay</button>}
+          <a href="/simulator">Open the workspace ↗</a>
+        </div>
         {/* the text appears first, then dissolves into the animation */}
-        <div className="dm-headline" style={{ display: staticMode ? "none" : undefined }}>
+        <div className="dm-headline">
           <h2 className="dm-headline-title">
-            Trigger a storm.{" "}
-            <span>Wake to a recovered network.</span>
+            One disruption.{" "}
+            <span>Every decision, in view.</span>
           </h2>
-          <p className="dm-headline-sub">
-            One full recovery loop — event to committed plan — played inside the real console.
-          </p>
+          <p className="dm-headline-sub">{staticMode ? "A storm closes ATL. Compare four recovery options, inspect crew legality, then review the selected plan. Open the workspace to run your own scenario." : "One full recovery loop — event to committed plan — played inside the real console."}</p>
         </div>
 
         <div className="dm-product-wrap">
@@ -508,8 +521,8 @@ export function CinematicSimulatorDemo() {
               }}
             >
               <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                <AeolusMark size={16} style={{ color: "var(--dk-text)" }} />
-                <span className="demo-chrome-label" style={{ color: "var(--dk-text)" }}>Aeolus OCC</span>
+                <OlusMark size={16} style={{ color: "var(--dk-text)" }} />
+                <span className="demo-chrome-label" style={{ color: "var(--dk-text)" }}>Olus OCC</span>
               </span>
               <span className="demo-chrome-label lp-hide-mobile">Nimbus Air · 202 flights</span>
               <span className="demo-chrome-label" style={{ marginLeft: "auto" }}>14:31Z</span>
@@ -868,6 +881,7 @@ export function CinematicSimulatorDemo() {
             return (
               <button
                 key={s.n}
+                disabled={staticMode}
                 className="dm-cap"
                 data-active={active}
                 onClick={() => !staticMode && seekTo(i)}

@@ -8,15 +8,15 @@ permissions:
   id-token: write
 
 concurrency:
-  group: aeolus-aws-production
+  group: olus-aws-production
   cancel-in-progress: false
 
 env:
   AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
-  ECS_CLUSTER: ${{ vars.ECS_CLUSTER || 'aeolus-prod' }}
-  ECS_SERVICE: ${{ vars.ECS_SERVICE || 'aeolus-prod' }}
-  API_REPOSITORY: ${{ vars.API_ECR_REPOSITORY || 'aeolus-prod-api' }}
-  WEB_REPOSITORY: ${{ vars.WEB_ECR_REPOSITORY || 'aeolus-prod-web' }}
+  ECS_CLUSTER: ${{ vars.ECS_CLUSTER || 'olus-prod' }}
+  ECS_SERVICE: ${{ vars.ECS_SERVICE || 'olus-prod' }}
+  API_REPOSITORY: ${{ vars.API_ECR_REPOSITORY || 'olus-prod-api' }}
+  WEB_REPOSITORY: ${{ vars.WEB_ECR_REPOSITORY || 'olus-prod-web' }}
 
 jobs:
   deploy:

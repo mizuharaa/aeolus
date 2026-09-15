@@ -1,5 +1,5 @@
 """
-Aeolus simulation engine.
+Olus simulation engine.
 
 Manages the simulation clock, applies disruption events, tracks schedule
 state changes, coordinates between the cascade predictor and recovery
@@ -61,7 +61,7 @@ class SimulationState:
 
 class SimulationEngine:
     """
-    Core simulation engine for Aeolus.
+    Core simulation engine for Olus.
 
     Owns:
       - The canonical schedule (dict of flight dicts)

@@ -15,7 +15,7 @@ from src.core.config import settings
 
 def _add_app_info(logger: Any, method: str, event_dict: EventDict) -> EventDict:
     """Add application-level metadata to every log record."""
-    event_dict["app"] = "aeolus-api"
+    event_dict["app"] = "olus-api"
     event_dict["env"] = settings.app_env
     return event_dict
 

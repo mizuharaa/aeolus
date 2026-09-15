@@ -1,5 +1,5 @@
-variable "aws_region" {
-  description = "AWS region for Aeolus"
+﻿variable "aws_region" {
+  description = "AWS region for Olus"
   type        = string
   default     = "us-east-1"
 }
@@ -18,7 +18,7 @@ variable "environment" {
 variable "project_name" {
   description = "Resource name prefix"
   type        = string
-  default     = "aeolus"
+  default     = "olus"
 }
 
 variable "vpc_cidr" {
@@ -52,12 +52,12 @@ variable "service_desired_count" {
 
   validation {
     condition     = contains([0, 1], var.service_desired_count)
-    error_message = "Aeolus must use zero or one task until simulation state is externalized."
+    error_message = "Olus must use zero or one task until simulation state is externalized."
   }
 }
 
 variable "domain_name" {
-  description = "Optional Route 53 hostname, for example aeolus.example.com"
+  description = "Optional Route 53 hostname, for example olus.example.com"
   type        = string
   default     = ""
 }
@@ -89,7 +89,7 @@ variable "budget_alert_email" {
 variable "github_repository" {
   description = "GitHub owner/repository allowed to assume the deployment role"
   type        = string
-  default     = "mizuharaa/aeolus"
+  default     = "mizuharaa/olus"
 }
 
 variable "create_github_oidc_provider" {
@@ -108,8 +108,9 @@ variable "common_tags" {
   description = "Tags applied to all supported resources"
   type        = map(string)
   default = {
-    Project   = "aeolus"
+    Project   = "olus"
     ManagedBy = "terraform"
     Purpose   = "portfolio"
   }
 }
+

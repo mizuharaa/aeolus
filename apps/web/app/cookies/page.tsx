@@ -2,16 +2,16 @@ import type { Metadata } from "next"
 import { LegalPage } from "@/components/legal/legal-page"
 
 export const metadata: Metadata = {
-  title: "Cookie Policy — Aeolus",
-  description: "The first-party functional storage Aeolus uses, and how to control it.",
+  title: "Cookie Policy — Olus",
+  description: "The first-party functional storage Olus uses, and how to control it.",
 }
 
 export default function CookiesPage() {
   return (
     <LegalPage title="Cookie Policy" updated="July 4, 2026">
       <p>
-        This policy explains the cookies and cookie-like browser storage Aeolus
-        uses. In short: Aeolus uses only <strong>first-party functional
+        This policy explains the cookies and cookie-like browser storage Olus
+        uses. In short: Olus uses only <strong>first-party functional
         storage</strong> to remember your preferences. It sets no advertising
         cookies and performs no cross-site tracking.
       </p>
@@ -20,16 +20,16 @@ export default function CookiesPage() {
       <p>
         &quot;Cookies&quot; are small files a site stores in your browser.
         &quot;Local storage&quot; is a similar browser mechanism for keeping small
-        values on your device. Aeolus relies mainly on <strong>local
+        values on your device. Olus relies mainly on <strong>local
         storage</strong> rather than traditional cookies.
       </p>
 
-      <h2>2. What Aeolus stores</h2>
+      <h2>2. What Olus stores</h2>
       <ul>
-        <li><code>aeolus-cookie-consent</code> — your choice on this banner (Accept all / Essential only), so we don&apos;t ask again.</li>
-        <li><code>aeolus-theme</code> — light/dark preference, where applicable.</li>
-        <li><code>aeolus-map-focused</code> — whether the simulator map is in focus mode.</li>
-        <li><code>aeolus-rail-collapsed</code> — whether the simulator side navigation is collapsed.</li>
+        <li><code>olus-cookie-consent</code> — your choice on this banner (Accept all / Essential only), so we don&apos;t ask again.</li>
+        <li><code>olus-theme</code> — light/dark preference, where applicable.</li>
+        <li><code>olus-map-focused</code> — whether the simulator map is in focus mode.</li>
+        <li><code>olus-rail-collapsed</code> — whether the simulator side navigation is collapsed.</li>
       </ul>
       <p>
         All of the above are <strong>strictly functional</strong>: they exist to
@@ -37,7 +37,7 @@ export default function CookiesPage() {
         device.
       </p>
 
-      <h2>3. What Aeolus does not use</h2>
+      <h2>3. What Olus does not use</h2>
       <ul>
         <li>No advertising or marketing cookies.</li>
         <li>No cross-site or third-party tracking pixels.</li>
@@ -46,7 +46,7 @@ export default function CookiesPage() {
       <p>
         Third parties that serve fonts and map tiles (Google Fonts, rsms.me,
         CARTO/OpenStreetMap) may set their own technical cookies under their own
-        policies; Aeolus does not read or share them.
+        policies; Olus does not read or share them.
       </p>
 
       <h2>4. Managing your choices</h2>
@@ -60,7 +60,7 @@ export default function CookiesPage() {
       <h2>5. More information</h2>
       <p>
         See our <a href="/privacy">Privacy Policy</a> for the full picture of how
-        Aeolus handles data, and our <a href="/terms">Terms of Service</a> for the
+        Olus handles data, and our <a href="/terms">Terms of Service</a> for the
         terms of use.
       </p>
     </LegalPage>

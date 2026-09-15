@@ -1,5 +1,5 @@
 /**
- * Shared k6 config for Aeolus benchmarks.
+ * Shared k6 config for Olus benchmarks.
  *
  * Override at runtime:
  *   k6 run -e BASE_URL=http://localhost:8000 benchmarks/k6/smoke.js

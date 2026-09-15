@@ -1,4 +1,4 @@
-# Aeolus — Airline Disruption Simulation & Recovery Engine
+﻿# Olus — Airline Disruption Simulation & Recovery Engine
 
 ![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white)
@@ -16,7 +16,7 @@ Airline operational disruptions — weather, mechanical failures, crew duty limi
 
 Traditional airline operations control (AOC) systems rely on manual recovery decisions made under extreme time pressure with incomplete information. Dispatchers juggle spreadsheets, phone calls, and aging terminals to reassign aircraft, reroute crews, and reaccommodate passengers — often optimising one constraint while unknowingly violating another.
 
-**Aeolus** gives operations engineers, researchers, and airline strategists a platform to:
+**Olus** gives operations engineers, researchers, and airline strategists a platform to:
 
 - **Simulate** realistic disruption scenarios across a full flight network
 - **Predict** cascade failures before they propagate
@@ -29,7 +29,7 @@ It runs on a synthetic carrier — **Nimbus Air** — and optionally overlays *l
 
 ## Design Philosophy: a deterministic in-memory simulator
 
-Aeolus is intentionally **stateless and in-memory**. On startup the API loads the
+Olus is intentionally **stateless and in-memory**. On startup the API loads the
 Nimbus Air network from YAML and holds the entire world in process — there is **no
 database, no cache, no message queue, and no auth tier** to provision. Every
 simulation run is deterministic and reproducible, which makes the engine easy to
@@ -144,15 +144,15 @@ events.
 **Prerequisites:** Docker ≥ 24 and Docker Compose ≥ 2.20.
 
 ```bash
-git clone https://github.com/mizuharaa/aeolus.git
-cd aeolus
+git clone https://github.com/mizuharaa/olus.git olus
+cd olus
 docker compose up --build
 ```
 
-Two services start: `aeolus-api` (FastAPI, port 8000) and `aeolus-web`
+Two services start: `olus-api` (FastAPI, port 8000) and `olus-web`
 (Next.js, port 3000). No external database or cache is provisioned — the API
 loads its network from YAML at startup. Simulation/scenario state (disruption
-timeline, recovery plans) is persisted locally to `apps/api/state/aeolus.db`
+timeline, recovery plans) is persisted locally to `apps/api/state/olus.db`
 (SQLite) so a restart mid-scenario doesn't lose it; see
 `apps/api/NONDETERMINISM.md` for what replay does and doesn't pin.
 
@@ -305,7 +305,7 @@ state snapshot).
 ## Project Structure
 
 ```
-aeolus/
+olus/
 ├── apps/
 │   ├── api/                       # FastAPI backend (in-memory)
 │   │   ├── Dockerfile
@@ -384,7 +384,7 @@ poetry run python ../../scripts/generate_network.py
 
 ## License
 
-MIT License — Copyright (c) 2026 Aeolus Contributors
+MIT License — Copyright (c) 2026 Olus Contributors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -394,4 +394,5 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 ---
 
-*Named after Aeolus, keeper of the winds in Greek mythology — because in aviation, the wind always has the final say.*
+*Named after Olus, keeper of the winds in Greek mythology — because in aviation, the wind always has the final say.*
+

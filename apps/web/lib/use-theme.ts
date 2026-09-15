@@ -36,7 +36,7 @@ import { useCallback, useEffect, useState } from "react"
 export type ThemeChoice = "dark" | "light" | "system"
 export type ResolvedTheme = "dark" | "light"
 
-const KEY = "aeolus-console-theme"
+const KEY = "olus-console-theme"
 
 export function resolveTheme(choice: ThemeChoice): ResolvedTheme {
   if (choice === "system") {
@@ -52,19 +52,7 @@ export function resolveTheme(choice: ThemeChoice): ResolvedTheme {
  * Inlined into <head> so the register is decided before first paint.
  * Kept deliberately tiny and dependency-free — it runs as a raw string.
  */
-export const themeInitScript = `
-(function(){
-  try {
-    var c = localStorage.getItem(${JSON.stringify(KEY)}) || "light";
-    var r = c === "system"
-      ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
-      : c;
-    document.documentElement.setAttribute("data-console-theme", r);
-  } catch (e) {
-    document.documentElement.setAttribute("data-console-theme", "light");
-  }
-})();
-`
+
 
 export function useConsoleTheme() {
   const [choice, setChoice] = useState<ThemeChoice>("light")

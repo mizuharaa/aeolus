@@ -221,7 +221,7 @@ export function FlightDetailPanel({
  * menu with nothing in it is decoration shaped like a control.
  *
  * Bookmark is WIRED. A real watchlist already existed in `my-flights.tsx`,
- * privately, on `localStorage["aeolus-watched-flights"]` — see
+ * privately, on `localStorage["olus-watched-flights"]` — see
  * `lib/use-watchlist.ts`, which lifts it so both surfaces share one list. The
  * button is a real toggle with a distinct pressed state, so it also reports
  * whether this flight is already tracked, which the strip could not say before.

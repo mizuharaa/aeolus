@@ -1,6 +1,6 @@
 "use client"
 /**
- * IdentityBand — the AEOLUS wordmark, painted twice so the descending aircraft
+ * IdentityBand — the OLUS wordmark, painted twice so the descending aircraft
  * flies THROUGH the letters instead of past them.
  *
  * Two fixed layers straddle the aircraft's canvas in the same stacking context:
@@ -64,7 +64,7 @@ function Band({ front }: { front?: boolean }) {
   return (
     <div className="ae-wm-band">
       <MaskedWordmark
-        text="AEOLUS"
+        text="OLUS"
         instanceKey={front ? "band-front" : "band-back"}
         // The faint out-of-letter ribbon pass would otherwise print over the
         // aircraft in the front copy, where only the letterforms should occlude.
@@ -129,7 +129,7 @@ export function IdentityBand() {
 
         <div className="ae-wm-eyebrow">
           <span className="lp-eyebrow" style={{ color: "var(--ink)" }}>
-            Aeolus
+            Olus
           </span>
           <span className="lp-eyebrow">
             Airline disruption &amp; recovery simulator

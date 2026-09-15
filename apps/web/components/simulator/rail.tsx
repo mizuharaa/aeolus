@@ -256,7 +256,7 @@ export function SimulatorRail() {
   useEffect(() => {
     setMounted(true)
     try {
-      if (localStorage.getItem("aeolus-rail-pinned") === "1") setPinned(true)
+      if (localStorage.getItem("olus-rail-pinned") === "1") setPinned(true)
     } catch {}
   }, [])
 
@@ -271,7 +271,7 @@ export function SimulatorRail() {
   const togglePin = () => {
     setPinned((v) => {
       const next = !v
-      try { localStorage.setItem("aeolus-rail-pinned", next ? "1" : "0") } catch {}
+      try { localStorage.setItem("olus-rail-pinned", next ? "1" : "0") } catch {}
       return next
     })
   }
@@ -336,11 +336,11 @@ export function SimulatorRail() {
         }}
       >
         {/* No brand block.
-            The cyclone AeolusMark used to sit here with the wordmark beside
+            The cyclone OlusMark used to sit here with the wordmark beside
             it. Both are gone from the console: the mark because a logo that
             has to be explained is decoration on an operations surface, and
             the wordmark because the board bar three pixels to the right
-            already says AEOLUS — the rail was printing the product name a
+            already says OLUS — the rail was printing the product name a
             second time in the operator's peripheral vision, permanently, and
             spending 56px of the nav column to do it.
 

@@ -88,9 +88,9 @@ export default function SimulatorPage() {
   const [tlOpen, setTlOpen] = useState(true)
   const [announce, setAnnounce] = useState(true)
 
-  const colW = useResizable("aeolus-col-w", COL_W, COL_W_MIN, COL_W_MAX, "left")
+  const colW = useResizable("olus-col-w", COL_W, COL_W_MIN, COL_W_MAX, "left")
   // "top": the timeline is BELOW this handle. See the header note.
-  const tlH = useResizable("aeolus-tl-h", TL_H, TL_H_MIN, TL_H_MAX, "top")
+  const tlH = useResizable("olus-tl-h", TL_H, TL_H_MIN, TL_H_MAX, "top")
 
   // One breakpoint, one behaviour change. Below `narrow` the column becomes a
   // full-width sheet, because a 300px docked column plus a 56px rail leaves a
@@ -106,17 +106,17 @@ export default function SimulatorPage() {
 
   useEffect(() => {
     try {
-      if (localStorage.getItem("aeolus-col-open") === "0") setColOpen(false)
-      if (localStorage.getItem("aeolus-tl-open") === "0") setTlOpen(false)
-      if (localStorage.getItem("aeolus-announce") === "0") setAnnounce(false)
+      if (localStorage.getItem("olus-col-open") === "0") setColOpen(false)
+      if (localStorage.getItem("olus-tl-open") === "0") setTlOpen(false)
+      if (localStorage.getItem("olus-announce") === "0") setAnnounce(false)
     } catch {}
   }, [])
-  useEffect(() => { try { localStorage.setItem("aeolus-col-open", colOpen ? "1" : "0") } catch {} }, [colOpen])
-  useEffect(() => { try { localStorage.setItem("aeolus-tl-open", tlOpen ? "1" : "0") } catch {} }, [tlOpen])
+  useEffect(() => { try { localStorage.setItem("olus-col-open", colOpen ? "1" : "0") } catch {} }, [colOpen])
+  useEffect(() => { try { localStorage.setItem("olus-tl-open", tlOpen ? "1" : "0") } catch {} }, [tlOpen])
 
   const dismissAnnounce = useCallback(() => {
     setAnnounce(false)
-    try { localStorage.setItem("aeolus-announce", "0") } catch {}
+    try { localStorage.setItem("olus-announce", "0") } catch {}
   }, [])
 
   const selectedSched = useMemo(
@@ -216,7 +216,7 @@ export default function SimulatorPage() {
     const note = (feed: string) => (err: unknown) => {
       if (cancelled) return
       failed.push(feed)
-      console.error(`[aeolus] ${feed} feed failed:`, err)
+      console.error(`[olus] ${feed} feed failed:`, err)
     }
 
     const schedulePromise = apiClient

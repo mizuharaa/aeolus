@@ -1,6 +1,6 @@
 "use client"
 /**
- * AgentBubble — "Ask Aeolus", the grounded OCC copilot.
+ * AgentBubble — "Ask Olus", the grounded OCC copilot.
  *
  * A floating pill in the dashboard's bottom-right that expands into a chat
  * panel. Every question is answered by the backend /agent/ask route, which
@@ -15,7 +15,7 @@
 import { useEffect, useRef, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { CornerDownLeft, X } from "lucide-react"
-import { AeolusMark } from "@/components/ds/logo"
+import { OlusMark } from "@/components/ds/logo"
 import { apiClient } from "@/lib/api"
 
 const INK = "#1A1622"
@@ -108,9 +108,9 @@ export function AgentBubble() {
                 flexShrink: 0,
               }}
             >
-              <AeolusMark size={17} style={{ color: BONE }} accent={AMBER} />
+              <OlusMark size={17} style={{ color: BONE }} accent={AMBER} />
               <span style={{ fontFamily: "var(--ae-font-display)", fontWeight: 650, fontSize: 13.5 }}>
-                Aeolus copilot
+                Olus copilot
               </span>
               <span
                 style={{
@@ -240,7 +240,7 @@ export function AgentBubble() {
                   onChange={(e) => setInput(e.target.value)}
                   disabled={busy}
                   placeholder={busy ? "Thinking…" : "Ask about events, plans, costs…"}
-                  aria-label="Ask the Aeolus copilot"
+                  aria-label="Ask the Olus copilot"
                   style={{
                     flex: 1,
                     background: "none",
@@ -280,7 +280,7 @@ export function AgentBubble() {
           (design.md), and opening a chat panel is the least consequential act
           available up here, well below Reset or Commit. It now wears the same
           hairline treatment as every other bar control, and the mark is gone
-          with the rest of the AeolusMark removals. A sparkle glyph would just
+          with the rest of the OlusMark removals. A sparkle glyph would just
           be the same mistake in a different costume, so the affordance is the
           word. */}
       <motion.button
@@ -304,7 +304,7 @@ export function AgentBubble() {
           whiteSpace: "nowrap",
         }}
       >
-        Ask Aeolus
+        Ask Olus
       </motion.button>
     </div>
   )

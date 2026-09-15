@@ -2,30 +2,30 @@ import type { Metadata } from "next"
 import { LegalPage } from "@/components/legal/legal-page"
 
 export const metadata: Metadata = {
-  title: "Privacy Policy — Aeolus",
-  description: "How Aeolus handles data. Aeolus is a research artifact that stores only first-party functional data.",
+  title: "Privacy Policy — Olus",
+  description: "How Olus handles data. Olus is a research artifact that stores only first-party functional data.",
 }
 
 export default function PrivacyPage() {
   return (
     <LegalPage title="Privacy Policy" updated="July 4, 2026">
       <p>
-        Aeolus is an open-source airline-disruption simulation and recovery
+        Olus is an open-source airline-disruption simulation and recovery
         engine, published as a research and demonstration artifact. This policy
-        explains what data the Aeolus web application handles and why. It is
-        written to be plain and honest — Aeolus is deliberately built to collect
+        explains what data the Olus web application handles and why. It is
+        written to be plain and honest — Olus is deliberately built to collect
         as little as possible.
       </p>
 
       <h2>1. Who we are</h2>
       <p>
-        &quot;Aeolus&quot;, &quot;we&quot;, and &quot;our&quot; refer to the maintainers of the
-        Aeolus project. The simulator models a fictional carrier, &quot;Nimbus
+        &quot;Olus&quot;, &quot;we&quot;, and &quot;our&quot; refer to the maintainers of the
+        Olus project. The simulator models a fictional carrier, &quot;Nimbus
         Air&quot;, and does not process real passenger, booking, or ticketing data.
       </p>
 
       <h2>2. What we collect</h2>
-      <p>Aeolus is designed to run without accounts and without a tracking backend. The application stores:</p>
+      <p>Olus is designed to run without accounts and without a tracking backend. The application stores:</p>
       <ul>
         <li>
           <strong>Functional preferences</strong> kept in your browser&apos;s local
@@ -52,7 +52,7 @@ export default function PrivacyPage() {
 
       <h2>3. Third-party services</h2>
       <p>
-        To render the experience, Aeolus may request assets and public data from
+        To render the experience, Olus may request assets and public data from
         third parties, subject to their own privacy terms:
       </p>
       <ul>
@@ -71,7 +71,7 @@ export default function PrivacyPage() {
 
       <h2>5. Your rights</h2>
       <p>
-        Because Aeolus does not maintain user accounts or personal records, there
+        Because Olus does not maintain user accounts or personal records, there
         is generally no personal profile to access, correct, or delete. You can
         clear all locally stored preferences at any time from your browser
         settings. If a specific hosted deployment holds data about you, contact
@@ -88,7 +88,7 @@ export default function PrivacyPage() {
       </p>
 
       <h2>7. Children</h2>
-      <p>Aeolus is a technical tool not directed to children under 16, and we do not knowingly collect their data.</p>
+      <p>Olus is a technical tool not directed to children under 16, and we do not knowingly collect their data.</p>
 
       <h2>8. Changes</h2>
       <p>

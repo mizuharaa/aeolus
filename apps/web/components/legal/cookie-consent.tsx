@@ -1,12 +1,12 @@
 "use client"
 /**
  * CookieConsent — a GDPR/ePrivacy-style consent banner shown until the visitor
- * makes a choice. Aeolus sets only first-party functional storage (theme, map
+ * makes a choice. Olus sets only first-party functional storage (theme, map
  * focus, rail collapse, and this consent record) — no third-party ad/analytics
  * cookies — so the banner offers Accept / Reject / details, records the choice
  * in localStorage, and never blocks the page. Mounted once in the root layout.
  *
- * The choice is stored under `aeolus-cookie-consent` as "all" | "essential".
+ * The choice is stored under `olus-cookie-consent` as "all" | "essential".
  * Reject still keeps essential functional storage (needed for the app to work)
  * but signals that no optional analytics should ever be initialised.
  */
@@ -14,7 +14,7 @@
 import Link from "next/link"
 import { useEffect, useState } from "react"
 
-const KEY = "aeolus-cookie-consent"
+const KEY = "olus-cookie-consent"
 
 export function CookieConsent() {
   const [open, setOpen] = useState(false)

@@ -1,5 +1,5 @@
 output "application_url" {
-  description = "Public Aeolus URL"
+  description = "Public Olus URL"
   value       = local.app_origin
 }
 

@@ -5,7 +5,7 @@
  * ── Why plan view, and why drawn rather than photographed or modelled ──────
  *
  * The reference detail card shows a 3/4 photograph of the airframe. Two
- * reasons this does not: Aeolus flies a synthetic carrier (Nimbus Air) so no
+ * reasons this does not: Olus flies a synthetic carrier (Nimbus Air) so no
  * such photograph exists, and design.md's honest-copy rule means a stock photo
  * of a real Southwest 737 standing in for a simulated Nimbus leg would be
  * asserting something false about the data. Mounting the landing's GLB in an

@@ -7,7 +7,7 @@
  */
 
 import { AGENT_LINES } from "@/components/landing/demo/demo-data"
-import { AeolusMark } from "@/components/ds/logo"
+import { OlusMark } from "@/components/ds/logo"
 
 export function AgentCommandDemo({ staticMode }: { staticMode: boolean }) {
   return (
@@ -29,8 +29,8 @@ export function AgentCommandDemo({ staticMode }: { staticMode: boolean }) {
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 9 }}>
-        <AeolusMark size={15} style={{ color: "var(--dk-text)" }} accent="var(--dk-amber)" />
-        <span className="demo-chrome-label">Aeolus agent</span>
+        <OlusMark size={15} style={{ color: "var(--dk-text)" }} accent="var(--dk-amber)" />
+        <span className="demo-chrome-label">Olus agent</span>
         <span className="demo-chrome-label" style={{ marginLeft: "auto", color: "var(--dk-teal)" }}>
           demo
         </span>

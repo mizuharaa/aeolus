@@ -1,5 +1,5 @@
 -- ============================================================
--- Aeolus — PostgreSQL 16 + TimescaleDB initialization
+-- Olus — PostgreSQL 16 + TimescaleDB initialization
 -- ============================================================
 
 -- Enable required extensions
@@ -197,5 +197,5 @@ $$;
 
 -- The app user (set via POSTGRES_USER in docker-compose) gets all needed perms.
 -- In production, create a read-only analytics role:
--- CREATE ROLE aeolus_readonly;
--- GRANT SELECT ON ALL TABLES IN SCHEMA public TO aeolus_readonly;
+-- CREATE ROLE olus_readonly;
+-- GRANT SELECT ON ALL TABLES IN SCHEMA public TO olus_readonly;

@@ -1,4 +1,4 @@
-"""Quick end-to-end smoke test for the Aeolus simulator without HTTP."""
+"""Quick end-to-end smoke test for the Olus simulator without HTTP."""
 import asyncio
 import sys
 sys.path.insert(0, ".")

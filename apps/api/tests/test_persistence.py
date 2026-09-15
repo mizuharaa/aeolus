@@ -121,7 +121,7 @@ def _without_timing(plans: list[dict]) -> list[dict]:
 
 
 def test_restart_persists_airspace_closure_mid_disruption(tmp_path):
-    db_path = tmp_path / "aeolus.db"
+    db_path = tmp_path / "olus.db"
 
     repo = ScenarioRepository(db_path)
     engine = SimulationEngine(FLIGHTS, AIRCRAFT, CREWS, repository=repo)
@@ -150,7 +150,7 @@ def test_restart_persists_airspace_closure_mid_disruption(tmp_path):
 
 
 def test_replay_twice_produces_identical_plans(tmp_path):
-    db_path = tmp_path / "aeolus.db"
+    db_path = tmp_path / "olus.db"
 
     repo = ScenarioRepository(db_path)
     engine = SimulationEngine(FLIGHTS, AIRCRAFT, CREWS, repository=repo)

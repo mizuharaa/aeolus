@@ -1,6 +1,6 @@
 "use client"
 /**
- * Aeolus Design System Primitives — five-pigment system.
+ * Olus Design System Primitives — five-pigment system.
  *
  * Do NOT inline new hex codes anywhere outside lib/design-tokens.ts /
  * globals.css; if you need a new color it goes in tokens first, then here.

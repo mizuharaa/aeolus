@@ -1,0 +1,14 @@
+/* Olus: aviation photography, operational type, semantic recovery color. */
+:root {
+  --ink-900:#05070A; --ink-800:#0A0E14; --ink-700:#11161E; --ink-600:#1A222D; --ink-500:#27323F;
+  --bone-050:#F7F5F1; --bone-100:#ECE8E1; --bone-200:#D8D2C8;
+  --text-hi:#F4F2ED; --text-mid:#9AA5B1; --text-lo:#6B7785; --text-inv:#0A0E14;
+  --disrupt:#FF7A1A; --disrupt-dim:#C2560F; --recover:#2FE3A0; --recover-dim:#17A874;
+  --critical:#FF4757; --neutral-arc:#4C82F7; --control-border:#73818F; --focus-light:#116448;
+  --grad-recovery:linear-gradient(135deg,var(--disrupt),var(--recover));
+  --grad-night:linear-gradient(180deg,var(--ink-900),#0A1420 55%,#12283A);
+  --grad-dawn:linear-gradient(180deg,#12283A,#3A4F63 40%,var(--bone-100));
+  --grad-atmos:radial-gradient(circle at 50% 55%,rgba(76,130,247,.45),rgba(255,122,26,.18) 55%,transparent 72%);
+  --olus-ease:cubic-bezier(.22,1,.36,1);
+  --olus-overlay:linear-gradient(180deg,rgba(5,7,10,.58),rgba(5,7,10,.12) 23%,rgba(5,7,10,.6) 48%,rgba(5,7,10,.8) 75%,rgba(5,7,10,.94));
+}
