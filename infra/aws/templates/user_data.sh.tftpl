@@ -1,0 +1,69 @@
+#!/bin/bash
+# cloud-init runs this once, as root, on first boot. Output: /var/log/cloud-init-output.log
+set -euxo pipefail
+
+dnf install -y docker cronie
+systemctl enable --now docker crond
+usermod -aG docker ec2-user
+
+# AL2023 has no compose package, so the plugin binary is fetched directly.
+install -d /usr/local/lib/docker/cli-plugins
+curl -fsSL --retry 5 --retry-delay 3 \
+  -o /usr/local/lib/docker/cli-plugins/docker-compose \
+  "https://github.com/docker/compose/releases/download/${docker_compose_version}/docker-compose-linux-aarch64"
+chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+
+# The api image runs as uid 1001, so the host side of the bind mount must be
+# writable by that uid or SQLite fails to open the database read-write.
+install -d -o 1001 -g 1001 /opt/olus/state
+
+cat > /opt/olus/docker-compose.yml <<'COMPOSE'
+${compose_file}
+COMPOSE
+
+cat > /opt/olus/.env <<'ENVFILE'
+AWS_REGION=${region}
+ECR_REGISTRY=${ecr_registry}
+BACKUP_BUCKET=${backup_bucket}
+ENVFILE
+chmod 600 /opt/olus/.env
+
+# Nightly copy of the SQLite file. AL2023 ships the aws CLI; the instance role
+# grants PutObject on this bucket only.
+cat > /etc/cron.daily/olus-backup <<'BACKUP'
+#!/bin/sh
+set -e
+. /opt/olus/.env
+[ -f /opt/olus/state/olus.db ] || exit 0
+aws s3 cp /opt/olus/state/olus.db \
+  "s3://$BACKUP_BUCKET/state/olus-$(date +%F).db" --region "$AWS_REGION"
+BACKUP
+chmod +x /etc/cron.daily/olus-backup
+
+# Brings the app back after a reboot or a panic-stop resume.
+# Restart=on-failure with no start limit is deliberate: on the very first boot
+# the ECR repositories are still empty, so `compose up` fails until the deploy
+# workflow pushes the first images, and then this unit picks them up on its own.
+cat > /etc/systemd/system/olus.service <<'UNIT'
+[Unit]
+Description=Olus containers
+Requires=docker.service
+After=docker.service network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/olus
+ExecStartPre=/bin/sh -c 'aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${ecr_registry}'
+ExecStart=/usr/bin/docker compose -f /opt/olus/docker-compose.yml up -d --pull always
+ExecStop=/usr/bin/docker compose -f /opt/olus/docker-compose.yml down
+Restart=on-failure
+RestartSec=60
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+systemctl daemon-reload
+systemctl enable --now olus.service

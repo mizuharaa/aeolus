@@ -1,0 +1,12 @@
+.terraform/
+*.tfstate
+*.tfstate.*
+terraform.tfvars
+# Windows/local state lock file written by `terraform apply`
+.terraform.tfstate.lock.info
+crash.log
+crash.*.log
+
+# The root .gitignore hides every .terraform.lock.hcl; this one belongs in git so
+# provider versions are pinned for whoever applies next.
+!.terraform.lock.hcl

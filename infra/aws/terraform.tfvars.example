@@ -1,0 +1,20 @@
+# cp terraform.tfvars.example terraform.tfvars   (terraform.tfvars is gitignored)
+# Every value below is already the default; override only what you need.
+
+aws_region    = "us-east-1"
+instance_type = "t4g.small"
+alert_email   = "luong.alois@gmail.com"
+
+# Set to false if this AWS account already has the GitHub Actions OIDC provider
+# (it is an account-level singleton and a second one fails with EntityAlreadyExists).
+create_github_oidc_provider = true
+# github_oidc_provider_arn  = "arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com"
+
+github_repository = "mizuharaa/olus"
+
+# Hostname CloudFront serves the API on. Empty = *.cloudfront.net only.
+api_domain = "api.olus.sh"
+
+# Set true only after the ACM validation CNAMEs from `terraform output
+# vercel_dns_commands` are live in the Vercel zone.
+domain_validated = false
