@@ -1,4 +1,5 @@
 """Run from apps/api: python tests/check_brand_storage.py."""
+
 import sys
 import tempfile
 from pathlib import Path

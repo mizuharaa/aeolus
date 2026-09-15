@@ -67,7 +67,9 @@ def _now() -> str:
 
 
 def default_db_path(state_dir: Path | None = None) -> Path:
-    directory = state_dir if state_dir is not None else Path(__file__).resolve().parents[2] / "state"
+    directory = (
+        state_dir if state_dir is not None else Path(__file__).resolve().parents[2] / "state"
+    )
     legacy = directory / "aeolus.db"
     # ponytail: reuse the live legacy DB including its WAL; rename only during a coordinated offline migration.
     return legacy if legacy.exists() else directory / "olus.db"
