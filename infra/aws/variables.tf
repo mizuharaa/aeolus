@@ -52,6 +52,28 @@ variable "github_repository" {
   default     = "mizuharaa/olus"
 }
 
+# GitHub embeds immutable owner/repo IDs in the OIDC subject
+# (repo:owner@ownerId/repo@repoId:ref:...) whenever a repo has been renamed or
+# transferred, specifically so a trust policy written for the old name cannot
+# be inherited by whoever gets that name next. This repo was renamed
+# aeolus -> olus on 2026-09-16, so the plain "repo:owner/repo:ref:..." string
+# never matches and AssumeRoleWithWebIdentity fails with a bare "Not
+# authorized" (confirmed via the real subject in the CloudTrail
+# AssumeRoleWithWebIdentity denial event, which AWS does not include in the
+# GitHub Actions error message). These IDs are permanent even across a future
+# rename, so this is the correct long-term match, not a workaround.
+variable "github_owner_id" {
+  description = "GitHub numeric owner id (immutable across renames); see the comment above"
+  type        = string
+  default     = "84390611"
+}
+
+variable "github_repo_id" {
+  description = "GitHub numeric repository id (immutable across renames); see the comment above"
+  type        = string
+  default     = "1222607663"
+}
+
 variable "create_github_oidc_provider" {
   description = "False if the account-level GitHub OIDC provider already exists (it is a singleton)"
   type        = bool

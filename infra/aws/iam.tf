@@ -102,10 +102,13 @@ resource "aws_iam_role" "github_deploy" {
       Principal = {
         Federated = var.create_github_oidc_provider ? aws_iam_openid_connect_provider.github[0].arn : var.github_oidc_provider_arn
       }
+      # sub uses the owner@ownerId/repo@repoId form GitHub actually issues for a
+      # renamed repository -- see the github_owner_id/github_repo_id comment in
+      # variables.tf. A plain owner/repo string here silently never matches.
       Condition = {
         StringEquals = {
           "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-          "token.actions.githubusercontent.com:sub" = "repo:${var.github_repository}:ref:refs/heads/main"
+          "token.actions.githubusercontent.com:sub" = "repo:${split("/", var.github_repository)[0]}@${var.github_owner_id}/${split("/", var.github_repository)[1]}@${var.github_repo_id}:ref:refs/heads/main"
         }
       }
     }]
