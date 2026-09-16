@@ -130,8 +130,14 @@ resource "aws_iam_role_policy" "github_deploy" {
       },
       {
         Effect = "Allow"
+        # BatchGetImage read is required alongside the writes: build-push-action
+        # pushes an OCI image index plus an attestation manifest, and buildx
+        # reads the manifest back to attach the attestation. Push-only fails
+        # with "not authorized to perform ecr:BatchGetImage" even though every
+        # write action is already granted.
         Action = [
           "ecr:BatchCheckLayerAvailability",
+          "ecr:BatchGetImage",
           "ecr:CompleteLayerUpload",
           "ecr:GetDownloadUrlForLayer",
           "ecr:InitiateLayerUpload",
