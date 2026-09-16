@@ -23,8 +23,9 @@ function Invoke-Aws {
   return $out
 }
 
-$account = (aws sts get-caller-identity --query Account --output text)
-$arn     = (aws sts get-caller-identity --query Arn --output text)
+$account = (aws sts get-caller-identity --query Account --output text 2>$null)
+$arn     = (aws sts get-caller-identity --query Arn --output text 2>$null)
+if ([string]::IsNullOrWhiteSpace($arn)) { throw 'No AWS session. Run:  aws login   (browser sign-in as root), then re-run this script.' }
 Write-Host "Signed in as $arn"
 if ($arn -notmatch ':root$') { throw 'Run this from the root aws login session; it creates the first IAM user.' }
 

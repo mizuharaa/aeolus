@@ -30,7 +30,7 @@ resource "aws_security_group" "app" {
   # list counts as 55 rules against the group's default quota of 60, so another
   # reference fails the apply with RulesPerSecurityGroupLimitExceeded.
   ingress {
-    description     = "CloudFront -> api"
+    description     = "CloudFront to api"
     from_port       = 8000
     to_port         = 8000
     protocol        = "tcp"
