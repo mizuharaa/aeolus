@@ -183,8 +183,7 @@ function mat(color: string, opts: Partial<THREE.MeshPhysicalMaterialParameters> 
  * A vintage business-class pod, facing +x: cognac leather cushions with
  * channel seams, a cream lacquered privacy shell wrapping the back, walnut
  * console armrests with brass trim, a leather ottoman, and a brass plinth.
- * `withLamp` adds a small warm table lamp on the aisle console — those lamp
- * materials are returned on g.userData.lampMats for the idle glow animation.
+ * `withLamp` adds a small warm table lamp on the aisle console.
  */
 function seat(withLamp = false) {
   const g = new THREE.Group()
@@ -313,7 +312,6 @@ function seat(withLamp = false) {
     const shade = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.075, 0.09, 12), lampGlow)
     shade.position.set(-0.2, 0.56, -0.39)
     g.add(stem, shade)
-    g.userData.lampMats = [lampGlow]
   }
 
   return g
@@ -501,7 +499,6 @@ function buildCabin() {
 
   // three banks of business pods, 2-2 across — side profile to the camera
   // (facing the nose, +x). Window pods carry warm brass table lamps.
-  const lampMats: THREE.MeshStandardMaterial[] = []
   let seatIdx = 0
   for (const z of [0.95, WALL_B_Z / 2, WALL_B_Z - 0.95]) {
     for (const x of [-2.6, -1.4, 1.4, 2.6]) {
@@ -509,7 +506,6 @@ function buildCabin() {
       const s = seat(windowSide)
       s.rotation.y = 0
       s.position.set(x, -1.25, z)
-      if (s.userData.lampMats) lampMats.push(...(s.userData.lampMats as THREE.MeshStandardMaterial[]))
       // folded camel blanket on every third ottoman
       if (seatIdx % 3 === 0) {
         const blanket = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.07, 0.4), mat("#C08A4E", { roughness: 0.95 }))
@@ -520,7 +516,6 @@ function buildCabin() {
       seatIdx++
     }
   }
-  root.userData.lampMats = lampMats
 
   // window shades at varied heights on the near wall — a lived-in touch
   for (const [i, x] of WINDOW_XS.entries()) {
@@ -630,7 +625,6 @@ function CabinScene({ progressRef }: { progressRef: React.MutableRefObject<numbe
     else cur.current += (progressRef.current - cur.current) * (1 - Math.exp(-k * Math.min(delta, 0.05)))
     const s = THREE.MathUtils.smoothstep(cur.current, 0, 1)
 
-    const clock = state.clock.elapsedTime
     // Dolly back and straighten up, driven ENTIRELY by scroll.
     //
     // The two `Math.sin(clock)` terms that used to ride on x and y here were
@@ -672,14 +666,16 @@ function CabinScene({ progressRef }: { progressRef: React.MutableRefObject<numbe
     lookTarget.lerpVectors(LOOK_START, LOOK_END, s)
     cam.lookAt(lookTarget)
 
-    // idle life: the brass table lamps breathe — a slow, warm candle-like
-    // glow cycle, each lamp on its own phase
-    const lampMats = cabin.userData.lampMats as THREE.MeshStandardMaterial[] | undefined
-    if (lampMats) {
-      lampMats.forEach((m, i) => {
-        m.emissiveIntensity = 1.5 + Math.sin(clock * 1.3 + i * 1.7) * 0.35
-      })
-    }
+    // NO LAMP BREATHE. A `Math.sin(clock)` cycle on the table lamps'
+    // emissiveIntensity used to sit here as "idle life". It was the only
+    // wall-clock animation in any of the landing's 3D scenes, and because a
+    // material change means the frame is stale it forced this canvas — full
+    // viewport, fifteen lights, physical materials — to re-render forever
+    // while the visitor sat still at the top of the page. Measured on the
+    // production build at 2560x1440: 1,617ms per idle frame, three frames
+    // delivered in four seconds. A glow cycle nobody can see at a third of a
+    // stop is not worth the whole page's frame budget, and design.md bans
+    // glow used as atmosphere anyway. The lamps are lit; they hold.
   })
 
   return (
@@ -869,14 +865,35 @@ export function CabinOpening() {
           // onward. It is now registered like the airliner and only advances
           // while the cabin is actually the active scene.
           frameloop="never"
-          gl={{ antialias: true, alpha: true }}
+          // antialias: false. 4x MSAA is paid on every pixel of a
+          // full-viewport scene, and this shot is a dark interior seen through
+          // a vignette with a scrim over its lower third — the edges it was
+          // smoothing are the porthole surrounds, which are already soft. The
+          // airliner canvas has run without it from the start.
+          gl={{ antialias: false, alpha: true }}
           onCreated={(state) => {
             const { gl } = state
             unregisterCanvasRef.current?.()
             unregisterCanvasRef.current = registerThreeRoot(
               "cabin",
               state,
-              () => landingScroll.active.cabin && !landingScroll.reducedMotion,
+              // The gate asks the LAYER whether it is visible, rather than
+              // re-deriving that from a scene threshold.
+              //
+              // `active.cabin` is set from scene-space `t < 0.54` in
+              // flight-intro-stage, while the fade that actually hides this
+              // canvas is `autoAlpha: 0` at scrollY 0.48 × vh. Two coordinate
+              // systems for one fact, and they disagreed by about two
+              // viewports of scroll: the cabin kept rendering full-viewport,
+              // fifteen lights, `visibility: hidden`, for the whole of it.
+              // Measured at 820x1180: 1,383–2,083ms per frame through that
+              // stretch, against 33ms at the one sample where neither scene
+              // was drawing. GSAP's own inline write is the ground truth, so
+              // read it and the two can no longer drift.
+              () =>
+                landingScroll.active.cabin &&
+                !landingScroll.reducedMotion &&
+                cabinRef.current?.style.visibility !== "hidden",
             )
             // Filmic response instead of clipped linear. Without it the lamp
             // and PSU emissives blew straight to flat white while the leather
@@ -959,25 +976,21 @@ export function CabinOpening() {
       </div>
 
       <style>{`
-        /* One very slow lateral pan — the parallax you get looking out of a
-           window in the cruise, and the only thing in this scene that moves.
-           At 2% of the plate's width over 90s it is far below any flicker
-           threshold and reads as drift rather than as animation. */
+        /* NO PAN. This carried "one very slow lateral pan — the parallax you
+           get looking out of a window in the cruise": 2% of the plate's width
+           over 90s, which is 0.6 device pixels per second at 1440. The note
+           argued it was "far below any flicker threshold", and it was also far
+           below the threshold at which anyone can see it — while costing a
+           permanently promoted, permanently animating full-viewport layer
+           (a will-change hint plus an infinite keyframe) behind the heaviest
+           scene on the page. The static plate is the same picture. */
         .co-sky-plate {
-          animation: co-sky-pan 90s linear infinite alternate;
-          will-change: transform;
-        }
-        @keyframes co-sky-pan {
-          from { transform: translate3d(0, 0, 0) scale(1.02); }
-          to   { transform: translate3d(-2%, 0, 0) scale(1.02); }
+          transform: translate3d(0, 0, 0) scale(1.02);
         }
         @media (max-width: 39.99rem) {
           .co-sky-plate {
             background-image: image-set(url('/images/cruise-sky-mobile.webp') 1x) !important;
           }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .co-sky-plate { animation: none; }
         }
       `}</style>
     </div>

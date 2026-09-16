@@ -290,7 +290,12 @@ export function GlobePlate({
     const layer = markLayerRef.current
     if (!canvas || !layer || size <= 0) return
 
-    const dpr = Math.min(window.devicePixelRatio || 1, 2)
+    // 1.5, not 2. The disc is capped at 780 CSS px, so at dpr 2 this canvas
+    // was a 1560² buffer being cleared and re-stroked on every frame of the
+    // idle rotation — 2.4M pixels for a 780px object. 1.5 is 1.17M for the
+    // same silhouette; the coastline is a 1px stroke and does not read the
+    // difference. Measured at the globe section: 50–83ms frames before.
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5)
     const pixels = Math.round(size * dpr)
     canvas.width = pixels
     canvas.height = pixels
