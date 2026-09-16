@@ -35,6 +35,8 @@ provider "aws" {
       Project     = "olus"
       ManagedBy   = "terraform"
       Environment = "prod"
+      Owner       = var.alert_email
+      Repository  = "https://github.com/${var.github_repository}"
     }
   }
 }
